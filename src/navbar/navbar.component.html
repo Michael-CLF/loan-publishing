@@ -1,0 +1,22 @@
+<nav class="navbar">
+    <div class="navbar-container">
+        <div class="navbar-logo">
+            <a href="/">YourLogo</a>
+        </div>
+
+        <div class="navbar-actions">
+            <!-- Show these links when user is NOT logged in -->
+            <div *ngIf="!isLoggedIn" class="auth-links">
+                <a href="/login" class="login-btn">Log In</a>
+                <a href="/user-form" class="register-btn">Register</a>
+            </div>
+
+            <!-- Show these links when user IS logged in -->
+            <div *ngIf="isLoggedIn" class="user-menu">
+                <a href="/dashboard" class="dashboard-link">Dashboard</a>
+                <a href="/account" class="account-link">My Account</a>
+                <button (click)="logout()" class="logout-btn">Logout</button>
+            </div>
+        </div>
+    </div>
+</nav>

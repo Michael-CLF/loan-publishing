@@ -1,0 +1,83 @@
+.navbar {
+  background-color: #0a2463;
+  color: white;
+  padding: 10px 0;
+  width: 100%;
+  z-index: 3;
+}
+
+.navbar-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 90%;
+  margin: 0 auto;
+}
+
+.navbar-logo a {
+  color: white;
+  text-decoration: none;
+  font-size: 1.5rem;
+  font-weight: bold;
+}
+
+.navbar-actions {
+  display: flex;
+  align-items: center;
+}
+
+.auth-links,
+.user-menu {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.login-btn,
+.register-btn,
+.dashboard-link,
+.account-link {
+  color: white;
+  text-decoration: none;
+  padding: 5px 10px;
+}
+
+.register-btn,
+.logout-btn {
+  background-color: #008080;
+  border-radius: 4px;
+  padding: 8px 15px;
+  border: none;
+  color: white;
+  cursor: pointer;
+  text-decoration: none;
+  font-family: "Roboto", sans-serif;
+}
+
+.logout-btn {
+  font-size: 1rem;
+}
+
+.login-btn:hover,
+.dashboard-link:hover,
+.account-link:hover {
+  text-decoration: underline;
+}
+
+.register-btn:hover,
+.logout-btn:hover {
+  background-color: #006666;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .navbar-container {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .navbar-actions {
+    width: 100%;
+    justify-content: center;
+  }
+}

@@ -1,0 +1,63 @@
+.container {
+  display: flex;
+  gap: 30px;
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-section,
+.list-section {
+  flex: 1;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+}
+
+.error {
+  color: red;
+  font-size: 0.8rem;
+  margin-top: 5px;
+}
+
+button {
+  padding: 10px 15px;
+  background-color: #3f51b5;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:disabled {
+  background-color: #cccccc;
+}
+
+.success-message {
+  color: green;
+  margin-top: 15px;
+}
+
+.user-card {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 15px;
+  margin-bottom: 15px;
+}
+
+h3 {
+  margin-top: 0;
+}
