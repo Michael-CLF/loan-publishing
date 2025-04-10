@@ -1,0 +1,63 @@
+<div class="login-container">
+    <h2>Log in to Loan Post</h2>
+
+    <!-- Email Request Form -->
+    @if (!showLinkSent && !isVerifying && !errorMessage) {
+    <form [formGroup]="loginForm" (ngSubmit)="sendLoginLink()">
+        <div class="form-group">
+            <label for="email">Email Address</label>
+            <input type="email" id="email" formControlName="email" placeholder="Enter your email address">
+            @if (emailControl?.invalid && (emailControl?.dirty || emailControl?.touched)) {
+            <div class="error-message">
+                @if (emailControl?.errors?.['required']) {
+                <span>Email is required</span>
+                }
+                @if (emailControl?.errors?.['email']) {
+                <span>Please enter a valid email address</span>
+                }
+            </div>
+            }
+        </div>
+
+        <button type="submit" [disabled]="loginForm.invalid || isLoading" class="login-button">
+            @if (!isLoading) {
+            <span>Send Login Link</span>
+            } @else {
+            <span>Sending...</span>
+            }
+        </button>
+
+        <div class="login-options">
+            <p>Don't have an account? <a routerLink="/user-form">Sign up</a></p>
+        </div>
+    </form>
+    }
+
+    <!-- Link Sent Message -->
+    @if (showLinkSent) {
+    <div class="success-message">
+        <h3>Login Link Sent!</h3>
+        <p>We've sent a login link to <strong>{{ loginForm.get('email')?.value }}</strong></p>
+        <p>Please check your email and click the link to log in.</p>
+        <p class="info-text">The link will expire after 15 minutes for security reasons.</p>
+        <button (click)="requestNewLink()" class="secondary-button">Send a new link</button>
+    </div>
+    }
+
+    <!-- Verification Status -->
+    @if (isVerifying) {
+    <div class="verification-message">
+        <h3>Verifying your login...</h3>
+        <div class="loader"></div>
+    </div>
+    }
+
+    <!-- Error Message -->
+    @if (errorMessage) {
+    <div class="error-container">
+        <h3>Login Error</h3>
+        <p>{{ errorMessage }}</p>
+        <button (click)="requestNewLink()" class="secondary-button">Try Again</button>
+    </div>
+    }
+</div>

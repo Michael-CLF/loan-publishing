@@ -1,23 +1,35 @@
-import { ApplicationConfig, provideZoneChangeDetection } from '@angular/core';
-import { provideRouter } from '@angular/router';
-import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
-import { getFirestore, provideFirestore } from '@angular/fire/firestore';
-import { getAuth, provideAuth } from '@angular/fire/auth';
-import { environment } from '../environments/environment';
+// src/app/app.config.ts
 
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import {
-  provideClientHydration,
-  withEventReplay,
-} from '@angular/platform-browser';
+import { provideClientHydration } from '@angular/platform-browser';
+import { provideAnimations } from '@angular/platform-browser/animations';
+import { provideHttpClient } from '@angular/common/http';
+import { FormsModule } from '@angular/forms';
+
+// Import Firebase modules
+import { initializeApp } from '@angular/fire/app';
+import { getFirestore } from '@angular/fire/firestore';
+import { getDatabase } from '@angular/fire/database';
+import { getAuth } from '@angular/fire/auth';
+import { provideFirebaseApp, FirebaseAppModule } from '@angular/fire/app';
+import { provideFirestore, FirestoreModule } from '@angular/fire/firestore';
+import { provideDatabase, DatabaseModule } from '@angular/fire/database';
+import { provideAuth, AuthModule } from '@angular/fire/auth';
+
+import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    provideZoneChangeDetection({ eventCoalescing: true }),
     provideRouter(routes),
-    provideClientHydration(withEventReplay()),
+    provideClientHydration(),
+    provideAnimations(),
+    provideHttpClient(),
+    // Firebase providers
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideFirestore(() => getFirestore()),
-    provideAuth(() => getAuth()), // Auth service
+    provideDatabase(() => getDatabase()),
+    provideAuth(() => getAuth()),
   ],
 };

@@ -1,97 +1,76 @@
-import { Component, OnInit, inject } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  Validators,
   ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
-import { Observable } from 'rxjs';
-import { FirestoreService } from '../services/firestore.service';
-
-// Update the interface to match all your form fields
-interface User {
-  id?: string;
-  firstName: string;
-  lastName: string;
-  company: string;
-  email: string;
-  password: string; // Note: Consider if you really want to store passwords in Firestore
-  phone: string;
-  city: string;
-  state: string;
-  createdAt: Date;
-}
+import { AuthService } from '../services/auth.service';
+import { Router } from '@angular/router';
+import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-user-form',
-  standalone: true, // Add standalone: true for standalone components
-  imports: [ReactiveFormsModule, CommonModule],
+  selector: 'app-register',
+  standalone: true,
   templateUrl: './user-form.component.html',
-  styleUrl: './user-form.component.css',
+  styleUrls: ['./user-form.component.css'],
+  imports: [ReactiveFormsModule, CommonModule],
 })
 export class UserFormComponent implements OnInit {
-  private fb = inject(FormBuilder);
-  private firestoreService = inject(FirestoreService);
-
-  userForm: FormGroup = this.fb.group({
-    firstName: ['', Validators.required],
-    lastName: ['', Validators.required],
-    company: ['', Validators.required],
-    email: ['', [Validators.required, Validators.email]], // Add email validator
-    password: ['', [Validators.required, Validators.minLength(6)]], // Add min length validator
-    phone: ['', Validators.required],
-    city: ['', Validators.required],
-    state: ['', Validators.required],
-  });
-
-  users$!: Observable<User[]>;
+  userForm: FormGroup;
   successMessage: string = '';
   errorMessage: string = '';
+  isLoading: boolean = false;
 
-  ngOnInit(): void {
-    this.users$ = this.firestoreService.getCollection<User>('users');
+  constructor(
+    private fb: FormBuilder,
+    private authService: AuthService,
+    private router: Router
+  ) {
+    this.userForm = this.fb.group({
+      firstName: ['', Validators.required],
+      lastName: ['', Validators.required],
+      company: ['', Validators.required],
+      email: ['', [Validators.required, Validators.email]],
+      phone: ['', Validators.required],
+      city: ['', Validators.required],
+      state: ['', Validators.required],
+    });
   }
+
+  ngOnInit(): void {}
 
   onSubmit(): void {
-    if (this.userForm.valid) {
-      const userData: User = {
-        firstName: this.userForm.value.firstName,
-        lastName: this.userForm.value.lastName,
-        company: this.userForm.value.company,
-        city: this.userForm.value.city,
-        email: this.userForm.value.email,
-        password: this.userForm.value.password,
-        phone: this.userForm.value.phone,
-        state: this.userForm.value.state,
-        createdAt: new Date(),
-      };
-
-      this.firestoreService
-        .addDocument('users', userData)
-        .then(() => {
-          this.successMessage = 'User saved successfully!';
-          this.errorMessage = '';
-          this.userForm.reset();
-          setTimeout(() => (this.successMessage = ''), 3000);
-        })
-        .catch((error: Error) => {
-          // Add explicit type for error
-          console.error('Error adding document: ', error);
-          this.errorMessage = 'Error: Could not save user';
-          this.successMessage = '';
-        });
-    } else {
-      // Mark all controls as touched to show validation errors
+    if (this.userForm.invalid) {
+      // Mark all fields as touched to trigger validation display
       Object.keys(this.userForm.controls).forEach((key) => {
-        const control = this.userForm.get(key);
-        control?.markAsTouched();
+        this.userForm.get(key)?.markAsTouched();
       });
+      return;
     }
-  }
 
-  // Convenience getter for easy access to form fields
-  get f() {
-    return this.userForm.controls;
+    this.isLoading = true;
+    const userData = this.userForm.value;
+
+    // Use the email link registration method
+    this.authService.registerWithEmailOnly(userData.email, userData).subscribe({
+      next: (success) => {
+        this.isLoading = false;
+        if (success) {
+          this.successMessage = `Registration email sent to ${userData.email}. Please check your inbox and click the link to complete registration.`;
+          this.errorMessage = '';
+        } else {
+          this.errorMessage = 'Failed to register. Please try again.';
+          this.successMessage = '';
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        this.errorMessage =
+          'An error occurred during registration. Please try again.';
+        this.successMessage = '';
+        console.error('Registration error:', error);
+      },
+    });
   }
 }
