@@ -1,0 +1,75 @@
+.grid-form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 2rem;
+  max-width: 900px;
+  margin: auto;
+}
+.title {
+  text-align: center;
+  color: #0a2463;
+  font-size: 2.5rem;
+  font-family: "roboto", sans-serif;
+  margin: 30px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+.form-button {
+  text-align: center;
+  margin: 30px;
+  grid-column: span 2;
+}
+.full-width {
+  grid-column: span 2;
+}
+
+label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+}
+
+input,
+select,
+textarea {
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: #0a2463 1px solid;
+  border-radius: 4px;
+}
+select {
+  color: #0a2463;
+  padding: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+}
+.submit-form {
+  color: #fff;
+  background-color: #0a2463;
+  font-size: 1.5rem;
+  border-radius: 4px;
+  padding: 7px 30px 7px 30px;
+}
+
+@media (max-width: 768px) {
+  .grid-form {
+    grid-template-columns: 1fr;
+  }
+
+  .full-width {
+    grid-column: span 1;
+  }
+}
+.error-message {
+  color: #c00000;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+}
+.invalid {
+  border: 2px solid #c00000;
+}

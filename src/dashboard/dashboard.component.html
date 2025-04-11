@@ -1,1 +1,8 @@
-<p>dashboard works!</p>
+<!-- dashboard.component.html -->
+<div *ngIf="userData$ | async as user">
+    <h1>Welcome, {{user.firstName}} {{user.lastName}}!</h1>
+    <div class="user-info">
+        <p>Email: {{user.email}}</p>
+        <!-- Display other user registration fields -->
+    </div>
+</div>
