@@ -16,6 +16,7 @@ import {
 } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
 import { Router } from '@angular/router';
+import { environment } from '../environments/environment';
 
 @Injectable({
   providedIn: 'root',
@@ -42,12 +43,25 @@ export class AuthService {
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);
 
+    // Debug which environment is being used
+    if (this.isBrowser) {
+      console.log(
+        'Firebase Config Check:',
+        environment.firebase.apiKey ? 'API Key exists' : 'API Key missing',
+        'Auth Domain:',
+        environment.firebase.authDomain
+      );
+    }
+
     // Initialize actionCodeSettings safely
     this.actionCodeSettings = {
-      // URL you want to redirect to after email link sign-in
+      // For local development, use just the domain without port in the redirect
       url: this.isBrowser
-        ? window.location.origin + '/login/verify'
-        : 'https://yourdomain.com/login/verify',
+        ? window.location.protocol +
+          '//' +
+          window.location.hostname +
+          '/login/verify'
+        : 'https://loanpub.firebaseapp.com/login/verify',
       handleCodeInApp: true,
     };
 
@@ -73,6 +87,14 @@ export class AuthService {
       return of(false); // Can't send email links in SSR
     }
 
+    console.log(
+      'Sending sign-in link to:',
+      email,
+      'with settings:',
+      this.actionCodeSettings
+    );
+
+    // Temporarily modified to expose full error details
     return from(
       sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
     ).pipe(
@@ -83,7 +105,8 @@ export class AuthService {
       map(() => true),
       catchError((error) => {
         console.error('Error sending sign-in link:', error);
-        return of(false);
+        // Throw the error to see full details in the console
+        throw error;
       })
     );
   }

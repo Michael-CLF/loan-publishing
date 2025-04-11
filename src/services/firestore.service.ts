@@ -1,54 +1,75 @@
-// src/services/firestore.service.ts
-import { Injectable, inject, DestroyRef } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
   collection,
-  collectionData,
   doc,
+  collectionData,
   docData,
-  setDoc,
-  deleteDoc,
+  addDoc,
   updateDoc,
+  deleteDoc,
+  query,
+  where,
+  orderBy,
+  limit,
+  DocumentReference,
+  CollectionReference,
+  DocumentData,
 } from '@angular/fire/firestore';
-import { Observable } from 'rxjs';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Observable, from } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+interface WithId {
+  id?: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class FirestoreService {
-  private firestore = inject(Firestore);
-  private destroyRef = inject(DestroyRef);
+  private firestore: Firestore = inject(Firestore);
 
-  getCollection<T>(path: string): Observable<T[]> {
+  // Get a collection with optional query constraints
+  getCollection<T extends DocumentData>(
+    path: string
+  ): Observable<Array<T & { id: string }>> {
     const collectionRef = collection(this.firestore, path);
-    return collectionData(collectionRef, { idField: 'id' }).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ) as Observable<T[]>;
+    return collectionData(collectionRef, { idField: 'id' }) as Observable<
+      Array<T & { id: string }>
+    >;
   }
 
-  getDocument<T>(path: string): Observable<T | null> {
+  // Get a single document
+  getDocument<T extends DocumentData>(
+    path: string
+  ): Observable<(T & { id: string }) | null> {
     const docRef = doc(this.firestore, path);
-    return docData(docRef).pipe(
-      takeUntilDestroyed(this.destroyRef)
-    ) as Observable<T | null>;
+    return docData(docRef, { idField: 'id' }).pipe(
+      map((data) => (data ? (data as T & { id: string }) : null))
+    );
+  }
+  // Add a document to a collection
+  addDocument(path: string, data: any) {
+    const collectionRef = collection(this.firestore, path);
+    return addDoc(collectionRef, data);
   }
 
-  addDocument(collectionPath: string, data: any): Promise<string> {
-    const collectionRef = collection(this.firestore, collectionPath);
-    const docRef = doc(collectionRef);
-    const id = docRef.id;
-
-    return setDoc(docRef, { ...data, id }).then(() => id);
-  }
-
-  updateDocument(path: string, data: any): Promise<void> {
+  // Update a document
+  updateDocument(path: string, data: any) {
     const docRef = doc(this.firestore, path);
     return updateDoc(docRef, data);
   }
 
-  deleteDocument(path: string): Promise<void> {
+  // Delete a document
+  deleteDocument(path: string) {
     const docRef = doc(this.firestore, path);
     return deleteDoc(docRef);
+  }
+
+  // Query a collection
+  queryCollection<T>(path: string, queryFn: any): Observable<T[]> {
+    const collectionRef = collection(this.firestore, path);
+    const queryRef = query(collectionRef, ...queryFn);
+    return collectionData(queryRef, { idField: 'id' }) as Observable<T[]>;
   }
 }

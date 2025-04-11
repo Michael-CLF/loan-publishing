@@ -1,0 +1,30 @@
+.loan-card {
+  height: 300px;
+  width: 20%;
+  border-radius: 4px;
+  overflow: hidden;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loan-header {
+  height: 20%;
+  background-color: #2a9d8f; /* Example: teal */
+  color: white;
+  text-align: center;
+  padding: 0 1rem;
+}
+
+.loan-body {
+  height: 70%;
+  padding: 1rem;
+  background-color: #fff; /* Neutral background for readability */
+}
+
+.loan-footer {
+  height: 10%;
+  background-color: #264653; /* Example: darker teal/navy */
+  color: white;
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+}
