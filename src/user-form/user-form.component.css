@@ -39,14 +39,20 @@ input {
   font-weight: 500;
   font-family: "roboto", sans-serif;
 }
+.button-container {
+  width: 100%;
+  text-align: center;
+}
 
 button {
-  padding: 10px 15px;
-  background-color: #3f51b5;
+  padding: 8px 25px;
+  background-color: #0a2463;
   color: white;
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-family: "roboto", sans-serif;
+  font-size: 1.25rem;
 }
 
 button:disabled {
@@ -63,4 +69,8 @@ button:disabled {
   border-radius: 4px;
   padding: 15px;
   margin-bottom: 15px;
+}
+
+.invalid {
+  border: 2px solid #c00000;
 }

@@ -2,24 +2,26 @@ import { Component, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  Validators,
   ReactiveFormsModule,
+  Validators,
 } from '@angular/forms';
 import { PasswordAuthService } from '../services/password-auth.service';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms';
 
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
-  templateUrl: '../user-form/user-form.component.html',
-  styleUrls: ['../user-form/user-form.component.css'],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './user-form.component.html',
+  styleUrls: ['./user-form.component.css'],
 })
 export class UserFormComponent implements OnInit {
-  userForm!: FormGroup; // Declare the form group property
+  userForm!: FormGroup;
   isLoading = false;
   successMessage = '';
   errorMessage = '';
+  phone: any;
 
   constructor(
     private fb: FormBuilder,
@@ -27,16 +29,62 @@ export class UserFormComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
-    // Initialize the form group here
     this.userForm = this.fb.group({
-      firstName: ['', Validators.required],
-      lastName: ['', Validators.required],
-      company: ['', Validators.required],
+      firstName: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.pattern(/^[A-Za-z ]+$/),
+        ],
+      ],
+      lastName: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.pattern(/^[A-Za-z ]+$/),
+        ],
+      ],
+      company: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.pattern(/^[A-Za-z0-9 ]+$/),
+        ],
+      ],
       email: ['', [Validators.required, Validators.email]],
-      phone: ['', Validators.required],
-      city: ['', Validators.required],
-      state: ['', Validators.required],
+      phone: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^[\d\(\)\-\+\s]*$/),
+          Validators.minLength(14),
+        ],
+      ],
+      city: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.pattern(/^[A-Za-z ]+$/),
+        ],
+      ],
+      state: ['', [Validators.required]],
     });
+  }
+
+  // This method formats the phone number
+  formatPhoneNumber(): void {
+    let phone = this.userForm.get('phone')?.value;
+    if (phone) {
+      phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
+      if (phone.length === 10) {
+        phone = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+        this.userForm.get('phone')?.setValue(phone);
+      }
+    }
   }
 
   onSubmit(): void {

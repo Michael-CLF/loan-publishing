@@ -4,60 +4,124 @@
         <form [formGroup]="userForm" (ngSubmit)="onSubmit()">
             <div class="form-group">
                 <label for="firstName">First Name</label>
-                <input type="text" id="firstName" formControlName="firstName">
-                <div *ngIf="userForm.get('firstName')?.invalid && userForm.get('firstName')?.touched" class="error">
-                    First name is required
+                <input type="text" id="firstName" formControlName="firstName"
+                    [ngClass]="{'invalid': userForm.get('firstName')?.invalid && (userForm.get('firstName')?.touched || userForm.get('firstName')?.dirty)}" />
+                <div *ngIf="userForm.get('firstName')?.invalid && (userForm.get('firstName')?.touched || userForm.get('firstName')?.dirty)"
+                    class="error">
+                    <div *ngIf="userForm.get('firstName')?.errors?.['required']">
+                        *First name is required.
+                    </div>
+                    <div *ngIf="userForm.get('firstName')?.errors?.['minlength']">
+                        *First name must be at least 2 characters.
+                    </div>
+                    <div *ngIf="userForm.get('firstName')?.errors?.['pattern']">
+                        *First name must contain letters only.
+                    </div>
                 </div>
             </div>
 
             <div class="form-group">
                 <label for="lastName">Last Name</label>
-                <input type="text" id="lastName" formControlName="lastName">
+                <input type="text" id="lastName" formControlName="lastName" [ngClass]="{
+                    invalid: userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched
+                  }" />
                 <div *ngIf="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched" class="error">
-                    Last name is required
+                    <div *ngIf="userForm.get('lastName')?.errors?.['required']">
+                        *Last name is required.
+                    </div>
+                    <div *ngIf="userForm.get('lastName')?.errors?.['minlength']">
+                        *Last name must be at least 2 characters.
+                    </div>
+                    <div *ngIf="userForm.get('lastName')?.errors?.['pattern']">
+                        *Last name must contain letters only.
+                    </div>
                 </div>
             </div>
+
             <div class="form-group">
                 <label for="company">Company Name</label>
-                <input type="text" id="company" formControlName="company">
+                <input type="text" id="company" formControlName="company" [ngClass]="{
+                    invalid: userForm.get('company')?.invalid && userForm.get('company')?.touched
+                  }" />
                 <div *ngIf="userForm.get('company')?.invalid && userForm.get('company')?.touched" class="error">
-                    Company name is required
+                    <div *ngIf="userForm.get('company')?.errors?.['required']">
+                        *Company name is required.
+                    </div>
+                    <div *ngIf="userForm.get('company')?.errors?.['minlength']">
+                        *Company name must be at least 2 characters.
+                    </div>
+                    <div *ngIf="userForm.get('company')?.errors?.['pattern']">
+                        *Company name must contain letters only.
+                    </div>
                 </div>
             </div>
+
             <div class="form-group">
                 <label for="email">Email</label>
-                <input type="text" id="email" formControlName="email">
+                <input type="text" id="email" formControlName="email" [ngClass]="{
+                    invalid: userForm.get('email')?.invalid && userForm.get('email')?.touched
+                  }" />
                 <div *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched" class="error">
-                    <span *ngIf="userForm.get('email')?.errors?.['required']">Email is required</span>
-                    <span *ngIf="userForm.get('email')?.errors?.['email']">Please enter a valid email address</span>
+                    <div *ngIf="userForm.get('email')?.errors?.['required']">
+                        *Email is required.
+                    </div>
+                    <div *ngIf="userForm.get('email')?.errors?.['email']">
+                        *Please enter a valid email address.
+                    </div>
                 </div>
             </div>
             <div class="form-group">
                 <label for="phone">Phone</label>
-                <input type="text" id="phone" formControlName="phone">
+                <input id="phone" formControlName="phone" (blur)="formatPhoneNumber()"
+                    [ngClass]="{ invalid: userForm.get('phone')?.invalid && userForm.get('phone')?.touched }" />
                 <div *ngIf="userForm.get('phone')?.invalid && userForm.get('phone')?.touched" class="error">
-                    Phone is required
+                    <div *ngIf="userForm.get('phone')?.errors?.['required']">
+                        *Phone is required.
+                    </div>
+                    <div *ngIf="userForm.get('phone')?.errors?.['pattern']">
+                        *Phone must be a 10-digit number.
+                    </div>
+                    <div *ngIf="userForm.get('phone')?.errors?.['minlength']">
+                        *Phone must be a 10-digit number.
+                    </div>
                 </div>
             </div>
             <div class="form-group">
                 <label for="city">City</label>
-                <input type="text" id="city" formControlName="city">
+                <input type="text" id="city" formControlName="city" [ngClass]="{
+                    invalid: userForm.get('city')?.invalid && userForm.get('city')?.touched
+                  }" />
                 <div *ngIf="userForm.get('city')?.invalid && userForm.get('city')?.touched" class="error">
-                    City is required
+                    <div *ngIf="userForm.get('city')?.errors?.['required']">
+                        *City is required.
+                    </div>
+                    <div *ngIf="userForm.get('city')?.errors?.['minlength']">
+                        *City must be at least 2 characters.
+                    </div>
+                    <div *ngIf="userForm.get('city')?.errors?.['pattern']">
+                        *City must contain letters only.
+                    </div>
                 </div>
             </div>
+
             <div class="form-group">
                 <label for="state">State</label>
-                <input type="text" id="state" formControlName="state">
+                <input type="text" id="state" formControlName="state" [ngClass]="{
+                    invalid: userForm.get('state')?.invalid && userForm.get('state')?.touched
+                  }" />
                 <div *ngIf="userForm.get('state')?.invalid && userForm.get('state')?.touched" class="error">
-                    State is required
+                    <div *ngIf="userForm.get('state')?.errors?.['required']">
+                        *State is required.
+                    </div>
                 </div>
             </div>
+        </form>
+        <div class="button-container">
             <button type="submit" [disabled]="userForm.invalid || isLoading">
                 <span *ngIf="!isLoading">Register</span>
                 <span *ngIf="isLoading">Registering...</span>
             </button>
-        </form>
+        </div>
 
         <div *ngIf="successMessage" class="success-message">
             {{ successMessage }}
