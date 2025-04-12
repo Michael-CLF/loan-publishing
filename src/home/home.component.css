@@ -13,7 +13,6 @@
   font-weight: 400;
   color: #fff;
 }
-
 .button {
   text-align: center;
   margin: 20px 0px 40px;
@@ -88,7 +87,75 @@
   margin-bottom: 0.25rem;
   font-size: 1.75rem;
 }
-
 .step-text p {
   margin: 0;
+}
+.card {
+  margin: 40px;
+}
+.card-header {
+  border-radius: 4px;
+}
+.categories {
+  background-color: #0a2463;
+  padding: 20px;
+  border-radius: 4px 4px 0px 0px;
+}
+.property-types {
+  background-color: #008080;
+  padding: 20px;
+  border-radius: 4px 4px 0px 0px;
+}
+.card-body {
+  color: #0a2463;
+}
+.title {
+  color: #fff;
+}
+
+.headline {
+  color: #0a2463;
+}
+.lender-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding-left: 1rem;
+  list-style-type: none;
+}
+
+.lender-columns li {
+  padding-bottom: 0.5rem;
+}
+.lender-columns {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding-left: 1rem;
+  list-style-type: none;
+}
+.lender-columns li {
+  padding-bottom: 0.5rem;
+  font-weight: 500;
+}
+.property-columns {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 2rem;
+  padding-left: 0;
+}
+
+.property-columns ul {
+  list-style-type: none;
+  padding-left: 1em;
+  margin-top: 0.5em;
+  margin-bottom: 2em;
+}
+.property-columns li {
+  font-weight: 500;
+}
+
+.property-columns strong {
+  display: block;
+  font-size: 1.1em;
 }

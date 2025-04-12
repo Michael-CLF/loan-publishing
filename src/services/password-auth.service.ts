@@ -28,20 +28,24 @@ export class PasswordAuthService {
     ).pipe(
       switchMap((userCredential) => {
         const user = userCredential.user;
+
+        // Generate account number from the first 8 characters of UID
+        const accountNumber = user.uid.substring(0, 8);
+
         return from(
           this.firestoreService.addDocument('users', {
             uid: user.uid,
+            accountNumber: accountNumber, // Add the account number
             ...userData,
             createdAt: new Date(),
           })
         ).pipe(switchMap(() => of(user)));
+      }),
+      catchError((error) => {
+        console.error('Error registering user:', error);
+        return of(null);
       })
     );
-
-    catchError((error) => {
-      console.error('Error registering user:', error);
-      return of(null);
-    });
   }
 
   login(email: string, password: string): Observable<boolean> {

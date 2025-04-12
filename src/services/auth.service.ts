@@ -1,7 +1,7 @@
 import { Injectable, inject, PLATFORM_ID, Inject, NgZone } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { BehaviorSubject, Observable, from, of } from 'rxjs';
-import { switchMap, tap, catchError, map } from 'rxjs/operators';
+import { switchMap, tap, catchError, map, filter, first } from 'rxjs/operators';
 import {
   Auth,
   User,
@@ -38,25 +38,24 @@ export class AuthService {
   private userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
 
-  // Action code settings for email link - initialized in constructor
-  private actionCodeSettings: ActionCodeSettings = {
-    url: 'https://loanpub.firebaseapp.com/login/verify', // Default value
-    handleCodeInApp: true,
-  };
+  // Auth ready state
+  private authReadySubject = new BehaviorSubject<boolean>(false);
+  public authReady$ = this.authReadySubject.asObservable();
 
-  // Track if auth is initialized
-  private authInitialized = false;
+  // Action code settings for email link - initialized in constructor
+  private actionCodeSettings: ActionCodeSettings;
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);
 
+    // Initialize with default values
+    this.actionCodeSettings = {
+      url: 'https://loanpub.firebaseapp.com/login',
+      handleCodeInApp: true,
+    };
+
     if (this.isBrowser) {
-      console.log(
-        'Firebase Config Check:',
-        environment.firebase.apiKey ? 'API Key exists' : 'API Key missing',
-        'Auth Domain:',
-        environment.firebase.authDomain
-      );
+      console.log('Auth Service initializing...');
 
       // Check localStorage first
       const storedLoginState = localStorage.getItem('isLoggedIn');
@@ -65,133 +64,168 @@ export class AuthService {
         this.isLoggedInSubject.next(true);
       }
 
-      // Update actionCodeSettings with browser info
-      this.actionCodeSettings = {
-        url:
-          window.location.protocol +
-          '//' +
-          window.location.hostname +
-          '/login/verify',
-        handleCodeInApp: true,
-      };
-
-      // Initialize the auth state inside NgZone to ensure proper change detection
+      // Update actionCodeSettings with browser info - do this inside NgZone
       this.ngZone.run(() => {
-        // Wait until auth is fully available
-        setTimeout(() => {
-          // Mark auth as initialized
-          this.authInitialized = true;
+        this.actionCodeSettings = {
+          url: window.location.origin + '/login',
+          handleCodeInApp: true,
+        };
+        console.log('Action code settings URL:', this.actionCodeSettings.url);
 
-          // Subscribe to Firebase auth state
-          authState(this.auth).subscribe((user) => {
-            console.log(
-              'Firebase auth state changed:',
-              user ? 'User logged in' : 'No user'
-            );
+        // Subscribe to Firebase auth state
+        authState(this.auth).subscribe((user) => {
+          console.log(
+            'Firebase auth state changed:',
+            user ? 'User logged in' : 'No user'
+          );
 
-            this.ngZone.run(() => {
-              this.userSubject.next(user);
-              this.isLoggedInSubject.next(!!user);
+          this.ngZone.run(() => {
+            this.userSubject.next(user);
+            this.isLoggedInSubject.next(!!user);
 
-              if (user) {
-                localStorage.setItem('isLoggedIn', 'true');
-              } else {
-                localStorage.removeItem('isLoggedIn');
-              }
-            });
+            if (user) {
+              localStorage.setItem('isLoggedIn', 'true');
+            } else {
+              localStorage.removeItem('isLoggedIn');
+            }
+
+            // Mark auth as ready
+            this.authReadySubject.next(true);
           });
-        }, 100); // Small delay to ensure Firebase is ready
+        });
       });
     }
   }
 
-  // Helper to ensure auth is initialized
-  private ensureAuthInitialized(): boolean {
-    if (!this.isBrowser || !this.authInitialized) {
-      console.warn('Auth not initialized yet');
-      return false;
-    }
-    return true;
+  // Helper to ensure auth is initialized or wait for it
+  private waitForAuthInit(): Observable<boolean> {
+    return this.authReady$.pipe(
+      filter((ready) => ready),
+      first()
+    );
   }
 
-  // Send email link for passwordless sign-in
-  sendSignInLink(email: string): Observable<boolean> {
-    if (!this.ensureAuthInitialized()) {
+  // Check if current URL is a sign-in link - FIXED to run inside NgZone
+  isEmailSignInLink(): Observable<boolean> {
+    if (!this.isBrowser) {
       return of(false);
     }
 
-    console.log(
-      'Sending sign-in link to:',
-      email,
-      'with settings:',
-      this.actionCodeSettings
-    );
-
-    return from(
-      sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
-    ).pipe(
-      tap(() => {
-        localStorage.setItem(this.emailForSignInKey, email);
-      }),
-      map(() => true),
-      catchError((error) => {
-        console.error('Error sending sign-in link:', error);
-        throw error;
-      })
-    );
+    // Ensure we're inside NgZone when checking
+    return this.ngZone.run(() => {
+      return this.waitForAuthInit().pipe(
+        map(() => {
+          try {
+            const isLink = isSignInWithEmailLink(
+              this.auth,
+              window.location.href
+            );
+            console.log('Checking if URL is sign-in link:', isLink);
+            return isLink;
+          } catch (error) {
+            console.error('Error checking email sign-in link:', error);
+            return false;
+          }
+        })
+      );
+    });
   }
 
-  // Check if current URL is a sign-in link
-  isEmailSignInLink(): boolean {
-    if (!this.ensureAuthInitialized()) {
-      return false;
+  // Send email link for passwordless sign-in - FIXED to run inside NgZone
+  sendSignInLink(email: string): Observable<boolean> {
+    if (!this.isBrowser) {
+      return of(false);
     }
 
-    try {
-      return isSignInWithEmailLink(this.auth, window.location.href);
-    } catch (error) {
-      console.error('Error checking email sign-in link:', error);
-      return false;
-    }
+    return this.ngZone.run(() => {
+      return this.waitForAuthInit().pipe(
+        switchMap(() => {
+          console.log(
+            'Sending sign-in link to:',
+            email,
+            'with settings:',
+            this.actionCodeSettings
+          );
+
+          return from(
+            sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
+          ).pipe(
+            tap(() => {
+              localStorage.setItem(this.emailForSignInKey, email);
+            }),
+            map(() => true),
+            catchError((error) => {
+              console.error('Error sending sign-in link:', error);
+              return of(false);
+            })
+          );
+        })
+      );
+    });
   }
 
-  // Complete sign-in with email link
+  // Complete sign-in with email link - FIXED to run inside NgZone
   signInWithEmailLink(email?: string): Observable<User | null> {
-    if (!this.ensureAuthInitialized()) {
+    if (!this.isBrowser) {
       return of(null);
     }
 
-    // Get email from storage if not provided
-    const storedEmail = localStorage.getItem(this.emailForSignInKey);
-    const emailToUse = email || storedEmail;
+    return this.ngZone.run(() => {
+      // Get email from storage if not provided
+      const storedEmail = localStorage.getItem(this.emailForSignInKey);
+      const emailToUse = email || storedEmail;
 
-    if (!emailToUse) {
-      return of(null);
-    }
-
-    try {
-      // Check if current URL is a sign-in link
-      if (isSignInWithEmailLink(this.auth, window.location.href)) {
-        return from(
-          signInWithEmailLink(this.auth, emailToUse, window.location.href)
-        ).pipe(
-          tap(() => {
-            // Clear email from storage
-            localStorage.removeItem(this.emailForSignInKey);
-          }),
-          map((userCredential) => userCredential.user),
-          catchError((error) => {
-            console.error('Error signing in with email link:', error);
-            return of(null);
-          })
-        );
-      } else {
+      if (!emailToUse) {
+        console.error('No email available for sign-in with email link');
         return of(null);
       }
-    } catch (error) {
-      console.error('Error in signInWithEmailLink:', error);
-      return of(null);
-    }
+
+      return this.waitForAuthInit().pipe(
+        switchMap(() => {
+          try {
+            // Check if current URL is a sign-in link
+            if (isSignInWithEmailLink(this.auth, window.location.href)) {
+              console.log(
+                'Attempting sign-in with email link for:',
+                emailToUse
+              );
+
+              return from(
+                signInWithEmailLink(this.auth, emailToUse, window.location.href)
+              ).pipe(
+                tap((userCredential) => {
+                  console.log(
+                    'Successfully signed in with email link:',
+                    userCredential.user?.email
+                  );
+                  // Clear email from storage
+                  localStorage.removeItem(this.emailForSignInKey);
+                  // Set login state
+                  localStorage.setItem('isLoggedIn', 'true');
+                  // Redirect to dashboard immediately
+                  const redirectUrl =
+                    localStorage.getItem('redirectUrl') || '/dashboard';
+                  console.log('Redirecting to:', redirectUrl);
+                  this.router.navigate([redirectUrl]);
+                  localStorage.removeItem('redirectUrl');
+                }),
+                map((userCredential) => userCredential.user),
+                catchError((error) => {
+                  console.error('Error signing in with email link:', error);
+                  return of(null);
+                })
+              );
+            } else {
+              console.log('URL is not a sign-in link');
+              return of(null);
+            }
+          } catch (error) {
+            console.error('Error in signInWithEmailLink:', error);
+            return of(null);
+          }
+        })
+      );
+    });
   }
 
   // Get stored email for sign-in
@@ -208,117 +242,102 @@ export class AuthService {
     password: string,
     userData: any
   ): Observable<User> {
-    if (!this.ensureAuthInitialized()) {
+    if (!this.isBrowser) {
       return of(null as unknown as User);
     }
 
-    return from(
-      createUserWithEmailAndPassword(this.auth, email, password)
-    ).pipe(
-      switchMap((userCredential) => {
-        const user = userCredential.user;
+    return this.ngZone.run(() => {
+      return this.waitForAuthInit().pipe(
+        switchMap(() => {
+          return from(
+            createUserWithEmailAndPassword(this.auth, email, password)
+          ).pipe(
+            switchMap((userCredential) => {
+              const user = userCredential.user;
 
-        return from(
-          this.firestoreService.addDocument('users', {
-            uid: user.uid,
-            firstName: userData.firstName,
-            lastName: userData.lastName,
-            email: userData.email,
-            company: userData.company,
-            phone: userData.phone,
-            city: userData.city,
-            state: userData.state,
-            createdAt: new Date(),
-          })
-        ).pipe(switchMap(() => of(user)));
-      })
-    );
+              return from(
+                this.firestoreService.addDocument('users', {
+                  uid: user.uid,
+                  firstName: userData.firstName,
+                  lastName: userData.lastName,
+                  email: userData.email,
+                  company: userData.company,
+                  phone: userData.phone,
+                  city: userData.city,
+                  state: userData.state,
+                  createdAt: new Date(),
+                })
+              ).pipe(
+                tap(() => {
+                  localStorage.setItem('isLoggedIn', 'true');
+                }),
+                switchMap(() => of(user))
+              );
+            })
+          );
+        })
+      );
+    });
   }
 
   // Login a user with password
   login(email: string, password: string): Observable<boolean> {
-    if (!this.ensureAuthInitialized()) {
+    if (!this.isBrowser) {
       return of(false);
     }
 
-    return from(signInWithEmailAndPassword(this.auth, email, password)).pipe(
-      switchMap(() => of(true)),
-      catchError((error) => {
-        console.error('Login error:', error);
-        return of(false);
-      })
-    );
-  }
-
-  // Register a new user with just email (for email link authentication)
-  registerWithEmailOnly(email: string, userData: any): Observable<boolean> {
-    if (!this.ensureAuthInitialized()) {
-      return of(false);
-    }
-
-    return this.sendSignInLink(email).pipe(
-      tap((success) => {
-        if (success) {
-          localStorage.setItem('pendingUserData', JSON.stringify(userData));
-        }
-      })
-    );
-  }
-
-  // Complete registration after email verification
-  completeRegistration(): Observable<User | null> {
-    if (!this.ensureAuthInitialized()) {
-      return of(null);
-    }
-
-    const pendingUserData = localStorage.getItem('pendingUserData');
-
-    if (!pendingUserData) {
-      return of(null);
-    }
-
-    return this.getCurrentUser().pipe(
-      switchMap((user) => {
-        if (user) {
-          const userData = JSON.parse(pendingUserData);
+    return this.ngZone.run(() => {
+      return this.waitForAuthInit().pipe(
+        switchMap(() => {
+          console.log('Attempting login for:', email);
 
           return from(
-            this.firestoreService.addDocument('users', {
-              uid: user.uid,
-              firstName: userData.firstName,
-              lastName: userData.lastName,
-              email: user.email,
-              company: userData.company,
-              phone: userData.phone,
-              city: userData.city,
-              state: userData.state,
-              createdAt: new Date(),
-            })
+            signInWithEmailAndPassword(this.auth, email, password)
           ).pipe(
             tap(() => {
-              localStorage.removeItem('pendingUserData');
+              console.log('Login successful, setting localStorage');
+              localStorage.setItem('isLoggedIn', 'true');
             }),
-            map(() => user)
+            switchMap(() => {
+              // Check for a stored redirect URL
+              const redirectUrl =
+                localStorage.getItem('redirectUrl') || '/dashboard';
+              console.log('Redirecting to:', redirectUrl);
+              this.router.navigate([redirectUrl]);
+              localStorage.removeItem('redirectUrl');
+              return of(true);
+            }),
+            catchError((error) => {
+              console.error('Login error:', error);
+              return of(false);
+            })
           );
-        }
-
-        return of(null);
-      }),
-      catchError(() => of(null))
-    );
+        })
+      );
+    });
   }
 
   // Logout the user
   logout(): Observable<void> {
-    if (!this.ensureAuthInitialized()) {
+    if (!this.isBrowser) {
       return of(undefined);
     }
 
-    return from(signOut(this.auth)).pipe(
-      tap(() => {
-        localStorage.removeItem('isLoggedIn');
-      })
-    );
+    return this.ngZone.run(() => {
+      return this.waitForAuthInit().pipe(
+        switchMap(() => {
+          console.log('Logging out user');
+
+          return from(signOut(this.auth)).pipe(
+            tap(() => {
+              console.log('Removing isLoggedIn from localStorage');
+              localStorage.removeItem('isLoggedIn');
+              this.router.navigate(['/login']);
+            })
+          );
+        })
+      );
+    });
   }
 
   getAuthStatus(): Observable<boolean> {

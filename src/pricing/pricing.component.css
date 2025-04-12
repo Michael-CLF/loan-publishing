@@ -1,0 +1,95 @@
+.card-container {
+  display: flex;
+  justify-content: center;
+  gap: 40px;
+  margin: 60px 0;
+}
+
+.card {
+  width: 400px;
+  height: 500px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0;
+  border: 1px solid #0a2463;
+  border-radius: 8px;
+  background-color: #f9f9f9;
+  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.card-section {
+  padding: 20px;
+}
+
+.header {
+  background-color: #0a2463;
+  color: #fff;
+  text-align: center;
+  border-top-left-radius: 8px;
+  border-top-right-radius: 8px;
+}
+
+.title {
+  font-size: 2.5rem;
+  font-family: "Roboto", sans-serif;
+  margin: 0;
+}
+
+.content {
+  flex-grow: 1;
+}
+
+.content h4 {
+  font-size: 1.6rem;
+  font-weight: bold;
+  margin-bottom: 16px;
+  font-family: "Roboto", sans-serif;
+}
+
+.feature-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+  padding-left: 20px;
+}
+
+.feature-list li {
+  position: relative;
+  padding-left: 28px;
+  margin-bottom: 12px;
+  font-family: "Roboto", sans-serif;
+}
+
+.feature-list li::before {
+  content: "✔";
+  color: #0a2463;
+  position: absolute;
+  left: 0;
+  top: 0;
+  font-weight: bold;
+}
+
+.footer {
+  text-align: center;
+  padding-bottom: 30px;
+}
+
+.card-button {
+  padding: 8px 25px;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  background-color: #0a2463;
+  font-family: "Roboto", sans-serif;
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.card-button:hover {
+  background-color: #008080;
+}
+.price {
+  text-align: center;
+}

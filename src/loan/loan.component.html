@@ -4,182 +4,168 @@
 
         <!-- Property Type Category -->
         <div class="form-group">
-            <label>Property Type Category</label>
-            <select formControlName="propertyTypeCategory" (change)="onCategoryChange($event)"
-                [ngClass]="{'invalid': propertyForm.get('propertyTypeCategory')?.invalid && propertyForm.get('propertyTypeCategory')?.touched}">
+            <label for="propertyTypeCategory">Property Type Category</label>
+            <select id="propertyTypeCategory" formControlName="propertyTypeCategory" (change)="onCategoryChange($event)"
+                [ngClass]="{'invalid': isInvalid('propertyTypeCategory')}">
                 <option value="">-- Select Category --</option>
-                <option *ngFor="let category of Object.keys(propertyCategories)" [value]="category">
+                <option *ngFor="let category of categoryKeys()" [value]="category">
                     {{ category }}
                 </option>
             </select>
-            <div *ngIf="propertyForm.get('propertyTypeCategory')?.touched && propertyForm.get('propertyTypeCategory')?.invalid"
-                class="error-message">
+            <div *ngIf="isInvalid('propertyTypeCategory')" class="error-message">
                 *Please select a category
             </div>
         </div>
 
         <!-- Property Sub-category -->
         <div class="form-group">
-            <label>Property Sub-category</label>
-            <select formControlName="propertySubCategory"
-                [ngClass]="{'invalid': propertyForm.get('propertySubCategory')?.invalid && propertyForm.get('propertySubCategory')?.touched}">
+            <label for="propertySubCategory">Property Sub-category</label>
+            <select id="propertySubCategory" formControlName="propertySubCategory"
+                [ngClass]="{'invalid': isInvalid('propertySubCategory')}">
                 <option value="">-- Select Sub-category --</option>
-                <option *ngFor="let sub of selectedSubCategories" [value]="sub">
+                <option *ngFor="let sub of selectedSubCategories()" [value]="sub">
                     {{ sub }}
                 </option>
             </select>
-            <div *ngIf="propertyForm.get('propertySubCategory')?.touched && propertyForm.get('propertySubCategory')?.invalid"
-                class="error-message">
+            <div *ngIf="isInvalid('propertySubCategory')" class="error-message">
                 *Please select a sub-category
             </div>
         </div>
+
         <!-- Loan Amount -->
         <div class="form-group">
-            <label>Loan Amount</label>
-            <input type="text" formControlName="loanAmount" (input)="formatLoanAmount($event)"
-                [ngClass]="{'invalid': propertyForm.get('loanAmount')?.invalid && propertyForm.get('loanAmount')?.touched}" />
-            <div *ngIf="propertyForm.get('loanAmount')?.touched && propertyForm.get('loanAmount')?.invalid"
-                class="error-message">
+            <label for="loanAmount">Loan Amount</label>
+            <input type="text" id="loanAmount" formControlName="loanAmount" (input)="formatLoanAmount($event)"
+                [ngClass]="{'invalid': isInvalid('loanAmount')}" />
+            <div *ngIf="isInvalid('loanAmount')" class="error-message">
                 *Enter a valid loan amount
             </div>
-            <div *ngIf="propertyForm.get('loanAmount')?.touched && propertyForm.get('loanAmount')?.hasError('required')"
-                class="error-message">
+            <div *ngIf="hasError('loanAmount', 'required')" class="error-message">
                 *Loan amount is required
             </div>
-            <div *ngIf="propertyForm.get('loanAmount')?.touched && propertyForm.get('loanAmount')?.hasError('minlength')"
-                class="error-message">
-                *Loan amount must be at least 9 characters
+            <div *ngIf="hasError('loanAmount', 'minlength')" class="error-message">
+                *Loan amount must be at least 8 characters
             </div>
         </div>
 
         <!-- Property Value -->
         <div class="form-group">
-            <label>Property Value</label>
-            <input type="text" formControlName="propertyValue" (input)="formatLoanAmount($event)"
-                [ngClass]="{'invalid': propertyForm.get('propertyValue')?.invalid && propertyForm.get('propertyValue')?.touched}" />
-            <div *ngIf="propertyForm.get('propertyValue')?.touched && propertyForm.get('propertyValue')?.invalid"
-                class="error-message">
+            <label for="propertyValue">Property Value</label>
+            <input type="text" id="propertyValue" formControlName="propertyValue" (input)="formatLoanAmount($event)"
+                [ngClass]="{'invalid': isInvalid('propertyValue')}" />
+            <div *ngIf="isInvalid('propertyValue')" class="error-message">
                 *Enter a valid property value
             </div>
-            <div *ngIf="propertyForm.get('propertyValue')?.touched && propertyForm.get('propertyValue')?.hasError('required')"
-                class="error-message">
-                *Loan amount is required
+            <div *ngIf="hasError('propertyValue', 'required')" class="error-message">
+                *Property value is required
             </div>
-            <div *ngIf="propertyForm.get('propertyValue')?.touched && propertyForm.get('propertyValue')?.hasError('minlength')"
-                class="error-message">
-                *Loan amount must be at least 9 characters
+            <div *ngIf="hasError('propertyValue', 'minlength')" class="error-message">
+                *Property value must be at least 8 characters
             </div>
         </div>
 
         <!-- LTV -->
         <div class="form-group">
-            <label>LTV</label>
-            <input type="text" formControlName="ltv"
-                [ngClass]="{'invalid': propertyForm.get('ltv')?.invalid && propertyForm.get('ltv')?.touched}" />
-            <div *ngIf="propertyForm.get('ltv')?.touched && propertyForm.get('ltv')?.invalid" class="error-message">
+            <label for="ltv">LTV</label>
+            <input type="text" id="ltv" formControlName="ltv" [ngClass]="{'invalid': isInvalid('ltv')}" />
+            <div *ngIf="isInvalid('ltv')" class="error-message">
                 *Enter a valid LTV
             </div>
         </div>
 
         <!-- NOI -->
         <div class="form-group">
-            <label>NOI</label>
-            <input type="number" formControlName="noi" placeholder="Optional" />
-            <div *ngIf="propertyForm.get('noi')?.touched && propertyForm.get('noi')?.invalid" class="error-message">
+            <label for="noi">NOI</label>
+            <input type="number" id="noi" formControlName="noi" placeholder="Optional" />
+            <div *ngIf="isInvalid('noi')" class="error-message">
                 *Enter a valid NOI
             </div>
         </div>
 
         <!-- City -->
         <div class="form-group">
-            <label>Property City</label>
-            <input type="text" formControlName="city"
-                [ngClass]="{'invalid': propertyForm.get('city')?.invalid && propertyForm.get('city')?.touched}" />
-            <div *ngIf="propertyForm.get('city')?.touched && propertyForm.get('city')?.invalid" class="error-message">
+            <label for="city">Property City</label>
+            <input type="text" id="city" formControlName="city" [ngClass]="{'invalid': isInvalid('city')}" />
+            <div *ngIf="isInvalid('city')" class="error-message">
                 City is required
             </div>
         </div>
 
         <!-- State -->
         <div class="form-group">
-            <label>Property State</label>
-            <select formControlName="state"
-                [ngClass]="{'invalid': propertyForm.get('state')?.invalid && propertyForm.get('state')?.touched}">
+            <label for="state">Property State</label>
+            <select id="state" formControlName="state" [ngClass]="{'invalid': isInvalid('state')}">
                 <option value="">-- Select State --</option>
-                <option *ngFor="let state of states" [value]="state">
+                <option *ngFor="let state of states()" [value]="state">
                     {{ state }}
                 </option>
             </select>
-            <div *ngIf="propertyForm.get('state')?.touched && propertyForm.get('state')?.invalid" class="error-message">
+            <div *ngIf="isInvalid('state')" class="error-message">
                 Please select a state
             </div>
         </div>
 
         <!-- Number of Sponsors -->
         <div class="form-group">
-            <label>Number of Sponsors</label>
-            <input type="text" formControlName="numberOfSponsors"
-                [ngClass]="{'invalid': propertyForm.get('numberOfSponsors')?.invalid && propertyForm.get('numberOfSponsors')?.touched}" />
-            <div *ngIf="propertyForm.get('numberOfSponsors')?.touched && propertyForm.get('numberOfSponsors')?.invalid"
-                class="error-message">
+            <label for="numberOfSponsors">Number of Sponsors</label>
+            <input type="text" id="numberOfSponsors" formControlName="numberOfSponsors"
+                [ngClass]="{'invalid': isInvalid('numberOfSponsors')}" />
+            <div *ngIf="isInvalid('numberOfSponsors')" class="error-message">
                 Enter number of sponsors
             </div>
         </div>
 
         <!-- FICO -->
         <div class="form-group">
-            <label>Sponsor(s) FICO</label>
-            <input type="text" formControlName="sponsorFico"
-                [ngClass]="{'invalid': propertyForm.get('sponsorFico')?.invalid && propertyForm.get('sponsorFico')?.touched}" />
-            <div *ngIf="propertyForm.get('sponsorFico')?.touched && propertyForm.get('sponsorFico')?.invalid"
-                class="error-message">
+            <label for="sponsorFico">Sponsor(s) FICO</label>
+            <input type="text" id="sponsorFico" formControlName="sponsorFico"
+                [ngClass]="{'invalid': isInvalid('sponsorFico')}" />
+            <div *ngIf="isInvalid('sponsorFico')" class="error-message">
                 *Enter valid FICO score
             </div>
         </div>
 
         <!-- Experience -->
         <div class="form-group">
-            <label>Sponsor Experience in Years</label>
-            <input type="number" formControlName="experienceInYears"
-                [ngClass]="{'invalid': propertyForm.get('experienceInYears')?.invalid && propertyForm.get('experienceInYears')?.touched}" />
-            <div *ngIf="propertyForm.get('experienceInYears')?.touched && propertyForm.get('experienceInYears')?.invalid"
-                class="error-message">
+            <label for="experienceInYears">Sponsor Experience in Years</label>
+            <input type="number" id="experienceInYears" formControlName="experienceInYears"
+                [ngClass]="{'invalid': isInvalid('experienceInYears')}" />
+            <div *ngIf="isInvalid('experienceInYears')" class="error-message">
                 *Enter experience in years
             </div>
         </div>
 
         <!-- Contact Name -->
         <div class="form-group">
-            <label>Contact Name</label>
-            <input type="text" formControlName="contact" />
-            <div *ngIf="propertyForm.get('contact')?.touched && propertyForm.get('contact')?.invalid"
-                class="error-message">
+            <label for="contact">Contact Name</label>
+            <input type="text" id="contact" formControlName="contact" [ngClass]="{'invalid': isInvalid('contact')}" />
+            <div *ngIf="isInvalid('contact')" class="error-message">
                 *Contact name is required
             </div>
         </div>
 
         <!-- Contact Number -->
         <div class="form-group">
-            <label>Contact Phone</label>
-            <input type="text" formControlName="phone" />
-            <div *ngIf="propertyForm.get('phone')?.touched && propertyForm.get('phone')?.invalid" class="error-message">
+            <label for="phone">Contact Phone</label>
+            <input type="text" id="phone" formControlName="phone" [ngClass]="{'invalid': isInvalid('phone')}" />
+            <div *ngIf="isInvalid('phone')" class="error-message">
                 *Enter a valid phone number
             </div>
         </div>
 
         <!-- Email -->
         <div class="form-group">
-            <label>Contact Email</label>
-            <input type="text" formControlName="email" />
-            <div *ngIf="propertyForm.get('email')?.touched && propertyForm.get('email')?.invalid" class="error-message">
+            <label for="email">Contact Email</label>
+            <input type="text" id="email" formControlName="email" [ngClass]="{'invalid': isInvalid('email')}" />
+            <div *ngIf="isInvalid('email')" class="error-message">
                 *Enter a valid email address
             </div>
         </div>
 
         <!-- Notes -->
         <div class="form-group full-width">
-            <label>Notes</label>
-            <textarea formControlName="notes" placeholder="Please add all relevant information here"
+            <label for="notes">Notes</label>
+            <textarea id="notes" formControlName="notes" placeholder="Please add all relevant information here"
                 rows="3"></textarea>
         </div>
 

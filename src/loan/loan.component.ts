@@ -1,28 +1,51 @@
-import { Component } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  ChangeDetectorRef,
+  signal,
+  computed,
+  effect,
+  inject,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
+  FormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
 
+// Type definitions
+type PropertyCategory =
+  | 'Healthcare'
+  | 'Hospitality'
+  | 'Industrial Property'
+  | 'Multi-family'
+  | 'Office'
+  | 'Retail Property'
+  | 'Special Purpose Loans';
+
 @Component({
   selector: 'app-loan',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, RouterModule], // Added CommonModule for ngIf, ngFor directives
+  imports: [ReactiveFormsModule, CommonModule, RouterModule, FormsModule],
   templateUrl: './loan.component.html',
   styleUrls: ['./loan.component.css'],
 })
-export class LoanComponent {
-  propertyForm: FormGroup;
-  selectedSubCategories: string[] = [];
+export class LoanComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private cdr = inject(ChangeDetectorRef);
 
-  // Make Object explicitly available for the template
+  // Form group
+  propertyForm!: FormGroup;
+
+  // Make Object available to template
   Object = Object;
 
-  propertyCategories: { [key in PropertyCategory]: string[] } = {
+  // Using signals for reactive state management
+  propertyCategories = signal<Record<PropertyCategory, string[]>>({
     Healthcare: [
       'Assisted Living',
       'Hospital',
@@ -93,9 +116,24 @@ export class LoanComponent {
       'Service Station',
       'Stadium',
     ],
-  };
+  });
 
-  states: string[] = [
+  // Computed signal for category keys with better typing
+  categoryKeys = computed(
+    () => Object.keys(this.propertyCategories()) as PropertyCategory[]
+  );
+
+  // Signal for the selected category
+  selectedCategory = signal<PropertyCategory | ''>('');
+
+  // Computed signal for subcategories based on selected category
+  selectedSubCategories = computed(() => {
+    const category = this.selectedCategory();
+    return category ? this.propertyCategories()[category] : [];
+  });
+
+  // States array
+  states = signal<string[]>([
     'Alabama',
     'Alaska',
     'Arizona',
@@ -146,80 +184,120 @@ export class LoanComponent {
     'West Virginia',
     'Wisconsin',
     'Wyoming',
-  ];
+  ]);
 
-  constructor(private fb: FormBuilder) {
+  constructor() {
+    // Initialize the form in the constructor
+    this.initForm();
+
+    // Set up effect to handle category changes
+    effect(() => {
+      const category = this.selectedCategory();
+      if (this.propertyForm && category !== undefined) {
+        this.propertyForm.get('propertySubCategory')?.setValue('');
+        this.propertyForm.get('propertySubCategory')?.updateValueAndValidity();
+      }
+    });
+  }
+
+  ngOnInit(): void {
+    // Run change detection after component initialization
+    setTimeout(() => {
+      this.cdr.detectChanges();
+    }, 0);
+  }
+
+  private initForm(): void {
     this.propertyForm = this.fb.group({
-      city: ['', Validators.required],
-      contact: ['', Validators.required],
-      phone: ['', [Validators.required, Validators.pattern('^\\d{10}$')]], // Assuming 10 digit phone numbers
-      email: ['', [Validators.required, Validators.email]],
-      experienceInYears: ['', [Validators.required, Validators.min(0)]],
-      loanAmount: ['', [Validators.required, Validators.minLength(8)]],
-      propertyValue: ['', [Validators.required, Validators.minLength(8)]],
-      ltv: [
-        '',
-        [Validators.required, Validators.min(1), Validators.minLength(2)],
-      ], // Example LTV range 1-100%
-      notes: [''],
-      numberOfSponsors: ['', [Validators.required, Validators.min(1)]],
       propertyTypeCategory: ['', Validators.required],
       propertySubCategory: ['', Validators.required],
+      loanAmount: ['', [Validators.required, Validators.minLength(8)]],
+      propertyValue: ['', [Validators.required, Validators.minLength(8)]],
+      ltv: ['', [Validators.required, Validators.min(1), Validators.max(100)]],
+      noi: [''],
+      city: ['', Validators.required],
+      state: ['', Validators.required],
+      numberOfSponsors: ['', [Validators.required, Validators.min(1)]],
       sponsorFico: [
         '',
         [Validators.required, Validators.min(300), Validators.max(850)],
-      ], // FICO range
-      state: ['', Validators.required],
+      ],
+      experienceInYears: ['', [Validators.required, Validators.min(0)]],
+      contact: ['', Validators.required],
+      phone: ['', [Validators.required, Validators.pattern('^\\d{10}$')]],
+      email: ['', [Validators.required, Validators.email]],
+      notes: [''],
     });
+  }
+
+  onCategoryChange(event: Event): void {
+    const value = (event.target as HTMLSelectElement).value;
+    this.selectedCategory.set(value as PropertyCategory);
+
+    // Ensure the formControl is updated
+    this.propertyForm.get('propertyTypeCategory')?.setValue(value);
+    this.propertyForm.get('propertyTypeCategory')?.updateValueAndValidity();
+
+    // Force change detection
+    this.cdr.detectChanges();
   }
 
   formatLoanAmount(event: Event): void {
     const input = event.target as HTMLInputElement;
-    const fieldName = input.name; // You can use the `name` attribute to detect which field triggered the event
+
+    // Find which form control this input is associated with
+    const control = input.getAttribute('formControlName');
+    if (!control) return;
 
     // Remove all non-digit characters
     const digitsOnly = input.value.replace(/[^\d]/g, '');
 
     if (digitsOnly.length === 0) {
-      // Clear the form control only for the relevant field
-      this.propertyForm.get(fieldName)?.setValue('');
+      this.propertyForm.get(control)?.setValue('');
       return;
     }
 
     // Format the number to USD
     const formatted = `$${Number(digitsOnly).toLocaleString('en-US')}`;
 
-    // Set the formatted value in the form control only for the relevant field
-    this.propertyForm.get(fieldName)?.setValue(formatted, { emitEvent: false });
+    // Update the form control value
+    this.propertyForm.get(control)?.setValue(formatted, { emitEvent: false });
 
-    // Set the input value manually so it reflects in the UI
-    input.value = formatted;
-  }
-
-  onCategoryChange(event: Event): void {
-    const selectedCategory = (event.target as HTMLSelectElement)
-      .value as keyof typeof this.propertyCategories;
-    this.selectedSubCategories =
-      this.propertyCategories[selectedCategory] || [];
-    this.propertyForm.patchValue({ propertySubCategory: '' });
+    // Trigger change detection to ensure UI updates
+    this.cdr.detectChanges();
   }
 
   onSubmit(): void {
     if (this.propertyForm.valid) {
       console.log('Form submitted successfully:', this.propertyForm.value);
       // Add logic to send the data to a backend or process it
+
+      // Reset form after submission if needed
+      // this.propertyForm.reset();
+      // this.selectedCategory.set('');
     } else {
       console.warn('Form is invalid. Please fix the errors.');
-      this.propertyForm.markAllAsTouched(); // Trigger validation messages
+
+      // Mark all fields as touched to show validation errors
+      Object.keys(this.propertyForm.controls).forEach((key) => {
+        const control = this.propertyForm.get(key);
+        control?.markAsTouched();
+        control?.updateValueAndValidity();
+      });
+
+      // Force change detection to ensure validation messages appear
+      this.cdr.detectChanges();
     }
   }
-}
 
-type PropertyCategory =
-  | 'Healthcare'
-  | 'Hospitality'
-  | 'Industrial Property'
-  | 'Multi-family'
-  | 'Office'
-  | 'Retail Property'
-  | 'Special Purpose Loans';
+  // Helper methods to simplify template code
+  isInvalid(controlName: string): boolean {
+    const control = this.propertyForm.get(controlName);
+    return !!control && control.invalid && control.touched;
+  }
+
+  hasError(controlName: string, errorName: string): boolean {
+    const control = this.propertyForm.get(controlName);
+    return !!control && control.hasError(errorName) && control.touched;
+  }
+}

@@ -1,8 +1,41 @@
-<!-- dashboard.component.html -->
-<div *ngIf="userData$ | async as user">
-    <h1>Welcome, {{user.firstName}} {{user.lastName}}!</h1>
-    <div class="user-info">
-        <p>Email: {{user.email}}</p>
-        <!-- Display other user registration fields -->
+<div class="dashboard-container">
+    <h1>Dashboard</h1>
+
+    <!-- User Profile Section -->
+    <div class="profile-section">
+        <h2>Your Profile</h2>
+
+        <div *ngIf="loading" class="loading">
+            Loading your profile...
+        </div>
+
+        <div *ngIf="error" class="error-message">
+            {{ error }}
+            <button (click)="loadUserData()">Try Again</button>
+        </div>
+
+        <div *ngIf="userData && !loading" class="profile-card">
+            <div class="profile-header">
+                <h3>{{ userData.firstName }} {{ userData.lastName }}</h3>
+                <p class="email">{{ userData.email }}</p>
+            </div>
+
+            <div class="profile-details">
+                <div class="profile-row">
+                    <span class="label">Company:</span>
+                    <span class="value">{{ userData.company }}</span>
+                </div>
+
+                <div class="profile-row">
+                    <span class="label">Phone:</span>
+                    <span class="value">{{ userData.phone }}</span>
+                </div>
+
+                <div class="profile-row">
+                    <span class="label">Location:</span>
+                    <span class="value">{{ userData.city }}, {{ userData.state }}</span>
+                </div>
+            </div>
+        </div>
     </div>
 </div>

@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import { provideClientHydration } from '@angular/platform-browser';
 import { provideAnimations } from '@angular/platform-browser/animations';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withFetch } from '@angular/common/http';
 
 // Import Firebase modules
 import { initializeApp, getApps } from '@angular/fire/app';
@@ -23,7 +23,7 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideClientHydration(),
     provideAnimations(),
-    provideHttpClient(),
+    provideHttpClient(withFetch()),
     // Use a named Firebase app instance
     provideFirebaseApp(() => {
       const apps = getApps();
