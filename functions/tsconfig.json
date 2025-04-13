@@ -38,7 +38,6 @@
   "exclude": [
     "src/main.server.ts",
     "src/app/app.config.server.ts",
-    "src/server.ts",
-    "node_modules"
+    "src/server.ts"
   ]
 }

@@ -211,13 +211,16 @@ export class LoanComponent implements OnInit {
     this.propertyForm = this.fb.group({
       propertyTypeCategory: ['', Validators.required],
       propertySubCategory: ['', Validators.required],
+      transactionType: ['', Validators.required],
       loanAmount: ['', [Validators.required, Validators.minLength(8)]],
+      loanType: ['', [Validators.required]],
       propertyValue: ['', [Validators.required, Validators.minLength(8)]],
       ltv: ['', [Validators.required, Validators.min(1), Validators.max(100)]],
       noi: [''],
       city: ['', Validators.required],
       state: ['', Validators.required],
       numberOfSponsors: ['', [Validators.required, Validators.min(1)]],
+      sponsorsLiquidity: ['', [Validators.required, Validators.minLength(5)]],
       sponsorFico: [
         '',
         [Validators.required, Validators.min(300), Validators.max(850)],

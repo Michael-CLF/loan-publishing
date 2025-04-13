@@ -1,15 +1,28 @@
 /* user-profile.component.css */
-.profile-container {
+.dashboard-container {
   max-width: 800px;
   margin: 0 auto;
   padding: 20px;
 }
+.title {
+  text-align: center;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  margin: 20px;
+}
+.user-name,
+.email {
+  color: #0a2463;
+}
+.label {
+  font-weight: 500;
+  font-size: 1.2rem;
+}
 
 .profile-details {
   margin-top: 20px;
-  padding: 20px;
   border-radius: 8px;
-  background-color: #f8f9fa;
+  color: #0a2463;
 }
 
 .profile-field {
@@ -23,7 +36,7 @@
 }
 
 .error-message {
-  color: #dc3545;
+  color: #c00000;
   padding: 10px;
   margin: 10px 0;
   background-color: #f8d7da;

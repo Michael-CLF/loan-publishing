@@ -22,6 +22,4 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   { path: 'pricing', component: PricingComponent },
-  // Add redirect for any other paths - helps with Firebase dynamic links
-  { path: '**', redirectTo: '' },
 ];

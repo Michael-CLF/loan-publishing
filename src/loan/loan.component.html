@@ -32,9 +32,46 @@
             </div>
         </div>
 
+        <!-- Transaction Type -->
+        <div class="form-group">
+            <label for="transactionType">Transaction Type</label>
+            <select id="transactionType" formControlName="transactionType"
+                [ngClass]="{'invalid': isInvalid('transactionType')}">
+                <option value="">-- Select Transaction Type --</option>
+                <option value="Purchase">Purchase</option>
+                <option value="Refinance">Refinance</option>
+            </select>
+            <div *ngIf="isInvalid('transactionType')" class="error-message">
+                *Please select a transaction type
+            </div>
+        </div>
+
+        <!-- Loan Type -->
+        <div class="form-group">
+            <label for="loanType">Loan Type Requested</label>
+            <select id="loanType" formControlName="loanType" [ngClass]="{'invalid': isInvalid('loanType')}">
+                <option value="">-- Select Loan Type --</option>
+                <option value="agency">Agency</option>
+                <option value="balanceSheet">Balance Sheet</option>
+                <option value="bridge">Bridge Loan</option>
+                <option value="dscr">DSCR</option>
+                <option value="fixFlip">Fix & Flip</option>
+                <option value="hardMoney">Hard Money</option>
+                <option value="construction">New Construction</option>
+                <option value="rehab">Rehab/Renovation</option>
+                <option value="sba7a">SBA 7(a)</option>
+                <option value="sba504">SBA 504</option>
+                <option value="usda">USDA</option>
+
+            </select>
+            <div *ngIf="isInvalid('loanType')" class="error-message">
+                *Please select a loan type
+            </div>
+        </div>
+
         <!-- Loan Amount -->
         <div class="form-group">
-            <label for="loanAmount">Loan Amount</label>
+            <label for="loanAmount">Loan Amount Requested ($)</label>
             <input type="text" id="loanAmount" formControlName="loanAmount" (input)="formatLoanAmount($event)"
                 [ngClass]="{'invalid': isInvalid('loanAmount')}" />
             <div *ngIf="isInvalid('loanAmount')" class="error-message">
@@ -50,7 +87,7 @@
 
         <!-- Property Value -->
         <div class="form-group">
-            <label for="propertyValue">Property Value</label>
+            <label for="propertyValue">Property Value ($)</label>
             <input type="text" id="propertyValue" formControlName="propertyValue" (input)="formatLoanAmount($event)"
                 [ngClass]="{'invalid': isInvalid('propertyValue')}" />
             <div *ngIf="isInvalid('propertyValue')" class="error-message">
@@ -66,7 +103,7 @@
 
         <!-- LTV -->
         <div class="form-group">
-            <label for="ltv">LTV</label>
+            <label for="ltv">LTV (%)</label>
             <input type="text" id="ltv" formControlName="ltv" [ngClass]="{'invalid': isInvalid('ltv')}" />
             <div *ngIf="isInvalid('ltv')" class="error-message">
                 *Enter a valid LTV
@@ -75,7 +112,7 @@
 
         <!-- NOI -->
         <div class="form-group">
-            <label for="noi">NOI</label>
+            <label for="noi">NOI ($)</label>
             <input type="number" id="noi" formControlName="noi" placeholder="Optional" />
             <div *ngIf="isInvalid('noi')" class="error-message">
                 *Enter a valid NOI
@@ -87,7 +124,7 @@
             <label for="city">Property City</label>
             <input type="text" id="city" formControlName="city" [ngClass]="{'invalid': isInvalid('city')}" />
             <div *ngIf="isInvalid('city')" class="error-message">
-                City is required
+                *City is required
             </div>
         </div>
 
@@ -101,7 +138,7 @@
                 </option>
             </select>
             <div *ngIf="isInvalid('state')" class="error-message">
-                Please select a state
+                *Please select a state
             </div>
         </div>
 
@@ -111,7 +148,23 @@
             <input type="text" id="numberOfSponsors" formControlName="numberOfSponsors"
                 [ngClass]="{'invalid': isInvalid('numberOfSponsors')}" />
             <div *ngIf="isInvalid('numberOfSponsors')" class="error-message">
-                Enter number of sponsors
+                *Enter number of sponsors
+            </div>
+        </div>
+
+        <!-- Sponsors Liquidity-->
+        <div class="form-group">
+            <label for="sponsorsLiquidity">Sponsors Liquidity ($)</label>
+            <input type="text" id="sponsorsLiquidity" formControlName="sponsorsLiquidity"
+                [ngClass]="{'invalid': isInvalid('sponsorsLiquidity')}" />
+            <div *ngIf="isInvalid('sponsorsLiquidity')" class="error-message">
+                *Enter the Sponsors Liquidity
+            </div>
+            <div *ngIf="hasError('sponsorsLiquidity', 'required')" class="error-message">
+                *Sponsors Liquidity is required
+            </div>
+            <div *ngIf="hasError('sponsorsLiquidity', 'minlength')" class="error-message">
+                *Sponsors Liquidity must be at least 5 digits
             </div>
         </div>
 
