@@ -46,7 +46,6 @@ export class AuthGuard implements CanActivate {
   }
 
   private checkAuthentication(state: RouterStateSnapshot): Observable<boolean> {
-    // Check the auth status with Firebase (with a timeout so we don't block forever)
     return this.authService.authReady$.pipe(
       take(1),
       switchMap(() => this.authService.isLoggedIn$),
@@ -56,8 +55,8 @@ export class AuthGuard implements CanActivate {
 
         if (!isLoggedIn) {
           console.log('AuthGuard: Not authenticated, redirecting to login');
-          // Don't overwrite redirectUrl if we're already going to login page
-          if (state.url !== '/login') {
+          // Only store the redirectUrl if we're navigating to a protected route
+          if (state.url !== '/login' && state.url !== '/') {
             localStorage.setItem('redirectUrl', state.url);
           }
           this.router.navigate(['/login']);

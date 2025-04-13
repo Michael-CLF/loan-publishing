@@ -110,7 +110,9 @@ export class DashboardComponent implements OnInit {
 
               // First try the direct path with the user's UID
               const userDocRef = doc(this.firestore, `users/${user.uid}`);
-              const docSnap = await getDoc(userDocRef);
+              const docSnap = await runInInjectionContext(this.injector, () =>
+                getDoc(userDocRef)
+              );
 
               if (docSnap.exists()) {
                 // Success! Document found with matching UID

@@ -156,7 +156,7 @@
         <div class="form-group">
             <label for="sponsorsLiquidity">Sponsors Liquidity ($)</label>
             <input type="text" id="sponsorsLiquidity" formControlName="sponsorsLiquidity"
-                [ngClass]="{'invalid': isInvalid('sponsorsLiquidity')}" />
+                (input)="formatLoanAmount($event)" [ngClass]="{'invalid': isInvalid('sponsorsLiquidity')}" />
             <div *ngIf="isInvalid('sponsorsLiquidity')" class="error-message">
                 *Enter the Sponsors Liquidity
             </div>

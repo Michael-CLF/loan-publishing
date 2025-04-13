@@ -1,6 +1,11 @@
 import { Component, OnInit, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterOutlet, Router } from '@angular/router';
+import {
+  RouterOutlet,
+  Router,
+  NavigationStart,
+  NavigationEnd,
+} from '@angular/router';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
 import { NavbarComponent } from '../navbar/navbar.component';
@@ -42,6 +47,52 @@ export class AppComponent implements OnInit {
       'API Key length:',
       environment.firebase.apiKey ? environment.firebase.apiKey.length : 0
     );
+    this.router.events
+      .pipe(
+        filter(
+          (event) =>
+            event instanceof NavigationStart || event instanceof NavigationEnd
+        )
+      )
+      .subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          console.log('Navigation starting to:', event.url);
+          console.log(
+            'Redirect URL in storage:',
+            localStorage.getItem('redirectUrl')
+          );
+        }
+        if (event instanceof NavigationEnd) {
+          console.log('Navigation completed to:', event.url);
+        }
+      });
+    // In your app.component.ts, add this to your NavigationEnd listener:
+    // In your app.component.ts where you have the router events subscription
+
+    this.router.events
+      .pipe(
+        filter(
+          (event): event is NavigationStart | NavigationEnd =>
+            event instanceof NavigationStart || event instanceof NavigationEnd
+        )
+      )
+      .subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          console.log('Navigation starting to:', event.url);
+          console.log(
+            'Redirect URL in storage:',
+            localStorage.getItem('redirectUrl')
+          );
+        }
+        if (event instanceof NavigationEnd) {
+          console.log('Navigation completed to:', event.url);
+          // Clear the redirectUrl after successful navigation
+          if (event.url === localStorage.getItem('redirectUrl')) {
+            console.log('Clearing redirect URL from storage');
+            localStorage.removeItem('redirectUrl');
+          }
+        }
+      });
 
     // Force initialization and ensure Firebase Auth is loaded
     console.log('Firebase Auth initialized:', !!this.auth);
@@ -97,10 +148,15 @@ export class AppComponent implements OnInit {
                       console.log(
                         'Navigating to dashboard after successful auth'
                       );
-                      const redirectUrl =
-                        localStorage.getItem('redirectUrl') || '/dashboard';
-                      this.router.navigate([redirectUrl]);
-                      localStorage.removeItem('redirectUrl');
+                      if (
+                        this.router.url === '/login' ||
+                        this.router.url.includes('/login/verify')
+                      ) {
+                        const redirectUrl =
+                          localStorage.getItem('redirectUrl') || '/dashboard';
+                        this.router.navigate([redirectUrl]);
+                        localStorage.removeItem('redirectUrl');
+                      }
                     });
                   } else {
                     console.log(
@@ -122,7 +178,7 @@ export class AppComponent implements OnInit {
               this.router.navigate(['/login']);
             }
           } else if (window.location.pathname === '/') {
-            // Check if user is authenticated and at home page, redirect to dashboard if needed
+            // Check if user is authenticated and at login page, redirect to dashboard if needed
             this.authService.authReady$
               .pipe(
                 filter((ready) => ready),
@@ -131,9 +187,14 @@ export class AppComponent implements OnInit {
                 take(1)
               )
               .subscribe((isLoggedIn) => {
-                if (isLoggedIn) {
+                // Only redirect if we're on the login page
+                if (
+                  isLoggedIn &&
+                  (this.router.url === '/login' ||
+                    this.router.url.includes('/login/verify'))
+                ) {
                   console.log(
-                    'User is authenticated at home page, redirecting to dashboard'
+                    'User is authenticated at login page, redirecting to dashboard'
                   );
                   this.ngZone.run(() => {
                     this.router.navigate(['/dashboard']);

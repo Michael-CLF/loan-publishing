@@ -91,6 +91,13 @@ export class AuthService {
     }
   }
 
+  // Helper method to determine if we should redirect after authentication
+  private shouldRedirect(): boolean {
+    // Only redirect if we're on the login page or login verification page
+    const currentPath = this.router.url;
+    return currentPath === '/login' || currentPath.includes('/login/verify');
+  }
+
   private waitForAuthInit(): Observable<boolean> {
     return this.authReady$.pipe(
       filter((ready) => ready),
@@ -160,10 +167,14 @@ export class AuthService {
               tap((userCredential) => {
                 localStorage.removeItem(this.emailForSignInKey);
                 localStorage.setItem('isLoggedIn', 'true');
-                const redirectUrl =
-                  localStorage.getItem('redirectUrl') || '/dashboard';
-                this.router.navigate([redirectUrl]);
-                localStorage.removeItem('redirectUrl');
+
+                // Only redirect if we're on the login page
+                if (this.shouldRedirect()) {
+                  const redirectUrl =
+                    localStorage.getItem('redirectUrl') || '/dashboard';
+                  this.router.navigate([redirectUrl]);
+                  localStorage.removeItem('redirectUrl');
+                }
               }),
               map((userCredential) => userCredential.user),
               catchError((error) => {
@@ -243,10 +254,13 @@ export class AuthService {
         ).pipe(
           tap(() => localStorage.setItem('isLoggedIn', 'true')),
           switchMap(() => {
-            const redirectUrl =
-              localStorage.getItem('redirectUrl') || '/dashboard';
-            this.router.navigate([redirectUrl]);
-            localStorage.removeItem('redirectUrl');
+            // Only redirect if we're on the login page
+            if (this.shouldRedirect()) {
+              const redirectUrl =
+                localStorage.getItem('redirectUrl') || '/dashboard';
+              this.router.navigate([redirectUrl]);
+              localStorage.removeItem('redirectUrl');
+            }
             return of(true);
           }),
           catchError((error) => {
@@ -268,6 +282,7 @@ export class AuthService {
         ).pipe(
           tap(() => {
             localStorage.removeItem('isLoggedIn');
+            // Always navigate to login after logout
             this.router.navigate(['/login']);
           }),
           catchError((error) => {

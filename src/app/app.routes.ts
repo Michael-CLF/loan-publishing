@@ -14,8 +14,8 @@ export const routes: Routes = [
   { path: 'login', component: EmailLoginComponent },
   // Add explicit verify route to handle email verification
   { path: 'login/verify', component: EmailLoginComponent },
-  { path: 'loan', component: LoanComponent },
-  { path: 'loans', component: LoansComponent },
+  { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
+  { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
   {
     path: 'dashboard',
     component: DashboardComponent,
