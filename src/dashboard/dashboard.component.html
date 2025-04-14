@@ -3,7 +3,7 @@
 
     <!-- User Profile Section -->
     <div class="profile-section">
-        <h2>Profile</h2>
+        <h2 class="acct-info">Account Information</h2>
 
         <div *ngIf="loading" class="loading">
             Loading your profile...
@@ -28,7 +28,7 @@
             <div class="profile-details">
                 <div class="profile-row">
                     <span class="label">Phone: </span>
-                    <span class="value">{{ userData.phone }}</span>
+                    <span class="value">{{ formatPhoneNumber(userData.phone )}}</span>
                 </div>
 
                 <div class="profile-row">

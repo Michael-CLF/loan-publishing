@@ -4,6 +4,11 @@
   margin: 0 auto;
   padding: 20px;
 }
+.acct-info {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1.5rem;
+}
 .title {
   text-align: center;
   font-family: "roboto", sans-serif;
@@ -17,8 +22,14 @@
 .label {
   font-weight: 500;
   font-size: 1.2rem;
+  color: #0a2463;
 }
-
+.value {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1rem;
+  font-weight: 500;
+}
 .profile-details {
   margin-top: 20px;
   border-radius: 8px;

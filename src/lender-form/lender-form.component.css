@@ -1,0 +1,187 @@
+.lender-container {
+  width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+.form-wrapper {
+  width: 100%;
+}
+
+.form-columns {
+  display: flex;
+  gap: 30px;
+  width: 100%;
+}
+
+.form-column {
+  flex: 1;
+  min-width: 0; /* Prevents flex children from overflowing */
+}
+
+.form-group {
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+.headline {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  margin-bottom: 20px;
+  width: 100%;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-sizing: border-box; /* Ensures padding doesn't add to width */
+}
+
+select[multiple] {
+  height: 20px;
+}
+
+.checkbox-group {
+  margin-top: 5px;
+}
+
+.form-check {
+  margin-bottom: 5px;
+}
+
+.form-check-input {
+  width: auto;
+  margin-right: 8px;
+}
+
+.form-check-label {
+  display: inline;
+}
+
+.error {
+  color: #c00000;
+  font-size: 0.875rem;
+  margin-top: 5px;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+}
+
+.button-container {
+  width: 100%;
+  text-align: center;
+  margin-top: 20px;
+}
+
+button {
+  padding: 8px 25px;
+  background-color: #0a2463;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: "roboto", sans-serif;
+  font-size: 1.25rem;
+  margin: 0 10px;
+}
+
+.secondary-button {
+  background-color: #6c757d;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.success-message {
+  color: green;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.error-message {
+  color: #c00000;
+  margin-top: 15px;
+  text-align: center;
+}
+
+.invalid {
+  border: 2px solid #c00000;
+}
+
+.form-text {
+  display: block;
+  margin-top: 5px;
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1020px) {
+  .lender-container {
+    width: 100%;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  .form-columns {
+    flex-direction: column;
+    gap: 0;
+  }
+
+  .form-column {
+    width: 100%;
+  }
+}
+/* Checkbox group styling */
+.checkbox-group {
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  padding: 10px;
+  margin-top: 5px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+
+.checkbox-group.invalid {
+  border-color: #c00000;
+}
+
+.select-all-option {
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #eee;
+}
+
+.states-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 8px;
+}
+
+.form-check {
+  display: flex;
+  align-items: center;
+  margin-bottom: 5px;
+}
+
+.form-check-input {
+  margin-right: 8px;
+  width: auto;
+}
+
+.form-check-label {
+  margin-bottom: 0;
+  display: inline;
+}

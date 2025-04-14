@@ -1,0 +1,90 @@
+<div class="contact-section">
+    <h5 class="sub-title">Please provide your contact details</h5>
+
+    <div class="form-columns">
+        <div class="form-column">
+            <!-- First Name -->
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input id="firstName" type="text" formControlName="firstName"
+                    [ngClass]="{'invalid': isInvalid('firstName')}" />
+                <div *ngIf="isInvalid('firstName')" class="error">
+                    <div *ngIf="firstName?.errors?.['required']">
+                        *First name is required.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Phone -->
+            <div class="form-group">
+                <label for="contactPhone">Phone</label>
+                <input id="contactPhone" type="tel" formControlName="contactPhone" (blur)="formatPhoneNumber()"
+                    [ngClass]="{'invalid': isInvalid('contactPhone')}" />
+                <div *ngIf="isInvalid('contactPhone')" class="error">
+                    <div *ngIf="contactPhone?.errors?.['required']">
+                        *Phone number is required.
+                    </div>
+                    <div *ngIf="contactPhone?.errors?.['pattern']">
+                        *Please enter a valid phone number.
+                    </div>
+                </div>
+            </div>
+
+            <!-- City -->
+            <div class="form-group">
+                <label for="city">City</label>
+                <input id="city" type="text" formControlName="city" [ngClass]="{'invalid': isInvalid('city')}" />
+                <div *ngIf="isInvalid('city')" class="error">
+                    <div *ngIf="city?.errors?.['required']">
+                        *City is required.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-column">
+            <!-- Last Name -->
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input id="lastName" type="text" formControlName="lastName"
+                    [ngClass]="{'invalid': isInvalid('lastName')}" />
+                <div *ngIf="isInvalid('lastName')" class="error">
+                    <div *ngIf="lastName?.errors?.['required']">
+                        *Last name is required.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="contactEmail">Email</label>
+                <input id="contactEmail" type="email" formControlName="contactEmail"
+                    [ngClass]="{'invalid': isInvalid('contactEmail')}" />
+                <div *ngIf="isInvalid('contactEmail')" class="error">
+                    <div *ngIf="contactEmail?.errors?.['required']">
+                        *Email is required.
+                    </div>
+                    <div *ngIf="contactEmail?.errors?.['email']">
+                        *Please enter a valid email address.
+                    </div>
+                </div>
+            </div>
+
+            <!-- State -->
+            <div class="form-group">
+                <label for="state">State</label>
+                <select id="state" formControlName="state" [ngClass]="{'invalid': isInvalid('state')}">
+                    <option value="">Select</option>
+                    <option *ngFor="let state of parentForm.parent?.get('states')?.value || []" [value]="state.value">
+                        {{ state.name }}
+                    </option>
+                </select>
+                <div *ngIf="isInvalid('state')" class="error">
+                    <div *ngIf="state?.errors?.['required']">
+                        *State is required.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
