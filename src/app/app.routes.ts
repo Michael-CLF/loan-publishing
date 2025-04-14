@@ -7,6 +7,7 @@ import { DashboardComponent } from '../dashboard/dashboard.component';
 import { AuthGuard } from '../services/auth.guard';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { PricingComponent } from '../pricing/pricing.component';
+import { TermsComponent } from 'src/terms/terms.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -22,4 +23,5 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   { path: 'pricing', component: PricingComponent },
+  { path: 'terms', component: TermsComponent },
 ];
