@@ -4,28 +4,28 @@
 
         <!-- Form content -->
         <div *ngIf="currentStep === 0">
-            <app-lender-contact [parentForm]="lenderForm"></app-lender-contact>
+            <app-lender-contact [parentForm]="contactForm" [states]="states"></app-lender-contact>
         </div>
 
         <div *ngIf="currentStep === 1">
-            <app-lender-product [parentForm]="lenderForm" [lenderTypes]="lenderTypes"></app-lender-product>
+            <app-lender-product [parentForm]="productForm" [lenderTypes]="lenderTypes"></app-lender-product>
         </div>
 
         <div *ngIf="currentStep === 2">
-            <app-lender-footprint [parentForm]="lenderForm" [states]="states"></app-lender-footprint>
+            <app-lender-footprint [parentForm]="footprintForm" [states]="states"></app-lender-footprint>
         </div>
 
-        <!-- Simple buttons with no conditional logic -->
+        <!-- Navigation buttons -->
         <div>
-            <button id="previous" (click)="prevStep()">
+            <button id="previous" (click)="prevStep()" [disabled]="currentStep === 0">
                 Previous
             </button>
 
-            <button id="next" (click)="nextStep()">
+            <button id="next" (click)="nextStep()" [disabled]="currentStep === 2">
                 Next
             </button>
 
-            <button id="submit" (click)="submitForm()">
+            <button id="submit" (click)="submitForm()" *ngIf="currentStep === 2">
                 Submit
             </button>
         </div>

@@ -18,15 +18,9 @@ p {
 
 /* Columns layout */
 .form-columns {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
   gap: 20px;
-  margin: 0 auto;
-}
-
-.form-column {
-  flex: 1;
-  min-width: 250px; /* Ensures columns have a minimum width */
 }
 
 /* Form controls styling */
@@ -52,7 +46,6 @@ p {
 
 .form-group select {
   appearance: none;
-  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 10px center;
   background-size: 16px;
@@ -60,13 +53,15 @@ p {
 
 /* Error styling */
 .invalid {
-  border-color: #dc3545 !important;
+  border-color: #c00000;
+  border: 2px solid #c00000 !important;
 }
 
 .error {
-  color: #dc3545;
+  color: #c00000;
   font-size: 14px;
   margin-top: 5px;
+  font-weight: 500;
 }
 
 /* Responsive adjustments */

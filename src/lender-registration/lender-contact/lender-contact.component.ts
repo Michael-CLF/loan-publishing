@@ -1,6 +1,11 @@
-import { Component, Input, Output, EventEmitter } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
+
+interface StateOption {
+  value: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-lender-contact',
@@ -11,37 +16,7 @@ import { CommonModule, NgClass, NgIf, NgFor } from '@angular/common';
 })
 export class LenderContactComponent {
   @Input() parentForm!: FormGroup;
-  @Output() next = new EventEmitter<void>();
-
-  get firstName() {
-    return this.parentForm.get('firstName');
-  }
-
-  get lastName() {
-    return this.parentForm.get('lastName');
-  }
-
-  get contactPhone() {
-    return this.parentForm.get('contactPhone');
-  }
-
-  get contactEmail() {
-    return this.parentForm.get('contactEmail');
-  }
-
-  get city() {
-    return this.parentForm.get('city');
-  }
-
-  get state() {
-    return this.parentForm.get('state');
-  }
-
-  // Add this method if it's missing
-  isInvalid(controlName: string): boolean {
-    const control = this.parentForm.get(controlName);
-    return !!control && control.invalid && (control.touched || control.dirty);
-  }
+  @Input() states: StateOption[] = [];
 
   // Format phone number on blur
   formatPhoneNumber(): void {
