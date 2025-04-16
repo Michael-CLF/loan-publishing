@@ -9,10 +9,10 @@ import { UserFormComponent } from '../user-form/user-form.component';
 import { PricingComponent } from '../pricing/pricing.component';
 import { TermsComponent } from 'src/terms/terms.component';
 import { LenderFormComponent } from 'src/lender-form/lender-form.component';
-import { LenderContactComponent } from 'src/lender-registration/lender-contact/lender-contact.component';
-import { LenderProductComponent } from 'src/lender-registration/lender-product/lender-product.component';
-import { LenderFootprintComponent } from 'src/lender-registration/lender-footprint/lender-footprint.component';
-import { LenderRegistrationComponent } from 'src/lender-registration/lender-registration.component';
+import { LenderContactComponent } from 'src/lender/lender-contact/lender-contact.component';
+import { LenderProductComponent } from 'src/lender/lender-product/lender-product.component';
+import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-footprint.component';
+import { LenderRegistrationComponent } from 'src/lender/lender-registration/lender-registration.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },

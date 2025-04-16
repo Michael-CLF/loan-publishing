@@ -1,0 +1,87 @@
+<!-- lender-product.component.html -->
+<div class="product-details-container" [formGroup]="lenderForm">
+    <!-- Lender Types Section -->
+    <div class="form-section">
+        <h4 class="section-title">Lender Types</h4>
+        <div class="checkbox-grid three-column-layout">
+            <div *ngFor="let type of lenderTypes" class="checkbox-item">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" [id]="'lenderType-' + type.value"
+                        [checked]="isOptionSelected('lenderTypes', type.value)"
+                        (change)="onLenderTypeChange($event, type.value)" class="form-check-input">
+                    <label [for]="'lenderType-' + type.value" class="form-check-label">{{ type.name }}</label>
+                </div>
+            </div>
+        </div>
+        <div *ngIf="isControlInvalid('lenderTypes')" class="invalid-feedback d-block">
+            Please select at least one lender type
+        </div>
+    </div>
+
+    <!-- Property Categories Section -->
+    <div class="form-section">
+        <h4 class="section-title">Property Categories</h4>
+        <p class="instruction">(Please check all Categories and Subcategories you offer)</p>
+        <div class="checkbox-grid three-column-layout">
+            <div *ngFor="let category of propertyCategories" class="checkbox-item">
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" [id]="'propertyCategory-' + category.value"
+                        [checked]="isOptionSelected('propertyCategories', category.value)"
+                        (change)="onPropertyCategoryChange($event, category.value)" class="form-check-input">
+                    <label [for]="'propertyCategory-' + category.value" class="form-check-label category-label">{{
+                        category.name
+                        }}</label>
+                </div>
+
+                <!-- Subcategories (if any) -->
+                <div *ngIf="category.subcategories && category.subcategories.length > 0"
+                    class="subcategories-container ms-4 mt-2">
+                    <div *ngFor="let subcategory of category.subcategories" class="checkbox-item">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" [id]="'subcategory-' + subcategory.value" class="form-check-input">
+                            <label [for]="'subcategory-' + subcategory.value" class="form-check-label">{{
+                                subcategory.name }}</label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div *ngIf="isControlInvalid('propertyCategories')" class="invalid-feedback d-block">
+            Please select at least one property category
+        </div>
+    </div>
+
+
+    <!-- Loan Amount Section -->
+    <div class="form-section">
+        <h4 class="section-title">Loan Amounts</h4>
+        <div class="row">
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="minLoanAmount" class="form-label">Minimum Loan Amount(s)</label>
+                    <input type="text" id="minLoanAmount" class="form-control" formControlName="minLoanAmount"
+                        [ngClass]="{'is-invalid': isControlInvalid('minLoanAmount')}">
+                    <div *ngIf="controlHasError('minLoanAmount', 'required')" class="invalid-feedback">
+                        Minimum loan amount is required
+                    </div>
+                    <div *ngIf="controlHasError('minLoanAmount', 'minlength')" class="invalid-feedback">
+                        Value must be at least 6 characters
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="form-group">
+                    <label for="maxLoanAmount" class="form-label">Maximum Loan Amount(s)</label>
+                    <input type="text" id="maxLoanAmount" class="form-control" formControlName="maxLoanAmount"
+                        [ngClass]="{'is-invalid': isControlInvalid('maxLoanAmount')}">
+                    <div *ngIf="controlHasError('maxLoanAmount', 'required')" class="invalid-feedback">
+                        Maximum loan amount is required
+                    </div>
+                    <div *ngIf="controlHasError('maxLoanAmount', 'minlength')" class="invalid-feedback">
+                        Value must be at least 6 characters
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>

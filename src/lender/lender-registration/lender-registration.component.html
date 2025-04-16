@@ -1,0 +1,50 @@
+<div class="registration-container">
+    <h2 class="title">Lender Registration</h2>
+
+    <div class="steps-container">
+        <div class="step" [ngClass]="{'active': currentStep === 0, 'completed': currentStep > 0}">Contact Information
+        </div>
+        <div class="step" [ngClass]="{'active': currentStep === 1, 'completed': currentStep > 1}">Product Details</div>
+        <div class="step" [ngClass]="{'active': currentStep === 2}">Lending Footprint</div>
+    </div>
+
+    <div class="form-container">
+        <form [formGroup]="lenderForm">
+            <!-- Using ngSwitch for step transitions -->
+            <div [ngSwitch]="currentStep">
+                <!-- Step 1: Contact Information -->
+                <div *ngSwitchCase="0">
+                    <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
+                </div>
+
+                <!-- Step 2: Product Information -->
+                <div *ngSwitchCase="1">
+                    <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
+                        [propertyCategories]="propertyCategories" [states]="states">
+                    </app-lender-product>
+                </div>
+
+                <!-- Step 3: Footprint Information -->
+                <div *ngSwitchCase="2">
+                    <app-lender-footprint [lenderForm]="footprintForm" [states]="states">
+                    </app-lender-footprint>
+                </div>
+            </div>
+
+            <div class="error-message" *ngIf="errorMessage">{{ errorMessage }}</div>
+            <div class="success-message" *ngIf="successMessage">{{ successMessage }}</div>
+
+            <div class="button-container">
+                <button type="button" class="btn btn-secondary" *ngIf="currentStep > 0" (click)="prevStep()">
+                    Previous
+                </button>
+                <button type="button" class="btn btn-primary disabled-cursor" *ngIf="currentStep < 2"
+                    (click)="nextStep()" [disabled]="!getStepFormGroup().valid">
+                    Next
+                </button>
+                <button type="button" class="btn btn-success" *ngIf="currentStep === 2"
+                    (click)="submitForm()">Submit</button>
+            </div>
+        </form>
+    </div>
+</div>

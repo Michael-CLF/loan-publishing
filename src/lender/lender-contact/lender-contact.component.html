@@ -1,0 +1,112 @@
+<form [formGroup]="lenderForm">
+    <div class="contact-section">
+        <h5 class="sub-title">Please provide your contact details</h5>
+
+        <div class="form-columns">
+            <!-- First Name -->
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input id="firstName" type="text" formControlName="firstName"
+                    [ngClass]="{'invalid': lenderForm.get('firstName')?.invalid && lenderForm.get('firstName')?.touched}" />
+                <div *ngIf="lenderForm.get('firstName')?.invalid && lenderForm.get('firstName')?.touched" class="error">
+                    <div *ngIf="lenderForm.get('firstName')?.errors?.['required']">
+                        *First name is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('firstName')?.errors?.['minlength']">
+                        *First name must be at least 2 characters.
+                    </div>
+                    <div *ngIf="lenderForm.get('firstName')?.errors?.['pattern']">
+                        *First name must contain letters only.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Last Name -->
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input id="lastName" type="text" formControlName="lastName"
+                    [ngClass]="{'invalid': lenderForm.get('lastName')?.invalid && lenderForm.get('lastName')?.touched}" />
+                <div *ngIf="lenderForm.get('lastName')?.invalid && lenderForm.get('lastName')?.touched" class="error">
+                    <div *ngIf="lenderForm.get('lastName')?.errors?.['required']">
+                        *Last name is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('lastName')?.errors?.['minlength']">
+                        *Last name must be at least 2 letters.
+                    </div>
+                    <div *ngIf="lenderForm.get('lastName')?.errors?.['pattern']">
+                        *Last name must contain letters only.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Phone -->
+            <div class="form-group">
+                <label for="contactPhone">Phone</label>
+                <input id="contactPhone" type="tel" formControlName="contactPhone"
+                    (input)="formatPhoneNumberOnInput($event)" (blur)="formatPhoneNumber()"
+                    [ngClass]="{'invalid': lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched}" />
+                <div *ngIf="lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched"
+                    class="error">
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['required']">
+                        *Phone number is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['pattern']">
+                        *Please enter a valid phone number.
+                    </div>
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['invalidLength']">
+                        *Please enter 10 digits.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div class="form-group">
+                <label for="contactEmail">Email</label>
+                <input id="contactEmail" type="email" formControlName="contactEmail"
+                    [ngClass]="{'invalid': lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched}" />
+                <div *ngIf="lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched"
+                    class="error">
+                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['required']">
+                        *Email is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['email']">
+                        *Please enter a valid email address.
+                    </div>
+                </div>
+            </div>
+
+            <!-- City -->
+            <div class="form-group">
+                <label for="city">City</label>
+                <input id="city" type="text" formControlName="city"
+                    [ngClass]="{'invalid': lenderForm.get('city')?.invalid && lenderForm.get('city')?.touched}" />
+                <div *ngIf="lenderForm.get('city')?.invalid && lenderForm.get('city')?.touched" class="error">
+                    <div *ngIf="lenderForm.get('city')?.errors?.['required']">
+                        *City is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('city')?.errors?.['pattern']">
+                        *City must contain only letters.
+                    </div>
+                    <div *ngIf="lenderForm.get('city')?.errors?.['minlength']">
+                        *At least 2 characters are required.
+                    </div>
+                </div>
+            </div>
+
+            <!-- State -->
+            <div class="form-group">
+                <label for="state">State</label>
+                <select id="state" formControlName="state"
+                    [ngClass]="{'invalid': lenderForm.get('state')?.invalid && lenderForm.get('state')?.touched}">
+                    <option value="">Select</option>
+                    <option *ngFor="let state of states" [value]="state.value">{{ state.name }}</option>
+                </select>
+                <div *ngIf="lenderForm.get('state')?.invalid && lenderForm.get('state')?.touched" class="error">
+                    <div *ngIf="lenderForm.get('state')?.errors?.['required']">
+                        *State is required.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
