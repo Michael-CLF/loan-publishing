@@ -60,6 +60,7 @@
                 <div class="form-group">
                     <label for="minLoanAmount" class="form-label">Minimum Loan Amount(s)</label>
                     <input type="text" id="minLoanAmount" class="form-control" formControlName="minLoanAmount"
+                        (blur)="formatCurrency($event, 'minLoanAmount')"
                         [ngClass]="{'is-invalid': isControlInvalid('minLoanAmount')}">
                     <div *ngIf="controlHasError('minLoanAmount', 'required')" class="invalid-feedback">
                         Minimum loan amount is required
@@ -73,6 +74,7 @@
                 <div class="form-group">
                     <label for="maxLoanAmount" class="form-label">Maximum Loan Amount(s)</label>
                     <input type="text" id="maxLoanAmount" class="form-control" formControlName="maxLoanAmount"
+                        (blur)="formatCurrency($event, 'maxLoanAmount')"
                         [ngClass]="{'is-invalid': isControlInvalid('maxLoanAmount')}">
                     <div *ngIf="controlHasError('maxLoanAmount', 'required')" class="invalid-feedback">
                         Maximum loan amount is required

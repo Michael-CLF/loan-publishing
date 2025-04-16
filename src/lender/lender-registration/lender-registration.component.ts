@@ -70,7 +70,55 @@ export class LenderRegistrationComponent implements OnInit {
   states: StateOption[] = [
     { value: 'AL', name: 'Alabama' },
     { value: 'AK', name: 'Alaska' },
-    // ... rest of your states
+    { value: 'AZ', name: 'Arizona' },
+    { value: 'AR', name: 'Arkansas' },
+    { value: 'CA', name: 'California' },
+    { value: 'CO', name: 'Colorado' },
+    { value: 'CT', name: 'Connecticut' },
+    { value: 'DE', name: 'Delaware' },
+    { value: 'FL', name: 'Florida' },
+    { value: 'GA', name: 'Georgia' },
+    { value: 'HI', name: 'Hawaii' },
+    { value: 'ID', name: 'Idaho' },
+    { value: 'IL', name: 'Illinois' },
+    { value: 'IN', name: 'Indiana' },
+    { value: 'IA', name: 'Iowa' },
+    { value: 'KS', name: 'Kansas' },
+    { value: 'KY', name: 'Kentucky' },
+    { value: 'LA', name: 'Louisiana' },
+    { value: 'ME', name: 'Maine' },
+    { value: 'MD', name: 'Maryland' },
+    { value: 'MA', name: 'Massachusetts' },
+    { value: 'MI', name: 'Michigan' },
+    { value: 'MN', name: 'Minnesota' },
+    { value: 'MS', name: 'Mississippi' },
+    { value: 'MO', name: 'Missouri' },
+    { value: 'MT', name: 'Montana' },
+    { value: 'NE', name: 'Nebraska' },
+    { value: 'NV', name: 'Nevada' },
+    { value: 'NH', name: 'New Hampshire' },
+    { value: 'NJ', name: 'New Jersey' },
+    { value: 'NM', name: 'New Mexico' },
+    { value: 'NY', name: 'New York' },
+    { value: 'NC', name: 'North Carolina' },
+    { value: 'ND', name: 'North Dakota' },
+    { value: 'OH', name: 'Ohio' },
+    { value: 'OK', name: 'Oklahoma' },
+    { value: 'OR', name: 'Oregon' },
+    { value: 'PA', name: 'Pennsylvania' },
+    { value: 'RI', name: 'Rhode Island' },
+    { value: 'SC', name: 'South Carolina' },
+    { value: 'SD', name: 'South Dakota' },
+    { value: 'TN', name: 'Tennessee' },
+    { value: 'TX', name: 'Texas' },
+    { value: 'UT', name: 'Utah' },
+    { value: 'VT', name: 'Vermont' },
+    { value: 'VA', name: 'Virginia' },
+    { value: 'WA', name: 'Washington' },
+    { value: 'WV', name: 'West Virginia' },
+    { value: 'WI', name: 'Wisconsin' },
+    { value: 'WY', name: 'Wyoming' },
+    { value: 'DC', name: 'District of Columbia' },
   ];
 
   lenderTypes: LenderTypeOption[] = [
@@ -106,10 +154,10 @@ export class LenderRegistrationComponent implements OnInit {
         { value: 'business-center', name: 'Business Center' },
         { value: 'call-center', name: 'Call Center' },
         { value: 'car-wash', name: 'Car Wash' },
-        { value: 'distribution-center', name: 'Distribution Center' }, // could overlap with industrial
+        { value: 'distribution-center', name: 'Distribution Center' },
         { value: 'dry-cleaner', name: 'Dry Cleaner' },
-        { value: 'funeral-home', name: 'Funeral Home' }, // could also go in special-purpose
-        { value: 'general-commercial', name: 'General Commercial' }, // catch-all
+        { value: 'funeral-home', name: 'Funeral Home' },
+        { value: 'general-commercial', name: 'General Commercial' },
         { value: 'printing-facility', name: 'Printing Facility' },
         { value: 'sales-office', name: 'Sales Office' },
         { value: 'showroom', name: 'Showroom' },
@@ -297,6 +345,17 @@ export class LenderRegistrationComponent implements OnInit {
     }
   }
 
+  // Custom validator for minimum checkbox selection
+  private minSelectedCheckboxes(min = 1): ValidatorFn {
+    return (formArray: AbstractControl): { [key: string]: any } | null => {
+      if (formArray instanceof FormArray) {
+        const totalSelected = formArray.controls.length;
+        return totalSelected >= min ? null : { required: true };
+      }
+      return null;
+    };
+  }
+
   private initializeForm(): void {
     const contactStep = this.fb.group({
       firstName: [
@@ -329,13 +388,11 @@ export class LenderRegistrationComponent implements OnInit {
     });
 
     const productStep = this.fb.group({
-      lenderTypes: this.fb.array([], Validators.required),
+      lenderTypes: this.fb.array([], [this.minSelectedCheckboxes(1)]),
       minLoanAmount: ['', [Validators.required, Validators.minLength(6)]],
       maxLoanAmount: ['', [Validators.required, Validators.minLength(6)]],
-      propertyCategories: this.fb.array([], Validators.required),
-      propertyTypes: this.fb.array([], Validators.required),
-      city: ['', [Validators.required, Validators.minLength(2)]],
-      state: ['', Validators.required],
+      propertyCategories: this.fb.array([], [this.minSelectedCheckboxes(1)]),
+      propertyTypes: this.fb.array([]),
     });
 
     const footprintStep = this.fb.group({
@@ -371,6 +428,8 @@ export class LenderRegistrationComponent implements OnInit {
         onlySelf: false,
         emitEvent: true,
       });
+
+      console.log('Form initialized:', this.lenderForm.valid);
     });
   }
 
@@ -381,14 +440,26 @@ export class LenderRegistrationComponent implements OnInit {
 
     if (checked) {
       lenderTypesArray.push(this.fb.control(value));
+      console.log(`Added lender type: ${value}`);
     } else {
       const index = lenderTypesArray.controls.findIndex(
         (control) => control.value === value
       );
       if (index >= 0) {
         lenderTypesArray.removeAt(index);
+        console.log(`Removed lender type: ${value}`);
       }
     }
+
+    // Log for debugging
+    console.log('Lender types after change:', lenderTypesArray.value);
+    console.log('Lender types count:', lenderTypesArray.length);
+    console.log('Lender types valid:', lenderTypesArray.valid);
+    console.log('Lender types errors:', lenderTypesArray.errors);
+
+    // Update validation
+    lenderTypesArray.updateValueAndValidity();
+    this.productForm.updateValueAndValidity();
   }
 
   onPropertyCategoryChange(event: any, value: string): void {
@@ -397,14 +468,29 @@ export class LenderRegistrationComponent implements OnInit {
 
     if (checked) {
       propertyCategoriesArray.push(this.fb.control(value));
+      console.log(`Added property category: ${value}`);
     } else {
       const index = propertyCategoriesArray.controls.findIndex(
         (control) => control.value === value
       );
       if (index >= 0) {
         propertyCategoriesArray.removeAt(index);
+        console.log(`Removed property category: ${value}`);
       }
     }
+
+    // Log for debugging
+    console.log(
+      'Property categories after change:',
+      propertyCategoriesArray.value
+    );
+    console.log('Property categories count:', propertyCategoriesArray.length);
+    console.log('Property categories valid:', propertyCategoriesArray.valid);
+    console.log('Property categories errors:', propertyCategoriesArray.errors);
+
+    // Update validation
+    propertyCategoriesArray.updateValueAndValidity();
+    this.productForm.updateValueAndValidity();
   }
 
   onPropertyTypeChange(event: any, value: string): void {
@@ -421,6 +507,10 @@ export class LenderRegistrationComponent implements OnInit {
         propertyTypesArray.removeAt(index);
       }
     }
+
+    // Update validation
+    propertyTypesArray.updateValueAndValidity();
+    this.productForm.updateValueAndValidity();
   }
 
   // Helper method to check if a value is selected in a FormArray
@@ -445,12 +535,87 @@ export class LenderRegistrationComponent implements OnInit {
     if (control) control.markAsTouched();
   }
 
+  // Helper method to mark all controls in a form group as touched
+  private markAllAsTouched(formGroup: FormGroup): void {
+    Object.keys(formGroup.controls).forEach((key) => {
+      const control = formGroup.get(key);
+      if (control instanceof FormGroup) {
+        this.markAllAsTouched(control);
+      } else if (control instanceof FormArray) {
+        for (let i = 0; i < control.length; i++) {
+          if (control.at(i) instanceof FormGroup) {
+            this.markAllAsTouched(control.at(i) as FormGroup);
+          } else {
+            control.at(i).markAsTouched();
+          }
+        }
+        control.markAsTouched();
+      } else if (control) {
+        control.markAsTouched();
+      }
+    });
+  }
+
   nextStep(): void {
     const currentForm = this.getStepFormGroup();
-    Object.values(currentForm.controls).forEach((control) =>
-      control.markAsTouched()
-    );
-    if (currentForm.valid && this.currentStep < 2) this.currentStep++;
+
+    // Mark all controls as touched to trigger validation
+    this.markAllAsTouched(currentForm);
+
+    // Your existing debug logging
+    console.log('Form valid:', currentForm.valid);
+    console.log('Form value:', currentForm.value);
+    console.log('Form errors:', currentForm.errors);
+
+    // Additional debugging for specific FormArrays in step 2
+    if (this.currentStep === 1) {
+      const lenderTypes = currentForm.get('lenderTypes') as FormArray;
+      const propertyCategories = currentForm.get(
+        'propertyCategories'
+      ) as FormArray;
+
+      console.log('Lender types selected:', lenderTypes.length);
+      console.log('Lender types valid:', lenderTypes.valid);
+      console.log('Lender types errors:', lenderTypes.errors);
+
+      console.log('Property categories selected:', propertyCategories.length);
+      console.log('Property categories valid:', propertyCategories.valid);
+      console.log('Property categories errors:', propertyCategories.errors);
+
+      console.log('Product form valid:', this.productForm.valid);
+      console.log(
+        'Min loan amount value:',
+        this.productForm.get('minLoanAmount')?.value
+      );
+      console.log(
+        'Max loan amount value:',
+        this.productForm.get('maxLoanAmount')?.value
+      );
+
+      console.log('Button should be enabled:', this.getStepFormGroup().valid);
+
+      // Check individual form controls
+      console.log(
+        'minLoanAmount valid:',
+        currentForm.get('minLoanAmount')?.valid
+      );
+      console.log(
+        'maxLoanAmount valid:',
+        currentForm.get('maxLoanAmount')?.valid
+      );
+    }
+
+    if (currentForm.valid && this.currentStep < 2) {
+      this.currentStep++;
+    } else {
+      // Display more specific error information
+      Object.keys(currentForm.controls).forEach((key) => {
+        const control = currentForm.get(key);
+        if (control && control.invalid) {
+          console.log(`Control '${key}' is invalid:`, control.errors);
+        }
+      });
+    }
   }
 
   prevStep(): void {

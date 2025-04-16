@@ -74,3 +74,7 @@ input {
 .form-check-input:checked {
   background-color: #0a2463;
 }
+.invalid-feedback {
+  color: blueviolet;
+  background-color: greenyellow;
+}
