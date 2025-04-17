@@ -75,6 +75,5 @@ input {
   background-color: #0a2463;
 }
 .invalid-feedback {
-  color: blueviolet;
-  background-color: greenyellow;
+  color: #c00000;
 }

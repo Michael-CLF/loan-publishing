@@ -1,37 +1,70 @@
-<!-- lender-product.component.html -->
-<div class="product-details-container" [formGroup]="lenderForm">
-    <!-- Lender Types Section -->
+<div class="footprint-container">
+    <form [formGroup]="lenderForm">
+        <h3 class="sub-title">Select Lending Footprint</h3>
+        <p class="sub-title">Please select the states and counties where you lend.</p>
 
-    <!-- Location Section -->
-    <!--<div class="form-section">
-        <h4 class="section-title">Location</h4>
-        <div class="row">
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="city" class="form-label">City</label>
-                    <input type="text" id="city" class="form-control" formControlName="city"
-                        [ngClass]="{'is-invalid': isControlInvalid('city')}">
-                    <div *ngIf="controlHasError('city', 'required')" class="invalid-feedback">
-                        City is required
+        <div class="two-column-layout" *ngIf="lenderForm.get('states')">
+            <!-- Left column: States list with Select All option -->
+            <div class="states-column">
+                <h4 class="sub-title">States</h4>
+
+                <!-- Select All States checkbox -->
+                <div class="state-item select-all">
+                    <div class="state-header">
+                        <input class="form-check-input" type="checkbox" [checked]="areAllStatesSelected()"
+                            (change)="toggleAllStates($event)">
+                        <label class="state-name"><strong>Select All States</strong></label>
                     </div>
-                    <div *ngIf="controlHasError('city', 'minlength')" class="invalid-feedback">
-                        City must be at least 2 characters
+                </div>
+
+                <!-- Individual state checkboxes -->
+                <div *ngFor="let state of footprintLocation" class="state-item"
+                    [class.selected]="currentSelectedState === state.value" (click)="selectState(state.value)">
+                    <div class="state-header">
+                        <input type="checkbox" class="form-check-input" [checked]="isStateSelected(state.value)"
+                            (click)="$event.stopPropagation()" (change)="onStateChange(state.value, $event)">
+                        <label class="state-name">{{ state.name }}</label>
                     </div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="form-group">
-                    <label for="state" class="form-label">State</label>
-                    <select id="state" class="form-select" formControlName="state"
-                        [ngClass]="{'is-invalid': isControlInvalid('state')}">
-                        <option value="">Select a state</option>
-                        <option *ngFor="let state of states" [value]="state.value">{{ state.name }}</option>
-                    </select>
-                    <div *ngIf="controlHasError('state', 'required')" class="invalid-feedback">
-                        State is required
+
+            <!-- Right column: Counties for all selected states -->
+            <div class="counties-column">
+                <h4 class="sub-title">Counties for Selected States</h4>
+
+                <div *ngIf="getCountiesForSelectedStates().length === 0" class="no-selection-message">
+                    Please select at least one state to view its counties
+                </div>
+
+                <div *ngFor="let stateData of getCountiesForSelectedStates()" class="state-counties">
+                    <h5>{{ stateData.stateName }}</h5>
+
+                    <!-- Select All Counties for this state -->
+                    <div class="select-all-counties">
+                        <label class="form-check-label">
+                            <input class="form-check-input" type="checkbox"
+                                [checked]="areAllCountiesSelected(stateData.stateValue)"
+                                (change)="toggleAllCounties(stateData.stateValue, $event)">
+                            <strong>Select All Counties</strong>
+                        </label>
+                    </div>
+
+                    <!-- Individual county checkboxes -->
+                    <div *ngFor="let county of stateData.counties" class="county-item">
+                        <label class="form-check-label">
+                            <input type="checkbox" class="form-check-input"
+                                [checked]="isCountySelected(stateData.stateValue, county.value)"
+                                (change)="onCountyChange(stateData.stateValue, county.value, $event)">
+                            {{ county.name }}
+                        </label>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
-</div>-->
+
+        <!-- Error message -->
+        <div *ngIf="hasFormError('noStateSelected')" class="error-message">
+            Please select at least one state.
+        </div>
+    </form>
+</div>
