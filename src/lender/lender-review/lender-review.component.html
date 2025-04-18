@@ -1,0 +1,115 @@
+<div class="review-container">
+    <h2>Review Your Information</h2>
+
+    <div class="section">
+        <h3>Contact Information</h3>
+        <div class="review-grid">
+            <div class="review-item">
+                <div class="review-label">Name:</div>
+                <div class="review-value">{{lenderForm.get('contactInfo.firstName')?.value}}
+                    {{lenderForm.get('contactInfo.lastName')?.value}}</div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Email:</div>
+                <div class="review-value">{{lenderForm.get('contactInfo.contactEmail')?.value}}</div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Phone:</div>
+                <div class="review-value">{{lenderForm.get('contactInfo.contactPhone')?.value}}</div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Location:</div>
+                <div class="review-value">{{lenderForm.get('contactInfo.city')?.value}},
+                    {{getStateName(lenderForm.get('contactInfo.state')?.value)}}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Product Information</h3>
+        <div class="review-grid">
+            <div class="review-item">
+                <div class="review-label">Lender Types:</div>
+                <div class="review-value">
+                    <ul *ngIf="lenderForm.get('productInfo.lenderTypes')?.value?.length > 0">
+                        <li *ngFor="let type of lenderForm.get('productInfo.lenderTypes')?.value">
+                            {{getLenderTypeName(type)}}
+                        </li>
+                    </ul>
+                    <span *ngIf="!lenderForm.get('productInfo.lenderTypes')?.value?.length">None selected</span>
+                </div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Min Loan Amount:</div>
+                <div class="review-value">{{formatCurrency(lenderForm.get('productInfo.minLoanAmount')?.value) |
+                    currency:'USD':'symbol':'1.0-0'}}</div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Max Loan Amount:</div>
+                <div class="review-value">{{formatCurrency(lenderForm.get('productInfo.maxLoanAmount')?.value) |
+                    currency:'USD':'symbol':'1.0-0'}}</div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Property Categories:</div>
+                <div class="review-value">
+                    <ul *ngIf="lenderForm.get('productInfo.propertyCategories')?.value?.length > 0">
+                        <li *ngFor="let category of lenderForm.get('productInfo.propertyCategories')?.value">
+                            {{getPropertyCategoryName(category)}}
+                        </li>
+                    </ul>
+                    <span *ngIf="!lenderForm.get('productInfo.propertyCategories')?.value?.length">None selected</span>
+                </div>
+            </div>
+            <div class="review-item">
+                <div class="review-label">Property Subcategories:</div>
+                <div class="review-value">
+                    <ul *ngIf="hasPropertySubcategories()">
+                        <li *ngFor="let item of selectedPropertyTypes">
+                            {{item.category}} > {{item.subcategory}}
+                        </li>
+                    </ul>
+                    <span *ngIf="!hasPropertySubcategories()">None selected</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h3>Lending Footprint</h3>
+        <div class="review-grid">
+            <div class="review-item">
+                <div class="review-label">States:</div>
+                <div class="review-value">
+                    <ul *ngIf="lenderForm.get('footprintInfo.lendingFootprint')?.value?.length > 0">
+                        <li *ngFor="let state of lenderForm.get('footprintInfo.lendingFootprint')?.value">
+                            {{state}}
+                        </li>
+                    </ul>
+                    <span *ngIf="!lenderForm.get('footprintInfo.lendingFootprint')?.value?.length">None selected</span>
+                </div>
+            </div>
+        </div>
+
+        <ng-container *ngIf="hasCounties()">
+            <div class="counties-section">
+                <div class="review-item">
+                    <div class="review-label">Counties:</div>
+                    <div class="review-value">
+                        <div *ngFor="let stateItem of selectedCounties" class="state-counties">
+                            <h4>{{stateItem.stateName | titlecase}}</h4>
+                            <ul>
+                                <li *ngFor="let county of stateItem.counties">{{county}}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </ng-container>
+    </div>
+
+    <div class="section instructions">
+        <p>Please review all your information above. If you need to make changes, click the "Previous" button to go back
+            to the appropriate section. Once you're satisfied with all the information, click "Submit" to complete your
+            registration.</p>
+    </div>
+</div>

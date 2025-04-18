@@ -13,6 +13,7 @@ import { CommonModule } from '@angular/common';
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
+import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
 
 export interface PropertyCategory {
   name: string;
@@ -55,6 +56,7 @@ export interface PropertyTypes {
     LenderContactComponent,
     LenderProductComponent,
     LenderFootprintComponent,
+    LenderReviewComponent,
   ],
   templateUrl: './lender-registration.component.html',
   styleUrls: ['./lender-registration.component.css'],
@@ -340,6 +342,8 @@ export class LenderRegistrationComponent implements OnInit {
         return this.productForm;
       case 2:
         return this.footprintForm;
+      case 3:
+        return this.lenderForm; // Return the entire form for review step
       default:
         return this.contactForm; // Default fallback
     }
@@ -605,7 +609,8 @@ export class LenderRegistrationComponent implements OnInit {
       );
     }
 
-    if (currentForm.valid && this.currentStep < 2) {
+    // Update to allow proceeding to the review step (step 3)
+    if (currentForm.valid && this.currentStep < 3) {
       this.currentStep++;
     } else {
       // Display more specific error information
@@ -631,13 +636,14 @@ export class LenderRegistrationComponent implements OnInit {
     this.submitted = true;
     this.errorMessage = '';
     this.successMessage = '';
-    for (let step = 0; step <= 2; step++) {
-      this.currentStep = step;
-      if (!this.getStepFormGroup().valid) {
-        this.errorMessage = 'Please complete all required fields';
-        return;
-      }
+
+    // Check if the entire form is valid before submission
+    if (!this.lenderForm.valid) {
+      this.errorMessage = 'Please complete all required fields';
+      return;
     }
+
+    // Process form submission (this would typically be an API call)
     this.successMessage = 'Lender registration completed successfully!';
     console.log('Form Data:', this.lenderForm.value);
   }

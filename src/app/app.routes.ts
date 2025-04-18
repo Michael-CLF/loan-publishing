@@ -13,6 +13,7 @@ import { LenderContactComponent } from 'src/lender/lender-contact/lender-contact
 import { LenderProductComponent } from 'src/lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-footprint.component';
 import { LenderRegistrationComponent } from 'src/lender/lender-registration/lender-registration.component';
+import { LenderReviewComponent } from 'src/lender/lender-review/lender-review.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -24,6 +25,7 @@ export const routes: Routes = [
   { path: 'lender-registration', component: LenderRegistrationComponent },
   { path: 'lender-contact', component: LenderContactComponent },
   { path: 'lender-product', component: LenderProductComponent },
+  { path: 'lender-review', component: LenderReviewComponent },
   { path: 'lender-footprint', component: LenderFootprintComponent },
   { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
