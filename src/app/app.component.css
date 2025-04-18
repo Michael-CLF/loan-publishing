@@ -1,1 +1,3 @@
-
+.content-wrapper {
+  padding-bottom: 100px; /* adjust based on actual footer height */
+}

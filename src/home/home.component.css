@@ -1,18 +1,161 @@
 .grid-container {
-  margin-bottom: 100px;
+  margin-bottom: 50px;
   margin-top: 30px;
 }
-.home-container {
-  width: 80%;
-  margin: 0 auto;
-  align-items: center;
+.headline {
+  color: #0a2463;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 50px;
 }
+.center-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh; /* full viewport */
+  background-color: #f2f2f2; /* or any background */
+}
+
+.product-container {
+  display: flex;
+  flex-direction: row;
+  max-width: 1000px;
+  margin: 30px auto;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  overflow: hidden;
+  height: 20.5rem; /* This is fine, but we need to ensure children stretch */
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+
+.originators-section .sub-column {
+  flex: 1;
+  min-width: 250px;
+  display: flex; /* Add this */
+  flex-direction: column; /* Add this */
+  height: 100%; /* Add this to make it fill the height */
+  justify-content: center; /* Add this to center vertically */
+}
+.lenders-section .sub-column {
+  flex: 1;
+  min-width: 250px;
+  display: flex; /* Add this */
+  flex-direction: column; /* Add this */
+  height: 100%; /* Add this to make it fill the height */
+  justify-content: center; /* Add this to center vertically */
+}
+.how-it-works-section .sub-column {
+  flex: 1;
+  min-width: 250px;
+  display: flex; /* Add this */
+  flex-direction: column; /* Add this */
+  height: 100%; /* Add this to make it fill the height */
+  justify-content: center; /* Add this to center vertically */
+}
+.why-it-works-section .sub-column {
+  flex: 1;
+  min-width: 250px;
+  display: flex; /* Add this */
+  flex-direction: column; /* Add this */
+  height: 100%; /* Add this to make it fill the height */
+  justify-content: center; /* Add this to center vertically */
+}
+
+.originators-section .left-content {
+  max-width: 400px;
+  background-color: #0a2463;
+  height: 100%; /* Add this */
+}
+
+.originators-section .right-content {
+  flex: 1;
+  background-color: #008080;
+  height: 100%; /* Add this */
+}
+
+.originators-section .left-content {
+  flex: 1;
+  background-color: #0a2463;
+}
+.originators-section .list-item {
+  margin-bottom: 0.5rem;
+}
+
+.lenders-section .left-content {
+  flex: 1;
+  background-color: #0a2463;
+}
+.lenders-section .left-content {
+  max-width: 400px;
+  background-color: #0a2463;
+}
+.lenders-section .right-content {
+  flex: 1;
+  background-color: #008080;
+}
+.lenders-section .list-item {
+  margin-bottom: 0.5rem;
+}
+/*--How it works*/
+.how-it-works-section .left-content {
+  max-width: 400px;
+  background-color: #0a2463;
+  height: 100%; /* Add this */
+}
+.how-it-works-section .right-content {
+  flex: 1;
+  background-color: #008080;
+  height: 100%; /* Add this */
+}
+
+.how-it-works-section .left-content {
+  flex: 1;
+  background-color: #0a2463;
+}
+.how-it-works-section .list-item {
+  margin-bottom: 0.5rem;
+}
+/*--Why it works*/
+.why-it-works-section .left-content {
+  max-width: 400px;
+  background-color: #0a2463;
+  height: 100%; /* Add this */
+}
+.why-it-works-section .right-content {
+  flex: 1;
+  background-color: #008080;
+  height: 100%; /* Add this */
+}
+
+.why-it-works-section .left-content {
+  flex: 1;
+  background-color: #0a2463;
+}
+.why-it-works-section .list-item {
+  margin-bottom: 0.5rem;
+}
+
 .sub-title {
   font-family: "Roboto", sans-serif;
-  font-size: 1.75rem;
-  text-align: center;
+  font-size: 2rem;
   font-weight: 400;
   color: #fff;
+  text-align: center;
+}
+.sub-headline {
+  font-family: "Roboto", sans-serif;
+  font-weight: 400;
+  color: #fff;
+  text-align: center;
+}
+.list-item {
+  color: #fff;
+  font-family: "Roboto", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-left: 20px;
 }
 .button {
   text-align: center;
@@ -36,63 +179,11 @@
   font-weight: 400;
   margin: 0px 0px 5px 30px;
 }
-.steps-container {
-  width: 80%;
-  margin: 0 auto;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.steps-title {
-  text-align: center;
-  margin-bottom: 2rem;
-  font-family: "Roboto", sans-serif;
-  font-size: 2.5rem;
-}
-
-.steps-list {
-  width: 100%;
-  max-width: 800px;
-  padding: 0;
-  font-size: 1.5rem;
-  list-style-type: none;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.step-item {
-  width: 100%;
-  margin-bottom: 1.5rem;
-}
-
-.step-content {
-  display: flex;
-  text-align: left;
-  align-items: flex-start;
-}
-
-.step-icon {
-  margin-right: 1rem;
-  font-size: 2.5rem;
-  color: #0a2463;
-}
-
-.step-text {
-  display: flex;
-  flex-direction: column;
-}
-
-.step-text strong {
-  margin-bottom: 0.25rem;
-  font-size: 1.75rem;
-}
-.step-text p {
-  margin: 0;
-}
 .card {
   margin: 40px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
 }
 .card-header {
   border-radius: 4px;
@@ -113,10 +204,6 @@
 .title {
   color: #fff;
 }
-
-.headline {
-  color: #0a2463;
-}
 .lender-columns {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -125,16 +212,6 @@
   list-style-type: none;
 }
 
-.lender-columns li {
-  padding-bottom: 0.5rem;
-}
-.lender-columns {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1rem;
-  padding-left: 1rem;
-  list-style-type: none;
-}
 .lender-columns li {
   padding-bottom: 0.5rem;
   font-weight: 500;
@@ -155,8 +232,12 @@
 .property-columns li {
   font-weight: 500;
 }
-
 .property-columns strong {
   display: block;
   font-size: 1.1em;
+}
+body,
+html {
+  height: 100%;
+  margin: 0;
 }

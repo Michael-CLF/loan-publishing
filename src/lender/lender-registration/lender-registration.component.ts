@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -14,6 +14,7 @@ import { LenderContactComponent } from '../../lender/lender-contact/lender-conta
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
+import { LenderService } from '../../services/lender.service';
 
 export interface PropertyCategory {
   name: string;
@@ -62,6 +63,7 @@ export interface PropertyTypes {
   styleUrls: ['./lender-registration.component.css'],
 })
 export class LenderRegistrationComponent implements OnInit {
+  private lenderService = inject(LenderService);
   lenderForm!: FormGroup;
   currentStep = 0;
   isLoading = false;
@@ -636,12 +638,29 @@ export class LenderRegistrationComponent implements OnInit {
     this.submitted = true;
     this.errorMessage = '';
     this.successMessage = '';
+    this.isLoading = true;
 
     // Check if the entire form is valid before submission
     if (!this.lenderForm.valid) {
       this.errorMessage = 'Please complete all required fields';
       return;
     }
+    const formData = this.lenderForm.value;
+
+    this.lenderService
+      .createLender(formData)
+      .then((id: string) => {
+        // Explicitly define id as string type
+        this.isLoading = false;
+        this.successMessage = 'Lender registration completed successfully!';
+        console.log('Form Data saved with ID:', id);
+      })
+      .catch((error: Error) => {
+        // Explicitly define error as Error type
+        this.isLoading = false;
+        this.errorMessage = `Error saving data: ${error.message}`;
+        console.error('Form submission error:', error);
+      });
 
     // Process form submission (this would typically be an API call)
     this.successMessage = 'Lender registration completed successfully!';
