@@ -1,16 +1,73 @@
-<div class="loan-card">
-    <div class="loan-header">
-        <!-- Top 20%: Add title or status info here -->
-        <h3>Loan Status</h3>
+<!-- loans.component.html -->
+<div class="loans-container">
+    <header class="loans-header">
+        <h1 class="title">Loan Postings</h1>
+        <button class="create-btn" routerLink="/loan">Add a New Loan button to search nav</button>
+    </header>
+
+    <!-- Loading state -->
+    <div *ngIf="loansLoading()" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading loans...</p>
     </div>
 
-    <div class="loan-body">
-        <!-- Middle: Main content goes here -->
-        <p>This is the main loan information content area.</p>
+    <!-- Error message -->
+    <div *ngIf="errorMessage()" class="error-message">
+        {{ errorMessage() }}
     </div>
 
-    <div class="loan-footer">
-        <!-- Bottom 10%: Add actions or notes here -->
-        <p>More details</p>
+    <!-- Empty state -->
+    <div *ngIf="!loansLoading() && loans().length === 0" class="empty-state">
+        <p>No loans found in the database.</p>
+        <button class="create-btn" routerLink="/loans/create">Create New Loan</button>
+    </div>
+
+    <!-- Loans List -->
+    <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
+        <div *ngFor="let loan of loans()" class="loan-card">
+            <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
+                <span class="loan-type">
+                    {{ loan.propertyTypeCategory }}
+                </span>
+            </div>
+
+            <div class="loan-body">
+                <div class="loan-detail">
+                    <span class="detail-label">Property:</span>
+                    <span class="detail-value">{{ loan.propertySubCategory }}</span>
+                </div>
+
+                <div class="loan-detail">
+                    <span class="detail-label">Location:</span>
+                    <span class="detail-value">{{ loan.state }}</span>
+                </div>
+
+                <div class="loan-detail">
+                    <span class="detail-label">Loan Type:</span>
+                    <span class="detail-value">{{ loan.loanType | titlecase }}</span>
+                </div>
+
+                <div class="loan-detail">
+                    <span class="detail-label">Loan Amount:</span>
+                    <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
+                </div>
+
+                <div class="loan-detail">
+                    <span class="detail-label">LTV:</span>
+                    <span class="detail-value">{{ loan.ltv }}%</span>
+                </div>
+
+                <div class="loan-detail">
+                    <span class="detail-label">Created:</span>
+                    <span class="detail-value">{{ getFormattedDate(loan.createdAt) }}</span>
+                </div>
+            </div>
+
+            <div class="loan-actions">
+                <button class="action-btn view-btn" (click)="viewLoanDetails(loan.id || '')">View</button>
+                <button class="action-btn edit-btn" (click)="editLoan(loan.id || '')">Edit</button>
+                <button class="action-btn delete-btn" (click)="deleteLoan(loan.id || '')">Delete</button>
+            </div>
+        </div>
     </div>
 </div>

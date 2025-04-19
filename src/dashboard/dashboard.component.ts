@@ -1,4 +1,3 @@
-// Dashboard component TS
 import {
   Component,
   OnInit,
@@ -7,12 +6,13 @@ import {
   DestroyRef,
   Injector,
   runInInjectionContext,
+  signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { User } from '@angular/fire/auth';
-import { take, switchMap, tap, catchError } from 'rxjs/operators';
+import { take } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -21,7 +21,11 @@ import {
   doc,
   getDoc,
   getDocs,
-  DocumentData,
+  query,
+  where,
+  orderBy,
+  deleteDoc,
+  CollectionReference,
 } from '@angular/fire/firestore';
 
 // Define a type for our user data
@@ -39,6 +43,32 @@ interface UserData {
   [key: string]: any; // Allow for additional properties
 }
 
+// Define loan interface
+interface Loan {
+  id?: string;
+  propertyTypeCategory: string;
+  propertySubCategory: string;
+  transactionType: string;
+  loanAmount: string;
+  loanType: string;
+  propertyValue: string;
+  ltv: number;
+  noi?: string;
+  city: string;
+  state: string;
+  numberOfSponsors: number;
+  sponsorsLiquidity: string;
+  sponsorFico: number;
+  experienceInYears: number;
+  contact: string;
+  phone: string;
+  email: string;
+  notes?: string;
+  createdBy?: string;
+  createdAt?: any;
+  updatedAt?: any;
+}
+
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -54,11 +84,34 @@ export class DashboardComponent implements OnInit {
   private injector = inject(Injector);
   private firestore = inject(Firestore);
 
+  propertyColorMap: { [key: string]: string } = {
+    Commercial: '#1E90FF',
+    Healthcare: '#cb4335',
+    Hospitality: '#FF8C00',
+    Industrial: '#708090',
+    Land: '#023020',
+    MixedUse: '#8A2BE2',
+    Office: '#4682B4',
+    Residential: '#DC143C',
+    Retail: '#FFD700',
+    SpecialPurpose: '#A52A2A',
+  };
+
+  // 👇 Accessor method
+  getColor(propertyType: string): string {
+    return this.propertyColorMap[propertyType] || '#000000'; // fallback to black
+  }
+
   user: User | null = null;
   userData: UserData | null = null;
   loading = true;
   error: string | null = null;
   accountNumber: string = ''; // Add this property to the component
+
+  // Loan data using signals for reactivity
+  loans = signal<Loan[]>([]);
+  loansLoading = signal(true);
+  loansError = signal<string | null>(null);
 
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
@@ -122,6 +175,9 @@ export class DashboardComponent implements OnInit {
                   ...docSnap.data(),
                 } as UserData;
                 this.loading = false;
+
+                // Load loans after user is authenticated
+                this.loadLoans(user.uid);
               } else {
                 console.log(`No document found at users/${user.uid}`);
 
@@ -146,6 +202,9 @@ export class DashboardComponent implements OnInit {
                       this.userData = docData;
                       foundByEmail = true;
                       this.loading = false;
+
+                      // Load loans after user is authenticated
+                      this.loadLoans(user.uid);
                       break;
                     }
                   }
@@ -167,6 +226,9 @@ export class DashboardComponent implements OnInit {
                     this.error = `Using test user: ${
                       allUsers[0].email || 'Unknown'
                     }`;
+
+                    // Load loans for test user
+                    this.loadLoans(allUsers[0].id);
                   }
                 }
               }
@@ -185,6 +247,55 @@ export class DashboardComponent implements OnInit {
       }
     });
   }
+
+  // Load loans for the authenticated user
+  async loadLoans(userId: string): Promise<void> {
+    console.log('Loading loans for user:', userId);
+    this.loansLoading.set(true);
+    this.loansError.set(null);
+
+    try {
+      // Create a reference to the loans collection
+      const loansCollectionRef = collection(this.firestore, 'loans');
+
+      // Create a query to get loans created by the current user
+      const q = query(
+        loansCollectionRef,
+        where('createdBy', '==', userId),
+        orderBy('createdAt', 'desc')
+      );
+
+      // Execute the query
+      const querySnapshot = await runInInjectionContext(this.injector, () =>
+        getDocs(q)
+      );
+
+      const userLoans: Loan[] = [];
+
+      // Process each loan document
+      querySnapshot.forEach((doc) => {
+        const loanData = doc.data();
+        userLoans.push({
+          id: doc.id,
+          ...loanData,
+        } as Loan);
+      });
+
+      console.log(
+        `Found ${userLoans.length} loans for user ${userId}`,
+        userLoans
+      );
+
+      // Update the loans signal with the fetched data
+      this.loans.set(userLoans);
+      this.loansLoading.set(false);
+    } catch (error) {
+      console.error('Error loading loans:', error);
+      this.loansError.set('Failed to load your loans. Please try again.');
+      this.loansLoading.set(false);
+    }
+  }
+
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';
 
@@ -194,6 +305,79 @@ export class DashboardComponent implements OnInit {
       return `(${match[1]}) ${match[2]}-${match[3]}`;
     }
     return phone; // fallback
+  }
+
+  // Format currency display
+  formatCurrency(value: string | number): string {
+    if (!value) return '$0';
+
+    // If already formatted (has $ sign), return as is
+    if (typeof value === 'string' && value.includes('$')) {
+      return value;
+    }
+
+    // Convert to number if string without $ sign
+    const numValue =
+      typeof value === 'string'
+        ? parseFloat(value.replace(/[^\d.-]/g, ''))
+        : value;
+
+    // Format as USD
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(numValue);
+  }
+
+  // Get formatted date
+  getFormattedDate(date: any): string {
+    if (!date) return 'N/A';
+
+    try {
+      // Handle Firebase timestamp or Date object
+      const timestamp = date.toDate ? date.toDate() : new Date(date);
+      return timestamp.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
+  }
+
+  // Navigation methods
+  viewLoanDetails(loanId: string): void {
+    this.router.navigate(['/loans', loanId]);
+  }
+
+  editLoan(loanId: string): void {
+    this.router.navigate(['/loans', loanId, 'edit']);
+  }
+
+  async deleteLoan(loanId: string): Promise<void> {
+    if (confirm('Are you sure you want to delete this loan?')) {
+      try {
+        // Delete the loan document
+        const loanDocRef = doc(this.firestore, `loans/${loanId}`);
+        await runInInjectionContext(this.injector, () => deleteDoc(loanDocRef));
+
+        // Remove the deleted loan from the displayed list
+        const currentLoans = this.loans();
+        this.loans.set(currentLoans.filter((loan) => loan.id !== loanId));
+
+        alert('Loan deleted successfully');
+      } catch (error) {
+        console.error('Error deleting loan:', error);
+        alert(
+          'Failed to delete loan: ' +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    }
   }
 
   logout(): void {

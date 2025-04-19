@@ -1,8 +1,28 @@
 /* user-profile.component.css */
 .dashboard-container {
-  max-width: 800px;
-  margin: 0 auto;
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: wrap;
   padding: 20px;
+}
+
+.account-container {
+  width: 400px;
+  border-radius: 6px;
+  padding: 30px 20px 30px 20px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+.loan-container {
+  width: 1000px;
+  border-radius: 6px;
+  padding: 30px 20px 30px 20px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
 }
 .acct-info {
   font-family: "roboto", sans-serif;
@@ -45,11 +65,130 @@
 .profile-field:last-child {
   border-bottom: none;
 }
-
+.loans {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1.75rem;
+  font-weight: 500;
+}
+.button-container {
+  margin: 20px;
+}
+.add-loan {
+  color: #fff;
+  background-color: #0a2463;
+  padding: 10px 20px 10px 20px;
+  border-radius: 40px;
+  text-decoration: none;
+  font-family: "roboto", sans-serif;
+  font-size: 1.375rem;
+}
+.add-loan:hover {
+  background-color: #008080;
+}
 .error-message {
   color: #c00000;
   padding: 10px;
   margin: 10px 0;
   background-color: #f8d7da;
   border-radius: 4px;
+}
+
+.button-container {
+  text-align: center;
+  margin-bottom: 15px;
+}
+/* Loans Grid */
+.loans-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+.loan-card {
+  background-color: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #eee;
+}
+
+.loan-header {
+  color: white;
+  padding: 12px 15px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 1.1rem;
+  font-family: "roboto", sans-serif;
+}
+.loan-type {
+  font-weight: 500;
+}
+
+.loan-body {
+  padding: 15px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loan-detail {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+}
+.detail-label {
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  color: #0a2463;
+  font-weight: 500;
+}
+.detail-value {
+  color: #0a2463;
+}
+.loan-actions {
+  display: flex;
+  border-top: 1px solid #eee;
+  background-color: #f9f9f9;
+}
+
+.action-btn {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: background-color 0.2s;
+}
+.view-btn {
+  color: #0a2463;
+}
+
+.view-btn:hover {
+  background-color: #e8f0fe;
+}
+
+.edit-btn {
+  color: #023020;
+}
+
+.edit-btn:hover {
+  background-color: #e6f4ea;
+}
+.delete-btn {
+  color: #c00000;
+}
+.delete-btn:hover {
+  background-color: #fce8e6;
+}
+/* Loading and Error States */
+.loading {
+  font-family: "roboto", sans-serif;
+  font-size: 1.5rem;
+  text-align: center;
+  padding: 20px;
+  color: #008080;
 }

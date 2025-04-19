@@ -1,5 +1,5 @@
 <div class="login-container">
-    <h2>Log in to Loan Post</h2>
+    <h2 class="title">Log in to Daily Loan Post</h2>
 
     <!-- Email Request Form -->
     @if (!showLinkSent && !isVerifying && !errorMessage) {
@@ -10,10 +10,10 @@
             @if (emailControl?.invalid && (emailControl?.dirty || emailControl?.touched)) {
             <div class="error-message">
                 @if (emailControl?.errors?.['required']) {
-                <span>Email is required</span>
+                <span>*Email is required</span>
                 }
                 @if (emailControl?.errors?.['email']) {
-                <span>Please enter a valid email address</span>
+                <span>*Please enter a valid email address</span>
                 }
             </div>
             }

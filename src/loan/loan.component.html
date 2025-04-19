@@ -53,22 +53,8 @@
             <label for="loanType">Loan Type Requested</label>
             <select id="loanType" formControlName="loanType" [ngClass]="{'invalid': isInvalid('loanType')}">
                 <option value="">-- Select Loan Type --</option>
-                <option value="agency">Agency</option>
-                <option value="balanceSheet">Balance Sheet</option>
-                <option value="bridge">Bridge Loan</option>
-                <option value="dscr">DSCR</option>
-                <option value="fixFlip">Fix & Flip</option>
-                <option value="hardMoney">Hard Money</option>
-                <option value="construction">New Construction</option>
-                <option value="rehab">Rehab/Renovation</option>
-                <option value="sba7a">SBA 7(a)</option>
-                <option value="sba504">SBA 504</option>
-                <option value="usda">USDA</option>
-
+                <option *ngFor="let type of loanTypes" [value]="type.value">{{ type.name }}</option>
             </select>
-            <div *ngIf="isInvalid('loanType')" class="error-message">
-                *Please select a loan type
-            </div>
         </div>
 
         <!-- Loan Amount -->

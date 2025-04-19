@@ -1,4 +1,4 @@
-// Firstore servive TS
+// Firstore service TS
 import {
   Injectable,
   inject,

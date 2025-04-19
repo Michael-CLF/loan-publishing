@@ -16,6 +16,9 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule } from '@angular/router';
+import { LoanService } from '../services/loan.service';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { DestroyRef } from '@angular/core';
 
 // Type definitions
 type PropertyCategory =
@@ -37,12 +40,34 @@ type PropertyCategory =
 export class LoanComponent implements OnInit {
   private fb = inject(FormBuilder);
   private cdr = inject(ChangeDetectorRef);
+  private loanService = inject(LoanService);
+  private destroyRef = inject(DestroyRef);
 
   // Form group
   propertyForm!: FormGroup;
 
   // Make Object available to template
   Object = Object;
+
+  // Loading and error states
+  isSubmitting = signal(false);
+  submissionError = signal<string | null>(null);
+  submissionSuccess = signal(false);
+
+  // Add this to your component class
+  loanTypes = [
+    { value: 'agency', name: 'Agency' },
+    { value: 'balanceSheet', name: 'Balance Sheet' },
+    { value: 'bridge', name: 'Bridge Loan' },
+    { value: 'dscr', name: 'DSCR' },
+    { value: 'fixFlip', name: 'Fix & Flip' },
+    { value: 'hardMoney', name: 'Hard Money' }, // Change to hard_money for consistency if desired
+    { value: 'construction', name: 'New Construction' },
+    { value: 'rehab', name: 'Rehab/Renovation' },
+    { value: 'sba7a', name: 'SBA 7(a)' },
+    { value: 'sba504', name: 'SBA 504' },
+    { value: 'usda', name: 'USDA' },
+  ];
 
   // Using signals for reactive state management
   propertyCategories = signal<Record<PropertyCategory, string[]>>({
@@ -273,11 +298,34 @@ export class LoanComponent implements OnInit {
   onSubmit(): void {
     if (this.propertyForm.valid) {
       console.log('Form submitted successfully:', this.propertyForm.value);
-      // Add logic to send the data to a backend or process it
 
-      // Reset form after submission if needed
-      // this.propertyForm.reset();
-      // this.selectedCategory.set('');
+      // Reset states
+      this.isSubmitting.set(true);
+      this.submissionError.set(null);
+      this.submissionSuccess.set(false);
+
+      // Send the form data to Firebase through the service
+      this.loanService
+        .createLoan(this.propertyForm.value)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (loanId) => {
+            console.log('Loan created with ID:', loanId);
+            this.isSubmitting.set(false);
+            this.submissionSuccess.set(true);
+
+            // Optional: Reset form after successful submission
+            // this.propertyForm.reset();
+            // this.selectedCategory.set('');
+          },
+          error: (error) => {
+            console.error('Error creating loan:', error);
+            this.isSubmitting.set(false);
+            this.submissionError.set(
+              'Failed to create loan: ' + (error.message || 'Unknown error')
+            );
+          },
+        });
     } else {
       console.warn('Form is invalid. Please fix the errors.');
 
