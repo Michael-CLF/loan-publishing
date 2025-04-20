@@ -96,7 +96,8 @@
   transition: background-color 0.2s;
 }
 .view-btn {
-  color: #0a2463;
+  color: #fff;
+  background-color: #0a2463;
 }
 
 .view-btn:hover {

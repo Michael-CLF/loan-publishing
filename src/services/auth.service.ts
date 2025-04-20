@@ -5,13 +5,20 @@ import {
   PLATFORM_ID,
   Inject,
   NgZone,
-  DestroyRef,
   Injector,
-  runInInjectionContext,
+  OnDestroy,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
-import { BehaviorSubject, Observable, from, of } from 'rxjs';
-import { switchMap, tap, catchError, map, filter, first } from 'rxjs/operators';
+import { BehaviorSubject, Observable, from, of, Subscription } from 'rxjs';
+import {
+  switchMap,
+  tap,
+  catchError,
+  map,
+  filter,
+  first,
+  take,
+} from 'rxjs/operators';
 import {
   Auth,
   User,
@@ -26,18 +33,16 @@ import {
 } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
 import { Router } from '@angular/router';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Injectable({
   providedIn: 'root',
 })
-export class AuthService {
+export class AuthService implements OnDestroy {
   private auth = inject(Auth);
   private firestoreService = inject(FirestoreService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
-  private destroyRef = inject(DestroyRef);
   private isBrowser: boolean;
 
   private emailForSignInKey = 'emailForSignIn';
@@ -49,6 +54,7 @@ export class AuthService {
   public authReady$ = this.authReadySubject.asObservable();
 
   private actionCodeSettings: ActionCodeSettings;
+  private authStateSubscription: Subscription | null = null;
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);
@@ -57,6 +63,7 @@ export class AuthService {
       handleCodeInApp: true,
     };
 
+    // Change this code in your constructor
     if (this.isBrowser) {
       const storedLoginState = localStorage.getItem('isLoggedIn');
       if (storedLoginState === 'true') {
@@ -69,25 +76,27 @@ export class AuthService {
           handleCodeInApp: true,
         };
 
-        // Using takeUntilDestroyed to properly clean up subscriptions
-        authState(this.auth)
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe((user) => {
-            this.ngZone.run(() => {
-              this.userSubject.next(user);
-              this.isLoggedInSubject.next(!!user);
-              if (user) {
-                localStorage.setItem('isLoggedIn', 'true');
-              } else {
-                localStorage.removeItem('isLoggedIn');
-              }
-              this.authReadySubject.next(true);
-            });
+        // Replace the takeUntilDestroyed with a regular subscription
+        this.authStateSubscription = authState(this.auth).subscribe((user) => {
+          this.ngZone.run(() => {
+            this.userSubject.next(user);
+            this.isLoggedInSubject.next(!!user);
+            if (user) {
+              localStorage.setItem('isLoggedIn', 'true');
+            } else {
+              localStorage.removeItem('isLoggedIn');
+            }
+            this.authReadySubject.next(true);
           });
+        });
       });
-    } else {
-      // SSR - immediately mark auth as ready since we'll assume not logged in
-      this.authReadySubject.next(true);
+    }
+  }
+
+  ngOnDestroy() {
+    // Clean up subscription when service is destroyed
+    if (this.authStateSubscription) {
+      this.authStateSubscription.unsubscribe();
     }
   }
 
@@ -110,15 +119,13 @@ export class AuthService {
 
     return this.waitForAuthInit().pipe(
       map(() => {
-        // Always run Firebase APIs inside NgZone and injection context
-        return runInInjectionContext(this.injector, () => {
-          try {
-            return isSignInWithEmailLink(this.auth, window.location.href);
-          } catch (error) {
-            console.error('Error checking email sign-in link:', error);
-            return false;
-          }
-        });
+        try {
+          // Execute Firebase APIs directly without injection context
+          return isSignInWithEmailLink(this.auth, window.location.href);
+        } catch (error) {
+          console.error('Error checking email sign-in link:', error);
+          return false;
+        }
       })
     );
   }
@@ -129,9 +136,7 @@ export class AuthService {
     return this.waitForAuthInit().pipe(
       switchMap(() => {
         return from(
-          runInInjectionContext(this.injector, () =>
-            sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
-          )
+          sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
         ).pipe(
           tap(() => localStorage.setItem(this.emailForSignInKey, email)),
           map(() => true),
@@ -154,15 +159,14 @@ export class AuthService {
     return this.waitForAuthInit().pipe(
       switchMap(() => {
         return this.ngZone.run(() => {
-          const isValidLink = runInInjectionContext(this.injector, () =>
-            isSignInWithEmailLink(this.auth, window.location.href)
+          const isValidLink = isSignInWithEmailLink(
+            this.auth,
+            window.location.href
           );
 
           if (isValidLink) {
             return from(
-              runInInjectionContext(this.injector, () =>
-                signInWithEmailLink(this.auth, emailToUse, window.location.href)
-              )
+              signInWithEmailLink(this.auth, emailToUse, window.location.href)
             ).pipe(
               tap((userCredential) => {
                 localStorage.removeItem(this.emailForSignInKey);
@@ -210,9 +214,7 @@ export class AuthService {
     return this.waitForAuthInit().pipe(
       switchMap(() => {
         return from(
-          runInInjectionContext(this.injector, () =>
-            createUserWithEmailAndPassword(this.auth, email, password)
-          )
+          createUserWithEmailAndPassword(this.auth, email, password)
         ).pipe(
           switchMap((userCredential) => {
             const user = userCredential.user;
@@ -248,9 +250,7 @@ export class AuthService {
     return this.waitForAuthInit().pipe(
       switchMap(() => {
         return from(
-          runInInjectionContext(this.injector, () =>
-            signInWithEmailAndPassword(this.auth, email, password)
-          )
+          signInWithEmailAndPassword(this.auth, email, password)
         ).pipe(
           tap(() => localStorage.setItem('isLoggedIn', 'true')),
           switchMap(() => {
@@ -277,9 +277,7 @@ export class AuthService {
 
     return this.waitForAuthInit().pipe(
       switchMap(() => {
-        return from(
-          runInInjectionContext(this.injector, () => signOut(this.auth))
-        ).pipe(
+        return from(signOut(this.auth)).pipe(
           tap(() => {
             localStorage.removeItem('isLoggedIn');
             // Always navigate to login after logout
@@ -294,7 +292,44 @@ export class AuthService {
     );
   }
 
+  // New method for deleting user account
+  deleteAccount(): Observable<boolean> {
+    if (!this.isBrowser) return of(false);
+
+    return this.waitForAuthInit().pipe(
+      switchMap(() => {
+        // Get current user
+        return this.getCurrentUser().pipe(
+          take(1),
+          switchMap((user) => {
+            if (!user) {
+              return of(false);
+            }
+
+            // Delete the current user
+            return from(user.delete()).pipe(
+              tap(() => {
+                localStorage.removeItem('isLoggedIn');
+                // Navigate to login after account deletion
+                this.router.navigate(['/login']);
+              }),
+              map(() => true),
+              catchError((error) => {
+                console.error('Error deleting user account:', error);
+                throw error;
+              })
+            );
+          })
+        );
+      })
+    );
+  }
+
   getAuthStatus(): Observable<boolean> {
+    console.log(
+      'Getting auth status, current value:',
+      this.isLoggedInSubject.value
+    );
     return this.isLoggedIn$;
   }
 

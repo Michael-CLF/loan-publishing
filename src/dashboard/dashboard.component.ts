@@ -87,10 +87,11 @@ export class DashboardComponent implements OnInit {
   propertyColorMap: { [key: string]: string } = {
     Commercial: '#1E90FF',
     Healthcare: '#cb4335',
-    Hospitality: '#FF8C00',
+    Hospitality: '#1b4f72',
     Industrial: '#708090',
     Land: '#023020',
     MixedUse: '#8A2BE2',
+    'Multi-family': '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#FFD700',
@@ -374,6 +375,53 @@ export class DashboardComponent implements OnInit {
         console.error('Error deleting loan:', error);
         alert(
           'Failed to delete loan: ' +
+            (error instanceof Error ? error.message : String(error))
+        );
+      }
+    }
+  }
+
+  // Account management methods
+  editAccount(): void {
+    this.router.navigate(['/account/edit']);
+  }
+
+  async deleteAccount(): Promise<void> {
+    if (
+      confirm(
+        'Are you sure you want to delete your account? This action cannot be undone.'
+      )
+    ) {
+      try {
+        if (this.user && this.userData) {
+          // Delete the user document from Firestore
+          const userDocRef = doc(this.firestore, `users/${this.userData.id}`);
+          await runInInjectionContext(this.injector, () =>
+            deleteDoc(userDocRef)
+          );
+
+          // For now, just log out the user
+          // You'll need to implement proper user deletion in your auth service
+          this.authService.logout().subscribe({
+            next: () => {
+              alert('Your account has been deleted successfully');
+              this.router.navigate(['/login']);
+            },
+            error: (error) => {
+              console.error(
+                'Error during logout after account deletion:',
+                error
+              );
+              throw error;
+            },
+          });
+        } else {
+          throw new Error('User account information not available');
+        }
+      } catch (error) {
+        console.error('Error deleting account:', error);
+        alert(
+          'Failed to delete account: ' +
             (error instanceof Error ? error.message : String(error))
         );
       }

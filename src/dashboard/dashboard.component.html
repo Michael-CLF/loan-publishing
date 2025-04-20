@@ -43,6 +43,13 @@
                         <span class="label">Location: </span>
                         <span class="value">{{ userData.city }}, {{ userData.state }}</span>
                     </div>
+
+                    <!-- Account action buttons with proper ngIf directive -->
+                    <div *ngIf="userData && !loading" class="profile-actions">
+                        <button class="action-btn account-edit-btn" (click)="editAccount()">Edit Account</button>
+                        <button class="action-btn account-delete-btn" (click)="deleteAccount()">Delete Account</button>
+                    </div>
+
                 </div>
             </div>
         </div>

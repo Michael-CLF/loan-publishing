@@ -14,6 +14,7 @@ import { LenderProductComponent } from 'src/lender/lender-product/lender-product
 import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-footprint.component';
 import { LenderRegistrationComponent } from 'src/lender/lender-registration/lender-registration.component';
 import { LenderReviewComponent } from 'src/lender/lender-review/lender-review.component';
+import { LoanDetailsComponent } from 'src/loan-details/loan-details.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
@@ -29,6 +30,16 @@ export const routes: Routes = [
   { path: 'lender-footprint', component: LenderFootprintComponent },
   { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
+  {
+    path: 'loan-details',
+    component: LoanDetailsComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'loans/:id',
+    component: LoanDetailsComponent,
+    canActivate: [AuthGuard],
+  },
   {
     path: 'dashboard',
     component: DashboardComponent,

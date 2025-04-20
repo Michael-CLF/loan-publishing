@@ -12,6 +12,7 @@ import {
   collectionData,
   doc,
   addDoc,
+  getDoc,
   updateDoc,
   deleteDoc,
   docData,
@@ -28,7 +29,6 @@ import {
   switchMap,
   map,
   catchError,
-  tap,
   throwError,
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -131,6 +131,35 @@ export class LoanService {
     );
   }
 
+  // Add this method to your loan.service.ts file
+
+  /**
+   * Get a single loan by ID
+   */
+  getLoanById(id: string): Observable<Loan | null> {
+    if (!id) {
+      return of(null);
+    }
+
+    const loanDoc = doc(this.firestore, `loans/${id}`);
+    return from(getDoc(loanDoc)).pipe(
+      map((docSnap) => {
+        if (docSnap.exists()) {
+          return {
+            id: docSnap.id,
+            ...docSnap.data(),
+          } as Loan;
+        } else {
+          console.log(`Loan with ID ${id} not found`);
+          return null;
+        }
+      }),
+      catchError((error) => {
+        console.error('Error fetching loan:', error);
+        return of(null);
+      })
+    );
+  }
   /**
    * Deletes a loan document
    * @param id The document ID to delete

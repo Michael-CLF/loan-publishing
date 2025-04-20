@@ -63,10 +63,11 @@
                 </div>
             </div>
 
+            <!-- Update this part in your loans.component.html -->
             <div class="loan-actions">
-                <button class="action-btn view-btn" (click)="viewLoanDetails(loan.id || '')">View</button>
-                <button class="action-btn edit-btn" (click)="editLoan(loan.id || '')">Edit</button>
-                <button class="action-btn delete-btn" (click)="deleteLoan(loan.id || '')">Delete</button>
+                <!-- Only show the View button, centered -->
+                <button class="action-btn view-btn centered" (click)="viewLoanDetails(loan.id || '')">View More
+                    Details</button>
             </div>
         </div>
     </div>

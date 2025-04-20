@@ -107,6 +107,7 @@ export class LoansComponent implements OnInit {
   /**
    * Navigate to view a loan's details
    */
+  // This is what you currently have in your LoansComponent
   viewLoanDetails(id: string): void {
     if (id) {
       this.router.navigate(['/loans', id]);
