@@ -105,6 +105,11 @@
   color: #fff;
   text-decoration: none;
 }
+.all-loans {
+  color: #fff;
+  text-decoration: none;
+  margin-right: 20px;
+}
 
 /* Account dropdown container */
 .account-dropdown {

@@ -14,6 +14,17 @@ import {
   FootprintSubcategory,
 } from '../../models/footprint-location.model';
 
+interface SelectionState {
+  stateValue: string;
+  stateName: string;
+  counties: Array<{
+    value: string;
+    name: string;
+    selected: boolean;
+  }>;
+  allCountiesSelected: boolean;
+}
+
 @Component({
   selector: 'app-lender-footprint',
   standalone: true,
@@ -25,14 +36,14 @@ import {
 export class LenderFootprintComponent implements OnInit {
   @Input() lenderForm!: FormGroup;
 
-  // States and counties data
+  // States data
   footprintLocation: FootprintLocation[] = [];
 
-  // Currently selected state for UI highlighting
-  currentSelectedState: string | null = null;
+  // Track selected states and counties
+  selectedStates: SelectionState[] = [];
 
-  // Flag to prevent validation loops
-  private updatingValues = false;
+  // Track which states dropdown is expanded
+  expandedState: string | null = null;
 
   constructor(
     private fb: FormBuilder,
@@ -73,24 +84,63 @@ export class LenderFootprintComponent implements OnInit {
     // Apply the validator to the form
     this.lenderForm.setValidators(this.atLeastOneStateValidator());
 
+    // Initialize the selected states array from form values
+    this.initializeSelectedStates();
+
     // Force validation check immediately
     this.lenderForm.updateValueAndValidity();
+  }
 
-    // Log initial state
-    console.log('Footprint form initialized', this.lenderForm.valid);
+  // Initialize selected states from form values
+  private initializeSelectedStates(): void {
+    const statesGroup = this.lenderForm.get('states') as FormGroup;
+    if (!statesGroup) return;
+
+    // Clear the array
+    this.selectedStates = [];
+
+    // Get all state keys (excluding county groups)
+    const stateControls = Object.keys(statesGroup.controls).filter(
+      (key) => !key.includes('_counties')
+    );
+
+    // For each selected state, add to our tracking array
+    stateControls.forEach((stateKey) => {
+      if (statesGroup.get(stateKey)?.value === true) {
+        const state = this.footprintLocation.find((s) => s.value === stateKey);
+        if (state) {
+          const countiesGroup = statesGroup.get(
+            `${stateKey}_counties`
+          ) as FormGroup;
+
+          // Map counties with their selected state
+          const counties = state.subcategories.map((county) => ({
+            value: county.value,
+            name: county.name,
+            selected: countiesGroup?.get(county.value)?.value === true || false,
+          }));
+
+          // Check if all counties are selected
+          const allCountiesSelected =
+            counties.length > 0 && counties.every((county) => county.selected);
+
+          // Add to our tracking array
+          this.selectedStates.push({
+            stateValue: stateKey,
+            stateName: state.name,
+            counties,
+            allCountiesSelected,
+          });
+        }
+      }
+    });
   }
 
   /**
    * Custom validator to ensure at least one state is selected
-   * This validator ONLY checks validity and does not modify form values
    */
   private atLeastOneStateValidator(): ValidatorFn {
     return (formGroup: AbstractControl): ValidationErrors | null => {
-      // Skip validation if we're actively updating values to prevent loops
-      if (this.updatingValues) {
-        return null;
-      }
-
       const statesGroup = formGroup.get('states') as FormGroup;
       if (!statesGroup) return { noStateSelected: true };
 
@@ -103,264 +153,172 @@ export class LenderFootprintComponent implements OnInit {
   }
 
   /**
-   * Updates the lendingFootprint control based on selected states
-   * Separated from validation to prevent infinite loops
+   * Update the form values based on our tracking array
    */
-  private updateLendingFootprint(): void {
-    // Set flag to prevent validation loops
-    this.updatingValues = true;
-
-    try {
-      const statesGroup = this.lenderForm.get('states') as FormGroup;
-      if (!statesGroup) return;
-
-      const selectedStates = Object.keys(statesGroup.controls)
-        .filter(
-          (key) =>
-            !key.includes('_counties') && statesGroup.get(key)?.value === true
-        )
-        .map((key) => {
-          const state = this.footprintLocation.find((s) => s.value === key);
-          return state ? state.name : key;
-        });
-
-      // Update the lendingFootprint control without triggering validation
-      const lendingFootprint = this.lenderForm.get('lendingFootprint');
-      if (lendingFootprint) {
-        lendingFootprint.setValue(selectedStates, { emitEvent: false });
-      }
-    } finally {
-      // Reset flag
-      this.updatingValues = false;
-    }
-  }
-
-  // Set currently selected state for the right panel
-  selectState(stateValue: string): void {
-    this.currentSelectedState = stateValue;
-  }
-
-  // Get name of currently selected state
-  getSelectedStateName(): string {
-    if (!this.currentSelectedState) return 'Selected State';
-
-    const state = this.footprintLocation.find(
-      (s) => s.value === this.currentSelectedState
-    );
-    return state ? state.name : 'Selected State';
-  }
-
-  // Check if all states are selected
-  areAllStatesSelected(): boolean {
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return false;
-
-    const stateControls = Object.keys(statesGroup.controls).filter(
-      (key) => !key.includes('_counties')
-    );
-
-    return (
-      stateControls.length > 0 &&
-      stateControls.every((key) => statesGroup.get(key)?.value === true)
-    );
-  }
-
-  // Toggle all states selection
-  toggleAllStates(event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const isChecked = (event.target as HTMLInputElement).checked;
+  private updateFormValues(): void {
     const statesGroup = this.lenderForm.get('states') as FormGroup;
     if (!statesGroup) return;
 
-    // Get all state keys (excluding county groups)
-    const stateControls = Object.keys(statesGroup.controls).filter(
-      (key) => !key.includes('_counties')
-    );
+    // Reset all states to unselected
+    Object.keys(statesGroup.controls)
+      .filter((key) => !key.includes('_counties'))
+      .forEach((key) => {
+        statesGroup.get(key)?.setValue(false);
+      });
 
-    // Update all state checkboxes
-    stateControls.forEach((stateKey) => {
-      statesGroup.get(stateKey)?.setValue(isChecked);
+    // Update with current selections
+    this.selectedStates.forEach((state) => {
+      // Set state as selected
+      statesGroup.get(state.stateValue)?.setValue(true);
+
+      // Get counties group
+      const countiesGroup = statesGroup.get(
+        `${state.stateValue}_counties`
+      ) as FormGroup;
+
+      if (countiesGroup) {
+        // Update each county
+        state.counties.forEach((county) => {
+          countiesGroup.get(county.value)?.setValue(county.selected);
+        });
+      }
     });
 
-    // Update the form
-    this.updateLendingFootprint();
+    // Update lendingFootprint value
+    const selectedStateNames = this.selectedStates.map(
+      (state) => state.stateName
+    );
+    const lendingFootprint = this.lenderForm.get('lendingFootprint');
+    if (lendingFootprint) {
+      lendingFootprint.setValue(selectedStateNames);
+    }
+
+    // Update form state
     this.lenderForm.markAsTouched();
     this.lenderForm.updateValueAndValidity();
   }
 
-  // Check if all counties for a state are selected
-  areAllCountiesSelected(stateValue: string): boolean {
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return false;
-
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (!countiesGroup) return false;
-
-    const countyControls = Object.keys(countiesGroup.controls);
-    return (
-      countyControls.length > 0 &&
-      countyControls.every((key) => countiesGroup.get(key)?.value === true)
+  // Toggle state selection
+  toggleState(stateValue: string): void {
+    // Check if state is already selected
+    const stateIndex = this.selectedStates.findIndex(
+      (s) => s.stateValue === stateValue
     );
+
+    // If state is already selected, remove it
+    if (stateIndex !== -1) {
+      this.selectedStates.splice(stateIndex, 1);
+    }
+    // Otherwise, add it
+    else {
+      const state = this.footprintLocation.find((s) => s.value === stateValue);
+      if (state) {
+        // Add with all counties unselected initially
+        this.selectedStates.push({
+          stateValue,
+          stateName: state.name,
+          counties: state.subcategories.map((county) => ({
+            value: county.value,
+            name: county.name,
+            selected: false,
+          })),
+          allCountiesSelected: false,
+        });
+
+        // Expand this state's dropdown
+        this.expandedState = stateValue;
+      }
+    }
+
+    // Update form
+    this.updateFormValues();
+  }
+
+  // Toggle county selection
+  toggleCounty(stateValue: string, countyValue: string): void {
+    // Find the state
+    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!state) return;
+
+    // Find the county
+    const county = state.counties.find((c) => c.value === countyValue);
+    if (!county) return;
+
+    // Toggle selection
+    county.selected = !county.selected;
+
+    // Update the "allCountiesSelected" flag
+    state.allCountiesSelected = state.counties.every((c) => c.selected);
+
+    // Update form
+    this.updateFormValues();
   }
 
   // Toggle all counties for a state
-  toggleAllCounties(stateValue: string, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
+  toggleAllCounties(stateValue: string): void {
+    // Find the state
+    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!state) return;
 
-    const isChecked = (event.target as HTMLInputElement).checked;
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return;
+    // Toggle the "allCountiesSelected" flag
+    state.allCountiesSelected = !state.allCountiesSelected;
 
-    // Ensure the parent state is also checked
-    if (isChecked) {
-      statesGroup.get(stateValue)?.setValue(true);
+    // Update all counties
+    state.counties.forEach((county) => {
+      county.selected = state.allCountiesSelected;
+    });
+
+    // Update form
+    this.updateFormValues();
+  }
+
+  // Toggle dropdown expanded/collapsed state
+  toggleDropdown(stateValue: string): void {
+    if (this.expandedState === stateValue) {
+      this.expandedState = null;
+    } else {
+      this.expandedState = stateValue;
     }
-
-    // Get counties group
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (!countiesGroup) return;
-
-    // Update all county checkboxes
-    Object.keys(countiesGroup.controls).forEach((county) => {
-      countiesGroup.get(county)?.setValue(isChecked);
-    });
-
-    // Update the form
-    this.updateLendingFootprint();
-    this.lenderForm.markAsTouched();
-    this.lenderForm.updateValueAndValidity();
   }
 
-  // Get counties for all selected states
-  getCountiesForSelectedStates(): {
-    stateValue: string;
-    stateName: string;
-    counties: FootprintSubcategory[];
-  }[] {
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return [];
-
-    const selectedStates = Object.keys(statesGroup.controls).filter(
-      (key) =>
-        !key.includes('_counties') && statesGroup.get(key)?.value === true
-    );
-
-    return selectedStates.map((stateValue) => {
-      const state = this.footprintLocation.find((s) => s.value === stateValue);
-      return {
-        stateValue,
-        stateName: state ? state.name : stateValue,
-        counties: state ? state.subcategories : [],
-      };
-    });
-  }
-
-  // Helper methods for template
+  // Check if a state is selected
   isStateSelected(stateValue: string): boolean {
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    return statesGroup?.get(stateValue)?.value === true;
+    return this.selectedStates.some((s) => s.stateValue === stateValue);
   }
 
+  // Check if a county is selected
   isCountySelected(stateValue: string, countyValue: string): boolean {
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return false;
+    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!state) return false;
 
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (!countiesGroup) return false;
-
-    return countiesGroup.get(countyValue)?.value === true;
+    const county = state.counties.find((c) => c.value === countyValue);
+    return county?.selected || false;
   }
 
-  // Event handlers
-  onStateChange(stateValue: string, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
+  // Get total selected counties for a state
+  getSelectedCountiesCount(stateValue: string): number {
+    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!state) return 0;
 
-    const isChecked = (event.target as HTMLInputElement)?.checked || false;
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return;
+    return state.counties.filter((c) => c.selected).length;
+  }
 
-    // Update state control
-    statesGroup.get(stateValue)?.setValue(isChecked);
+  // Format state display text
+  getStateDisplayText(state: FootprintLocation): string {
+    const selectedCount = this.getSelectedCountiesCount(state.value);
+    const totalCount = state.subcategories.length;
 
-    // Select this state in the UI if checked
-    if (isChecked) {
-      this.currentSelectedState = stateValue;
-    }
-    // If unchecking state, clear the selection if it was this state
-    else if (this.currentSelectedState === stateValue) {
-      this.currentSelectedState = null;
-    }
-
-    // If unchecking state, also uncheck all counties
-    if (!isChecked) {
-      const countiesGroup = statesGroup.get(
-        `${stateValue}_counties`
-      ) as FormGroup;
-      if (countiesGroup) {
-        Object.keys(countiesGroup.controls).forEach((county) => {
-          countiesGroup.get(county)?.setValue(false);
-        });
+    if (this.isStateSelected(state.value)) {
+      if (selectedCount === 0) {
+        return `${state.name} (All counties)`;
+      } else if (selectedCount === totalCount) {
+        return `${state.name} (All counties)`;
+      } else {
+        return `${state.name} (${selectedCount} of ${totalCount} counties)`;
       }
     }
 
-    // Update lendingFootprint separately from validation
-    this.updateLendingFootprint();
-
-    // Mark form as touched to display validation
-    this.lenderForm.markAsTouched();
-    statesGroup.markAsTouched();
-
-    // Update validation state
-    this.lenderForm.updateValueAndValidity();
-
-    console.log(
-      'State changed',
-      stateValue,
-      'Form valid:',
-      this.lenderForm.valid
-    );
-  }
-
-  onCountyChange(stateValue: string, countyValue: string, event: Event): void {
-    event.preventDefault();
-    event.stopPropagation();
-
-    const isChecked = (event.target as HTMLInputElement)?.checked || false;
-    const statesGroup = this.lenderForm.get('states') as FormGroup;
-    if (!statesGroup) return;
-
-    // Get counties group
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (!countiesGroup) return;
-
-    // Update county control
-    countiesGroup.get(countyValue)?.setValue(isChecked);
-
-    // If checking a county, ensure the state is also checked
-    if (isChecked) {
-      statesGroup.get(stateValue)?.setValue(true);
-    }
-
-    // Update lendingFootprint separately from validation
-    this.updateLendingFootprint();
-
-    // Mark form as touched to display validation
-    this.lenderForm.markAsTouched();
-
-    // Update validation state
-    this.lenderForm.updateValueAndValidity();
+    return state.name;
   }
 
   // Check if the form has any validation errors

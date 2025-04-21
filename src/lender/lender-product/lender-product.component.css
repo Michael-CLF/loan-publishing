@@ -1,79 +1,290 @@
-/* Add these CSS styles to your component's CSS file */
-.three-column-layout {
-  column-count: 2;
-  column-gap: 30px;
-  margin-left: 30px;
-}
-.section-title {
-  color: #0a2463;
-  font-size: 1.75rem;
-  font-family: "roboto", sans-serif;
-  text-align: center;
-  margin: 30px 20px 30px;
-}
-.category-label {
-  font-size: 1.3rem;
+/* lender-product.component.css */
+.footprint-container {
+  padding: 24px;
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+  margin-bottom: 30px;
 }
 
-.checkbox-item {
-  margin-bottom: 10px;
-  break-inside: avoid;
+.section-title {
+  margin-bottom: 8px;
+  font-size: 24px;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  text-align: center;
+}
+
+.section-description {
+  margin-bottom: 24px;
+  color: #0a2463;
+  text-align: center;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+}
+
+.form-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.states-section {
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  margin-bottom: 24px;
+}
+
+.states-section h4 {
+  margin-bottom: 8px;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-weight: 500;
+}
+
+.helper-text {
+  margin-bottom: 16px;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1rem;
+}
+
+.warning {
+  margin-bottom: 16px;
+  font-family: "roboto", sans-serif;
+  color: #c00000;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Grid layout */
+.states-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 8px;
+}
+
+.state-card {
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+  transition: all 0.2s;
+}
+
+.state-card.selected {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 1px rgba(13, 110, 253, 0.25);
+}
+
+.state-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 16px;
+  background-color: #dce3e6;
+  cursor: pointer;
+  transition: background-color 0.2s;
 }
 
 .checkbox-wrapper {
   display: flex;
   align-items: center;
+  gap: 8px;
 }
 
-.checkbox-wrapper input[type="checkbox"] {
-  width: auto;
-  margin-right: 8px;
-  margin-bottom: 5px;
-  height: 20px;
-  width: 20px;
-  border: 1px solid #0a2463;
-  accent-color: #0a2463;
-}
-
-.checkbox-wrapper label {
-  margin-bottom: 5px;
-  display: inline;
-  color: #0a2463;
-  font-weight: 500;
-}
-input {
-  border: 1px solid #0a2463;
-}
-
-@media (max-width: 768px) {
-  .three-column-layout {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 576px) {
-  .three-column-layout {
-    grid-template-columns: 1fr;
-  }
-}
-.subcategories-container {
-  margin-bottom: 25px;
-}
-.instruction {
-  color: #0a2463;
-  text-align: center;
-  font-weight: 500;
+.state-name {
   font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.county-count {
+  font-size: 12px;
+  color: #fff !important;
+  background-color: #0a2463;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.toggle-text {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1rem;
+}
+
+.toggle-icon {
+  margin-left: 5px;
+}
+
+.dropdown-toggle {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 16px;
+  background-color: #f8f9fa;
+  border-top: 1px solid #dee2e6;
+  cursor: pointer;
+  font-size: 13px;
+  color: #0a2463;
+}
+
+.dropdown-toggle:hover {
+  background-color: #e9ecef;
+}
+
+/* Counties section */
+.counties-section {
+  display: none;
+  background-color: white;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.counties-section.expanded {
+  display: block;
+}
+
+.counties-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #dee2e6;
+}
+
+.counties-header h5 {
+  margin: 0;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-weight: 500;
+}
+
+.select-all-counties label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+}
+
+.counties-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.county-item label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border-radius: 4px;
+  color: #0a2463;
+  font-weight: 500;
+  background-color: #dce3e6;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  height: 100%;
+}
+
+.county-item label:hover {
+  background-color: #e9ecef;
+}
+
+/* Loan amount section */
+.loan-amounts-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.loan-amount-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .form-label {
   color: #0a2463;
   font-family: "roboto", sans-serif;
   font-weight: 500;
+  font-size: 1rem;
 }
-.form-check-input:checked {
-  background-color: #0a2463;
+
+.form-control {
+  padding: 10px;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
 }
-.invalid-feedback {
+
+.form-control:focus {
+  border-color: #0a2463;
+  box-shadow: 0 0 0 2px rgba(10, 36, 99, 0.25);
+  outline: none;
+}
+
+input[type="checkbox"] {
+  accent-color: #0a2463;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+}
+
+/* Empty state */
+.empty-selection {
+  padding: 30px;
+  text-align: center;
+  background-color: white;
+  border-radius: 8px;
+  color: #6c757d;
+  font-style: italic;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.error-message {
   color: #c00000;
+  margin-top: 10px;
+  font-weight: 500;
+  font-size: 0.875rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1200px) {
+  .states-grid,
+  .counties-grid,
+  .loan-amounts-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .states-grid,
+  .counties-grid,
+  .loan-amounts-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .counties-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+}
+#minLoanAmount,
+#maxLoanAmount {
+  border: 1px solid #0a2463;
+}
+.error {
+  color: #c00000;
+  font-weight: 500;
 }

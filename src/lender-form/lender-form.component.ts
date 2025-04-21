@@ -181,7 +181,7 @@ export class LenderFormComponent implements OnInit {
       ],
     },
     {
-      category: 'Retail Property',
+      category: 'Retail',
       types: [
         { value: 'anchored_center', name: 'Anchored Center' },
         { value: 'mall', name: 'Mall' },

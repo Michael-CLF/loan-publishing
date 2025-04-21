@@ -7,13 +7,7 @@ import {
   FormArray,
   FormControl,
 } from '@angular/forms';
-import { DecimalPipe, CurrencyPipe } from '@angular/common';
-import {
-  LenderTypeOption,
-  PropertyCategory,
-  PropertyTypes,
-  StateOption,
-} from '../lender-registration/lender-registration.component';
+import { CurrencyPipe } from '@angular/common';
 
 @Component({
   selector: 'app-lender-product',
@@ -38,11 +32,33 @@ export class LenderProductComponent implements OnInit {
   }[];
   @Input() states!: { value: string; name: string }[];
 
+  // Track expanded state for subcategories
+  expandedCategory: string | null = null;
+
   constructor(private currencyPipe: CurrencyPipe) {}
+
+  ngOnInit(): void {
+    // Validate inputs
+    if (!this.lenderForm) {
+      console.error('LenderProductComponent: lenderForm input is missing');
+      return;
+    }
+
+    // Initialize form arrays if they don't exist
+    this.initializeFormArrays();
+
+    // Check initial form validity
+    setTimeout(() => {
+      this.lenderForm.updateValueAndValidity();
+    });
+  }
+
+  // Format currency input
   formatCurrency(event: Event, controlName: string): void {
     const input = event.target as HTMLInputElement;
     let value = input.value;
 
+    // Remove non-numeric characters except decimal point
     value = value.replace(/[^0-9.]/g, '');
 
     if (value) {
@@ -64,52 +80,25 @@ export class LenderProductComponent implements OnInit {
     }
   }
 
-  ngOnInit(): void {
-    if (!this.lenderForm) {
-      console.error('LenderProductComponent: lenderForm input is missing');
-      return;
+  // Initialize form arrays if they don't exist
+  private initializeFormArrays(): void {
+    // Initialize lenderTypes form array if it doesn't exist
+    if (!this.lenderForm.get('lenderTypes')) {
+      this.lenderForm.addControl('lenderTypes', new FormArray([]));
     }
 
-    if (!this.lenderTypes || this.lenderTypes.length === 0) {
-      console.warn(
-        'LenderProductComponent: lenderTypes input is empty or undefined'
-      );
+    // Initialize propertyCategories form array if it doesn't exist
+    if (!this.lenderForm.get('propertyCategories')) {
+      this.lenderForm.addControl('propertyCategories', new FormArray([]));
     }
 
-    if (!this.propertyCategories || this.propertyCategories.length === 0) {
-      console.warn(
-        'LenderProductComponent: propertyCategories input is empty or undefined'
-      );
+    // Initialize subcategorySelections form array if it doesn't exist
+    if (!this.lenderForm.get('subcategorySelections')) {
+      this.lenderForm.addControl('subcategorySelections', new FormArray([]));
     }
-
-    console.log('Form controls:', Object.keys(this.lenderForm.controls));
-
-    // Check initial form validity
-    setTimeout(() => {
-      console.log('Initial form validity:', this.lenderForm.valid);
-      console.log(
-        'Lender types array:',
-        (this.lenderForm.get('lenderTypes') as FormArray).value
-      );
-      console.log(
-        'Property categories array:',
-        (this.lenderForm.get('propertyCategories') as FormArray).value
-      );
-
-      this.lenderForm.updateValueAndValidity({
-        onlySelf: false,
-        emitEvent: true,
-      });
-
-      Object.keys(this.lenderForm.controls).forEach((key) => {
-        const control = this.lenderForm.get(key);
-        if (control) {
-          control.updateValueAndValidity({ onlySelf: true, emitEvent: false });
-        }
-      });
-    });
   }
 
+  // Getters for form arrays
   get lenderTypesArray(): FormArray {
     return this.lenderForm.get('lenderTypes') as FormArray;
   }
@@ -118,10 +107,11 @@ export class LenderProductComponent implements OnInit {
     return this.lenderForm.get('propertyCategories') as FormArray;
   }
 
-  get propertyTypesArray(): FormArray {
-    return this.lenderForm.get('propertyTypes') as FormArray;
+  get subcategorySelectionsArray(): FormArray {
+    return this.lenderForm.get('subcategorySelections') as FormArray;
   }
 
+  // Form control helpers
   getControl(name: string): AbstractControl | null {
     return this.lenderForm.get(name);
   }
@@ -143,11 +133,15 @@ export class LenderProductComponent implements OnInit {
     }
   }
 
+  // Check if an option is selected in a form array
   isOptionSelected(formArrayName: string, value: string): boolean {
     const formArray = this.lenderForm.get(formArrayName) as FormArray;
-    return formArray.controls.some((control) => control.value === value);
+    return (
+      formArray?.controls.some((control) => control.value === value) || false
+    );
   }
 
+  // Check if a subcategory is selected
   isSubOptionSelected(category: string, subValue: string): boolean {
     const formArray = this.lenderForm.get('subcategorySelections') as FormArray;
     return (
@@ -157,17 +151,15 @@ export class LenderProductComponent implements OnInit {
     );
   }
 
+  // Toggle lender type selection
   onLenderTypeChange(event: Event, value: string): void {
-    const checkbox = event.target as HTMLInputElement;
-    const checked = checkbox.checked;
+    const isChecked = this.isOptionSelected('lenderTypes', value);
+    const formArray = this.lenderTypesArray;
 
-    // Get the form array
-    const formArray = this.lenderForm.get('lenderTypes') as FormArray;
-
-    if (checked) {
+    // Toggle selection
+    if (!isChecked) {
       // Add the value to the form array
       formArray.push(new FormControl(value));
-      console.log(`Added lender type: ${value}`);
     } else {
       // Remove the value from the form array
       const index = formArray.controls.findIndex(
@@ -175,67 +167,46 @@ export class LenderProductComponent implements OnInit {
       );
       if (index !== -1) {
         formArray.removeAt(index);
-        console.log(`Removed lender type: ${value}`);
       }
     }
-
-    // Log for debugging
-    console.log('Lender types after change:', formArray.value);
-    console.log('Lender types count:', formArray.length);
-    console.log('Lender types valid:', formArray.valid);
-    console.log('Lender types errors:', formArray.errors);
 
     // Update validation
     formArray.updateValueAndValidity();
     this.lenderForm.updateValueAndValidity();
   }
 
-  onPropertyCategoryChange(event: Event, value: string): void {
-    const checkbox = event.target as HTMLInputElement;
-    const checked = checkbox.checked;
+  // Toggle category selection
+  toggleCategory(categoryValue: string): void {
+    // Check if category is already selected
+    const isSelected = this.isOptionSelected(
+      'propertyCategories',
+      categoryValue
+    );
+    const formArray = this.propertyCategoriesArray;
 
-    // Get the form array
-    const formArray = this.lenderForm.get('propertyCategories') as FormArray;
+    // Toggle selection
+    if (!isSelected) {
+      // Add the category to the form array
+      formArray.push(new FormControl(categoryValue));
 
-    if (checked) {
-      // Add the value to the form array
-      formArray.push(new FormControl(value));
-      console.log(`Added property category: ${value}`);
+      // Expand this category's dropdown to show subcategories
+      this.expandedCategory = categoryValue;
     } else {
-      // Remove the value from the form array
+      // Remove the category from the form array
       const index = formArray.controls.findIndex(
-        (control) => control.value === value
-      );
-      if (index !== -1) {
-        formArray.removeAt(index);
-        console.log(`Removed property category: ${value}`);
-      }
-    }
-
-    // Log for debugging
-    console.log('Property categories after change:', formArray.value);
-    console.log('Property categories count:', formArray.length);
-    console.log('Property categories valid:', formArray.valid);
-    console.log('Property categories errors:', formArray.errors);
-
-    // Update validation
-    formArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
-  }
-
-  onPropertyTypeChange(event: Event, formArrayName: string) {
-    const checkbox = event.target as HTMLInputElement;
-    const formArray = this.lenderForm.get(formArrayName) as FormArray;
-
-    if (checkbox.checked) {
-      formArray.push(new FormControl(checkbox.value));
-    } else {
-      const index = formArray.controls.findIndex(
-        (c) => c.value === checkbox.value
+        (control) => control.value === categoryValue
       );
       if (index !== -1) {
         formArray.removeAt(index);
       }
+
+      // Also remove all subcategories for this category
+      this.removeAllSubcategories(categoryValue);
+
+      // Collapse dropdown
+      if (this.expandedCategory === categoryValue) {
+        this.expandedCategory = null;
+      }
     }
 
     // Update validation
@@ -243,23 +214,117 @@ export class LenderProductComponent implements OnInit {
     this.lenderForm.updateValueAndValidity();
   }
 
-  onSubmit(): void {
-    if (this.lenderForm.invalid) {
-      Object.keys(this.lenderForm.controls).forEach((key) => {
-        this.markControlAsTouched(key);
+  // Toggle subcategory selection
+  toggleSubcategory(
+    event: Event,
+    categoryValue: string,
+    subcategoryValue: string
+  ): void {
+    const combinedValue = `${categoryValue}:${subcategoryValue}`;
+    const isSelected = this.isSubOptionSelected(
+      categoryValue,
+      subcategoryValue
+    );
+    const formArray = this.subcategorySelectionsArray;
+
+    if (!isSelected) {
+      // Add subcategory
+      formArray.push(new FormControl(combinedValue));
+    } else {
+      // Remove subcategory
+      const index = formArray.controls.findIndex(
+        (control) => control.value === combinedValue
+      );
+      if (index !== -1) {
+        formArray.removeAt(index);
+      }
+    }
+
+    // Update form validation
+    formArray.updateValueAndValidity();
+    this.lenderForm.updateValueAndValidity();
+  }
+
+  // Toggle all subcategories for a category
+  toggleAllSubcategories(categoryValue: string): void {
+    const category = this.propertyCategories.find(
+      (c) => c.value === categoryValue
+    );
+    if (!category || !category.subcategories) return;
+
+    const shouldSelect = !this.allSubcategoriesSelected(categoryValue);
+
+    // First, remove all existing subcategories for this category
+    this.removeAllSubcategories(categoryValue);
+
+    // If we should select all, add all subcategories
+    if (shouldSelect) {
+      const formArray = this.subcategorySelectionsArray;
+      category.subcategories.forEach((subcategory) => {
+        formArray.push(
+          new FormControl(`${categoryValue}:${subcategory.value}`)
+        );
       });
-      return;
     }
 
-    console.log('Form is valid:', this.lenderForm.value);
+    // Update form validation
+    this.subcategorySelectionsArray.updateValueAndValidity();
+    this.lenderForm.updateValueAndValidity();
   }
 
-  objectKeys(obj: any): string[] {
-    return Object.keys(obj || {});
+  // Check if all subcategories of a category are selected
+  allSubcategoriesSelected(categoryValue: string): boolean {
+    const category = this.propertyCategories.find(
+      (c) => c.value === categoryValue
+    );
+    if (
+      !category ||
+      !category.subcategories ||
+      category.subcategories.length === 0
+    )
+      return false;
+
+    return (
+      this.getSelectedSubcategoriesCount(categoryValue) ===
+      category.subcategories.length
+    );
   }
 
-  filters: { [key: string]: string[] } = {
-    propertyTypes: [],
-    loanTypes: [],
-  };
+  // Remove all subcategories for a category
+  removeAllSubcategories(categoryValue: string): void {
+    const formArray = this.subcategorySelectionsArray;
+    const toRemove: number[] = [];
+
+    // Find all subcategories to remove
+    formArray.controls.forEach((control, index) => {
+      if (control.value.startsWith(`${categoryValue}:`)) {
+        toRemove.push(index);
+      }
+    });
+
+    // Remove in reverse order to avoid index shifting
+    for (let i = toRemove.length - 1; i >= 0; i--) {
+      formArray.removeAt(toRemove[i]);
+    }
+  }
+
+  // Toggle dropdown expanded/collapsed state
+  toggleDropdown(categoryValue: string): void {
+    if (this.expandedCategory === categoryValue) {
+      this.expandedCategory = null;
+    } else {
+      this.expandedCategory = categoryValue;
+    }
+
+    // Prevent event propagation to the category click handler
+    event?.stopPropagation();
+  }
+
+  // Get the count of selected subcategories for a category
+  getSelectedSubcategoriesCount(categoryValue: string): number {
+    const formArray = this.subcategorySelectionsArray;
+    return formArray.controls.filter((control) =>
+      control.value.startsWith(`${categoryValue}:`)
+    ).length;
+  }
 }

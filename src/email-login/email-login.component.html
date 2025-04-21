@@ -56,7 +56,10 @@
     @if (errorMessage) {
     <div class="error-container">
         <h3>Login Error</h3>
-        <p>{{ errorMessage }}</p>
+        <p class="login-text">{{ errorMessage }}</p>
+        <div>
+            <p class="login-text">Don't have an account? <a routerLink="/user-form">Sign up</a></p>
+        </div>
         <button (click)="requestNewLink()" class="secondary-button">Try Again</button>
     </div>
     }

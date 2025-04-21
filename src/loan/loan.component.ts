@@ -258,6 +258,9 @@ export class LoanComponent implements OnInit {
         [Validators.required, Validators.min(300), Validators.max(850)],
       ],
       experienceInYears: ['', [Validators.required, Validators.min(0)]],
+      contact: ['', Validators.required],
+      phone: ['', [Validators.required, Validators.pattern('^\\d{10}$')]],
+      email: ['', [Validators.required, Validators.email]],
       notes: [''],
       termsOfService: [false, Validators.requiredTrue],
     });

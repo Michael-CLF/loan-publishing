@@ -126,7 +126,7 @@ export class LenderRegistrationComponent implements OnInit {
   ];
 
   lenderTypes: LenderTypeOption[] = [
-    { value: 'agency', name: 'Agency Lender (Fannie/Freddie)' },
+    { value: 'agency', name: 'Agency Lender' },
     { value: 'bank', name: 'Bank' },
     { value: 'bridge_lender', name: 'Bridge Lender' },
     { value: 'cdfi', name: 'CDFI Lender' },
@@ -140,7 +140,6 @@ export class LenderRegistrationComponent implements OnInit {
     { value: 'hard_money', name: 'Hard Money Lender' },
     { value: 'life_insurance', name: 'Life Insurance Lender' },
     { value: 'mezzanine_lender', name: 'Mezzanine Lender' },
-    { value: 'mortgage_broker', name: 'Mortgage Broker' },
     { value: 'non_qm_lender', name: 'Non-QM Lender' },
     { value: 'portfolio_lender', name: 'Portfolio Lender' },
     { value: 'private_lender', name: 'Private Lender' },
@@ -242,8 +241,8 @@ export class LenderRegistrationComponent implements OnInit {
       name: 'Residential Types',
       subcategories: [
         {
-          value: '1-4-unit-residential-property',
-          name: '1-4 Unit residential property',
+          value: '1-4-units',
+          name: '1-4 Units',
         },
         { value: 'co-op', name: 'CO-OP' },
         { value: 'condominium', name: 'Condominium' },
