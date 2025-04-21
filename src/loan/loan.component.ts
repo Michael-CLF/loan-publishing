@@ -237,7 +237,14 @@ export class LoanComponent implements OnInit {
       propertyTypeCategory: ['', Validators.required],
       propertySubCategory: ['', Validators.required],
       transactionType: ['', Validators.required],
-      loanAmount: ['', [Validators.required, Validators.minLength(8)]],
+      loanAmount: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^(\$)?[\d,]+(\.\d{1,2})?$/),
+          Validators.minLength(8),
+        ],
+      ],
       loanType: ['', [Validators.required]],
       propertyValue: ['', [Validators.required, Validators.minLength(8)]],
       ltv: ['', [Validators.required, Validators.min(1), Validators.max(100)]],
@@ -251,10 +258,8 @@ export class LoanComponent implements OnInit {
         [Validators.required, Validators.min(300), Validators.max(850)],
       ],
       experienceInYears: ['', [Validators.required, Validators.min(0)]],
-      contact: ['', Validators.required],
-      phone: ['', [Validators.required, Validators.pattern('^\\d{10}$')]],
-      email: ['', [Validators.required, Validators.email]],
       notes: [''],
+      termsOfService: [false, Validators.requiredTrue],
     });
   }
 

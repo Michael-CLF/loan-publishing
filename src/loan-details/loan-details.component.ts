@@ -37,7 +37,7 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
     Commercial: '#1E90FF',
     Healthcare: '#cb4335',
     Hospitality: '#1b4f72',
-    Industrial: '#708090',
+    'Industrial Property': '#708090',
     Land: '#023020',
     MixedUse: '#8A2BE2',
     'Multi-family': '#6c3483',

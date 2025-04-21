@@ -1,3 +1,4 @@
+<!-- pricing.component.html -->
 <div class="card-container">
     <!-- Card 1 -->
     <div class="card">
@@ -6,6 +7,7 @@
         </div>
         <div class="card-section content">
             <h4 class="price">$50.00 per post</h4>
+            <p class="free">(Free Of Charge, Limited Time Only)</p>
             <ul class="feature-list">
                 <li>Pay per loan posting</li>
                 <li>Contact lenders to view your loan</li>
@@ -16,7 +18,8 @@
             </ul>
         </div>
         <div class="card-section footer">
-            <a href="/login" class="card-button login-btn">Select</a>
+            <!-- Changed from href to click handler -->
+            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
         </div>
     </div>
 
@@ -27,6 +30,7 @@
         </div>
         <div class="card-section content">
             <h4 class="price">$250/monthly</h4>
+            <p class="free">(Free Of Charge, Limited Time Only)</p>
             <ul class="feature-list">
                 <li>Unlimited Loan postings</li>
                 <li>Contact lenders to view your loan</li>
@@ -37,7 +41,8 @@
             </ul>
         </div>
         <div class="card-section footer">
-            <a href="/login" class="card-button login-btn">Select</a>
+            <!-- Changed from href to click handler -->
+            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
         </div>
     </div>
 </div>

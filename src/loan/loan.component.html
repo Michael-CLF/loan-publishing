@@ -69,7 +69,7 @@
                 *Loan amount is required
             </div>
             <div *ngIf="hasError('loanAmount', 'minlength')" class="error-message">
-                *Loan amount must be at least 8 characters
+                *Loan amount must be at least 6 digits
             </div>
         </div>
 
@@ -85,8 +85,7 @@
                 *Property value is required
             </div>
             <div *ngIf="hasError('propertyValue', 'minlength')" class="error-message">
-                *Property value must be at least 8 characters
-            </div>
+                *Property value must be at least 6 digits</div>
         </div>
 
         <!-- LTV -->
@@ -176,32 +175,6 @@
             </div>
         </div>
 
-        <!-- Contact Name -->
-        <div class="form-group">
-            <label for="contact">Contact Name</label>
-            <input type="text" id="contact" formControlName="contact" [ngClass]="{'invalid': isInvalid('contact')}" />
-            <div *ngIf="isInvalid('contact')" class="error-message">
-                *Contact name is required
-            </div>
-        </div>
-
-        <!-- Contact Number -->
-        <div class="form-group">
-            <label for="phone">Contact Phone</label>
-            <input type="text" id="phone" formControlName="phone" [ngClass]="{'invalid': isInvalid('phone')}" />
-            <div *ngIf="isInvalid('phone')" class="error-message">
-                *Enter a valid phone number
-            </div>
-        </div>
-
-        <!-- Email -->
-        <div class="form-group">
-            <label for="email">Contact Email</label>
-            <input type="text" id="email" formControlName="email" [ngClass]="{'invalid': isInvalid('email')}" />
-            <div *ngIf="isInvalid('email')" class="error-message">
-                *Enter a valid email address
-            </div>
-        </div>
 
         <!-- Notes -->
         <div class="form-group full-width">
@@ -211,9 +184,12 @@
         </div>
         <div class="terms">
             <label>
-                <input type="checkbox" name="tos" required>
+                <input type="checkbox" formControlName="termsOfService">
                 I agree to the <a href="/terms-of-service" target="_blank">Terms of Service</a>
             </label>
+            <div *ngIf="isInvalid('termsOfService')" class="error-message">
+                *You must agree to the Terms of Service
+            </div>
         </div>
 
         <!-- Submit -->

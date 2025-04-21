@@ -23,8 +23,18 @@ export class AuthGuard implements CanActivate {
   ): Observable<boolean> {
     console.log('AuthGuard: Checking authentication for route:', state.url);
     console.log('Route params:', route.params);
+    console.log(
+      'Local storage isLoggedIn value:',
+      localStorage.getItem('isLoggedIn')
+    );
 
-    // First, check for email sign-in links
+    // First, check if we're already authenticated
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      console.log('AuthGuard: Found isLoggedIn=true in localStorage');
+      return of(true);
+    }
+
+    // Then check for email sign-in links
     return this.authService.isEmailSignInLink().pipe(
       take(1),
       switchMap((isEmailLink) => {

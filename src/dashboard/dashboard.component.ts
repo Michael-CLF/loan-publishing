@@ -88,14 +88,14 @@ export class DashboardComponent implements OnInit {
     Commercial: '#1E90FF',
     Healthcare: '#cb4335',
     Hospitality: '#1b4f72',
-    Industrial: '#708090',
+    'Industrial Property': '#2c3e50',
     Land: '#023020',
     MixedUse: '#8A2BE2',
     'Multi-family': '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#FFD700',
-    SpecialPurpose: '#A52A2A',
+    'Special Purpose Loans': '#A52A2A',
   };
 
   // 👇 Accessor method
