@@ -6,11 +6,12 @@ import { Observable, from, of } from 'rxjs';
 import { switchMap, map, take } from 'rxjs/operators';
 import { DocumentReference, where } from '@angular/fire/firestore';
 
-// First, update the Lender interface to include userId
+// Update the Lender interface to make userId optional
 export interface Lender {
   id?: string;
-  userId: string; // Add this field
-  contactInfo: {
+  userId?: string; // Now optional
+  contactInfo?: {
+    company: string;
     firstName: string;
     lastName: string;
     contactPhone: string;
@@ -18,10 +19,10 @@ export interface Lender {
     city: string;
     state: string;
   };
-  productInfo: {
+  productInfo?: {
     lenderTypes: string[];
-    minLoanAmount: string;
-    maxLoanAmount: string;
+    minLoanAmount: number;
+    maxLoanAmount: number;
     propertyCategories: string[];
     propertyTypes: string[];
   };
@@ -41,30 +42,55 @@ export class LenderService {
   private authService = inject(AuthService);
   private readonly LENDERS_COLLECTION = 'lenders';
 
-  // Create a new lender
+  // Create a new lender without requiring authentication
   createLender(
-    lender: Omit<Lender, 'id' | 'createdAt' | 'updatedAt' | 'userId'>
+    lender: Omit<Lender, 'id' | 'createdAt' | 'updatedAt'>
   ): Promise<string> {
     return new Promise((resolve, reject) => {
+      const now = new Date();
+
+      // Create a new object with all the lender properties plus the metadata
+      const lenderWithMetadata: any = {
+        ...lender,
+        createdAt: now,
+        updatedAt: now,
+      };
+
+      // Convert loan amounts to numbers
+      if (lenderWithMetadata.productInfo) {
+        lenderWithMetadata.productInfo = {
+          ...lenderWithMetadata.productInfo,
+          minLoanAmount:
+            typeof lenderWithMetadata.productInfo.minLoanAmount === 'string'
+              ? parseFloat(
+                  lenderWithMetadata.productInfo.minLoanAmount.replace(
+                    /[^0-9.]/g,
+                    ''
+                  )
+                )
+              : Number(lenderWithMetadata.productInfo.minLoanAmount || 0),
+          maxLoanAmount:
+            typeof lenderWithMetadata.productInfo.maxLoanAmount === 'string'
+              ? parseFloat(
+                  lenderWithMetadata.productInfo.maxLoanAmount.replace(
+                    /[^0-9.]/g,
+                    ''
+                  )
+                )
+              : Number(lenderWithMetadata.productInfo.maxLoanAmount || 0),
+        };
+      }
+
+      // Try to get current user, but don't require it
       this.authService
         .getCurrentUser()
         .pipe(take(1))
         .subscribe({
           next: (user) => {
-            if (!user) {
-              reject(
-                new Error('User must be authenticated to create a lender')
-              );
-              return;
+            // Add userId if user is authenticated
+            if (user) {
+              lenderWithMetadata.userId = user.uid;
             }
-
-            const now = new Date();
-            const lenderWithMetadata = {
-              ...lender,
-              userId: user.uid,
-              createdAt: now,
-              updatedAt: now,
-            };
 
             this.firestoreService
               .addDocument(this.LENDERS_COLLECTION, lenderWithMetadata)
@@ -87,51 +113,48 @@ export class LenderService {
     return this.firestoreService
       .getDocument<Lender>(`${this.LENDERS_COLLECTION}/${id}`)
       .pipe(
-        switchMap((lender) => {
-          if (!lender) return of(null);
-
-          // Check if this lender belongs to the current user
-          return this.authService.getCurrentUser().pipe(
-            take(1),
-            map((user) => {
-              if (!user || lender.userId !== user.uid) {
-                console.log('Unauthorized access attempt to lender:', id);
-                return null;
-              }
-              return lender;
-            })
-          );
+        map((lender) => {
+          if (lender && lender.productInfo) {
+            // Ensure loan amounts are proper numbers
+            lender.productInfo.minLoanAmount = Number(
+              lender.productInfo.minLoanAmount
+            );
+            lender.productInfo.maxLoanAmount = Number(
+              lender.productInfo.maxLoanAmount
+            );
+          }
+          return lender;
         })
       );
   }
 
+  // Apply similar changes to getAllLenders and getLendersForCurrentUser
+
   // Update a lender
   updateLender(id: string, lender: Partial<Lender>): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.authService
-        .getCurrentUser()
-        .pipe(
-          take(1),
-          switchMap((user) => {
-            if (!user) {
-              throw new Error('User must be authenticated to update a lender');
-            }
-
-            // Verify this lender belongs to the user
-            return this.getLender(id).pipe(take(1));
-          })
-        )
+      // Verify lender exists first
+      this.getLender(id)
+        .pipe(take(1))
         .subscribe({
           next: (existingLender) => {
             if (!existingLender) {
-              reject(new Error('Lender not found or unauthorized'));
+              reject(new Error('Lender not found'));
               return;
             }
 
-            const updateData = {
+            const updateData: Partial<Lender> = {
               ...lender,
               updatedAt: new Date(),
             };
+            if (updateData.productInfo) {
+              updateData.productInfo.minLoanAmount = Number(
+                updateData.productInfo.minLoanAmount ?? 0
+              );
+              updateData.productInfo.maxLoanAmount = Number(
+                updateData.productInfo.maxLoanAmount ?? 0
+              );
+            }
 
             this.firestoreService
               .updateDocument(`${this.LENDERS_COLLECTION}/${id}`, updateData)
@@ -148,23 +171,13 @@ export class LenderService {
   // Delete a lender
   deleteLender(id: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      this.authService
-        .getCurrentUser()
-        .pipe(
-          take(1),
-          switchMap((user) => {
-            if (!user) {
-              throw new Error('User must be authenticated to delete a lender');
-            }
-
-            // Verify this lender belongs to the user
-            return this.getLender(id).pipe(take(1));
-          })
-        )
+      // Verify lender exists first
+      this.getLender(id)
+        .pipe(take(1))
         .subscribe({
           next: (existingLender) => {
             if (!existingLender) {
-              reject(new Error('Lender not found or unauthorized'));
+              reject(new Error('Lender not found'));
               return;
             }
 
@@ -198,8 +211,45 @@ export class LenderService {
     );
   }
 
-  // Get all lenders (admin function)
   getAllLenders(): Observable<Lender[]> {
-    return this.firestoreService.getCollection<Lender>(this.LENDERS_COLLECTION);
+    return this.firestoreService
+      .getCollection<Lender>(this.LENDERS_COLLECTION)
+      .pipe(
+        map((lenders) => {
+          return lenders.map((lender) => {
+            // Create a copy of the lender to modify
+            const updatedLender = { ...lender };
+
+            // Check if productInfo exists
+            if (updatedLender.productInfo) {
+              // Use a safe method to clean and convert string values
+              try {
+                // For minLoanAmount
+                const minAmount = updatedLender.productInfo.minLoanAmount;
+                if (minAmount !== undefined && minAmount !== null) {
+                  // Convert to string first, then clean non-numeric characters
+                  const minStr = String(minAmount);
+                  const cleanMin = minStr.replace(/[^0-9.]/g, '');
+                  updatedLender.productInfo.minLoanAmount =
+                    Number(cleanMin) || 0;
+                }
+
+                // For maxLoanAmount
+                const maxAmount = updatedLender.productInfo.maxLoanAmount;
+                if (maxAmount !== undefined && maxAmount !== null) {
+                  // Convert to string first, then clean non-numeric characters
+                  const maxStr = String(maxAmount);
+                  const cleanMax = maxStr.replace(/[^0-9.]/g, '');
+                  updatedLender.productInfo.maxLoanAmount =
+                    Number(cleanMax) || 0;
+                }
+              } catch (error) {
+                console.error('Error converting loan amounts', error);
+              }
+            }
+            return updatedLender;
+          });
+        })
+      );
   }
 }

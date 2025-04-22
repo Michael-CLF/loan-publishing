@@ -1,0 +1,48 @@
+/* Container for the entire lender section */
+.lender-container {
+  padding: 20px;
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.left {
+  border-radius: 6px 0px 0px 0px;
+}
+.right {
+  border-radius: 0px 6px 0px 0px;
+}
+.lender-info {
+  color: #fff;
+  background-color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+}
+
+/* Header Section */
+.flex {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lender-header {
+  width: 100%;
+}
+
+.lender-info {
+  padding: 1rem;
+  font-weight: 400;
+}
+
+/* Table row and hover effect */
+.lender-detail {
+  color: #0a2463;
+  background-color: #ebedef;
+  font-family: "roboto", sans-serif;
+  font-weight: 450;
+  padding: 20px;
+}
+
+.border-b {
+  border-bottom: 1px solid #0a2463;
+}

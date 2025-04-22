@@ -50,6 +50,11 @@ p {
   background-position: right 10px center;
   background-size: 16px;
 }
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border: 2px solid #0a2463; /* Use a blue color that matches your design */
+}
 
 /* Error styling */
 .invalid {

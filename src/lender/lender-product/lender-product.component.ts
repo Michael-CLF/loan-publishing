@@ -53,33 +53,38 @@ export class LenderProductComponent implements OnInit {
     });
   }
 
-  // Format currency input
   formatCurrency(event: Event, controlName: string): void {
     const input = event.target as HTMLInputElement;
     let value = input.value;
 
-    // Remove non-numeric characters except decimal point
-    value = value.replace(/[^0-9.]/g, '');
+    // First remove all formatting (dollar signs, commas)
+    const numericString = value.replace(/[^0-9.]/g, '');
 
-    if (value) {
-      // Format the value as currency
-      const formattedValue = this.currencyPipe.transform(
-        value,
-        'USD',
-        'symbol',
-        '1.0-0'
-      );
+    // Store the numeric value in the form (this is key)
+    const numericValue = parseFloat(numericString);
 
-      // Update the form control without triggering another change event
-      this.lenderForm
-        .get(controlName)
-        ?.setValue(formattedValue, { emitEvent: false });
+    // Update the form with the numeric value (but don't trigger another event)
+    this.lenderForm
+      .get(controlName)
+      ?.setValue(numericValue, { emitEvent: false });
 
-      // Update the input display value
-      input.value = formattedValue || '';
-    }
+    // Format for display only
+    const formattedValue = this.currencyPipe.transform(
+      numericValue,
+      'USD',
+      'symbol',
+      '1.0-0'
+    );
+
+    // Update the display without changing the form value again
+    input.value = formattedValue || '';
+
+    console.log(
+      `${controlName} stored value:`,
+      numericValue,
+      typeof numericValue
+    );
   }
-
   // Initialize form arrays if they don't exist
   private initializeFormArrays(): void {
     // Initialize lenderTypes form array if it doesn't exist

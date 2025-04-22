@@ -2,7 +2,25 @@
     <div class="contact-section">
         <h5 class="sub-title">Please provide your contact details</h5>
 
+        <div class="form-group">
+            <label for="company">Company Name</label>
+            <input id="company" type="text" formControlName="company"
+                [ngClass]="{'invalid': lenderForm.get('company')?.invalid && lenderForm.get('company')?.touched}" />
+            <div *ngIf="lenderForm.get('company')?.invalid && lenderForm.get('company')?.touched" class="error">
+                <div *ngIf="lenderForm.get('company')?.errors?.['required']">
+                    *Company name is required.
+                </div>
+                <div *ngIf="lenderForm.get('company')?.errors?.['minlength']">
+                    *Company name must be at least 2 characters.
+                </div>
+                <div *ngIf="lenderForm.get('company')?.errors?.['pattern']">
+                    *Company name must contain letters only.
+                </div>
+            </div>
+        </div>
         <div class="form-columns">
+            <!-- Company -->
+
             <!-- First Name -->
             <div class="form-group">
                 <label for="firstName">First Name</label>

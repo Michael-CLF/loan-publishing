@@ -18,7 +18,7 @@
                         <div class="state-header" (click)="toggleState(state.value)">
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [checked]="isStateSelected(state.value)"
-                                    (click)="$event.stopPropagation()">
+                                    (change)="toggleState(state.value)" (click)="$event.stopPropagation()">
                                 <span class="state-name">{{ state.name }}</span>
                             </div>
                             <span *ngIf="isStateSelected(state.value)" class="county-count">
@@ -43,9 +43,9 @@
                 <div class="counties-header">
                     <h5>{{ state.stateName }} Counties</h5>
                     <div class="select-all-counties">
-                        <label>
-                            <input type="checkbox" [checked]="state.allCountiesSelected"
-                                (change)="toggleAllCounties(state.stateValue)">
+                        <input type="checkbox" [checked]="state.allCountiesSelected"
+                            (change)="toggleAllCounties(state.stateValue)" id="selectAll-{{state.stateValue}}">
+                        <label for="selectAll-{{state.stateValue}}">
                             <span>Select All Counties</span>
                         </label>
                     </div>
@@ -53,9 +53,10 @@
 
                 <div class="counties-grid">
                     <div *ngFor="let county of state.counties" class="county-item">
-                        <label>
-                            <input type="checkbox" [checked]="county.selected"
-                                (change)="toggleCounty(state.stateValue, county.value)">
+                        <input type="checkbox" [checked]="county.selected"
+                            (change)="toggleCounty(state.stateValue, county.value)"
+                            id="county-{{state.stateValue}}-{{county.value}}">
+                        <label for="county-{{state.stateValue}}-{{county.value}}">
                             <span>{{ county.name }}</span>
                         </label>
                     </div>

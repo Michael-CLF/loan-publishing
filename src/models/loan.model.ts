@@ -16,6 +16,7 @@ export interface Loan {
   sponsorFico: number;
   experienceInYears: number;
   contact: string;
+  company: string;
   phone: string;
   email: string;
   notes?: string;

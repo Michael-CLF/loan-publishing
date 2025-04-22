@@ -1,3 +1,4 @@
+// lender-footprint.component.ts
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -54,7 +55,7 @@ export class LenderFootprintComponent implements OnInit {
     // Get states and counties data
     this.footprintLocation = this.locationService.getFootprintLocations();
 
-    // Initialize the lendingFootprint field if not already set
+    // Make sure we have the lendingFootprint control
     if (!this.lenderForm.get('lendingFootprint')) {
       this.lenderForm.addControl('lendingFootprint', this.fb.control([]));
     }
@@ -86,6 +87,14 @@ export class LenderFootprintComponent implements OnInit {
 
     // Initialize the selected states array from form values
     this.initializeSelectedStates();
+
+    // Log initial state
+    console.log('Footprint form initialized:', this.lenderForm);
+    console.log('Footprint form valid:', this.lenderForm.valid);
+    console.log(
+      'lendingFootprint value:',
+      this.lenderForm.get('lendingFootprint')?.value
+    );
 
     // Force validation check immediately
     this.lenderForm.updateValueAndValidity();
@@ -184,16 +193,18 @@ export class LenderFootprintComponent implements OnInit {
       }
     });
 
-    // Update lendingFootprint value
+    // Update lendingFootprint value - store state names
     const selectedStateNames = this.selectedStates.map(
       (state) => state.stateName
     );
     const lendingFootprint = this.lenderForm.get('lendingFootprint');
     if (lendingFootprint) {
       lendingFootprint.setValue(selectedStateNames);
+      console.log('Updated lendingFootprint value:', selectedStateNames);
     }
 
     // Update form state
+    this.lenderForm.markAsDirty();
     this.lenderForm.markAsTouched();
     this.lenderForm.updateValueAndValidity();
   }

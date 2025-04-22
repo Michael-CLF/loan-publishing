@@ -15,14 +15,19 @@ import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-foo
 import { LenderRegistrationComponent } from 'src/lender/lender-registration/lender-registration.component';
 import { LenderReviewComponent } from 'src/lender/lender-review/lender-review.component';
 import { LoanDetailsComponent } from 'src/loan-details/loan-details.component';
+import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details.component';
+import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
 
 export const routes: Routes = [
   { path: '', component: HomeComponent },
+  { path: 'lender-form', component: LenderFormComponent },
+  { path: 'lender-details/:id', component: LenderDetailsComponent },
+  { path: 'lender-list', component: LenderListComponent },
   { path: 'user-form', component: UserFormComponent },
   { path: 'login', component: EmailLoginComponent },
   // Add explicit verify route to handle email verification
   { path: 'login/verify', component: EmailLoginComponent },
-  { path: 'lender-form', component: LenderFormComponent },
+
   { path: 'lender-registration', component: LenderRegistrationComponent },
   { path: 'lender-contact', component: LenderContactComponent },
   { path: 'lender-product', component: LenderProductComponent },

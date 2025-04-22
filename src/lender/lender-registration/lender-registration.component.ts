@@ -1,3 +1,4 @@
+// lender-registration.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
@@ -294,6 +295,9 @@ export class LenderRegistrationComponent implements OnInit {
 
   ngOnInit(): void {
     this.initializeForm();
+
+    // Log initial form state
+    console.log('Registration form initialized:', this.lenderForm);
   }
 
   // Type-safe getters for form groups
@@ -363,6 +367,15 @@ export class LenderRegistrationComponent implements OnInit {
 
   private initializeForm(): void {
     const contactStep = this.fb.group({
+      company: [
+        '',
+        [
+          Validators.required,
+          Validators.minLength(2),
+          Validators.pattern(/^[A-Za-z ]+$/),
+        ],
+      ],
+
       firstName: [
         '',
         [
@@ -392,17 +405,24 @@ export class LenderRegistrationComponent implements OnInit {
       state: ['', Validators.required],
     });
 
+    // Create empty form arrays for lender types, property categories, and property types
+    const lenderTypesArray = this.fb.array([], [this.minSelectedCheckboxes(1)]);
+    const propertyCategoriesArray = this.fb.array(
+      [],
+      [this.minSelectedCheckboxes(1)]
+    );
+    const propertyTypesArray = this.fb.array([]);
+
     const productStep = this.fb.group({
-      lenderTypes: this.fb.array([], [this.minSelectedCheckboxes(1)]),
-      minLoanAmount: ['', [Validators.required, Validators.minLength(6)]],
-      maxLoanAmount: ['', [Validators.required, Validators.minLength(6)]],
-      propertyCategories: this.fb.array([], [this.minSelectedCheckboxes(1)]),
-      propertyTypes: this.fb.array([]),
+      lenderTypes: lenderTypesArray,
+      minLoanAmount: [null, [Validators.required, Validators.min(6)]],
+      maxLoanAmount: [null, [Validators.required, Validators.min(6)]],
+      propertyCategories: propertyCategoriesArray,
+      propertyTypes: propertyTypesArray,
     });
 
     const footprintStep = this.fb.group({
       lendingFootprint: [[], Validators.required],
-      propertyTypes: this.fb.group({}),
     });
 
     // Initialize the main form
@@ -411,6 +431,14 @@ export class LenderRegistrationComponent implements OnInit {
       productInfo: productStep,
       footprintInfo: footprintStep,
     });
+
+    // Log the initialized form arrays to check they're created correctly
+    console.log('Lender types array initialized:', lenderTypesArray);
+    console.log(
+      'Property categories array initialized:',
+      propertyCategoriesArray
+    );
+    console.log('Property types array initialized:', propertyTypesArray);
 
     // Force form to evaluate all controls
     setTimeout(() => {
@@ -659,6 +687,11 @@ export class LenderRegistrationComponent implements OnInit {
         this.isLoading = false;
         this.errorMessage = `Error saving data: ${error.message}`;
         console.error('Form submission error:', error);
+        console.log('Form Data:', this.lenderForm.value);
+        console.log(
+          'Form Data before save:',
+          JSON.stringify(this.lenderForm.value, null, 2)
+        );
       });
 
     // Process form submission (this would typically be an API call)

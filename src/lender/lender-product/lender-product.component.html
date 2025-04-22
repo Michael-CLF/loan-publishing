@@ -1,21 +1,21 @@
 <!-- lender-product.component.html -->
-<div class="footprint-container">
+<div class="property-container">
     <form [formGroup]="lenderForm">
-        <h3 class="section-title">Product Details</h3>
-        <p class="section-description">Please select your lender types and property categories.</p>
+        <h3 class="product-title">Product Details</h3>
+        <p class="property-description">Please select your lender types and property categories.</p>
 
         <div class="form-content">
             <!-- Lender Types Section -->
-            <div class="states-section">
+            <div class="property-section">
                 <h4>Lender Types</h4>
                 <p class="helper-text">Select all lender types that apply to your business</p>
 
                 <!-- Lender Types Grid -->
-                <div class="states-grid">
-                    <div *ngFor="let type of lenderTypes" class="state-card"
+                <div class="property-grid">
+                    <div *ngFor="let type of lenderTypes" class="property-card"
                         [class.selected]="isOptionSelected('lenderTypes', type.value)">
                         <!-- Lender Type Checkbox -->
-                        <div class="state-header" (click)="onLenderTypeChange($event, type.value)">
+                        <div class="property-header" (click)="onLenderTypeChange($event, type.value)">
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [id]="'lenderType-' + type.value"
                                     [checked]="isOptionSelected('lenderTypes', type.value)"
@@ -87,12 +87,15 @@
                     </div>
 
                     <div class="counties-grid">
-                        <div *ngFor="let subcategory of category.subcategories" class="county-item">
-                            <label class="state-header">
-                                <input type="checkbox" [id]="'subcategory-' + subcategory.value"
-                                    [checked]="isSubOptionSelected(category.value, subcategory.value)"
-                                    (change)="toggleSubcategory($event, category.value, subcategory.value)">
-                                <span>{{ subcategory.name }}</span>
+                        <div *ngFor="let subcategory of category.subcategories" class="county-item"
+                            [class.selected]="isSubOptionSelected(category.value, subcategory.value)">
+                            <label class="county-header">
+                                <div class="checkbox-wrapper">
+                                    <input type="checkbox" [id]="'subcategory-' + subcategory.value"
+                                        [checked]="isSubOptionSelected(category.value, subcategory.value)"
+                                        (change)="toggleSubcategory($event, category.value, subcategory.value)">
+                                    <span>{{ subcategory.name }}</span>
+                                </div>
                             </label>
                         </div>
                     </div>
