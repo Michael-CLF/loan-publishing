@@ -51,7 +51,8 @@ li {
 
 .instructions {
   background-color: #e2f3ff;
-  border-left: 4px solid #0d6efd;
+  border-left: 4px solid #0a2463;
+  font-weight: 600;
 }
 
 .state-counties h4 {
@@ -70,4 +71,22 @@ li {
 .state-counties {
   margin-bottom: 15px;
   break-inside: avoid; /* Prevents a state and its counties from being split between columns */
+}
+.form-group,
+.full-width,
+.tos-container {
+  margin: 25px;
+}
+.checkbox-label {
+  color: #0a2463;
+  font-family: "roboto" sans-serif;
+  font-weight: 500;
+}
+
+input[type="checkbox"]:checked {
+  background-color: #0a2463;
+}
+.error {
+  color: #c00000;
+  font-weight: 600;
 }

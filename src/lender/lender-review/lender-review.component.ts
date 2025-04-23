@@ -1,6 +1,6 @@
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormGroup, FormArray } from '@angular/forms';
+import { FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
 import {
   PropertyCategory,
   StateOption,
@@ -21,7 +21,7 @@ interface PropertyTypeInfo {
 @Component({
   selector: 'app-lender-review',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './lender-review.component.html',
   styleUrls: ['./lender-review.component.css'],
 })

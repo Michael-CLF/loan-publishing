@@ -5,6 +5,14 @@
   margin: 0 auto;
 }
 
+.headline {
+  color: #0a2463;
+  font-family: "roboto" sans-serif;
+  font-size: 2rem;
+  text-align: center;
+  margin-bottom: 25px;
+}
+
 .left {
   border-radius: 6px 0px 0px 0px;
 }

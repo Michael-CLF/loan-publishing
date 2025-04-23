@@ -1,6 +1,6 @@
 <div class="lender-container">
-    <div class="flex justify-between items-center mb-6">
-        <h2 class="headline">Lenders</h2>
+    <div class="">
+        <h2 class="headline">Lender Database</h2>
     </div>
 
     <div *ngIf="loading" class="text-center my-8">
@@ -21,9 +21,8 @@
                 <tr class="lender-content">
                     <th class="lender-info left">Contact Name</th>
                     <th class="lender-info">Company Name</th>
-                    <th class="lender-info">Location</th>
-                    <th class="lender-info">Min/Max Loan</th>
-                    <th class="lender-info right">Lender Type(s)</th>
+                    <th class="lender-info">Lender Type</th>
+                    <th class="lender-info right">Min/Max Loan</th>
                 </tr>
             </thead>
             <tbody>
@@ -35,20 +34,15 @@
                     </td>
                     <td class="lender-detail">{{ lender.contactInfo?.company }}</td>
                     <td class="lender-detail">
-                        {{ lender.contactInfo?.city }}, {{ lender.contactInfo?.state }}
+                        <span *ngIf="lender.productInfo?.lenderTypes">
+                            <span *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
+                                {{ getLenderTypeName(type) }}{{ !last ? ', ' : '' }}
+                            </span>
+                        </span>
                     </td>
                     <td class="lender-detail">
                         ${{ lender.productInfo?.minLoanAmount | number }} - ${{
                         lender.productInfo?.maxLoanAmount | number }}
-                    </td>
-
-                    <td class="lender-detail">
-                        <span *ngIf="lender.productInfo?.lenderTypes">
-                            <span *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
-                                {{ type }}{{ !last ? ', ' : '' }}
-                            </span>
-                        </span>
-
                     </td>
                 </tr>
             </tbody>

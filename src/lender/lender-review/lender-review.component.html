@@ -106,10 +106,19 @@
             </div>
         </ng-container>
     </div>
-
     <div class="section instructions">
         <p>Please review all your information above. If you need to make changes, click the "Previous" button to go back
             to the appropriate section. Once you're satisfied with all the information, click "Submit" to complete your
             registration.</p>
+    </div>
+
+    <div [formGroup]="lenderForm" class="form-group full-width tos-container">
+        <label class="checkbox-label">
+            <input type="checkbox" formControlName="termsAccepted" class="form-check-input">
+            I have read, acknowledge and agree to the <a href="/terms" target="_blank"> Terms of Service</a>
+        </label>
+        <div *ngIf="lenderForm.get('termsAccepted')?.invalid && lenderForm.get('termsAccepted')?.touched" class="error">
+            *You must agree to the Terms of Service to continue.
+        </div>
     </div>
 </div>

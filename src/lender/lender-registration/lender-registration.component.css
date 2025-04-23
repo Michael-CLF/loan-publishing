@@ -112,6 +112,10 @@
   transition: all 0.3s;
 }
 
+.btn.btn-success {
+  background-color: #0b5345;
+}
+
 .btn-primary {
   background-color: #0a2463;
   color: white;

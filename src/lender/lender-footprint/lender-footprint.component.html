@@ -52,11 +52,11 @@
                 </div>
 
                 <div class="counties-grid">
-                    <div *ngFor="let county of state.counties" class="county-item">
-                        <input type="checkbox" [checked]="county.selected"
-                            (change)="toggleCounty(state.stateValue, county.value)"
-                            id="county-{{state.stateValue}}-{{county.value}}">
+                    <div *ngFor="let county of state.counties" class="county-item" [class.selected]="county.selected">
                         <label for="county-{{state.stateValue}}-{{county.value}}">
+                            <input type="checkbox" [checked]="county.selected"
+                                (change)="toggleCounty(state.stateValue, county.value)"
+                                id="county-{{state.stateValue}}-{{county.value}}">
                             <span>{{ county.name }}</span>
                         </label>
                     </div>

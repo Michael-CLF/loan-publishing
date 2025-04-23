@@ -137,7 +137,7 @@ export class LenderRegistrationComponent implements OnInit {
     { value: 'credit_union', name: 'Credit Union' },
     { value: 'crowdfunding', name: 'Crowdfunding Platform' },
     { value: 'direct_lender', name: 'Direct Lender' },
-    { value: 'family_office', name: 'Family Office' },
+    { value: 'Family Office', name: 'Family Office' },
     { value: 'hard_money', name: 'Hard Money Lender' },
     { value: 'life_insurance', name: 'Life Insurance Lender' },
     { value: 'mezzanine_lender', name: 'Mezzanine Lender' },
@@ -338,6 +338,10 @@ export class LenderRegistrationComponent implements OnInit {
     return this.productForm.get('propertyTypes') as FormArray;
   }
 
+  get termsAccepted(): FormControl {
+    return this.lenderForm.get('termsAccepted') as FormControl;
+  }
+
   public getStepFormGroup(): FormGroup {
     // Get appropriate form group based on current step
     switch (this.currentStep) {
@@ -430,6 +434,7 @@ export class LenderRegistrationComponent implements OnInit {
       contactInfo: contactStep,
       productInfo: productStep,
       footprintInfo: footprintStep,
+      termsAccepted: [false, Validators.requiredTrue],
     });
 
     // Log the initialized form arrays to check they're created correctly
@@ -467,28 +472,28 @@ export class LenderRegistrationComponent implements OnInit {
   }
 
   // Checkbox change handlers
-  onLenderTypeChange(event: any, value: string): void {
-    const checked = event.target.checked;
+  onLenderTypeChange(event: any, typeValue: string): void {
+    const checked = event.target.checked || event.type === 'click';
     const lenderTypesArray = this.lenderTypesArray;
 
+    // Find the full lender type object with both value and name
+    const lenderTypeObject = this.lenderTypes.find(
+      (t) => t.value === typeValue
+    );
+
     if (checked) {
-      lenderTypesArray.push(this.fb.control(value));
-      console.log(`Added lender type: ${value}`);
+      // Store the entire lender type object instead of just the value
+      lenderTypesArray.push(this.fb.control(lenderTypeObject));
+      console.log(`Added lender type: ${typeValue}`);
     } else {
       const index = lenderTypesArray.controls.findIndex(
-        (control) => control.value === value
+        (control) => control.value.value === typeValue
       );
       if (index >= 0) {
         lenderTypesArray.removeAt(index);
-        console.log(`Removed lender type: ${value}`);
+        console.log(`Removed lender type: ${typeValue}`);
       }
     }
-
-    // Log for debugging
-    console.log('Lender types after change:', lenderTypesArray.value);
-    console.log('Lender types count:', lenderTypesArray.length);
-    console.log('Lender types valid:', lenderTypesArray.valid);
-    console.log('Lender types errors:', lenderTypesArray.errors);
 
     // Update validation
     lenderTypesArray.updateValueAndValidity();
@@ -549,7 +554,11 @@ export class LenderRegistrationComponent implements OnInit {
   // Helper method to check if a value is selected in a FormArray
   isOptionSelected(formArrayName: string, value: string): boolean {
     const formArray = this.productForm.get(formArrayName) as FormArray;
-    return formArray.controls.some((control) => control.value === value);
+    return formArray.controls.some((control) =>
+      typeof control.value === 'object'
+        ? control.value.value === value
+        : control.value === value
+    );
   }
 
   // Form validation methods
@@ -667,11 +676,18 @@ export class LenderRegistrationComponent implements OnInit {
     this.successMessage = '';
     this.isLoading = true;
 
+    this.lenderForm.get('termsAccepted')?.markAsTouched();
     // Check if the entire form is valid before submission
     if (!this.lenderForm.valid) {
-      this.errorMessage = 'Please complete all required fields';
+      this.isLoading = false;
+      if (this.lenderForm.get('termsAccepted')?.invalid) {
+        this.errorMessage = 'You must agree to the Terms of Service to proceed';
+      } else {
+        this.errorMessage = 'Please complete all required fields';
+      }
       return;
     }
+
     const formData = this.lenderForm.value;
 
     this.lenderService

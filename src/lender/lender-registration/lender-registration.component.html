@@ -49,7 +49,7 @@
                     (click)="nextStep()" [disabled]="!getStepFormGroup().valid">
                     Next
                 </button>
-                <button type="button" class="btn btn-success" *ngIf="currentStep === 3"
+                <button type="button" class="btn btn-success" *ngIf="currentStep === 3" [disabled]="!lenderForm.valid"
                     (click)="submitForm()">Submit</button>
             </div>
         </form>
