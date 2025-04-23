@@ -17,11 +17,21 @@ import {
   orderBy,
   getDocs,
 } from '@angular/fire/firestore';
+import { PropertyFilterComponent } from '../property-filter/property-filter.component';
+
+// Define the interface here instead of importing it
+interface LoanFilters {
+  propertyTypeCategory: string;
+  state: string;
+  loanType: string;
+  minAmount: string;
+  maxAmount: string;
+}
 
 @Component({
   selector: 'app-loans',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, PropertyFilterComponent],
   templateUrl: './loans.component.html',
   styleUrls: ['./loans.component.css'],
 })
@@ -53,6 +63,7 @@ export class LoansComponent implements OnInit {
 
   // State management using signals (Angular 16+)
   loans = signal<Loan[]>([]);
+  allLoans = signal<Loan[]>([]); // Store all loans for filtering
   loansLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
 
@@ -96,6 +107,7 @@ export class LoansComponent implements OnInit {
 
       // Update the loans signal with the fetched data
       this.loans.set(allLoans);
+      this.allLoans.set(allLoans); // Store all loans for filtering
     } catch (error) {
       console.error('Error loading loans:', error);
       this.errorMessage.set('Failed to load loans. Please try again.');
@@ -105,9 +117,54 @@ export class LoansComponent implements OnInit {
   }
 
   /**
+   * Handle filter application
+   */
+  handleFilterApply(filters: LoanFilters): void {
+    const filteredResults = this.allLoans().filter((loan) => {
+      // Filter by property type
+      if (
+        filters.propertyTypeCategory &&
+        loan.propertyTypeCategory !== filters.propertyTypeCategory
+      ) {
+        return false;
+      }
+
+      // Filter by state
+      if (filters.state && loan.state !== filters.state) {
+        return false;
+      }
+
+      // Filter by loan type
+      if (filters.loanType && loan.loanType !== filters.loanType) {
+        return false;
+      }
+
+      // Filter by min amount
+      if (
+        filters.minAmount &&
+        Number(loan.loanAmount) < Number(filters.minAmount)
+      ) {
+        return false;
+      }
+
+      // Filter by max amount
+      if (
+        filters.maxAmount &&
+        Number(loan.loanAmount) > Number(filters.maxAmount)
+      ) {
+        return false;
+      }
+
+      return true;
+    });
+
+    // Update the displayed loans with the filtered results
+    this.loans.set(filteredResults);
+  }
+
+  /**
    * Navigate to view a loan's details
    */
-  // This is what you currently have in your LoansComponent
   viewLoanDetails(id: string): void {
     if (id) {
       this.router.navigate(['/loans', id]);
@@ -133,6 +190,12 @@ export class LoansComponent implements OnInit {
           // Update the local state by removing the deleted loan
           const updatedLoans = this.loans().filter((loan) => loan.id !== id);
           this.loans.set(updatedLoans);
+
+          // Also update the allLoans signal
+          const updatedAllLoans = this.allLoans().filter(
+            (loan) => loan.id !== id
+          );
+          this.allLoans.set(updatedAllLoans);
         },
         error: (error) => {
           console.error('Error deleting loan:', error);

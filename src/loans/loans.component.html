@@ -1,9 +1,11 @@
-<!-- loans.component.html -->
+<!-- loans.component.html - updated with filter component -->
 <div class="loans-container">
     <header class="loans-header">
         <h1 class="title">Loan Postings</h1>
-        <button class="create-btn" routerLink="/loan">Add a New Loan button to search nav</button>
     </header>
+
+    <!-- Add the property filter component here -->
+    <app-property-filter (applyFilters)="handleFilterApply($event)"></app-property-filter>
 
     <!-- Loading state -->
     <div *ngIf="loansLoading()" class="loading-container">

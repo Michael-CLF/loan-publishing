@@ -158,21 +158,16 @@ export class LenderProductComponent implements OnInit {
 
   // Toggle lender type selection
   onLenderTypeChange(event: Event, value: string): void {
-    const isChecked = this.isOptionSelected('lenderTypes', value);
+    event.stopPropagation(); // Prevent event bubbling
     const formArray = this.lenderTypesArray;
+    const isCurrentlySelected = this.isOptionSelected('lenderTypes', value);
 
-    // Toggle selection
-    if (!isChecked) {
-      // Add the value to the form array
+    while (formArray.length > 0) {
+      formArray.removeAt(0);
+    }
+
+    if (!isCurrentlySelected) {
       formArray.push(new FormControl(value));
-    } else {
-      // Remove the value from the form array
-      const index = formArray.controls.findIndex(
-        (control) => control.value === value
-      );
-      if (index !== -1) {
-        formArray.removeAt(index);
-      }
     }
 
     // Update validation
@@ -217,6 +212,18 @@ export class LenderProductComponent implements OnInit {
     // Update validation
     formArray.updateValueAndValidity();
     this.lenderForm.updateValueAndValidity();
+  }
+  isAnyLenderTypeSelected(): boolean {
+    return this.lenderTypesArray.length > 0;
+  }
+
+  // Add this method to check if an option is disabled
+  isLenderTypeDisabled(value: string): boolean {
+    // Return true if any lender type is selected AND it's not this one
+    return (
+      this.isAnyLenderTypeSelected() &&
+      !this.isOptionSelected('lenderTypes', value)
+    );
   }
 
   // Toggle subcategory selection

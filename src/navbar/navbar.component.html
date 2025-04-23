@@ -11,7 +11,6 @@
 
             <div *ngIf="!isLoggedIn" class="auth-links">
                 <a href="/login" class="login-btn">Log In</a>
-                <a href="/login" class="register-btn">Register</a>
             </div>
 
             <div *ngIf="isLoggedIn" class="user-menu">
@@ -24,7 +23,6 @@
 
                     <div *ngIf="isDropdownOpen" class="dropdown-content">
                         <div *ngIf="loading" class="dropdown-loading">Loading...</div>
-                        <div *ngIf="error" class="dropdown-error">{{ error }}</div>
                         <div *ngIf="userData && !loading" class="user-info">
                             <p class="user-name">{{ userData.firstName }} {{ userData.lastName }}</p>
                             <p class="user-email">{{ userData.email }}</p>

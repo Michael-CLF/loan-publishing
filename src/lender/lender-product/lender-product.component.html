@@ -5,31 +5,33 @@
         <p class="property-description">Please select your lender types and property categories.</p>
 
         <div class="form-content">
+
             <!-- Lender Types Section -->
+            <!-- Lender Types Section in lender-product.component.html -->
             <div class="property-section">
                 <h4>Lender Types</h4>
-                <p class="helper-text">Select all lender types that apply to your business</p>
+                <p class="helper-text">Select one lender type that applies to your business</p>
 
                 <!-- Lender Types Grid -->
                 <div class="property-grid">
                     <div *ngFor="let type of lenderTypes" class="property-card"
-                        [class.selected]="isOptionSelected('lenderTypes', type.value)">
+                        [class.selected]="isOptionSelected('lenderTypes', type.value)"
+                        [class.disabled]="isLenderTypeDisabled(type.value)">
                         <!-- Lender Type Checkbox -->
                         <div class="property-header" (click)="onLenderTypeChange($event, type.value)">
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [id]="'lenderType-' + type.value"
                                     [checked]="isOptionSelected('lenderTypes', type.value)"
-                                    (click)="$event.stopPropagation()">
+                                    [disabled]="isLenderTypeDisabled(type.value)" (click)="$event.stopPropagation()">
                                 <span class="state-name">{{ type.name }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
                 <div *ngIf="isControlInvalid('lenderTypes')" class="error-message">
-                    Please select at least one lender type.
+                    Please select a lender type.
                 </div>
             </div>
-
             <!-- Property Categories Section -->
             <div class="states-section">
                 <h4>Property Categories</h4>

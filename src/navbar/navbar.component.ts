@@ -198,10 +198,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
                   // Just use the first user in the collection for testing
                   if (allUsers.length > 0) {
-                    console.log(
-                      'Using first available user for testing:',
-                      allUsers[0]
-                    );
+                    console.log('Using available user data:', allUsers[0]);
                     this.userData = allUsers[0];
                     this.error = `Using test user: ${
                       allUsers[0].email || 'Unknown'
