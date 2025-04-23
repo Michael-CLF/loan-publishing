@@ -1,1 +1,83 @@
-<p>lender-details works!</p>
+<!-- src/app/lender/lender-details/lender-details.component.html -->
+<div class="lender-details-container">
+    <div class="details-header">
+        <button (click)="goBack()" class="back-button">
+            &larr; Back to List
+        </button>
+        <h2 class="headline">Lender Details</h2>
+    </div>
+
+    <div *ngIf="loading" class="text-center my-8">
+        <p>Loading lender information...</p>
+    </div>
+
+    <div *ngIf="error" class="text-center error-message">
+        <p>Unable to load lender information. The lender may not exist or there was an error retrieving the data.</p>
+        <button (click)="goBack()" class="back-button mt-4">
+            Return to Lender List
+        </button>
+    </div>
+
+    <div *ngIf="!loading && !error && lender" class="lender-details">
+        <!-- Contact Information Section -->
+        <div class="details-section">
+            <h3 class="section-title">Contact Information</h3>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Contact Name:</span>
+                    <span class="detail-value">{{ getContactName() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Company:</span>
+                    <span class="detail-value">{{ getCompanyName() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Email:</span>
+                    <span class="detail-value">{{ getEmail() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Phone:</span>
+                    <span class="detail-value">{{ getPhone() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Location:</span>
+                    <span class="detail-value">{{ getLocation() }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Information Section -->
+        <div class="details-section">
+            <h3 class="section-title">Product Information</h3>
+            <div class="details-grid">
+                <div class="detail-item">
+                    <span class="detail-label">Lender Types:</span>
+                    <span class="detail-value">{{ getLenderTypes() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Loan Range:</span>
+                    <span class="detail-value">{{ getLoanRange() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Property Categories:</span>
+                    <span class="detail-value">{{ getPropertyCategories() }}</span>
+                </div>
+                <div class="detail-item">
+                    <span class="detail-label">Property Types:</span>
+                    <span class="detail-value">{{ getPropertyTypes() }}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Footprint Information Section -->
+        <div class="details-section">
+            <h3 class="section-title">Lending Footprint</h3>
+            <div class="details-grid">
+                <div class="detail-item full-width">
+                    <span class="detail-label">Lending States:</span>
+                    <span class="detail-value">{{ getLendingStates() }}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
