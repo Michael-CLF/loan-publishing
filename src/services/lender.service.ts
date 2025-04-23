@@ -9,7 +9,8 @@ import { DocumentReference, where } from '@angular/fire/firestore';
 // Update the Lender interface to make userId optional
 export interface Lender {
   id?: string;
-  userId?: string; // Now optional
+  userId?: string;
+  role: string;
   contactInfo?: {
     company: string;
     firstName: string;

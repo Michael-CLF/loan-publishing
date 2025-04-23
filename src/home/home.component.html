@@ -81,7 +81,7 @@
     </div>
 </div>
 <div class="button">
-    <button class="begin-button" routerLink="/loan">Get Started</button>
+    <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
 </div>
 
 <div class="container">
@@ -203,5 +203,8 @@
     </div>
 </div>
 <div class="button">
-    <button class="begin-button" routerLink="/loan">Get Started</button>
+    <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
 </div>
+
+<app-role-selection-modal (roleSelected)="handleRoleSelection($event)">
+</app-role-selection-modal>

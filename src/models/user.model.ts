@@ -8,5 +8,6 @@ export interface User {
   phone: string;
   city: string;
   state: string;
+  role?: 'originator' | 'lender';
   createdAt: Date;
 }

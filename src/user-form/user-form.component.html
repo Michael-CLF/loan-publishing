@@ -76,11 +76,13 @@
             </div>
 
             <!-- Email field -->
+            <!-- Email field with improved error handling -->
+            <!-- Email field -->
             <div class="form-group">
                 <label for="email">Email</label>
                 <input type="text" id="email" formControlName="email" [ngClass]="{
-                    invalid: userForm.get('email')?.invalid && userForm.get('email')?.touched
-                  }" />
+        invalid: userForm.get('email')?.invalid && userForm.get('email')?.touched || (errorMessage && errorMessage.includes('already registered'))
+      }" />
                 <div *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched" class="error">
                     <div *ngIf="userForm.get('email')?.errors?.['required']">
                         *Email is required.
@@ -88,6 +90,9 @@
                     <div *ngIf="userForm.get('email')?.errors?.['email']">
                         *Please enter a valid email address.
                     </div>
+                </div>
+                <div *ngIf="errorMessage && errorMessage.includes('already registered')" class="error">
+                    *This email is already registered. Please use a different email.
                 </div>
             </div>
 
@@ -147,7 +152,7 @@
             <div class="form-group full-width tos-container">
                 <label class="checkbox-label">
                     <input type="checkbox" formControlName="tos" class="form-check-input">
-                    I have read, acknowledge and agree to the <a href="/terms" target="_blank"> Terms of Service</a>
+                    I have read, acknowledge and agree to the<a href="/terms" target="_blank"> Terms of Service</a>
                 </label>
             </div>
 

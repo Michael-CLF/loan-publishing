@@ -1,0 +1,91 @@
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: #008080;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 24px;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.close-button {
+  background: none;
+  border: none;
+  font-size: 2rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+.title {
+  font-size: 2rem;
+  font-family: "roboto", sans-serif;
+  color: #fff;
+  text-align: center;
+}
+.content {
+  font-size: 1.1rem;
+  font-family: "roboto", sans-serif;
+  color: #fff;
+  text-align: center;
+}
+.box-content {
+  font-size: 1rem;
+  font-family: "roboto", sans-serif;
+  color: #fff;
+  text-align: center;
+}
+
+.modal-body {
+  padding: 24px;
+  .role-options {
+    display: flex;
+    gap: 16px;
+    margin-top: 24px;
+
+    @media (max-width: 576px) {
+      flex-direction: column;
+    }
+  }
+
+  .role-card {
+    flex: 1;
+    padding: 16px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background-color: #0a2463;
+      border-color: #cccccc;
+    }
+
+    h3 {
+      margin-top: 0;
+    }
+  }
+}
+.role {
+  font-size: 2rem;
+  font-family: "roboto", sans-serif;
+  color: #fff;
+  text-align: center;
+}

@@ -13,11 +13,13 @@ import {
   doc,
   collectionData,
   docData,
+  getDocs,
   addDoc,
   setDoc,
   updateDoc,
   deleteDoc,
   query,
+  where,
   DocumentReference,
   DocumentData,
 } from '@angular/fire/firestore';
@@ -32,6 +34,16 @@ export class FirestoreService {
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
   private destroyRef = inject(DestroyRef);
+
+  checkIfEmailExists(email: string): Observable<boolean> {
+    const usersCollection = collection(this.firestore, 'users');
+    const q = query(
+      usersCollection,
+      where('contactEmail', '==', email.toLowerCase())
+    );
+
+    return from(getDocs(q)).pipe(map((snapshot) => !snapshot.empty));
+  }
 
   getCollection<T extends DocumentData>(
     path: string

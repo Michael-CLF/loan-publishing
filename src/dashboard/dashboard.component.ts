@@ -105,6 +105,7 @@ export class DashboardComponent implements OnInit {
 
   user: User | null = null;
   userData: UserData | null = null;
+  userRole: 'originator' | 'lender' | null = null;
   loading = true;
   error: string | null = null;
   accountNumber: string = ''; // Add this property to the component
@@ -175,6 +176,15 @@ export class DashboardComponent implements OnInit {
                   id: docSnap.id,
                   ...docSnap.data(),
                 } as UserData;
+
+                const userRole = this.userData?.['role'];
+                if (userRole === 'originator') {
+                  console.log('Loading originator dashboard...');
+                } else if (userRole === 'lender') {
+                  console.log('Loading lender dashboard...');
+                }
+
+                this.userRole = this.userData?.['role']; // Optional: useful for template logic
                 this.loading = false;
 
                 // Load loans after user is authenticated

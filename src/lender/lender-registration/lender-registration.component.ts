@@ -16,6 +16,7 @@ import { LenderProductComponent } from '../../lender/lender-product/lender-produ
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
 import { LenderService } from '../../services/lender.service';
+import { EmailExistsValidator } from '../../services/email-exists.validator';
 
 export interface PropertyCategory {
   name: string;
@@ -65,6 +66,7 @@ export interface PropertyTypes {
 })
 export class LenderRegistrationComponent implements OnInit {
   private lenderService = inject(LenderService);
+  private emailExistsValidator = inject(EmailExistsValidator);
   lenderForm!: FormGroup;
   currentStep = 0;
   isLoading = false;
@@ -397,7 +399,11 @@ export class LenderRegistrationComponent implements OnInit {
         ],
       ],
       contactPhone: ['', [Validators.required]],
-      contactEmail: ['', [Validators.required, Validators.email]],
+      contactEmail: [
+        '',
+        [Validators.required, Validators.email],
+        this.emailExistsValidator.validate.bind(this.emailExistsValidator),
+      ],
       city: [
         '',
         [
@@ -689,6 +695,8 @@ export class LenderRegistrationComponent implements OnInit {
     }
 
     const formData = this.lenderForm.value;
+
+    formData.role = 'lender';
 
     this.lenderService
       .createLender(formData)

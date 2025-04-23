@@ -172,6 +172,9 @@ export class UserFormComponent implements OnInit {
     if (this.userForm.invalid) return;
 
     this.isLoading = true;
+    this.errorMessage = ''; // Clear previous errors
+    this.successMessage = ''; // Clear previous success messages
+
     const {
       firstName,
       lastName,
@@ -194,15 +197,26 @@ export class UserFormComponent implements OnInit {
         phone,
         city,
         state,
+        role: 'originator',
       })
       .subscribe(
         (user) => {
           this.isLoading = false;
           this.successMessage = 'Registration successful!';
         },
-        (error) => {
+        (error: Error) => {
           this.isLoading = false;
-          this.errorMessage = 'Registration failed. Please try again.';
+          // Check for specific Firebase error
+          if (
+            error.message &&
+            error.message.includes('auth/email-already-in-use')
+          ) {
+            this.errorMessage =
+              'This email is already registered. Please use a different email.';
+          } else {
+            this.errorMessage = 'Registration failed. Please try again.';
+          }
+          console.error('Registration error:', error);
         }
       );
   }
