@@ -17,8 +17,14 @@ import { LenderReviewComponent } from 'src/lender/lender-review/lender-review.co
 import { LoanDetailsComponent } from 'src/loan-details/loan-details.component';
 import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details.component';
 import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
+import { EditAccountComponent } from 'src/edit-account/edit-account.component';
 
 export const routes: Routes = [
+  {
+    path: 'account/edit',
+    component: EditAccountComponent,
+    canActivate: [AuthGuard],
+  },
   { path: '', component: HomeComponent },
   { path: 'lender-form', component: LenderFormComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },

@@ -23,7 +23,7 @@
   color: #fff;
   background-color: #0a2463;
   border: 1px solid #d1d5db;
-  border-radius: 0.25rem;
+  border-radius: 0.35rem;
   margin-right: 1rem;
   cursor: pointer;
   transition: background-color 0.2s;
@@ -31,6 +31,23 @@
 
 .back-button:hover {
   background-color: #008080;
+}
+
+.favorite-button {
+  color: #fff;
+  background-color: #008080;
+  padding: 6px 10px;
+  border-radius: 0.35rem;
+}
+
+.favorite-button.favorited {
+  background-color: #f4511e;
+  color: white;
+}
+.favorite {
+  color: #fff;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
 }
 
 .details-section {

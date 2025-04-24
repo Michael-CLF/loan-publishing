@@ -32,6 +32,7 @@ import {
   ActionCodeSettings,
 } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
+import { collection, getDocs } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 
 @Injectable({
@@ -111,6 +112,105 @@ export class AuthService implements OnDestroy {
     return this.authReady$.pipe(
       filter((ready) => ready),
       first()
+    );
+  }
+  // Add to auth.service.ts
+  initializeAuthState(): Promise<boolean> {
+    if (!this.isBrowser) return Promise.resolve(false);
+
+    return new Promise((resolve) => {
+      // Get initial stored state
+      const storedLoginState = localStorage.getItem('isLoggedIn');
+      if (storedLoginState === 'true') {
+        this.isLoggedInSubject.next(true);
+      }
+
+      // Wait for Firebase auth to initialize
+      const unsubscribe = this.auth.onAuthStateChanged((user) => {
+        this.ngZone.run(() => {
+          console.log('Auth state initialized with user:', !!user);
+          this.userSubject.next(user);
+          this.isLoggedInSubject.next(!!user);
+
+          if (user) {
+            localStorage.setItem('isLoggedIn', 'true');
+          } else {
+            localStorage.removeItem('isLoggedIn');
+          }
+
+          this.authReadySubject.next(true);
+          resolve(!!user);
+          unsubscribe(); // Clean up the listener after init
+        });
+      });
+    });
+  }
+  // Add this method to your AuthService
+  initAuthState(): Observable<boolean> {
+    if (!this.isBrowser) return of(false);
+
+    return new Observable((observer) => {
+      // Check if we're on a sign-in link page
+      const isSignInLink = isSignInWithEmailLink(
+        this.auth,
+        window.location.href
+      );
+      if (isSignInLink) {
+        // We're currently processing a sign-in link, don't redirect
+        observer.next(false);
+        observer.complete();
+        return;
+      }
+
+      // Set up Firebase auth state listener
+      const unsubscribe = this.auth.onAuthStateChanged((user) => {
+        this.ngZone.run(() => {
+          if (user) {
+            // User is signed in
+            this.userSubject.next(user);
+            this.isLoggedInSubject.next(true);
+            localStorage.setItem('isLoggedIn', 'true');
+            observer.next(true);
+          } else {
+            // No user is signed in, but check if we have a stored login state
+            const storedLoginState = localStorage.getItem('isLoggedIn');
+
+            if (storedLoginState === 'true') {
+              // We have a stored login but Firebase doesn't recognize it
+              // This could happen if the token expired - clean up
+              localStorage.removeItem('isLoggedIn');
+            }
+
+            this.userSubject.next(null);
+            this.isLoggedInSubject.next(false);
+            observer.next(false);
+          }
+
+          this.authReadySubject.next(true);
+          observer.complete();
+          unsubscribe(); // Clean up the listener
+        });
+      });
+    });
+  }
+
+  // Add a method to handle auth initialization with redirection
+  checkAuthAndRedirect(): Observable<boolean> {
+    return this.initAuthState().pipe(
+      switchMap((isLoggedIn) => {
+        if (!isLoggedIn) {
+          // Get current URL to store for after login
+          if (this.isBrowser && !this.router.url.includes('/login')) {
+            localStorage.setItem('redirectUrl', this.router.url);
+          }
+
+          // Only redirect if not already on login page
+          if (this.isBrowser && !this.router.url.includes('/login')) {
+            this.router.navigate(['/login']);
+          }
+        }
+        return of(isLoggedIn);
+      })
     );
   }
 

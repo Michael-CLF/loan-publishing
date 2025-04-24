@@ -6,6 +6,17 @@
         </button>
         <h2 class="headline">Lender Details</h2>
     </div>
+    <!-- Add this section in the lender details template -->
+    <!-- Add this section in your lender-details.component.html -->
+    <div class="favorite-section">
+        <button (click)="toggleFavorite()" [ngClass]="{'favorited': isFavorited, 'not-favorited': !isFavorited}"
+            class="favorite-button">
+            <span class="favorite" *ngIf="isFavorited">★ Favorited</span>
+            <span class="favorite" *ngIf="!isFavorited">☆ Add to Favorites</span>
+        </button>
+    </div>
+
+
 
     <div *ngIf="loading" class="text-center my-8">
         <p>Loading lender information...</p>

@@ -1,0 +1,161 @@
+<!-- edit-account.component.html -->
+<div class="edit-account-container">
+
+    <div class="user-greeting" *ngIf="userFirstName">
+        <h1 class="greeting">Hello, {{userData.firstName}}!</h1>
+        <p class="subtitle">Manage your account information below</p>
+    </div>
+    <h1 class="title" *ngIf="userFullName">{{userFullName}}'s Account</h1>
+    <h1 class="title" *ngIf="!userFullName">Edit Account</h1>
+
+    <div *ngIf="isLoading" class="loading">
+        Loading your profile...
+    </div>
+
+    <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
+    </div>
+
+    <div *ngIf="successMessage" class="success-message">
+        {{ successMessage }}
+    </div>
+
+    <form *ngIf="!isLoading" [formGroup]="accountForm" (ngSubmit)="onSubmit()">
+        <!-- Read-only identity fields -->
+        <div class="form-section">
+            <h2>User Name</h2>
+            <div class="form-group">
+                <label for="firstName">First Name</label>
+                <input type="text" id="firstName" formControlName="firstName" class="form-control read-only">
+
+            </div>
+
+            <div class="form-group">
+                <label for="lastName">Last Name</label>
+                <input type="text" id="lastName" formControlName="lastName" class="form-control read-only">
+                <small class="form-text text-muted">Contact support to change your legal name.</small>
+            </div>
+        </div>
+
+        <!-- Contact Information -->
+        <div class="form-section">
+            <h2>Contact Information</h2>
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <div class="email-field-container">
+                    <input type="email" id="email" formControlName="email" class="form-control read-only">
+                    <button type="button" class="change-email-btn" (click)="toggleEmailChangeForm()">
+                        Change Email
+                    </button>
+                </div>
+            </div>
+
+            <!-- Email change form (conditionally displayed) -->
+            <div *ngIf="showEmailChangeForm" class="email-change-form">
+                <form [formGroup]="emailChangeForm" (ngSubmit)="submitEmailChange()">
+                    <div class="form-group">
+                        <label for="newEmail">New Email Address</label>
+                        <input type="email" id="newEmail" formControlName="newEmail" class="form-control"
+                            [class.is-invalid]="emailChangeForm.get('newEmail')?.invalid && emailChangeForm.get('newEmail')?.touched">
+                        <div *ngIf="emailChangeForm.get('newEmail')?.invalid && emailChangeForm.get('newEmail')?.touched"
+                            class="invalid-feedback">
+                            <div *ngIf="emailChangeForm.get('newEmail')?.errors?.['required']">New email is required.
+                            </div>
+                            <div *ngIf="emailChangeForm.get('newEmail')?.errors?.['email']">Please enter a valid email
+                                address.</div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Confirm Password</label>
+                        <input type="password" id="password" formControlName="password" class="form-control"
+                            [class.is-invalid]="emailChangeForm.get('password')?.invalid && emailChangeForm.get('password')?.touched">
+                        <div *ngIf="emailChangeForm.get('password')?.invalid && emailChangeForm.get('password')?.touched"
+                            class="invalid-feedback">
+                            <div *ngIf="emailChangeForm.get('password')?.errors?.['required']">Password is required to
+                                verify your identity.</div>
+                        </div>
+                        <small class="form-text text-muted">For security, we need to verify your identity.</small>
+                    </div>
+
+                    <div class="form-group email-change-actions">
+                        <button type="button" class="cancel-btn" (click)="toggleEmailChangeForm()">Cancel</button>
+                        <button type="submit" class="submit-btn" [disabled]="emailChangeForm.invalid || isLoading">
+                            Send Verification
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="form-group">
+                <label for="phone">Phone Number</label>
+                <input type="tel" id="phone" formControlName="phone" class="form-control"
+                    [class.is-invalid]="accountForm.get('phone')?.invalid && accountForm.get('phone')?.touched"
+                    (blur)="formatPhoneNumber()">
+                <div *ngIf="accountForm.get('phone')?.invalid && accountForm.get('phone')?.touched"
+                    class="invalid-feedback">
+                    <div *ngIf="accountForm.get('phone')?.errors?.['required']">Phone number is required.</div>
+                    <div
+                        *ngIf="accountForm.get('phone')?.errors?.['pattern'] || accountForm.get('phone')?.errors?.['minlength']">
+                        Please enter a valid 10-digit phone number.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Business Information -->
+        <div class="form-section">
+            <h2>Business Information</h2>
+            <div class="form-group">
+                <label for="company">Company</label>
+                <input type="text" id="company" formControlName="company" class="form-control"
+                    [class.is-invalid]="accountForm.get('company')?.invalid && accountForm.get('company')?.touched">
+                <div *ngIf="accountForm.get('company')?.invalid && accountForm.get('company')?.touched"
+                    class="invalid-feedback">
+                    <div *ngIf="accountForm.get('company')?.errors?.['required']">Company is required.</div>
+                    <div *ngIf="accountForm.get('company')?.errors?.['minlength']">Company must be at least 2
+                        characters.</div>
+                    <div *ngIf="accountForm.get('company')?.errors?.['pattern']">Company name can only contain letters
+                        and numbers.</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Location Information -->
+        <div class="form-section">
+            <h2>Location</h2>
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" formControlName="city" class="form-control"
+                    [class.is-invalid]="accountForm.get('city')?.invalid && accountForm.get('city')?.touched">
+                <div *ngIf="accountForm.get('city')?.invalid && accountForm.get('city')?.touched"
+                    class="invalid-feedback">
+                    <div *ngIf="accountForm.get('city')?.errors?.['required']">City is required.</div>
+                    <div *ngIf="accountForm.get('city')?.errors?.['minlength']">City must be at least 2 characters.
+                    </div>
+                    <div *ngIf="accountForm.get('city')?.errors?.['pattern']">City can only contain letters.</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="state">State</label>
+                <select id="state" formControlName="state" class="form-control"
+                    [class.is-invalid]="accountForm.get('state')?.invalid && accountForm.get('state')?.touched">
+                    <option value="" disabled>Select a state</option>
+                    <option *ngFor="let state of states" [value]="state.value">{{ state.name }}</option>
+                </select>
+                <div *ngIf="accountForm.get('state')?.invalid && accountForm.get('state')?.touched"
+                    class="invalid-feedback">
+                    <div *ngIf="accountForm.get('state')?.errors?.['required']">State is required.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-actions">
+            <button type="button" class="cancel-btn" (click)="cancel()">Cancel</button>
+            <button type="submit" class="save-btn" [disabled]="accountForm.invalid || isLoading">
+                {{ isLoading ? 'Saving...' : 'Save Changes' }}
+            </button>
+        </div>
+    </form>
+</div>

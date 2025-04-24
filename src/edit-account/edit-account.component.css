@@ -1,0 +1,208 @@
+/* edit-account.component.css */
+.edit-account-container {
+  max-width: 800px;
+  margin: 0 auto;
+  padding: 30px 20px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+  border-radius: 6px;
+}
+
+.title {
+  text-align: center;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  margin-bottom: 30px;
+}
+/* Add these styles to edit-account.component.css */
+.user-greeting {
+  text-align: center;
+  margin-bottom: 15px;
+}
+
+.greeting {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 2rem;
+  margin-bottom: 5px;
+}
+
+.subtitle {
+  color: #666;
+  font-size: 1rem;
+  margin-top: 0;
+}
+
+.title {
+  text-align: center;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  margin-bottom: 30px;
+}
+
+.form-section {
+  margin-bottom: 30px;
+  border-bottom: 1px solid #e9ecef;
+  padding-bottom: 20px;
+}
+
+.form-section h2 {
+  color: #0a2463;
+  font-size: 1.25rem;
+  margin-bottom: 15px;
+  font-family: "roboto", sans-serif;
+}
+
+.form-group {
+  margin-bottom: 20px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: 500;
+  color: #0a2463;
+}
+
+.form-control {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 16px;
+}
+
+.read-only {
+  background-color: #f8f9fa;
+  cursor: not-allowed;
+}
+
+.form-control:focus {
+  border-color: #0a2463;
+  outline: none;
+}
+
+.form-control.is-invalid {
+  border-color: #c00000;
+}
+
+.invalid-feedback {
+  color: #c00000;
+  font-size: 14px;
+  margin-top: 5px;
+}
+
+.form-text {
+  font-size: 12px;
+  color: #6c757d;
+  margin-top: 5px;
+}
+
+.email-field-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.email-field-container input {
+  flex-grow: 1;
+}
+
+.change-email-btn {
+  background-color: #f8f9fa;
+  color: #0a2463;
+  border: 1px solid #0a2463;
+  border-radius: 20px;
+  padding: 5px 15px;
+  font-size: 0.875rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.change-email-btn:hover {
+  background-color: #e9ecef;
+}
+
+.email-change-form {
+  margin-top: 15px;
+  padding: 15px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+  border-left: 4px solid #0a2463;
+}
+
+.email-change-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 30px;
+}
+
+.save-btn,
+.cancel-btn,
+.submit-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 40px;
+  font-family: "roboto", sans-serif;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.save-btn,
+.submit-btn {
+  background-color: #0a2463;
+  color: white;
+}
+
+.save-btn:hover,
+.submit-btn:hover {
+  background-color: #008080;
+}
+
+.save-btn:disabled,
+.submit-btn:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.cancel-btn {
+  background-color: #f8f9fa;
+  color: #0a2463;
+  border: 1px solid #0a2463;
+}
+
+.cancel-btn:hover {
+  background-color: #e9ecef;
+}
+
+.loading {
+  text-align: center;
+  padding: 20px;
+  font-family: "roboto", sans-serif;
+  font-size: 1.5rem;
+  color: #008080;
+}
+
+.error-message {
+  background-color: #f8d7da;
+  color: #c00000;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.success-message {
+  background-color: #d4edda;
+  color: #155724;
+  padding: 10px;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}

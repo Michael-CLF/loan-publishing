@@ -66,8 +66,24 @@ export class AppComponent implements OnInit {
           console.log('Navigation completed to:', event.url);
         }
       });
-    // In your app.component.ts, add this to your NavigationEnd listener:
-    // In your app.component.ts where you have the router events subscription
+    this.authService.authReady$
+      .pipe(
+        filter((ready) => ready),
+        take(1),
+        switchMap(() => this.authService.isLoggedIn$)
+      )
+      .subscribe((isLoggedIn) => {
+        console.log(
+          'Auth initialization complete, user logged in:',
+          isLoggedIn
+        );
+
+        // Handle routes that need authentication
+        if (!isLoggedIn && !this.router.url.includes('/login')) {
+          console.log('User not authenticated, redirecting to login');
+          this.router.navigate(['/login']);
+        }
+      });
 
     this.router.events
       .pipe(

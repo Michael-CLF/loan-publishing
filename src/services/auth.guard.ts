@@ -6,9 +6,9 @@ import {
   RouterStateSnapshot,
   Router,
 } from '@angular/router';
-import { Observable, of } from 'rxjs';
-import { AuthService } from '../services/auth.service';
-import { map, take, tap, switchMap, catchError } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, take } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
 @Injectable({
   providedIn: 'root',
@@ -21,57 +21,22 @@ export class AuthGuard implements CanActivate {
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
   ): Observable<boolean> {
-    console.log('AuthGuard: Checking authentication for route:', state.url);
-    console.log('Route params:', route.params);
-    console.log(
-      'Local storage isLoggedIn value:',
-      localStorage.getItem('isLoggedIn')
-    );
-
-    // First, check if we're already authenticated
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-      console.log('AuthGuard: Found isLoggedIn=true in localStorage');
-      return of(true);
-    }
-
-    // Then check for email sign-in links
-    return this.authService.isEmailSignInLink().pipe(
+    console.log('AuthGuard: Checking auth for route:', state.url);
+    return this.authService.isLoggedIn$.pipe(
       take(1),
-      switchMap((isEmailLink) => {
-        if (isEmailLink) {
-          console.log(
-            'AuthGuard: Email sign-in link detected, allowing access'
-          );
-          return of(true);
+      map((isLoggedIn) => {
+        console.log('AuthGuard: isLoggedIn =', isLoggedIn);
+
+        if (isLoggedIn) {
+          return true;
         }
 
-        console.log('AuthGuard: Checking current auth status');
-        return this.authService.getAuthStatus().pipe(
-          take(1),
-          map((isLoggedIn) => {
-            console.log('AuthGuard: Auth status =', isLoggedIn);
+        // Store the attempted URL for redirecting
+        localStorage.setItem('redirectUrl', state.url);
 
-            if (!isLoggedIn) {
-              console.log('AuthGuard: Not authenticated, redirecting to login');
-              if (state.url !== '/login' && state.url !== '/') {
-                localStorage.setItem('redirectUrl', state.url);
-              }
-              this.router.navigate(['/login']);
-              return false;
-            }
-
-            console.log(
-              'AuthGuard: User is authenticated, allowing access to',
-              state.url
-            );
-            return true;
-          }),
-          catchError((error) => {
-            console.error('AuthGuard: Error checking authentication', error);
-            this.router.navigate(['/login']);
-            return of(false);
-          })
-        );
+        // Navigate to the login page
+        this.router.navigate(['/login']);
+        return false;
       })
     );
   }

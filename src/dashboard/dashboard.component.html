@@ -1,7 +1,4 @@
 <h1 class="title">Dashboard</h1>
-<div class="button-container">
-    <a href="/loan" class="add-loan">Add new loan</a>
-</div>
 <div class="dashboard-container">
     <!-- User Profile Section -->
     <div class="account-container">
@@ -68,6 +65,9 @@
         <div *ngIf="!loansLoading() && !loansError() && loans().length === 0" class="empty-state">
             <p>You haven't created any loans yet.</p>
             <p>Click "Add new loan" to get started.</p>
+        </div>
+        <div class="button-container">
+            <a href="/loan" class="add-loan">Add new loan</a>
         </div>
 
         <!-- Loans List -->

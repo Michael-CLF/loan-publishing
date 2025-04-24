@@ -206,7 +206,7 @@ export class LenderService {
         // Get lenders where userId matches the current user
         return this.firestoreService.queryCollection<Lender>(
           this.LENDERS_COLLECTION,
-          [where('userId', '==', user.uid)]
+          where('userId', '==', user.uid)
         );
       })
     );

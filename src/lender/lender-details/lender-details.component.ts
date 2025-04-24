@@ -1,4 +1,3 @@
-// src/app/lender/lender-details/lender-details.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -17,6 +16,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   lender: Lender | null = null;
   loading = true;
   error = false;
+  isFavorited: boolean = false; // Initialize isFavorited
 
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
@@ -28,6 +28,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       const id = params.get('id');
       if (id) {
         this.loadLenderDetails(id);
+        this.checkFavoriteStatus(id); // Call checkFavoriteStatus here
       } else {
         this.error = true;
         this.loading = false;
@@ -50,17 +51,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
         next: (data) => {
           this.lender = data;
           this.loading = false;
-
-          // Debug logging
-          console.log('Lender data:', this.lender);
-          if (this.lender?.productInfo) {
-            console.log(
-              'Property Types:',
-              this.lender.productInfo.propertyTypes
-            );
-            console.log('Min Loan:', this.lender.productInfo.minLoanAmount);
-            console.log('Max Loan:', this.lender.productInfo.maxLoanAmount);
-          }
         },
         error: (err) => {
           console.error('Error loading lender details:', err);
@@ -68,6 +58,26 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
           this.loading = false;
         },
       });
+  }
+
+  checkFavoriteStatus(lenderId: string): void {
+    const favoriteStatus = localStorage.getItem(`lender-${lenderId}-favorite`);
+    this.isFavorited = favoriteStatus === 'true'; // Set the favorite status based on localStorage
+  }
+
+  toggleFavorite(): void {
+    if (!this.lender?.id) {
+      console.warn('Lender ID is not available.');
+      return;
+    }
+
+    this.isFavorited = !this.isFavorited;
+
+    // Persist the favorite status in localStorage
+    localStorage.setItem(
+      `lender-${this.lender.id}-favorite`,
+      String(this.isFavorited)
+    );
   }
 
   // Helper methods to safely access nested properties

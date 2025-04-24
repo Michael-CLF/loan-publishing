@@ -20,6 +20,8 @@ import {
   deleteDoc,
   query,
   where,
+  limit,
+  QueryConstraint,
   DocumentReference,
   DocumentData,
 } from '@angular/fire/firestore';
@@ -145,14 +147,25 @@ export class FirestoreService {
     });
   }
 
-  queryCollection<T>(path: string, queryFn: any[]): Observable<T[]> {
-    return this.ngZone.run(() => {
-      console.log('Querying collection:', path);
-      return runInInjectionContext(this.injector, () => {
-        const collectionRef = collection(this.firestore, path);
-        const queryRef = query(collectionRef, ...queryFn);
-        return collectionData(queryRef, { idField: 'id' }) as Observable<T[]>;
-      });
-    });
+  queryCollection<T>(
+    path: string,
+    ...queryConstraints: QueryConstraint[]
+  ): Observable<T[]> {
+    const collectionRef = collection(this.firestore, path);
+    const q = query(collectionRef, ...queryConstraints);
+
+    return from(getDocs(q)).pipe(
+      map((snapshot) => {
+        const results: T[] = [];
+        snapshot.forEach((doc) => {
+          results.push({ id: doc.id, ...doc.data() } as T);
+        });
+        return results;
+      }),
+      catchError((error) => {
+        console.error(`Error querying collection at ${path}:`, error);
+        return of([]);
+      })
+    );
   }
 }
