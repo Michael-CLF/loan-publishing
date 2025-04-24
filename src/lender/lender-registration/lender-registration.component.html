@@ -22,7 +22,7 @@
                 <!-- Step 2: Product Information -->
                 <div *ngSwitchCase="1">
                     <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
-                        [propertyCategories]="propertyCategories" [states]="states">
+                        [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes"> >
                     </app-lender-product>
                 </div>
 
@@ -34,7 +34,7 @@
                 <!-- Step 4: Review Information -->
                 <div *ngSwitchCase="3">
                     <app-lender-review [lenderForm]="lenderForm" [states]="states" [lenderTypes]="lenderTypes"
-                        [propertyCategories]="propertyCategories"></app-lender-review>
+                        [propertyCategories]="propertyCategories" [loanTypes]="loanTypes"></app-lender-review>
                 </div>
             </div>
 

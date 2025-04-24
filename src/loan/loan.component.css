@@ -90,3 +90,15 @@ select {
 .invalid {
   border: 2px solid #c00000;
 }
+.success-message {
+  background-color: #e8f5e9;
+  color: #2e7d32;
+  padding: 16px;
+  border-radius: 4px;
+  margin: 20px auto;
+  max-width: 600px;
+  text-align: center;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+  border-left: 4px solid #2e7d32;
+}

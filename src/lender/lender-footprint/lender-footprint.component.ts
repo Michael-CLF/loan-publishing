@@ -209,6 +209,42 @@ export class LenderFootprintComponent implements OnInit {
     this.lenderForm.updateValueAndValidity();
   }
 
+  // Toggle all states selection
+  toggleAllStates(): void {
+    // Determine if we should select or deselect all
+    const shouldSelectAll =
+      this.footprintLocation.length > this.selectedStates.length;
+
+    if (shouldSelectAll) {
+      // Add all states that aren't already selected
+      this.footprintLocation.forEach((state) => {
+        if (!this.isStateSelected(state.value)) {
+          this.selectedStates.push({
+            stateValue: state.value,
+            stateName: state.name,
+            counties: state.subcategories.map((county) => ({
+              value: county.value,
+              name: county.name,
+              selected: false,
+            })),
+            allCountiesSelected: false,
+          });
+        }
+      });
+    } else {
+      // Clear all selected states
+      this.selectedStates = [];
+    }
+
+    // Update form values
+    this.updateFormValues();
+  }
+
+  // Check if all states are selected
+  areAllStatesSelected(): boolean {
+    return this.selectedStates.length === this.footprintLocation.length;
+  }
+
   // Toggle state selection
   toggleState(stateValue: string): void {
     // Check if state is already selected

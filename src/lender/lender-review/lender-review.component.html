@@ -71,6 +71,17 @@
                     <span *ngIf="!hasPropertySubcategories()">None selected</span>
                 </div>
             </div>
+            <div class="review-item">
+                <div class="review-label">Loan Types:</div>
+                <div class="review-value">
+                    <ul *ngIf="lenderForm.get('productInfo.loanTypes')?.value?.length > 0">
+                        <li *ngFor="let type of lenderForm.get('productInfo.loanTypes')?.value">
+                            {{getLoanTypeName(type)}}
+                        </li>
+                    </ul>
+                    <span *ngIf="!lenderForm.get('productInfo.loanTypes')?.value?.length">None selected</span>
+                </div>
+            </div>
         </div>
     </div>
 

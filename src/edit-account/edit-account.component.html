@@ -1,11 +1,9 @@
 <!-- edit-account.component.html -->
 <div class="edit-account-container">
-
     <div class="user-greeting" *ngIf="userFirstName">
         <h1 class="greeting">Hello, {{userData.firstName}}!</h1>
-        <p class="subtitle">Manage your account information below</p>
+        <p class="sub-title">Manage your account information below</p>
     </div>
-    <h1 class="title" *ngIf="userFullName">{{userFullName}}'s Account</h1>
     <h1 class="title" *ngIf="!userFullName">Edit Account</h1>
 
     <div *ngIf="isLoading" class="loading">

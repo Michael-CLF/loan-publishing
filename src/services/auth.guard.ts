@@ -1,4 +1,4 @@
-// auth.guard.ts
+// Modify your AuthGuard to wait for auth state to stabilize
 import { Injectable, inject } from '@angular/core';
 import {
   CanActivate,
@@ -6,8 +6,8 @@ import {
   RouterStateSnapshot,
   Router,
 } from '@angular/router';
-import { Observable } from 'rxjs';
-import { map, take } from 'rxjs/operators';
+import { Observable, of } from 'rxjs';
+import { map, take, switchMap, filter, tap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 
 @Injectable({
@@ -22,21 +22,34 @@ export class AuthGuard implements CanActivate {
     state: RouterStateSnapshot
   ): Observable<boolean> {
     console.log('AuthGuard: Checking auth for route:', state.url);
-    return this.authService.isLoggedIn$.pipe(
+
+    // First, ensure auth is initialized before checking state
+    return this.authService.authReady$.pipe(
+      filter((ready) => ready), // Wait for auth to be ready
       take(1),
-      map((isLoggedIn) => {
-        console.log('AuthGuard: isLoggedIn =', isLoggedIn);
+      switchMap(() => {
+        // Now check the actual logged in state
+        return this.authService.isLoggedIn$.pipe(
+          take(1),
+          tap((isLoggedIn) =>
+            console.log(
+              'AuthGuard: Auth check complete, isLoggedIn =',
+              isLoggedIn
+            )
+          ),
+          map((isLoggedIn) => {
+            if (isLoggedIn) {
+              return true;
+            }
 
-        if (isLoggedIn) {
-          return true;
-        }
+            // Store the attempted URL for redirecting
+            localStorage.setItem('redirectUrl', state.url);
 
-        // Store the attempted URL for redirecting
-        localStorage.setItem('redirectUrl', state.url);
-
-        // Navigate to the login page
-        this.router.navigate(['/login']);
-        return false;
+            // Navigate to the login page
+            this.router.navigate(['/login']);
+            return false;
+          })
+        );
       })
     );
   }

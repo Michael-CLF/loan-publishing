@@ -196,5 +196,10 @@
         <div class="form-button">
             <button class="submit-form" type="submit" [disabled]="propertyForm.invalid">Submit Loan</button>
         </div>
+        <!-- Success Message -->
+        <div *ngIf="submissionSuccess()" class="success-message">
+            <p>Loan submitted successfully!</p>
+            <Button>Go to dashboard</Button>
+        </div>
     </form>
 </div>

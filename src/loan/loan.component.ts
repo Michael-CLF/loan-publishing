@@ -15,7 +15,7 @@ import {
   FormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
+import { RouterModule, Router } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
@@ -27,8 +27,9 @@ type PropertyCategory =
   | 'Industrial Property'
   | 'Multi-family'
   | 'Office'
+  | 'Residential Property'
   | 'Retail Property'
-  | 'Special Purpose Loans';
+  | 'Special Purpose';
 
 @Component({
   selector: 'app-loan',
@@ -42,6 +43,7 @@ export class LoanComponent implements OnInit {
   private cdr = inject(ChangeDetectorRef);
   private loanService = inject(LoanService);
   private destroyRef = inject(DestroyRef);
+  private router = inject(Router);
 
   // Form group
   propertyForm!: FormGroup;
@@ -56,10 +58,10 @@ export class LoanComponent implements OnInit {
 
   // Add this to your component class
   loanTypes = [
-    { value: 'agency', name: 'Agency' },
+    { value: 'Agency', name: 'Agency' },
     { value: 'balanceSheet', name: 'Balance Sheet' },
     { value: 'bridge', name: 'Bridge Loan' },
-    { value: 'dscr', name: 'DSCR' },
+    { value: 'DSCR', name: 'DSCR' },
     { value: 'fixFlip', name: 'Fix & Flip' },
     { value: 'hardMoney', name: 'Hard Money' }, // Change to hard_money for consistency if desired
     { value: 'construction', name: 'New Construction' },
@@ -104,15 +106,16 @@ export class LoanComponent implements OnInit {
       'Single Family Portfolio',
       'Student Housing',
     ],
-    Office: [
-      '1-4 Unit Residential Property',
-      'Co-op Duplex',
-      'Condominium',
-      'Medical Office',
-      'Professional Office Building',
-      'Quadplex',
-      'Single Family',
+    Office: ['Medical Office', 'Office Condo', 'Professional Office Building'],
+    'Residential Property': [
+      '1-4 Units',
+      'Condo',
+      'Duplex',
+      'PUD',
+      'Residential Portfolio',
+      'Townhome',
       'Triplex',
+      'Quadplex',
     ],
     'Retail Property': [
       'Anchored Center',
@@ -123,7 +126,7 @@ export class LoanComponent implements OnInit {
       'Single Tenant',
       'Strip Mall',
     ],
-    'Special Purpose Loans': [
+    'Special Purpose': [
       'Car Dealership',
       'Church',
       'Data Center',
@@ -257,10 +260,7 @@ export class LoanComponent implements OnInit {
         '',
         [Validators.required, Validators.min(300), Validators.max(850)],
       ],
-      experienceInYears: ['', [Validators.required, Validators.min(0)]],
-      contact: ['', Validators.required],
-      phone: ['', [Validators.required, Validators.pattern('^\\d{10}$')]],
-      email: ['', [Validators.required, Validators.email]],
+      experienceInYears: ['', [Validators.required, Validators.min(1)]],
       notes: [''],
       termsOfService: [false, Validators.requiredTrue],
     });
@@ -321,10 +321,6 @@ export class LoanComponent implements OnInit {
             console.log('Loan created with ID:', loanId);
             this.isSubmitting.set(false);
             this.submissionSuccess.set(true);
-
-            // Optional: Reset form after successful submission
-            // this.propertyForm.reset();
-            // this.selectedCategory.set('');
           },
           error: (error) => {
             console.error('Error creating loan:', error);
@@ -348,7 +344,6 @@ export class LoanComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
-
   // Helper methods to simplify template code
   isInvalid(controlName: string): boolean {
     const control = this.propertyForm.get(controlName);

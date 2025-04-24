@@ -63,6 +63,17 @@
   margin-bottom: 8px;
 }
 
+.select-all-states {
+  margin-bottom: 20px;
+}
+
+.all-states {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  padding-left: 10px;
+  font-weight: 500;
+}
+
 .state-card {
   background-color: #f8f9fa;
   border: 1px solid #dee2e6;

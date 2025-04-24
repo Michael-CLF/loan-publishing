@@ -102,7 +102,7 @@ export class PropertyFilterComponent {
 
   // Loan types based on your existing data
   loanTypes = [
-    'Agency Loans (Fannie Mae/Freddie)',
+    'Agency',
     'Asset-Based Loans',
     'Bank Statement Loans',
     'Bridge Loans',
@@ -110,7 +110,7 @@ export class PropertyFilterComponent {
     'Construction Loans',
     'Construction-to-Permanent Loans',
     'Credit Tenant Lease (CTL) Financing',
-    'DSCR Loans for 1–4 unit rentals',
+    'DSCR',
     'Ground-Up Construction Loans',
     'Hard Money Loans',
     'ITIN Loans',

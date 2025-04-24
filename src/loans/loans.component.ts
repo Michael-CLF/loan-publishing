@@ -51,9 +51,9 @@ export class LoansComponent implements OnInit {
     MixedUse: '#8A2BE2',
     'Multi-family': '#6c3483',
     Office: '#4682B4',
-    Residential: '#DC143C',
+    'Residential Property': '#DC143C',
     'Retail Property': '#660000',
-    SpecialPurpose: '#A52A2A',
+    'Special Purpose': '#6e2c00',
   };
 
   // 👇 Accessor method

@@ -5,6 +5,8 @@ import {
   PropertyCategory,
   StateOption,
   LenderTypeOption,
+  LoanTypes,
+  SubCategory,
 } from '../lender-registration/lender-registration.component';
 
 interface CountyInfo {
@@ -30,6 +32,8 @@ export class LenderReviewComponent implements OnInit {
   @Input() states: StateOption[] = [];
   @Input() lenderTypes: LenderTypeOption[] = [];
   @Input() propertyCategories: PropertyCategory[] = [];
+  @Input() propertySubCategories: SubCategory[] = [];
+  @Input() loanTypes: LoanTypes[] = [];
 
   selectedCounties: CountyInfo[] = [];
   selectedPropertyTypes: PropertyTypeInfo[] = [];
@@ -65,6 +69,11 @@ export class LenderReviewComponent implements OnInit {
       (c) => c.value === categoryCode
     );
     return category ? category.name : categoryCode;
+  }
+  getLoanTypeName(typeCode: string): string {
+    if (!typeCode) return 'Unknown';
+    const type = this.loanTypes.find((t) => t.value === typeCode);
+    return type ? type.name : typeCode;
   }
 
   // Process property subcategories

@@ -50,6 +50,11 @@ export interface PropertyTypes {
   subCategories: SubCategory[];
 }
 
+export interface LoanTypes {
+  value: string;
+  name: string;
+}
+
 @Component({
   selector: 'app-lender-registration',
   standalone: true,
@@ -129,9 +134,8 @@ export class LenderRegistrationComponent implements OnInit {
   ];
 
   lenderTypes: LenderTypeOption[] = [
-    { value: 'agency', name: 'Agency Lender' },
+    { value: 'Agency', name: 'Agency Lender' },
     { value: 'bank', name: 'Bank' },
-    { value: 'bridge_lender', name: 'Bridge Lender' },
     { value: 'cdfi', name: 'CDFI Lender' },
     { value: 'conduit_lender', name: 'Conduit Lender (CMBS)' },
     { value: 'construction_lender', name: 'Construction Lender' },
@@ -140,6 +144,7 @@ export class LenderRegistrationComponent implements OnInit {
     { value: 'crowdfunding', name: 'Crowdfunding Platform' },
     { value: 'direct_lender', name: 'Direct Lender' },
     { value: 'Family Office', name: 'Family Office' },
+    { value: 'General', name: 'General' },
     { value: 'hard_money', name: 'Hard Money Lender' },
     { value: 'life_insurance', name: 'Life Insurance Lender' },
     { value: 'mezzanine_lender', name: 'Mezzanine Lender' },
@@ -148,6 +153,19 @@ export class LenderRegistrationComponent implements OnInit {
     { value: 'private_lender', name: 'Private Lender' },
     { value: 'sba', name: 'SBA Lender' },
     { value: 'usda', name: 'USDA Lender' },
+  ];
+
+  loanTypes: LoanTypes[] = [
+    { value: 'commercial', name: 'Commercial Loans' },
+    { value: 'construction', name: 'Construction Loans' },
+    { value: 'bridge', name: 'Bridge Loans' },
+    { value: 'rehab', name: 'Rehab Loans' },
+    { value: 'non-qm', name: 'Non-QM Loans' },
+    { value: 'sba', name: 'SBA Loans' },
+    { value: 'cmbs', name: 'CMBS Loans' },
+    { value: 'agency', name: 'Agency Loans' },
+    { value: 'hard_money', name: 'Hard Money Loans' },
+    { value: 'mezzanine', name: 'Mezzanine Loan' },
   ];
 
   propertyCategories: PropertyCategory[] = [
@@ -338,6 +356,10 @@ export class LenderRegistrationComponent implements OnInit {
 
   get propertyTypesArray(): FormArray {
     return this.productForm.get('propertyTypes') as FormArray;
+  }
+
+  get loanTypesArray(): FormArray {
+    return this.productForm.get('loanTypes') as FormArray;
   }
 
   get termsAccepted(): FormControl {

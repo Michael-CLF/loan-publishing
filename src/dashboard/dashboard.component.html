@@ -49,7 +49,6 @@
     </div>
     <div class="loan-container">
         <h3 class="loans">My Loans:</h3>
-
         <!-- Loans Loading State -->
         <div *ngIf="loansLoading()" class="loading">
             <p>Loading your loans...</p>
@@ -94,7 +93,7 @@
 
                     <div class="loan-detail">
                         <span class="detail-label">Loan Type:</span>
-                        <span class="detail-value">{{ loan.loanType | titlecase }}</span>
+                        <span class="detail-value">{{ loan.loanType }}</span>
 
                     </div>
 

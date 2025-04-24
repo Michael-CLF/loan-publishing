@@ -10,6 +10,14 @@
                 <p class="helper-text">Select into states box first, that states counties choices are below</p>
                 <p class="warning">NOTE: Inside each states box you can see how many counties you've selected.</p>
 
+                <div class="select-all-states">
+                    <input type="checkbox" [checked]="areAllStatesSelected()" (change)="toggleAllStates()"
+                        id="selectAllStates">
+                    <label for="selectAllStates">
+                        <span class="all-states">Select All States</span>
+                    </label>
+                </div>
+
                 <!-- States Selection Dropdown -->
                 <div class="states-grid">
                     <div *ngFor="let state of footprintLocation" class="state-card"

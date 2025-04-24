@@ -96,7 +96,7 @@ export class LenderFormComponent implements OnInit {
   ];
 
   lenderTypes = [
-    { value: 'agency', name: 'Agency Lender (Fannie/Freddie)' },
+    { value: 'Agency', name: 'Agency Lender (Fannie/Freddie)' },
     { value: 'bank', name: 'Bank' },
     { value: 'bridge_lender', name: 'Bridge Lender' },
     { value: 'cdfi', name: 'CDFI Lender' },

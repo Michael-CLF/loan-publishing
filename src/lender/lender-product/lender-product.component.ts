@@ -8,6 +8,7 @@ import {
   FormControl,
 } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
+import { LoanTypes } from '../lender-registration/lender-registration.component';
 
 @Component({
   selector: 'app-lender-product',
@@ -31,6 +32,7 @@ export class LenderProductComponent implements OnInit {
     subCategories: { value: string; name: string }[];
   }[];
   @Input() states!: { value: string; name: string }[];
+  @Input() loanTypes: LoanTypes[] = [];
 
   // Track expanded state for subcategories
   expandedCategory: string | null = null;
@@ -97,6 +99,10 @@ export class LenderProductComponent implements OnInit {
       this.lenderForm.addControl('propertyCategories', new FormArray([]));
     }
 
+    if (!this.lenderForm.get('loanTypes')) {
+      this.lenderForm.addControl('loanTypes', new FormArray([]));
+    }
+
     // Initialize subcategorySelections form array if it doesn't exist
     if (!this.lenderForm.get('subcategorySelections')) {
       this.lenderForm.addControl('subcategorySelections', new FormArray([]));
@@ -114,6 +120,10 @@ export class LenderProductComponent implements OnInit {
 
   get subcategorySelectionsArray(): FormArray {
     return this.lenderForm.get('subcategorySelections') as FormArray;
+  }
+
+  get loanTypesArray(): FormArray {
+    return this.lenderForm.get('loanTypes') as FormArray;
   }
 
   // Form control helpers
@@ -146,6 +156,15 @@ export class LenderProductComponent implements OnInit {
     );
   }
 
+  isLoanTypeSelected(loanTypeValue: string): boolean {
+    return this.isOptionSelected('loanTypes', loanTypeValue);
+  }
+
+  // Get selected loan types count
+  getSelectedLoanTypesCount(): number {
+    return this.loanTypesArray.length;
+  }
+
   // Check if a subcategory is selected
   isSubOptionSelected(category: string, subValue: string): boolean {
     const formArray = this.lenderForm.get('subcategorySelections') as FormArray;
@@ -155,7 +174,6 @@ export class LenderProductComponent implements OnInit {
       ) || false
     );
   }
-
   // Toggle lender type selection
   onLenderTypeChange(event: Event, value: string): void {
     event.stopPropagation(); // Prevent event bubbling
@@ -224,6 +242,35 @@ export class LenderProductComponent implements OnInit {
       this.isAnyLenderTypeSelected() &&
       !this.isOptionSelected('lenderTypes', value)
     );
+  }
+
+  toggleLoanType(event: Event, loanTypeValue: string): void {
+    event.stopPropagation(); // Prevent event bubbling
+    const formArray = this.loanTypesArray;
+
+    if (!formArray) {
+      console.error('loanTypesArray is not initialized');
+      return;
+    }
+
+    const isSelected = this.isLoanTypeSelected(loanTypeValue);
+
+    if (!isSelected) {
+      // Add the loan type
+      formArray.push(new FormControl(loanTypeValue));
+    } else {
+      // Remove the loan type
+      const index = formArray.controls.findIndex(
+        (control) => control.value === loanTypeValue
+      );
+      if (index !== -1) {
+        formArray.removeAt(index);
+      }
+    }
+
+    // Update validation
+    formArray.updateValueAndValidity();
+    this.lenderForm.updateValueAndValidity();
   }
 
   // Toggle subcategory selection

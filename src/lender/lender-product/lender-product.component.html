@@ -10,7 +10,7 @@
             <!-- Lender Types Section in lender-product.component.html -->
             <div class="property-section">
                 <h4>Lender Types</h4>
-                <p class="helper-text">Select one lender type that applies to your business</p>
+                <p class="helper-text">Which best describes youy lender type?</p>
 
                 <!-- Lender Types Grid -->
                 <div class="property-grid">
@@ -28,10 +28,11 @@
                         </div>
                     </div>
                 </div>
-                <div *ngIf="isControlInvalid('lenderTypes')" class="error-message">
-                    Please select a lender type.
+                <div *ngIf="loanTypesArray?.invalid && loanTypesArray?.touched" class="error-message">
+                    Please select at least one loan type.
                 </div>
             </div>
+
             <!-- Property Categories Section -->
             <div class="states-section">
                 <h4>Property Categories</h4>
@@ -101,6 +102,29 @@
                             </label>
                         </div>
                     </div>
+                </div>
+            </div>
+            <!-- Loan Types Section -->
+            <div class="property-section">
+                <h4>Loan Types</h4>
+                <p class="helper-text">Select all the loan types you offer</p>
+
+                <!-- Loan Types Grid -->
+                <div class="property-grid">
+                    <div *ngFor="let loanType of loanTypes" class="property-card"
+                        [class.selected]="isLoanTypeSelected(loanType.value)">
+                        <!-- Loan Type Checkbox -->
+                        <div class="property-header" (click)="toggleLoanType($event, loanType.value)">
+                            <div class="checkbox-wrapper">
+                                <input type="checkbox" [id]="'loanType-' + loanType.value"
+                                    [checked]="isLoanTypeSelected(loanType.value)" (click)="$event.stopPropagation()">
+                                <span class="state-name">{{ loanType.name }}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div *ngIf="loanTypesArray.invalid && loanTypesArray.touched" class="error-message">
+                    Please select at least one loan type.
                 </div>
             </div>
 

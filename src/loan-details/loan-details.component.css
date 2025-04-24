@@ -22,6 +22,10 @@
   transition: background-color 0.2s;
 }
 
+.col {
+  column-count: 2;
+}
+
 .back-btn:hover {
   background-color: #008080;
 }
