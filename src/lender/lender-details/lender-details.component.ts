@@ -2,6 +2,7 @@ import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LenderService, Lender } from '../../services/lender.service';
+import { FavoritesService } from '../../services/favorites.service'; // Add this import
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 
@@ -22,6 +23,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private route = inject(ActivatedRoute);
   private router = inject(Router);
   private lenderService = inject(LenderService);
+  private favoritesService = inject(FavoritesService);
 
   ngOnInit(): void {
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -61,8 +63,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   checkFavoriteStatus(lenderId: string): void {
-    const favoriteStatus = localStorage.getItem(`lender-${lenderId}-favorite`);
-    this.isFavorited = favoriteStatus === 'true'; // Set the favorite status based on localStorage
+    this.isFavorited = this.favoritesService.isFavorite(lenderId);
   }
 
   toggleFavorite(): void {
@@ -73,11 +74,8 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 
     this.isFavorited = !this.isFavorited;
 
-    // Persist the favorite status in localStorage
-    localStorage.setItem(
-      `lender-${this.lender.id}-favorite`,
-      String(this.isFavorited)
-    );
+    this.favoritesService.toggleFavorite(this.lender.id);
+    this.isFavorited = this.favoritesService.isFavorite(this.lender.id);
   }
 
   // Helper methods to safely access nested properties

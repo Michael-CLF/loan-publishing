@@ -130,11 +130,22 @@ export class EditAccountComponent implements OnInit {
               .pipe(take(1))
               .subscribe({
                 next: (profile) => {
-                  console.log('User profile loaded:', profile);
+                  console.log(
+                    'Full profile data:',
+                    JSON.stringify(profile, null, 2)
+                  );
 
                   if (profile) {
                     // Process the profile data
                     this.userData = profile;
+
+                    console.log('firstName:', profile.firstName);
+                    console.log('lastName:', profile.lastName);
+                    console.log('email:', profile.email);
+                    console.log('company:', profile.company);
+                    console.log('phone:', profile.phone);
+                    console.log('city:', profile.city);
+                    console.log('state:', profile.state);
 
                     // Set user display info
                     this.userFirstName = profile['firstName'] || '';

@@ -16,7 +16,9 @@
         </button>
     </div>
 
-
+    <div class="company">
+        <span class="company-header">{{ getCompanyName() }}</span>
+    </div>
 
     <div *ngIf="loading" class="text-center my-8">
         <p>Loading lender information...</p>
@@ -39,10 +41,6 @@
                     <span class="detail-value">{{ getContactName() }}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Company:</span>
-                    <span class="detail-value">{{ getCompanyName() }}</span>
-                </div>
-                <div class="detail-item">
                     <span class="detail-label">Email:</span>
                     <span class="detail-value">{{ getEmail() }}</span>
                 </div>
@@ -51,7 +49,7 @@
                     <span class="detail-value">{{ getPhone() }}</span>
                 </div>
                 <div class="detail-item">
-                    <span class="detail-label">Location:</span>
+                    <span class="detail-label">Office Location:</span>
                     <span class="detail-value">{{ getLocation() }}</span>
                 </div>
             </div>

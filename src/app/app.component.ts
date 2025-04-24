@@ -47,6 +47,8 @@ export class AppComponent implements OnInit {
       'API Key length:',
       environment.firebase.apiKey ? environment.firebase.apiKey.length : 0
     );
+
+    // Monitor navigation events
     this.router.events
       .pipe(
         filter(
@@ -66,6 +68,8 @@ export class AppComponent implements OnInit {
           console.log('Navigation completed to:', event.url);
         }
       });
+
+    // Check auth state and handle redirects
     this.authService.authReady$
       .pipe(
         filter((ready) => ready),
@@ -78,13 +82,36 @@ export class AppComponent implements OnInit {
           isLoggedIn
         );
 
-        // Handle routes that need authentication
-        if (!isLoggedIn && !this.router.url.includes('/login')) {
+        // Clear any URL if on home page
+        if (this.router.url === '/') {
+          localStorage.removeItem('redirectUrl');
+        }
+
+        // If user is logged in but on login page, redirect to dashboard/home
+        if (isLoggedIn && this.router.url.includes('/login')) {
+          console.log('User is authenticated, redirecting from login');
+          const redirectUrl = localStorage.getItem('redirectUrl');
+
+          // Clear the redirect URL before navigating
+          localStorage.removeItem('redirectUrl');
+
+          // Navigate to dashboard or home
+          this.router.navigate([redirectUrl || '/dashboard']);
+        }
+        // If user is not logged in and needs auth, redirect to login
+        else if (
+          !isLoggedIn &&
+          !this.router.url.includes('/login') &&
+          !this.router.url.includes('/') &&
+          !this.router.url.includes('/pricing')
+        ) {
           console.log('User not authenticated, redirecting to login');
+          localStorage.setItem('redirectUrl', this.router.url);
           this.router.navigate(['/login']);
         }
       });
 
+    // Monitor navigation for URL cleanup
     this.router.events
       .pipe(
         filter(

@@ -45,7 +45,6 @@
 /* Table row and hover effect */
 .lender-detail {
   color: #0a2463;
-  background-color: #ebedef;
   font-family: "roboto", sans-serif;
   font-weight: 450;
   padding: 20px;
@@ -53,4 +52,17 @@
 
 .border-b {
   border-bottom: 1px solid #0a2463;
+}
+.lender-table table tbody tr:nth-child(odd) {
+  background-color: #e1f5fe; /* white */
+  color: #000000; /* black */
+}
+
+.lender-table table tbody tr:nth-child(even) {
+  background-color: #fff9c4; /* black */
+  color: #ffffff; /* white */
+}
+.lender-table table tbody tr:hover {
+  background-color: #f0f0f0;
+  color: #000;
 }

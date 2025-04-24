@@ -18,6 +18,16 @@
   margin-bottom: 1.5rem;
 }
 
+.company {
+  margin-top: 25px;
+}
+.company-header {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+}
+
 .back-button {
   padding: 0.5rem 1rem;
   color: #fff;

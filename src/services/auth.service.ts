@@ -5,7 +5,6 @@ import {
   PLATFORM_ID,
   Inject,
   NgZone,
-  Injector,
   OnDestroy,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
@@ -30,218 +29,273 @@ import {
   isSignInWithEmailLink,
   signInWithEmailLink,
   ActionCodeSettings,
+  onIdTokenChanged,
 } from '@angular/fire/auth';
+import {
+  Firestore,
+  collection,
+  doc,
+  getDocs,
+  query,
+  where,
+} from '@angular/fire/firestore';
 import { FirestoreService } from './firestore.service';
-import { collection, getDocs } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
 
+/**
+ * Centralized authentication service for the application
+ * Manages user authentication state and profile information
+ */
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService implements OnDestroy {
+  // Services
   private auth = inject(Auth);
+  private firestore = inject(Firestore);
   private firestoreService = inject(FirestoreService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
-  private injector = inject(Injector);
   private isBrowser: boolean;
 
-  private emailForSignInKey = 'emailForSignIn';
+  // Auth state
   private isLoggedInSubject = new BehaviorSubject<boolean>(false);
   public isLoggedIn$ = this.isLoggedInSubject.asObservable();
+
+  // User state
   private userSubject = new BehaviorSubject<User | null>(null);
   public user$ = this.userSubject.asObservable();
+
+  // User profile
+  private userProfileSubject = new BehaviorSubject<any | null>(null);
+  public userProfile$ = this.userProfileSubject.asObservable();
+
+  // Auth initialization state
   private authReadySubject = new BehaviorSubject<boolean>(false);
   public authReady$ = this.authReadySubject.asObservable();
 
+  // Email authentication
+  private emailForSignInKey = 'emailForSignIn';
   private actionCodeSettings: ActionCodeSettings;
+
+  // Subscriptions
   private authStateSubscription: Subscription | null = null;
+  private tokenRefreshSubscription: Subscription | null = null;
 
   constructor(@Inject(PLATFORM_ID) platformId: Object) {
     this.isBrowser = isPlatformBrowser(platformId);
+
+    // Default action code settings - will be updated with correct URL in browser
     this.actionCodeSettings = {
       url: 'https://loanpub.firebaseapp.com/login',
       handleCodeInApp: true,
     };
 
-    // Change this code in your constructor
     if (this.isBrowser) {
-      const storedLoginState = localStorage.getItem('isLoggedIn');
-      if (storedLoginState === 'true') {
-        this.isLoggedInSubject.next(true);
-      }
+      console.log('AuthService: Initializing in browser environment');
 
+      // Update action code settings with current origin
       this.ngZone.run(() => {
         this.actionCodeSettings = {
           url: window.location.origin + '/login',
           handleCodeInApp: true,
         };
-
-        // Replace the takeUntilDestroyed with a regular subscription
-        this.authStateSubscription = authState(this.auth).subscribe((user) => {
-          this.ngZone.run(() => {
-            this.userSubject.next(user);
-            this.isLoggedInSubject.next(!!user);
-            if (user) {
-              localStorage.setItem('isLoggedIn', 'true');
-            } else {
-              localStorage.removeItem('isLoggedIn');
-            }
-            this.authReadySubject.next(true);
-          });
-        });
       });
+
+      // Initialize auth state
+      this.initializeAuthState();
+    } else {
+      console.log(
+        'AuthService: Running in server environment, skipping auth initialization'
+      );
     }
   }
 
   ngOnDestroy() {
-    // Clean up subscription when service is destroyed
+    // Clean up subscriptions
     if (this.authStateSubscription) {
       this.authStateSubscription.unsubscribe();
     }
+
+    if (this.tokenRefreshSubscription) {
+      this.tokenRefreshSubscription.unsubscribe();
+    }
+
+    console.log('AuthService: Destroyed and cleaned up subscriptions');
   }
 
-  // Helper method to determine if we should redirect after authentication
-  private shouldRedirect(): boolean {
-    // Only redirect if we're on the login page or login verification page
-    const currentPath = this.router.url;
-    return currentPath === '/login' || currentPath.includes('/login/verify');
+  /**
+   * Primary method to initialize authentication state
+   * Sets up Firebase auth listeners and syncs with local state
+   */
+  private initializeAuthState(): void {
+    console.log('AuthService: Initializing auth state');
+
+    // Set up Firebase auth state listener
+    this.authStateSubscription = authState(this.auth).subscribe((user) => {
+      this.ngZone.run(() => {
+        const wasLoggedIn = this.isLoggedInSubject.value;
+        const isNowLoggedIn = !!user;
+
+        console.log(
+          `AuthService: Auth state changed - was: ${wasLoggedIn}, now: ${isNowLoggedIn}`
+        );
+        console.log('AuthService: Current user email:', user?.email);
+
+        // Update user subject
+        this.userSubject.next(user);
+
+        // Update login state
+        this.isLoggedInSubject.next(isNowLoggedIn);
+
+        if (isNowLoggedIn) {
+          // User is logged in
+          localStorage.setItem('isLoggedIn', 'true');
+
+          // Fetch and store user profile
+          this.loadUserProfile(user.uid);
+
+          // Run migration if needed
+          this.migrateUserDocument().subscribe((success) => {
+            if (success) {
+              console.log('AuthService: User document migration successful');
+              this.loadUserProfile(user.uid);
+            }
+          });
+        } else {
+          // User is logged out
+          localStorage.removeItem('isLoggedIn');
+          this.userProfileSubject.next(null);
+        }
+
+        // Mark auth as initialized
+        this.authReadySubject.next(true);
+      });
+    });
+
+    // Set up token refresh listener
+    this.tokenRefreshSubscription = from(
+      new Observable<User | null>((observer) => {
+        return onIdTokenChanged(
+          this.auth,
+          (user) => observer.next(user),
+          (error) => observer.error(error)
+        );
+      })
+    ).subscribe((user) => {
+      console.log('AuthService: ID token changed, user:', !!user);
+      // Token has been refreshed, no additional action needed
+      // Firebase handles the refresh automatically
+    });
   }
 
+  /**
+   * Loads user profile from Firestore and updates the profile subject
+   */
+  private loadUserProfile(uid: string): void {
+    console.log('AuthService: Loading user profile for UID:', uid);
+
+    this.firestoreService
+      .getDocumentWithLogging<any>(`users/${uid}`)
+      .pipe(take(1))
+      .subscribe({
+        next: (profile) => {
+          console.log('AuthService: User profile loaded:', profile);
+          this.userProfileSubject.next(profile);
+        },
+        error: (error) => {
+          console.error('AuthService: Error loading user profile:', error);
+          this.userProfileSubject.next(null);
+        },
+      });
+  }
+
+  /**
+   * Helper method to wait for auth initialization
+   */
   private waitForAuthInit(): Observable<boolean> {
     return this.authReady$.pipe(
       filter((ready) => ready),
       first()
     );
   }
-  // Add to auth.service.ts
-  initializeAuthState(): Promise<boolean> {
-    if (!this.isBrowser) return Promise.resolve(false);
 
-    return new Promise((resolve) => {
-      // Get initial stored state
-      const storedLoginState = localStorage.getItem('isLoggedIn');
-      if (storedLoginState === 'true') {
-        this.isLoggedInSubject.next(true);
-      }
-
-      // Wait for Firebase auth to initialize
-      const unsubscribe = this.auth.onAuthStateChanged((user) => {
-        this.ngZone.run(() => {
-          console.log('Auth state initialized with user:', !!user);
-          this.userSubject.next(user);
-          this.isLoggedInSubject.next(!!user);
-
-          if (user) {
-            localStorage.setItem('isLoggedIn', 'true');
-          } else {
-            localStorage.removeItem('isLoggedIn');
-          }
-
-          this.authReadySubject.next(true);
-          resolve(!!user);
-          unsubscribe(); // Clean up the listener after init
-        });
-      });
-    });
+  /**
+   * Helper method to determine if we should redirect after authentication
+   */
+  private shouldRedirect(): boolean {
+    // Only redirect if we're on the login page or login verification page
+    const currentPath = this.router.url;
+    return currentPath === '/login' || currentPath.includes('/login/verify');
   }
-  // Add this method to your AuthService
-  initAuthState(): Observable<boolean> {
+
+  /**
+   * Check authentication state and redirect to login if necessary
+   */
+  checkAuthAndRedirect(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
-    return new Observable((observer) => {
-      // Check if we're on a sign-in link page
-      const isSignInLink = isSignInWithEmailLink(
-        this.auth,
-        window.location.href
-      );
-      if (isSignInLink) {
-        // We're currently processing a sign-in link, don't redirect
-        observer.next(false);
-        observer.complete();
-        return;
-      }
-
-      // Set up Firebase auth state listener
-      const unsubscribe = this.auth.onAuthStateChanged((user) => {
-        this.ngZone.run(() => {
-          if (user) {
-            // User is signed in
-            this.userSubject.next(user);
-            this.isLoggedInSubject.next(true);
-            localStorage.setItem('isLoggedIn', 'true');
-            observer.next(true);
-          } else {
-            // No user is signed in, but check if we have a stored login state
-            const storedLoginState = localStorage.getItem('isLoggedIn');
-
-            if (storedLoginState === 'true') {
-              // We have a stored login but Firebase doesn't recognize it
-              // This could happen if the token expired - clean up
-              localStorage.removeItem('isLoggedIn');
-            }
-
-            this.userSubject.next(null);
-            this.isLoggedInSubject.next(false);
-            observer.next(false);
-          }
-
-          this.authReadySubject.next(true);
-          observer.complete();
-          unsubscribe(); // Clean up the listener
-        });
-      });
-    });
-  }
-
-  // Add a method to handle auth initialization with redirection
-  checkAuthAndRedirect(): Observable<boolean> {
-    return this.initAuthState().pipe(
+    return this.waitForAuthInit().pipe(
+      switchMap(() => this.isLoggedIn$),
+      take(1),
       switchMap((isLoggedIn) => {
         if (!isLoggedIn) {
           // Get current URL to store for after login
-          if (this.isBrowser && !this.router.url.includes('/login')) {
+          if (!this.router.url.includes('/login')) {
             localStorage.setItem('redirectUrl', this.router.url);
           }
 
           // Only redirect if not already on login page
-          if (this.isBrowser && !this.router.url.includes('/login')) {
+          if (!this.router.url.includes('/login')) {
             this.router.navigate(['/login']);
           }
+        } else if (isLoggedIn && this.router.url.includes('/login')) {
+          // User is logged in but on login page, redirect to dashboard
+          console.log('User already authenticated, redirecting to dashboard');
+          this.router.navigate(['/dashboard']);
         }
         return of(isLoggedIn);
       })
     );
   }
 
+  /**
+   * Check if current URL is an email sign-in link
+   */
   isEmailSignInLink(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
     return this.waitForAuthInit().pipe(
       map(() => {
         try {
-          // Execute Firebase APIs directly without injection context
           return isSignInWithEmailLink(this.auth, window.location.href);
         } catch (error) {
-          console.error('Error checking email sign-in link:', error);
+          console.error(
+            'AuthService: Error checking email sign-in link:',
+            error
+          );
           return false;
         }
       })
     );
   }
 
+  /**
+   * Send sign-in link to email
+   */
   sendSignInLink(email: string): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
     return this.waitForAuthInit().pipe(
       switchMap(() => {
+        console.log(`AuthService: Sending sign-in link to ${email}`);
         return from(
           sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
         ).pipe(
           tap(() => localStorage.setItem(this.emailForSignInKey, email)),
           map(() => true),
           catchError((error) => {
-            console.error('Error sending sign-in link:', error);
+            console.error('AuthService: Error sending sign-in link:', error);
             return of(false);
           })
         );
@@ -249,6 +303,9 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /**
+   * Sign in with email link
+   */
   signInWithEmailLink(email?: string): Observable<User | null> {
     if (!this.isBrowser) return of(null);
 
@@ -265,6 +322,9 @@ export class AuthService implements OnDestroy {
           );
 
           if (isValidLink) {
+            console.log(
+              `AuthService: Processing sign-in link for ${emailToUse}`
+            );
             return from(
               signInWithEmailLink(this.auth, emailToUse, window.location.href)
             ).pipe(
@@ -282,11 +342,15 @@ export class AuthService implements OnDestroy {
               }),
               map((userCredential) => userCredential.user),
               catchError((error) => {
-                console.error('Error signing in with email link:', error);
+                console.error(
+                  'AuthService: Error signing in with email link:',
+                  error
+                );
                 return of(null);
               })
             );
           } else {
+            console.log('AuthService: Not a valid email sign-in link');
             return of(null);
           }
         });
@@ -294,16 +358,24 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  // Add this method to AuthService
+  /**
+   * Get shortened UID for display
+   */
   getShortUid(uid: string): string {
     // Take the first 8 characters of the UID
     return uid.substring(0, 8);
   }
 
+  /**
+   * Get stored email for sign-in
+   */
   getStoredEmail(): string | null {
     return this.isBrowser ? localStorage.getItem(this.emailForSignInKey) : null;
   }
 
+  /**
+   * Register new user with email and password
+   */
   registerUser(
     email: string,
     password: string,
@@ -313,11 +385,13 @@ export class AuthService implements OnDestroy {
 
     return this.waitForAuthInit().pipe(
       switchMap(() => {
+        console.log(`AuthService: Registering new user: ${email}`);
         return from(
           createUserWithEmailAndPassword(this.auth, email, password)
         ).pipe(
           switchMap((userCredential) => {
             const user = userCredential.user;
+            // The key fix is here - making sure we use setDoc with the user's UID as the document ID
             return from(
               this.firestoreService.setDocument(`users/${user.uid}`, {
                 uid: user.uid,
@@ -336,7 +410,7 @@ export class AuthService implements OnDestroy {
             );
           }),
           catchError((error) => {
-            console.error('Error registering user:', error);
+            console.error('AuthService: Error registering user:', error);
             throw error;
           })
         );
@@ -344,11 +418,15 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /**
+   * Login with email and password
+   */
   login(email: string, password: string): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
     return this.waitForAuthInit().pipe(
       switchMap(() => {
+        console.log(`AuthService: Logging in user: ${email}`);
         return from(
           signInWithEmailAndPassword(this.auth, email, password)
         ).pipe(
@@ -364,7 +442,7 @@ export class AuthService implements OnDestroy {
             return of(true);
           }),
           catchError((error) => {
-            console.error('Error during login:', error);
+            console.error('AuthService: Error during login:', error);
             return of(false);
           })
         );
@@ -372,19 +450,140 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /**
+   * Migrate user document to correct path if needed
+   */
+  migrateUserDocument(): Observable<boolean> {
+    return this.getCurrentUser().pipe(
+      take(1),
+      switchMap((user) => {
+        if (!user) return of(false);
+
+        console.log(
+          'AuthService: Checking if user document migration is needed for:',
+          user.uid
+        );
+
+        // Check if document exists at correct path
+        return this.firestoreService
+          .getDocumentWithLogging<any>(`users/${user.uid}`)
+          .pipe(
+            take(1),
+            switchMap((userDoc) => {
+              if (userDoc) {
+                console.log(
+                  'AuthService: User document exists at correct path, no migration needed'
+                );
+                return of(true);
+              }
+
+              console.log(
+                'AuthService: User document not found at expected path, searching by email'
+              );
+
+              // Document doesn't exist at correct path, search by email
+              const usersCollection = collection(this.firestore, 'users');
+              const q = query(
+                usersCollection,
+                where('email', '==', user.email)
+              );
+
+              return from(getDocs(q)).pipe(
+                switchMap((snapshot) => {
+                  if (snapshot.empty) {
+                    console.log(
+                      'AuthService: No document found with matching email'
+                    );
+                    return of(false);
+                  }
+
+                  // Found document with matching email
+                  const doc = snapshot.docs[0];
+                  const userData = doc.data();
+                  const oldDocId = doc.id;
+
+                  console.log(
+                    `AuthService: Found user document with ID: ${oldDocId}, migrating to: ${user.uid}`
+                  );
+
+                  // Create document at correct path
+                  return from(
+                    this.firestoreService.setDocument(
+                      `users/${user.uid}`,
+                      userData
+                    )
+                  ).pipe(
+                    switchMap(() => {
+                      console.log(
+                        'AuthService: Document created at correct path'
+                      );
+
+                      // Optionally delete the old document
+                      // Uncomment the next line when you're sure everything works
+                      // return from(this.firestoreService.deleteDocument(`users/${oldDocId}`));
+
+                      return of(true);
+                    }),
+                    catchError((error) => {
+                      console.error(
+                        'AuthService: Error during document migration:',
+                        error
+                      );
+                      return of(false);
+                    })
+                  );
+                })
+              );
+            })
+          );
+      })
+    );
+  }
+
+  /**
+   * Logout user and clear all auth-related storage
+   */
   logout(): Observable<void> {
     if (!this.isBrowser) return of(undefined);
 
     return this.waitForAuthInit().pipe(
       switchMap(() => {
+        console.log('AuthService: Logging out user');
         return from(signOut(this.auth)).pipe(
           tap(() => {
+            // Clear all auth-related storage
             localStorage.removeItem('isLoggedIn');
+            localStorage.removeItem('redirectUrl');
+            localStorage.removeItem(this.emailForSignInKey);
+
+            // Clear any other potential auth-related items
+            try {
+              sessionStorage.removeItem('firebase:authUser');
+
+              // Clear auth cookies
+              document.cookie.split(';').forEach((c) => {
+                document.cookie = c
+                  .replace(/^ +/, '')
+                  .replace(
+                    /=.*/,
+                    '=;expires=' + new Date().toUTCString() + ';path=/'
+                  );
+              });
+            } catch (e) {
+              console.warn(
+                'AuthService: Error clearing additional storage:',
+                e
+              );
+            }
+
+            // Reset state
+            this.userProfileSubject.next(null);
+
             // Always navigate to login after logout
             this.router.navigate(['/login']);
           }),
           catchError((error) => {
-            console.error('Error during logout:', error);
+            console.error('AuthService: Error during logout:', error);
             throw error;
           })
         );
@@ -392,7 +591,9 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  // New method for deleting user account
+  /**
+   * Delete user account
+   */
   deleteAccount(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
@@ -406,16 +607,47 @@ export class AuthService implements OnDestroy {
               return of(false);
             }
 
+            console.log('AuthService: Deleting user account:', user.email);
+
             // Delete the current user
             return from(user.delete()).pipe(
               tap(() => {
+                // Clear all auth storage
                 localStorage.removeItem('isLoggedIn');
+                localStorage.removeItem('redirectUrl');
+                localStorage.removeItem(this.emailForSignInKey);
+
+                try {
+                  sessionStorage.removeItem('firebase:authUser');
+
+                  // Clear auth cookies
+                  document.cookie.split(';').forEach((c) => {
+                    document.cookie = c
+                      .replace(/^ +/, '')
+                      .replace(
+                        /=.*/,
+                        '=;expires=' + new Date().toUTCString() + ';path=/'
+                      );
+                  });
+                } catch (e) {
+                  console.warn(
+                    'AuthService: Error clearing additional storage:',
+                    e
+                  );
+                }
+
+                // Reset state
+                this.userProfileSubject.next(null);
+
                 // Navigate to login after account deletion
                 this.router.navigate(['/login']);
               }),
               map(() => true),
               catchError((error) => {
-                console.error('Error deleting user account:', error);
+                console.error(
+                  'AuthService: Error deleting user account:',
+                  error
+                );
                 throw error;
               })
             );
@@ -425,19 +657,36 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /**
+   * Get current authentication status
+   */
   getAuthStatus(): Observable<boolean> {
     console.log(
-      'Getting auth status, current value:',
+      'AuthService: Getting auth status, current value:',
       this.isLoggedInSubject.value
     );
     return this.isLoggedIn$;
   }
 
+  /**
+   * Get current authenticated user
+   */
   getCurrentUser(): Observable<User | null> {
     return this.user$;
   }
 
+  /**
+   * Get user profile for specific UID
+   */
   getUserProfile(uid: string): Observable<any> {
+    console.log('AuthService: Getting user profile for:', uid);
     return this.firestoreService.getDocumentWithLogging<any>(`users/${uid}`);
+  }
+
+  /**
+   * Get current user profile (from cached subject)
+   */
+  getCurrentUserProfile(): Observable<any> {
+    return this.userProfile$;
   }
 }

@@ -5,8 +5,6 @@ import {
   OnDestroy,
   inject,
   NgZone,
-  Injector,
-  runInInjectionContext,
   DestroyRef,
   HostListener,
 } from '@angular/core';
@@ -14,17 +12,9 @@ import { Router } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  Firestore,
-  collection,
-  doc,
-  getDoc,
-  getDocs,
-  query,
-  where,
-} from '@angular/fire/firestore';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
-// Define user data interface (same as in dashboard)
+// Define user data interface
 interface UserData {
   id: string;
   email?: string;
@@ -54,24 +44,31 @@ export class NavbarComponent implements OnInit, OnDestroy {
   error: string | null = null;
   accountNumber: string = '';
   private authSubscription!: Subscription;
+  private userDataSubscription: Subscription | null = null;
 
   // Inject services
   private authService = inject(AuthService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
-  private injector = inject(Injector);
   private firestore = inject(Firestore);
   private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
+    console.log('NavbarComponent - Initializing');
+
     // Subscribe to authentication state changes
     this.authSubscription = this.authService.isLoggedIn$.subscribe(
       (loggedIn) => {
+        console.log('NavbarComponent - Auth state changed:', loggedIn);
         this.isLoggedIn = loggedIn;
 
         // Load user data when logged in
         if (loggedIn) {
           this.loadUserData();
+        } else {
+          // Clear user data when logged out
+          this.userData = null;
+          this.accountNumber = '';
         }
       }
     );
@@ -81,6 +78,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
     // Clean up subscriptions
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
+    }
+
+    if (this.userDataSubscription) {
+      this.userDataSubscription.unsubscribe();
     }
   }
 
@@ -106,120 +107,91 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   loadUserData(): void {
-    console.log('Loading user data in navbar...');
+    console.log('NavbarComponent - Loading user data...');
     this.loading = true;
     this.error = null;
 
-    runInInjectionContext(this.injector, async () => {
-      try {
-        // Get all users in the collection first to see what's available
-        console.log('Fetching all users in collection...');
-        const usersCollectionRef = collection(this.firestore, 'users');
-        const querySnapshot = await getDocs(usersCollectionRef);
+    // Get the current authenticated user from AuthService
+    this.userDataSubscription = this.authService
+      .getCurrentUser()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(async (user) => {
+        // Important debug logs
+        console.log('NavbarComponent - Current Auth User:', user?.email);
+        console.log('NavbarComponent - Auth UID:', user?.uid);
 
-        console.log('All users in collection:');
-        let foundUsers = false;
-        const allUsers: UserData[] = [];
-
-        querySnapshot.forEach((doc) => {
-          foundUsers = true;
-          const userData = doc.data();
-          allUsers.push({ id: doc.id, ...userData } as UserData);
-          console.log(`User document: ${doc.id}`, userData);
-        });
-
-        if (!foundUsers) {
-          console.log('No user documents found in the users collection');
-          this.error = 'No users found in database';
+        if (!user) {
+          console.log('NavbarComponent - No authenticated user found');
+          this.error = 'Not logged in';
+          this.userData = null;
           this.loading = false;
           return;
         }
 
-        // Now get the current authenticated user
-        this.authService
-          .getCurrentUser()
-          .pipe(takeUntilDestroyed(this.destroyRef))
-          .subscribe(async (user) => {
-            if (user) {
-              console.log('Authenticated user:', user.email);
-              console.log('Authenticated user UID:', user.uid);
+        try {
+          // Generate the shortened UID for the account number
+          this.accountNumber = user.uid.substring(0, 8);
 
-              // Generate the shortened UID for the account number
-              this.accountNumber = user.uid.substring(0, 8);
+          // Get user profile from Firestore using authenticated user's UID
+          const userDocRef = doc(this.firestore, `users/${user.uid}`);
+          const docSnap = await getDoc(userDocRef);
 
-              // First try the direct path with the user's UID
-              const userDocRef = doc(this.firestore, `users/${user.uid}`);
-              const docSnap = await runInInjectionContext(this.injector, () =>
-                getDoc(userDocRef)
+          if (docSnap.exists()) {
+            // User profile found with matching UID
+            console.log(
+              'NavbarComponent - User profile found in Firestore:',
+              docSnap.data()
+            );
+
+            // Store the user data
+            this.userData = {
+              id: docSnap.id,
+              ...docSnap.data(),
+            } as UserData;
+
+            // Additional validation - ensure emails match
+            if (this.userData.email && this.userData.email !== user.email) {
+              console.warn(
+                'NavbarComponent - WARNING: Email mismatch between Auth and Firestore!',
+                {
+                  authEmail: user.email,
+                  firestoreEmail: this.userData.email,
+                }
               );
-
-              if (docSnap.exists()) {
-                // Success! Document found with matching UID
-                console.log('User profile found!', docSnap.data());
-                this.userData = {
-                  id: docSnap.id,
-                  ...docSnap.data(),
-                } as UserData;
-                this.loading = false;
-              } else {
-                console.log(`No document found at users/${user.uid}`);
-
-                // Look for a document with matching email instead
-                const authenticatedEmail = user.email?.toLowerCase();
-                console.log(
-                  'Looking for documents with matching email:',
-                  authenticatedEmail
-                );
-
-                let foundByEmail = false;
-
-                if (authenticatedEmail) {
-                  for (const docData of allUsers) {
-                    if (
-                      docData.email &&
-                      docData.email.toLowerCase() === authenticatedEmail
-                    ) {
-                      console.log(
-                        `Found matching email in document with ID: ${docData.id}`
-                      );
-                      this.userData = docData;
-                      foundByEmail = true;
-                      this.loading = false;
-                      break;
-                    }
-                  }
-                }
-
-                if (!foundByEmail) {
-                  // No matching document by UID or email
-                  console.log('No matching user document found');
-                  this.error = 'User profile not found';
-                  this.loading = false;
-
-                  // Just use the first user in the collection for testing
-                  if (allUsers.length > 0) {
-                    console.log('Using available user data:', allUsers[0]);
-                    this.userData = allUsers[0];
-                    this.error = `Using test user: ${
-                      allUsers[0].email || 'Unknown'
-                    }`;
-                  }
-                }
-              }
-            } else {
-              console.log('No user logged in');
-              this.error = 'Not logged in';
-              this.loading = false;
             }
-          });
-      } catch (error) {
-        console.error('Error in loadUserData:', error);
-        this.error =
-          'Error fetching data: ' +
-          (error instanceof Error ? error.message : String(error));
-        this.loading = false;
-      }
-    });
+
+            this.loading = false;
+          } else {
+            // No user document found with matching UID
+            console.error(
+              `NavbarComponent - No document found at users/${user.uid}`
+            );
+            this.error = 'User profile not found';
+
+            // IMPORTANT: Don't fall back to another user's data
+            // Just display the authenticated user's email from Firebase Auth
+            this.userData = {
+              id: user.uid,
+              email: user.email || 'Unknown email',
+              firstName: 'Account',
+              lastName: 'Needs Setup',
+            } as UserData;
+
+            this.loading = false;
+          }
+        } catch (error) {
+          console.error('NavbarComponent - Error in loadUserData:', error);
+          this.error = 'Error loading profile';
+
+          // Fallback to using just the auth data instead of no data
+          this.userData = {
+            id: user.uid,
+            email: user.email || 'Unknown email',
+          } as UserData;
+
+          this.loading = false;
+        }
+      });
   }
 
   formatPhoneNumber(phone?: string): string {
@@ -234,7 +206,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
-    console.log('Logging out...');
+    console.log('NavbarComponent - Logging out...');
     this.loading = true;
 
     this.authService
@@ -242,12 +214,31 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          console.log('Logout successful');
+          console.log('NavbarComponent - Logout successful');
+          // Clear local user data immediately
+          this.userData = null;
+          this.accountNumber = '';
+          this.isLoggedIn = false;
+
+          // Additional cleanup
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('redirectUrl');
+
+          // Clear any other auth-related items
+          document.cookie.split(';').forEach((c) => {
+            document.cookie = c
+              .replace(/^ +/, '')
+              .replace(
+                /=.*/,
+                '=;expires=' + new Date().toUTCString() + ';path=/'
+              );
+          });
+
           this.router.navigate(['/login']);
         },
         error: (error) => {
-          console.error('Error during logout:', error);
-          this.error = 'Error during logout';
+          console.error('NavbarComponent - Error during logout:', error);
+          this.error = 'Logout failed';
           this.loading = false;
         },
       });
