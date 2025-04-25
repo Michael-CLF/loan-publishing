@@ -18,6 +18,7 @@ import { LoanDetailsComponent } from 'src/loan-details/loan-details.component';
 import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details.component';
 import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
 import { EditAccountComponent } from 'src/edit-account/edit-account.component';
+import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
 
 export const routes: Routes = [
   {
@@ -49,6 +50,11 @@ export const routes: Routes = [
   {
     path: 'loans/:id',
     component: LoanDetailsComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'loans/:id/edit',
+    component: EditLoanComponent,
     canActivate: [AuthGuard],
   },
   {

@@ -1,0 +1,147 @@
+<div class="container">
+    <h1 class="title">Edit Loan</h1>
+
+    <!-- Loading state -->
+    <div *ngIf="loading()" class="loading">
+        <p>Loading loan data...</p>
+    </div>
+
+    <!-- Error state -->
+    <div *ngIf="error()" class="error-message">
+        <p>{{ error() }}</p>
+        <button (click)="cancel()">Return to Dashboard</button>
+    </div>
+
+    <!-- Success message -->
+    <div *ngIf="success()" class="success-message">
+        <p>Loan updated successfully!</p>
+        <p>Redirecting to dashboard...</p>
+    </div>
+
+    <!-- Loan Form -->
+    <div *ngIf="!loading() && !error() && !success()" class="form-container">
+        <!-- Read-only property information section -->
+        <div class="property-info-section">
+            <h3 class="content-header">Property Information</h3>
+            <div class="info-grid">
+                <div class="info-item">
+                    <span class="info-label">Property Type:</span>
+                    <span class="info-value">{{ propertyInfo().propertyTypeCategory }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Property Sub-Category:</span>
+                    <span class="info-value">{{ propertyInfo().propertySubCategory }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Transaction Type:</span>
+                    <span class="info-value">{{ propertyInfo().transactionType }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Location:</span>
+                    <span class="info-value">{{ propertyInfo().city }}, {{ propertyInfo().state }}</span>
+                </div>
+            </div>
+        </div>
+
+        <form [formGroup]="loanForm" (ngSubmit)="onSubmit()">
+            <div class="form-section">
+                <h3 class="content-header">Loan Details</h3>
+
+                <div class="form-group">
+                    <label for="loanAmount">Loan Amount*</label>
+                    <input type="text" id="loanAmount" formControlName="loanAmount"
+                        (blur)="formatCurrency($event, 'loanAmount')" required>
+                    <div *ngIf="loanForm.get('loanAmount')?.invalid && loanForm.get('loanAmount')?.touched"
+                        class="error">
+                        Loan amount is required
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="loanType">Loan Type*</label>
+                    <select id="loanType" formControlName="loanType" required>
+                        <option value="">Select Loan Type</option>
+                        <option value="Bridge">Bridge</option>
+                        <option value="Construction">Construction</option>
+                        <option value="CMBS">CMBS</option>
+                        <option value="Fannie Mae">Fannie Mae</option>
+                        <option value="Freddie Mac">Freddie Mac</option>
+                        <option value="HUD/FHA">HUD/FHA</option>
+                        <option value="SBA">SBA</option>
+                        <option value="Other">Other</option>
+                    </select>
+                    <div *ngIf="loanForm.get('loanType')?.invalid && loanForm.get('loanType')?.touched" class="error">
+                        Loan type is required
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="propertyValue">Property Value*</label>
+                    <input type="text" id="propertyValue" formControlName="propertyValue"
+                        (blur)="formatCurrency($event, 'propertyValue')" required>
+                    <div *ngIf="loanForm.get('propertyValue')?.invalid && loanForm.get('propertyValue')?.touched"
+                        class="error">
+                        Property value is required
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="ltv">LTV (%)*</label>
+                    <input type="number" id="ltv" formControlName="ltv" min="0" max="100" required>
+                    <div *ngIf="loanForm.get('ltv')?.invalid && loanForm.get('ltv')?.touched" class="error">
+                        Valid LTV is required (0-100)
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="noi">NOI (Optional)</label>
+                    <input type="text" id="noi" formControlName="noi">
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3 class="content-header">Sponsor Information</h3>
+                <div class="form-group">
+                    <label for="numberOfSponsors">Number of Sponsors*</label>
+                    <input type="number" id="numberOfSponsors" formControlName="numberOfSponsors" min="1" required>
+                    <div *ngIf="loanForm.get('numberOfSponsors')?.invalid && loanForm.get('numberOfSponsors')?.touched"
+                        class="error">
+                        Valid number of sponsors is required
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="sponsorsLiquidity">Sponsors Liquidity*</label>
+                    <input type="text" id="sponsorsLiquidity" formControlName="sponsorsLiquidity" required>
+                    <div *ngIf="loanForm.get('sponsorsLiquidity')?.invalid && loanForm.get('sponsorsLiquidity')?.touched"
+                        class="error">
+                        Sponsors liquidity is required
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="sponsorFico">Sponsor FICO*</label>
+                    <input type="number" id="sponsorFico" formControlName="sponsorFico" min="300" max="850" required>
+                    <div *ngIf="loanForm.get('sponsorFico')?.invalid && loanForm.get('sponsorFico')?.touched"
+                        class="error">
+                        Valid FICO score is required (300-850)
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="experienceInYears">Experience (Years)*</label>
+                    <input type="number" id="experienceInYears" formControlName="experienceInYears" min="0" required>
+                    <div *ngIf="loanForm.get('experienceInYears')?.invalid && loanForm.get('experienceInYears')?.touched"
+                        class="error">
+                        Experience in years is required
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="button" class="cancel-btn" (click)="cancel()">Cancel</button>
+                <button type="submit" class="submit-btn" [disabled]="loanForm.invalid || loading()">Update Loan</button>
+            </div>
+        </form>
+    </div>
+</div>
