@@ -29,7 +29,7 @@ type PropertyCategory =
   | 'Multi-family'
   | 'Office'
   | 'Residential'
-  | 'Retail Property'
+  | 'Retail'
   | 'Special Purpose';
 
 @Component({
@@ -60,7 +60,7 @@ export class LoanComponent implements OnInit {
 
   // Add this to your component class
   loanTypes = [
-    { value: 'Agency', name: 'Agency' },
+    { value: 'agency', name: 'Agency' },
     { value: 'balanceSheet', name: 'Balance Sheet' },
     { value: 'bridge', name: 'Bridge Loan' },
     { value: 'DSCR', name: 'DSCR' },
@@ -119,7 +119,7 @@ export class LoanComponent implements OnInit {
       'Triplex',
       'Quadplex',
     ],
-    'Retail Property': [
+    Retail: [
       'Anchored Center',
       'Mall',
       'NNN Retail',

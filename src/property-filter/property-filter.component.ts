@@ -42,7 +42,7 @@ export class PropertyFilterComponent {
     'Multi-family',
     'Office',
     'Residential',
-    'Retail Property',
+    'Retail',
     'Special Purpose',
   ];
 

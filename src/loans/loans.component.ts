@@ -10,14 +10,22 @@ import {
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
 import { LoanService, Loan } from '../services/loan.service';
+import { AuthService } from '../services/auth.service';
+import { take } from 'rxjs/operators';
 import {
   Firestore,
   collection,
   query,
   orderBy,
   getDocs,
+  doc,
+  getDoc,
+  addDoc,
+  deleteDoc,
+  where,
 } from '@angular/fire/firestore';
 import { PropertyFilterComponent } from '../property-filter/property-filter.component';
+import { LOAN_TYPES } from '../shared/loan-constants';
 
 // Define the interface here instead of importing it
 interface LoanFilters {
@@ -42,6 +50,7 @@ export class LoansComponent implements OnInit {
   private router = inject(Router);
   private firestore = inject(Firestore);
   private injector = inject(Injector);
+  private authService = inject(AuthService);
 
   propertyColorMap: { [key: string]: string } = {
     Commercial: '#1E90FF',
@@ -53,9 +62,20 @@ export class LoansComponent implements OnInit {
     'Multi-family': '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
-    'Retail Property': '#660000',
+    Retail: '#660000',
     'Special Purpose': '#6e2c00',
   };
+
+  // Add this to your LoansComponent class
+  loanTypes = LOAN_TYPES;
+
+  // Add this method to your component class
+  getLoanTypeName(value: string): string {
+    console.log('Dashboard - looking up loan type value:', value);
+    const loanType = this.loanTypes.find((type) => type.value === value);
+    console.log('Dashboard - found loan type:', loanType);
+    return loanType ? loanType.name : value;
+  }
 
   // 👇 Accessor method
   getColor(propertyType: string): string {
@@ -109,6 +129,9 @@ export class LoansComponent implements OnInit {
       // Update the loans signal with the fetched data
       this.loans.set(allLoans);
       this.allLoans.set(allLoans); // Store all loans for filtering
+
+      // Check favorite status after loading loans
+      await this.checkFavoriteStatus();
     } catch (error) {
       console.error('Error loading loans:', error);
       this.errorMessage.set('Failed to load loans. Please try again.');
@@ -117,8 +140,124 @@ export class LoansComponent implements OnInit {
     }
   }
 
-  toggleFavorite(loan: any): void {
-    loan.isFavorite = !loan.isFavorite;
+  /**
+   * Toggles the favorite status of a loan and saves it to Firestore
+   */
+  async toggleFavorite(loan: Loan): Promise<void> {
+    try {
+      const user = await this.authService
+        .getCurrentUser()
+        .pipe(take(1))
+        .toPromise();
+
+      if (!user) {
+        alert('Please log in to save favorites');
+        this.router.navigate(['/login']);
+        return;
+      }
+
+      // Only lenders can save favorites
+      const userDocRef = doc(this.firestore, `users/${user.uid}`);
+      const userDoc = await runInInjectionContext(this.injector, () =>
+        getDoc(userDocRef)
+      );
+
+      if (!userDoc.exists()) {
+        alert('User profile not found');
+        return;
+      }
+
+      const userData = userDoc.data();
+
+      if (!userData || userData['role'] !== 'lender') {
+        alert('Only lenders can save favorite loans');
+        return;
+      }
+
+      // Toggle the UI state immediately for better UX
+      loan.isFavorite = !loan.isFavorite;
+
+      // Check if this loan is already favorited by this user
+      const favoritesRef = collection(this.firestore, 'favorites');
+      const q = query(
+        favoritesRef,
+        where('loanId', '==', loan.id),
+        where('userId', '==', user.uid)
+      );
+
+      const querySnapshot = await runInInjectionContext(this.injector, () =>
+        getDocs(q)
+      );
+
+      if (loan.isFavorite) {
+        // Add to favorites if not already saved
+        if (querySnapshot.empty) {
+          await runInInjectionContext(this.injector, () =>
+            addDoc(favoritesRef, {
+              loanId: loan.id,
+              userId: user.uid,
+              loanData: loan,
+              createdAt: new Date(),
+            })
+          );
+        }
+      } else {
+        // Remove from favorites
+        querySnapshot.forEach(async (document) => {
+          await runInInjectionContext(this.injector, () =>
+            deleteDoc(document.ref)
+          );
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      // Revert UI state if operation failed
+      if (loan.isFavorite !== undefined) {
+        loan.isFavorite = !loan.isFavorite;
+      }
+      this.errorMessage.set(
+        'Failed to update favorite status. Please try again.'
+      );
+    }
+  }
+
+  /**
+   * Checks if each loan is favorited by the current user
+   */
+  async checkFavoriteStatus(): Promise<void> {
+    try {
+      const user = await this.authService
+        .getCurrentUser()
+        .pipe(take(1))
+        .toPromise();
+      if (!user) return;
+
+      const favoritesRef = collection(this.firestore, 'favorites');
+      const q = query(favoritesRef, where('userId', '==', user.uid));
+
+      const querySnapshot = await runInInjectionContext(this.injector, () =>
+        getDocs(q)
+      );
+
+      const favoriteIds = new Set<string>();
+
+      querySnapshot.forEach((document) => {
+        const favorite = document.data();
+        if (favorite['loanId']) {
+          favoriteIds.add(favorite['loanId']);
+        }
+      });
+
+      // Update favorite status for each loan
+      const updatedLoans = this.loans().map((loan) => ({
+        ...loan,
+        isFavorite: favoriteIds.has(loan.id || ''),
+      }));
+
+      this.loans.set(updatedLoans);
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+    }
   }
 
   handleFilterApply(filters: LoanFilters): void {

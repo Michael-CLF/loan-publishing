@@ -153,7 +153,7 @@ export class LenderRegistrationComponent implements OnInit {
   ];
 
   lenderTypes: LenderTypeOption[] = [
-    { value: 'Agency', name: 'Agency Lender' },
+    { value: 'agency', name: 'Agency Lender' },
     { value: 'bank', name: 'Bank' },
     { value: 'cdfi', name: 'CDFI Lender' },
     { value: 'conduit_lender', name: 'Conduit Lender (CMBS)' },

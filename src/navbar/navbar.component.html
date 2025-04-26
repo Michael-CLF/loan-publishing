@@ -9,12 +9,13 @@
             </div>
             <div class="nav-menu">
                 <!-- Hide "All Loans" from unauthenticated users -->
-                <a *ngIf="isLoggedIn" href="/loans" class="all-loans">All Loans</a>
-                <a href="/pricing" class="pricing">Pricing</a>
+                <a *ngIf="isLoggedIn" href="/lender-list" class="all-loans">Lenders</a>
+                <a *ngIf="isLoggedIn" href="/loans" class="all-loans">Loans</a>
             </div>
 
             <div *ngIf="!isLoggedIn" class="auth-links">
                 <a href="/login" class="login-btn">Log In</a>
+                <a href="/pricing" class="pricing">Pricing</a>
             </div>
 
             <div *ngIf="isLoggedIn" class="user-menu">

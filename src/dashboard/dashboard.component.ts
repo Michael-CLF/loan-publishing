@@ -26,6 +26,8 @@ import {
   deleteDoc,
   addDoc,
 } from '@angular/fire/firestore';
+import { LOAN_TYPES } from '../shared/loan-constants';
+import { LoanService } from '../services/loan.service';
 
 // Define interfaces
 interface UserData {
@@ -92,6 +94,7 @@ export class DashboardComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private injector = inject(Injector);
   private firestore = inject(Firestore);
+  private loanService = inject(LoanService);
 
   // User state
   user: User | null = null;
@@ -125,13 +128,22 @@ export class DashboardComponent implements OnInit {
     'Multi-family': '#6c3483',
     Office: '#4682B4',
     'Residential Property': '#DC143C',
-    'Retail Property': '#660000',
+    Retail: '#660000',
     'Special Purpose': '#6e2c00',
   };
 
+  loanTypes = LOAN_TYPES;
   /**
    * Initialize the dashboard component
    */
+  getLoanTypeName(value: string): string {
+    if (!value) return '';
+    const loanType = this.loanTypes.find(
+      (type) => type.value.toLowerCase() === value.toLowerCase()
+    );
+    return loanType ? loanType.name : value;
+  }
+
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
     this.loadUserData();
@@ -381,6 +393,7 @@ export class DashboardComponent implements OnInit {
           id: doc.id,
           ...doc.data(),
         } as SavedLoan);
+        console.log('Saved loan data:', userSavedLoans);
       });
 
       console.log(

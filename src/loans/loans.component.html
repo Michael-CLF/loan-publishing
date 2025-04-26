@@ -46,7 +46,7 @@
 
                 <div class="loan-detail">
                     <span class="detail-label">Loan Type:</span>
-                    <span class="detail-value">{{ loan.loanType }}</span>
+                    <span class="detail-value">{{ getLoanTypeName(loan.loanType) }}</span>
                 </div>
 
                 <div class="loan-detail">
@@ -68,8 +68,9 @@
             <!-- Update this part in your loans.component.html -->
             <div class="loan-actions">
                 <button class="favorite-btn" (click)="toggleFavorite(loan)">
-                    <span class="heart" [class.filled]="loan.isFavorite">♥</span>
+                    <i class="heart" [ngClass]="loan.isFavorite ? 'fas fa-heart' : 'far fa-heart'"></i>
                 </button>
+
                 <!-- Only show the View button, centered -->
                 <button class="action-btn view-btn centered" (click)="viewLoanDetails(loan.id || '')">View More
                     Details</button>

@@ -119,7 +119,7 @@ export class LenderDashboardComponent implements OnInit {
     'Multi-family': '#6c3483',
     Office: '#4682B4',
     'Residential Property': '#DC143C',
-    'Retail Property': '#660000',
+    Retail: '#660000',
     'Special Purpose': '#6e2c00',
   };
 
