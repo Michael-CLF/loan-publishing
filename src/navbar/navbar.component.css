@@ -36,15 +36,26 @@
   font-size: 1.5rem;
 }
 
+.register {
+  padding-right: 20px;
+}
+.reg-btn {
+  color: #fff;
+  background-color: #008080;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid #fff;
+  text-decoration: none;
+}
+
 .login-btn,
-.register-btn,
 .dashboard-link,
 .account-link {
   color: white;
   text-decoration: none;
   padding: 5px 10px;
 }
-.register-btn,
+
 .logout-btn {
   background-color: #008080;
   border-radius: 4px;

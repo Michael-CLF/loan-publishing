@@ -53,8 +53,19 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private firestore = inject(Firestore);
   private destroyRef = inject(DestroyRef);
 
+  userRole: string | null = null;
+  getUserDashboardLink(): string {
+    return this.userRole === 'lender' ? '/lender-dashboard' : '/dashboard';
+  }
+
   ngOnInit(): void {
     console.log('NavbarComponent - Initializing');
+
+    this.authService.getCurrentUserProfile().subscribe((userProfile) => {
+      if (userProfile) {
+        this.userRole = userProfile.role || null;
+      }
+    });
 
     // Subscribe to authentication state changes
     this.authSubscription = this.authService.isLoggedIn$.subscribe(

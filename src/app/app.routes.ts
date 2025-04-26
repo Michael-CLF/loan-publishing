@@ -19,6 +19,7 @@ import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details
 import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
 import { EditAccountComponent } from 'src/edit-account/edit-account.component';
 import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
+import { LenderDashboardComponent } from 'src/components/lender-dashboard/lender-dashboard.component';
 
 export const routes: Routes = [
   {
@@ -29,7 +30,11 @@ export const routes: Routes = [
   { path: '', component: HomeComponent },
   { path: 'lender-form', component: LenderFormComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },
-  { path: 'lender-list', component: LenderListComponent },
+  {
+    path: 'lender-list',
+    component: LenderListComponent,
+    canActivate: [AuthGuard],
+  },
   { path: 'user-form', component: UserFormComponent },
   { path: 'login', component: EmailLoginComponent },
   // Add explicit verify route to handle email verification
@@ -60,6 +65,11 @@ export const routes: Routes = [
   {
     path: 'dashboard',
     component: DashboardComponent,
+    canActivate: [AuthGuard],
+  },
+  {
+    path: 'lender-dashboard',
+    component: LenderDashboardComponent,
     canActivate: [AuthGuard],
   },
   { path: 'pricing', component: PricingComponent },

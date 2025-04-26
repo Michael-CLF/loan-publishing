@@ -169,7 +169,7 @@ export class LenderFormComponent implements OnInit {
       types: [
         {
           value: 'residential_1_4_unit',
-          name: '1-4 Unit Residential Property',
+          name: '1-4 Unit Residential',
         },
         { value: 'co_op_duplex', name: 'Co-op Duplex' },
         { value: 'condominium', name: 'Condominium' },

@@ -57,6 +57,7 @@ export interface Loan {
   createdBy?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  isFavorite?: boolean;
 }
 
 @Injectable({
@@ -106,6 +107,11 @@ export class LoanService {
         );
       })
     );
+  }
+
+  updateLoanFavorite(loanId: string, isFavorite: boolean) {
+    const loanRef = doc(this.firestore, 'loan', loanId);
+    return from(updateDoc(loanRef, { isFavorite }));
   }
 
   /**

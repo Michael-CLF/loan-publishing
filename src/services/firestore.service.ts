@@ -25,8 +25,15 @@ import {
   DocumentReference,
   DocumentData,
 } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
-import { map, catchError, tap } from 'rxjs/operators';
+import { Observable, from, of, BehaviorSubject } from 'rxjs';
+import { map, catchError, tap, switchMap } from 'rxjs/operators';
+
+export interface LenderFilter {
+  lenderType?: string;
+  propertyCategory?: string;
+  state?: string;
+  loanAmount?: number | string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -36,6 +43,51 @@ export class FirestoreService {
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
   private destroyRef = inject(DestroyRef);
+
+  private lenderFiltersSubject = new BehaviorSubject<LenderFilter>({});
+
+  // Add this method to your FirestoreService class
+
+  filterLenders(
+    lenderType: string = '',
+    propertyCategory: string = '',
+    state: string = '',
+    loanAmount: string = ''
+  ): Observable<any[]> {
+    const collectionRef = collection(this.firestore, 'lenders');
+    const constraints: QueryConstraint[] = [];
+
+    // Add constraints only for non-empty values
+    if (lenderType) {
+      constraints.push(where('lenderType', '==', lenderType));
+    }
+
+    if (propertyCategory) {
+      constraints.push(
+        where('propertyCategories', 'array-contains', propertyCategory)
+      );
+    }
+
+    if (state) {
+      constraints.push(where('states', 'array-contains', state));
+    }
+
+    if (loanAmount && loanAmount.trim() !== '') {
+      const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
+      if (!isNaN(amount) && amount > 0) {
+        constraints.push(where('productInfo.minLoanAmount', '<=', amount));
+        constraints.push(where('productInfo.maxLoanAmount', '>=', amount));
+      }
+    }
+
+    // If we have constraints, query with them; otherwise, get all documents
+    if (constraints.length > 0) {
+      const q = query(collectionRef, ...constraints);
+      return collectionData(q, { idField: 'id' });
+    } else {
+      return collectionData(collectionRef, { idField: 'id' });
+    }
+  }
 
   checkIfEmailExists(email: string): Observable<boolean> {
     const usersCollection = collection(this.firestore, 'users');

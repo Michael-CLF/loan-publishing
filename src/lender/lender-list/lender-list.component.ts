@@ -1,29 +1,114 @@
-// lender-list.component.ts
 import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { RouterModule } from '@angular/router';
-import { LenderService, Lender } from '../../services/lender.service';
+import { Router, RouterModule } from '@angular/router';
+import { FirestoreService } from '../../services/firestore.service';
+import { LenderFilterComponent } from '../../components/lender-filter/lender-filter.component';
+import { LenderService } from '../../services/lender.service';
 import { Subscription } from 'rxjs';
+
+export interface Lender {
+  id?: string;
+  name: string;
+  lenderType: string;
+  propertyCategories?: string[];
+  states?: string[];
+  productInfo?: {
+    minLoanAmount?: number;
+    maxLoanAmount?: number;
+    lenderTypes?: string[];
+  };
+  contactInfo?: any;
+}
+
+export interface LenderFilters {
+  lenderType: string;
+  propertyCategory: string;
+  state: string;
+  loanAmount: string;
+}
 
 @Component({
   selector: 'app-lender-list',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, LenderFilterComponent],
   templateUrl: './lender-list.component.html',
   styleUrl: './lender-list.component.css',
 })
 export class LenderListComponent implements OnInit, OnDestroy {
   lenders: Lender[] = [];
   loading = true;
-  private lendersSubscription: Subscription | null = null;
   private lenderService = inject(LenderService);
+  private lendersSubscription: Subscription | null = null; // Add this line
+  private subscription: Subscription | null = null;
+
+  constructor(
+    private firestoreService: FirestoreService,
+    public router: Router
+  ) {}
 
   ngOnInit(): void {
     this.loadLenders();
   }
-  // Add to lender-list.component.ts
+
+  ngOnDestroy(): void {
+    if (this.subscription) {
+      this.subscription.unsubscribe();
+    }
+  }
+
+  loadLenders(): void {
+    this.loading = true;
+    console.log('Starting to load lenders...');
+
+    this.lendersSubscription = this.lenderService.getAllLenders().subscribe({
+      next: (data: Lender[]) => {
+        // Add type annotation here
+        console.log('Lenders received:', data);
+        this.lenders = data;
+        this.loading = false;
+      },
+      error: (error: any) => {
+        // Add type annotation here
+        console.error('Error loading lenders:', error);
+        this.loading = false;
+      },
+      complete: () => {
+        console.log('Lenders subscription completed');
+      },
+    });
+  }
+
+  applyFilters(filters: LenderFilters): void {
+    this.loading = true;
+    console.log('Applying filters:', filters);
+
+    if (this.lendersSubscription) {
+      this.lendersSubscription.unsubscribe();
+    }
+
+    this.lendersSubscription = this.lenderService
+      .searchLenders(
+        filters.lenderType,
+        filters.propertyCategory,
+        filters.state,
+        filters.loanAmount
+      )
+      .subscribe({
+        next: (data: Lender[]) => {
+          // Add type annotation here
+          console.log('Filtered lenders received:', data);
+          this.lenders = data;
+          this.loading = false;
+        },
+        error: (error: any) => {
+          // Add type annotation here
+          console.error('Error filtering lenders:', error);
+          this.loading = false;
+        },
+      });
+  }
+
   getLenderTypeName(value: string): string {
-    // Mapping object for lender types
     const lenderTypeMap: { [key: string]: string } = {
       agency: 'Agency Lender',
       bank: 'Bank',
@@ -49,56 +134,7 @@ export class LenderListComponent implements OnInit, OnDestroy {
     return lenderTypeMap[value] || value;
   }
 
-  ngOnDestroy(): void {
-    // Clean up subscription to prevent memory leaks
-    if (this.lendersSubscription) {
-      this.lendersSubscription.unsubscribe();
-    }
-  }
-
-  loadLenders(): void {
-    this.loading = true;
-    console.log('Starting to load lenders...');
-
-    // Use getAllLenders instead of getLendersForCurrentUser
-    this.lendersSubscription = this.lenderService.getAllLenders().subscribe({
-      next: (data) => {
-        console.log('Lenders received:', data);
-        console.log('Number of lenders:', data.length);
-
-        // Log each lender structure to debug any issues
-        data.forEach((lender, index) => {
-          console.log(`Lender ${index + 1}:`, lender);
-          console.log(`Has contactInfo:`, !!lender.contactInfo);
-          console.log(`Has productInfo:`, !!lender.productInfo);
-        });
-
-        this.lenders = data;
-        this.loading = false;
-      },
-      error: (error) => {
-        console.error('Error loading lenders:', error);
-        this.loading = false;
-      },
-      complete: () => {
-        console.log('Lenders subscription completed');
-      },
-    });
-  }
-
-  // Simplified for view-only functionality
-  deleteLender(id: string | undefined): void {
-    if (!id) return;
-
-    if (confirm('Are you sure you want to delete this lender?')) {
-      this.lenderService
-        .deleteLender(id)
-        .then(() => {
-          this.lenders = this.lenders.filter((lender) => lender.id !== id);
-        })
-        .catch((error) => {
-          console.error('Error deleting lender', error);
-        });
-    }
+  navigateTo(id: string): void {
+    this.router.navigate(['/lender-details', id]);
   }
 }

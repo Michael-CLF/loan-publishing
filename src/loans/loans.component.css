@@ -38,6 +38,7 @@
   font-weight: 500;
 }
 .loan-card {
+  position: relative;
   background-color: white;
   width: 80%;
   border-radius: 8px;
@@ -168,4 +169,25 @@
   p {
     margin-bottom: 16px;
   }
+}
+/* Basic button styling */
+.favorite-btn {
+  position: absolute;
+  top: 12px;
+  right: 10px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 2.2rem;
+  z-index: 1; /* Ensure the button appears above other elements */
+}
+
+/* Heart symbol default state */
+.favorite-btn span {
+  background-color: transparent;
+}
+
+/* Heart symbol when favorited */
+.favorite-btn span.filled {
+  color: yellow; /* Pink/red color for filled heart */
 }

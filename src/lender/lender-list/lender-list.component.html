@@ -3,18 +3,22 @@
         <h2 class="headline">Lender Database</h2>
     </div>
 
+    <!-- Include the filter component -->
+    <app-lender-filter (applyFilters)="applyFilters($event)"></app-lender-filter>
+
+    <!-- Loading indicator -->
     <div *ngIf="loading" class="text-center my-8">
         <p>Loading lenders...</p>
     </div>
 
+    <!-- Empty state -->
     <div *ngIf="!loading && lenders.length === 0" class="text-center">
-        <p class="text-lg">You haven't added your lender information.</p>
-        <p class="mt-2">Get started.</p>
-        <button routerLink="/lender-registration" class="lender-add-button">
-            Add Lender
-        </button>
+        <p class="text-lg">No lenders match your filter criteria.</p>
     </div>
 
+
+
+    <!-- Lender table -->
     <div *ngIf="!loading && lenders.length > 0" class="lender-table">
         <table class="lender-header">
             <thead class="lender-title">
@@ -26,23 +30,23 @@
                 </tr>
             </thead>
             <tbody>
-            <tbody>
                 <tr *ngFor="let lender of lenders" class="hover:bg-gray-50 border-b cursor-pointer"
-                    [routerLink]="['/lender-details', lender.id!]">
+                    (click)="navigateTo(lender.id!)">
                     <td class="lender-detail">
                         {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
                     </td>
                     <td class="lender-detail">{{ lender.contactInfo?.company }}</td>
                     <td class="lender-detail">
-                        <span *ngIf="lender.productInfo?.lenderTypes">
-                            <span *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
+                        <div *ngIf="lender.productInfo?.lenderTypes">
+                            <div *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
                                 {{ getLenderTypeName(type) }}{{ !last ? ', ' : '' }}
-                            </span>
-                        </span>
+                            </div>
+                        </div>
                     </td>
+
                     <td class="lender-detail">
-                        ${{ lender.productInfo?.minLoanAmount | number }} - ${{
-                        lender.productInfo?.maxLoanAmount | number }}
+                        ${{ lender.productInfo?.minLoanAmount | number }} -
+                        ${{ lender.productInfo?.maxLoanAmount | number }}
                     </td>
                 </tr>
             </tbody>

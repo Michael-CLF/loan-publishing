@@ -35,11 +35,9 @@ export class UserFormComponent implements OnInit {
 
   // Define user types options
   userTypes: UserTypeOption[] = [
-    { value: 'bank', name: 'Bank' },
-    { value: 'borrower-sponsor', name: 'Borrower/Sponsor' },
+    { value: 'lender', name: 'Lender' },
     { value: 'loan-officer', name: 'Loan Officer' },
-    { value: 'mortgage-broker', name: 'Mortgage Broker' },
-    { value: 'mortgage-banker', name: 'Mortgage Banker' },
+    { value: 'mortgage-company', name: 'Mortgage Company' },
   ];
 
   // Define all US states

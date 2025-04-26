@@ -4,6 +4,9 @@
             <a href="/">DLP</a>
         </div>
         <div class="navbar-actions">
+            <div class="register">
+                <a href="/user-form" class="reg-btn">Register</a>
+            </div>
             <div class="nav-menu">
                 <a href="/loans" class="all-loans">All Loans</a>
                 <a href="/pricing" class="pricing">Pricing</a>
@@ -14,7 +17,8 @@
             </div>
 
             <div *ngIf="isLoggedIn" class="user-menu">
-                <a href="/dashboard" class="dashboard-link">Dashboard</a>
+                <a [attr.href]="userRole === 'lender' ? '/lender-dashboard' : '/dashboard'"
+                    class="dashboard-link">Dashboard</a>
                 <!-- Replace this line only -->
                 <div class="account-dropdown">
                     <button type="button" (click)="toggleAccountDropdown($event)" class="account-link">

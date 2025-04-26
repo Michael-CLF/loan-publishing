@@ -26,6 +26,7 @@ interface LoanFilters {
   loanType: string;
   minAmount: string;
   maxAmount: string;
+  isFavorite?: boolean;
 }
 
 @Component({
@@ -51,7 +52,7 @@ export class LoansComponent implements OnInit {
     MixedUse: '#8A2BE2',
     'Multi-family': '#6c3483',
     Office: '#4682B4',
-    'Residential Property': '#DC143C',
+    Residential: '#DC143C',
     'Retail Property': '#660000',
     'Special Purpose': '#6e2c00',
   };
@@ -116,9 +117,10 @@ export class LoansComponent implements OnInit {
     }
   }
 
-  /**
-   * Handle filter application
-   */
+  toggleFavorite(loan: any): void {
+    loan.isFavorite = !loan.isFavorite;
+  }
+
   handleFilterApply(filters: LoanFilters): void {
     const filteredResults = this.allLoans().filter((loan) => {
       // Filter by property type

@@ -192,20 +192,114 @@ export class AuthService implements OnDestroy {
   /**
    * Loads user profile from Firestore and updates the profile subject
    */
+  /**
+   * Loads user profile from Firestore and updates the profile subject
+   */
   private loadUserProfile(uid: string): void {
     console.log('AuthService: Loading user profile for UID:', uid);
 
+    // First try the users collection
     this.firestoreService
       .getDocumentWithLogging<any>(`users/${uid}`)
       .pipe(take(1))
       .subscribe({
         next: (profile) => {
-          console.log('AuthService: User profile loaded:', profile);
-          this.userProfileSubject.next(profile);
+          if (profile) {
+            console.log(
+              'AuthService: User profile loaded from users collection:',
+              profile
+            );
+            this.userProfileSubject.next(profile);
+          } else {
+            // If not found in users collection, try lenders collection
+            console.log(
+              'AuthService: User not found in users collection, checking lenders collection'
+            );
+            this.firestoreService
+              .getDocumentWithLogging<any>(`lenders/${uid}`)
+              .pipe(take(1))
+              .subscribe({
+                next: (lenderProfile) => {
+                  if (lenderProfile) {
+                    console.log(
+                      'AuthService: User profile loaded from lenders collection:',
+                      lenderProfile
+                    );
+
+                    // Create a user profile from lender data
+                    const userData = {
+                      id: uid,
+                      firstName: lenderProfile.contactInfo?.firstName || '',
+                      lastName: lenderProfile.contactInfo?.lastName || '',
+                      email: lenderProfile.contactInfo?.contactEmail || '',
+                      company: lenderProfile.contactInfo?.company || '',
+                      phone: lenderProfile.contactInfo?.contactPhone || '',
+                      city: lenderProfile.contactInfo?.city || '',
+                      state: lenderProfile.contactInfo?.state || '',
+                      role: 'lender',
+                      lenderId: uid,
+                    };
+
+                    this.userProfileSubject.next(userData);
+                  } else {
+                    console.log(
+                      'AuthService: User not found in either collection'
+                    );
+                    this.userProfileSubject.next(null);
+                  }
+                },
+                error: (error) => {
+                  console.error(
+                    'AuthService: Error loading lender profile:',
+                    error
+                  );
+                  this.userProfileSubject.next(null);
+                },
+              });
+          }
         },
         error: (error) => {
           console.error('AuthService: Error loading user profile:', error);
-          this.userProfileSubject.next(null);
+
+          // On error, try lenders collection as a fallback
+          this.firestoreService
+            .getDocumentWithLogging<any>(`lenders/${uid}`)
+            .pipe(take(1))
+            .subscribe({
+              next: (lenderProfile) => {
+                if (lenderProfile) {
+                  console.log(
+                    'AuthService: User profile loaded from lenders collection after users error:',
+                    lenderProfile
+                  );
+
+                  // Create a user profile from lender data
+                  const userData = {
+                    id: uid,
+                    firstName: lenderProfile.contactInfo?.firstName || '',
+                    lastName: lenderProfile.contactInfo?.lastName || '',
+                    email: lenderProfile.contactInfo?.contactEmail || '',
+                    company: lenderProfile.contactInfo?.company || '',
+                    phone: lenderProfile.contactInfo?.contactPhone || '',
+                    city: lenderProfile.contactInfo?.city || '',
+                    state: lenderProfile.contactInfo?.state || '',
+                    role: 'lender',
+                    lenderId: uid,
+                  };
+
+                  this.userProfileSubject.next(userData);
+                } else {
+                  this.userProfileSubject.next(null);
+                }
+              },
+              error: (error) => {
+                console.error(
+                  'AuthService: Error loading lender profile after users error:',
+                  error
+                );
+                this.userProfileSubject.next(null);
+              },
+            });
         },
       });
   }
@@ -586,6 +680,22 @@ export class AuthService implements OnDestroy {
             console.error('AuthService: Error during logout:', error);
             throw error;
           })
+        );
+      })
+    );
+  }
+
+  // Add this method to your AuthService
+  updateUserRole(role: string): Observable<void> {
+    return this.getCurrentUser().pipe(
+      take(1),
+      switchMap((user) => {
+        if (!user) {
+          throw new Error('No authenticated user');
+        }
+
+        return from(
+          this.firestoreService.updateDocument(`users/${user.uid}`, { role })
         );
       })
     );

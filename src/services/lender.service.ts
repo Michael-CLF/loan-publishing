@@ -1,256 +1,154 @@
-// src/app/services/lender.service.ts
-import { Injectable, inject } from '@angular/core';
-import { FirestoreService } from './firestore.service';
-import { AuthService } from './auth.service';
+// lender.service.ts
+import { Injectable } from '@angular/core';
+import {
+  Firestore,
+  collection,
+  query,
+  where,
+  doc,
+  getDoc,
+  addDoc,
+  updateDoc,
+  deleteDoc,
+  QueryConstraint,
+  collectionData,
+  docData,
+} from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
-import { switchMap, map, take } from 'rxjs/operators';
-import { DocumentReference, where } from '@angular/fire/firestore';
+import { map, catchError } from 'rxjs/operators';
 
-// Update the Lender interface to make userId optional
 export interface Lender {
   id?: string;
-  userId?: string;
-  role: string;
-  contactInfo?: {
-    company: string;
-    firstName: string;
-    lastName: string;
-    contactPhone: string;
-    contactEmail: string;
-    city: string;
-    state: string;
-  };
+  name: string;
+  lenderType: string;
+  propertyCategories?: string[];
+  states?: string[];
+
   productInfo?: {
-    lenderTypes: string[];
-    minLoanAmount: number;
-    maxLoanAmount: number;
-    propertyCategories: string[];
-    propertyTypes: string[];
+    minLoanAmount?: number;
+    maxLoanAmount?: number;
+    lenderTypes?: string[];
+    propertyCategories?: string[];
+    propertyTypes?: string[];
   };
-  footprintInfo: {
+  contactInfo?: any;
+  footprintInfo?: {
     lendingFootprint: string[];
-    propertyTypes: Record<string, any>;
   };
-  createdAt: Date;
-  updatedAt: Date;
 }
 
 @Injectable({
   providedIn: 'root',
 })
 export class LenderService {
-  private firestoreService = inject(FirestoreService);
-  private authService = inject(AuthService);
-  private readonly LENDERS_COLLECTION = 'lenders';
+  constructor(private firestore: Firestore) {}
 
-  // Create a new lender without requiring authentication
-  createLender(
-    lender: Omit<Lender, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const now = new Date();
-
-      // Create a new object with all the lender properties plus the metadata
-      const lenderWithMetadata: any = {
-        ...lender,
-        createdAt: now,
-        updatedAt: now,
-      };
-
-      // Convert loan amounts to numbers
-      if (lenderWithMetadata.productInfo) {
-        lenderWithMetadata.productInfo = {
-          ...lenderWithMetadata.productInfo,
-          minLoanAmount:
-            typeof lenderWithMetadata.productInfo.minLoanAmount === 'string'
-              ? parseFloat(
-                  lenderWithMetadata.productInfo.minLoanAmount.replace(
-                    /[^0-9.]/g,
-                    ''
-                  )
-                )
-              : Number(lenderWithMetadata.productInfo.minLoanAmount || 0),
-          maxLoanAmount:
-            typeof lenderWithMetadata.productInfo.maxLoanAmount === 'string'
-              ? parseFloat(
-                  lenderWithMetadata.productInfo.maxLoanAmount.replace(
-                    /[^0-9.]/g,
-                    ''
-                  )
-                )
-              : Number(lenderWithMetadata.productInfo.maxLoanAmount || 0),
-        };
-      }
-
-      // Try to get current user, but don't require it
-      this.authService
-        .getCurrentUser()
-        .pipe(take(1))
-        .subscribe({
-          next: (user) => {
-            // Add userId if user is authenticated
-            if (user) {
-              lenderWithMetadata.userId = user.uid;
-            }
-
-            this.firestoreService
-              .addDocument(this.LENDERS_COLLECTION, lenderWithMetadata)
-              .then((docRef: DocumentReference) => {
-                resolve(docRef.id);
-              })
-              .catch((error: Error) => {
-                reject(error);
-              });
-          },
-          error: (error) => {
-            reject(error);
-          },
-        });
-    });
+  // Get all lenders
+  getAllLenders(): Observable<Lender[]> {
+    const lendersRef = collection(this.firestore, 'lenders');
+    return collectionData(lendersRef, { idField: 'id' }) as Observable<
+      Lender[]
+    >;
   }
-
-  // Get a specific lender
-  getLender(id: string): Observable<Lender | null> {
-    return this.firestoreService
-      .getDocument<Lender>(`${this.LENDERS_COLLECTION}/${id}`)
-      .pipe(
-        map((lender) => {
-          if (lender && lender.productInfo) {
-            // Ensure loan amounts are proper numbers
-            lender.productInfo.minLoanAmount = Number(
-              lender.productInfo.minLoanAmount
-            );
-            lender.productInfo.maxLoanAmount = Number(
-              lender.productInfo.maxLoanAmount
-            );
-          }
-          return lender;
-        })
-      );
-  }
-
-  // Apply similar changes to getAllLenders and getLendersForCurrentUser
-
-  // Update a lender
-  updateLender(id: string, lender: Partial<Lender>): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Verify lender exists first
-      this.getLender(id)
-        .pipe(take(1))
-        .subscribe({
-          next: (existingLender) => {
-            if (!existingLender) {
-              reject(new Error('Lender not found'));
-              return;
-            }
-
-            const updateData: Partial<Lender> = {
-              ...lender,
-              updatedAt: new Date(),
-            };
-            if (updateData.productInfo) {
-              updateData.productInfo.minLoanAmount = Number(
-                updateData.productInfo.minLoanAmount ?? 0
-              );
-              updateData.productInfo.maxLoanAmount = Number(
-                updateData.productInfo.maxLoanAmount ?? 0
-              );
-            }
-
-            this.firestoreService
-              .updateDocument(`${this.LENDERS_COLLECTION}/${id}`, updateData)
-              .then(() => resolve())
-              .catch((error) => reject(error));
-          },
-          error: (error) => {
-            reject(error);
-          },
-        });
-    });
-  }
-
-  // Delete a lender
-  deleteLender(id: string): Promise<void> {
-    return new Promise((resolve, reject) => {
-      // Verify lender exists first
-      this.getLender(id)
-        .pipe(take(1))
-        .subscribe({
-          next: (existingLender) => {
-            if (!existingLender) {
-              reject(new Error('Lender not found'));
-              return;
-            }
-
-            this.firestoreService
-              .deleteDocument(`${this.LENDERS_COLLECTION}/${id}`)
-              .then(() => resolve())
-              .catch((error) => reject(error));
-          },
-          error: (error) => {
-            reject(error);
-          },
-        });
-    });
-  }
-
-  // Get all lenders for the current user
-  getLendersForCurrentUser(): Observable<Lender[]> {
-    return this.authService.getCurrentUser().pipe(
-      take(1),
-      switchMap((user) => {
-        if (!user) {
-          return of([]);
-        }
-
-        // Get lenders where userId matches the current user
-        return this.firestoreService.queryCollection<Lender>(
-          this.LENDERS_COLLECTION,
-          where('userId', '==', user.uid)
-        );
+  // Get a single lender by ID
+  getLender(id: string): Observable<Lender> {
+    const lenderDocRef = doc(this.firestore, `lenders/${id}`);
+    return docData(lenderDocRef, { idField: 'id' }).pipe(
+      map((data) => data as Lender),
+      catchError((error) => {
+        console.error('Error getting lender:', error);
+        throw error;
       })
     );
   }
 
-  getAllLenders(): Observable<Lender[]> {
-    return this.firestoreService
-      .getCollection<Lender>(this.LENDERS_COLLECTION)
-      .pipe(
-        map((lenders) => {
-          return lenders.map((lender) => {
-            // Create a copy of the lender to modify
-            const updatedLender = { ...lender };
+  // Create a new lender
+  async createLender(lender: Lender): Promise<string> {
+    try {
+      const lendersRef = collection(this.firestore, 'lenders');
+      const docRef = await addDoc(lendersRef, lender);
+      return docRef.id;
+    } catch (error) {
+      console.error('Error adding lender:', error);
+      throw error;
+    }
+  }
 
-            // Check if productInfo exists
-            if (updatedLender.productInfo) {
-              // Use a safe method to clean and convert string values
-              try {
-                // For minLoanAmount
-                const minAmount = updatedLender.productInfo.minLoanAmount;
-                if (minAmount !== undefined && minAmount !== null) {
-                  // Convert to string first, then clean non-numeric characters
-                  const minStr = String(minAmount);
-                  const cleanMin = minStr.replace(/[^0-9.]/g, '');
-                  updatedLender.productInfo.minLoanAmount =
-                    Number(cleanMin) || 0;
-                }
+  // Update an existing lender
+  async updateLender(id: string, lender: Partial<Lender>): Promise<void> {
+    try {
+      const lenderDocRef = doc(this.firestore, `lenders/${id}`);
+      await updateDoc(lenderDocRef, lender);
+    } catch (error) {
+      console.error('Error updating lender:', error);
+      throw error;
+    }
+  }
 
-                // For maxLoanAmount
-                const maxAmount = updatedLender.productInfo.maxLoanAmount;
-                if (maxAmount !== undefined && maxAmount !== null) {
-                  // Convert to string first, then clean non-numeric characters
-                  const maxStr = String(maxAmount);
-                  const cleanMax = maxStr.replace(/[^0-9.]/g, '');
-                  updatedLender.productInfo.maxLoanAmount =
-                    Number(cleanMax) || 0;
-                }
-              } catch (error) {
-                console.error('Error converting loan amounts', error);
+  // Delete a lender
+  async deleteLender(id: string): Promise<void> {
+    try {
+      const lenderDocRef = doc(this.firestore, `lenders/${id}`);
+      await deleteDoc(lenderDocRef);
+    } catch (error) {
+      console.error('Error deleting lender:', error);
+      throw error;
+    }
+  }
+
+  searchLenders(
+    lenderType: string,
+    propertyCategory: string,
+    state: string,
+    loanAmount: string
+  ): Observable<Lender[]> {
+    const lendersRef = collection(this.firestore, 'lenders');
+
+    // First get all lenders, then filter in memory
+    return this.getAllLenders().pipe(
+      map((lenders) => {
+        return lenders.filter((lender) => {
+          // Filter by lender type if provided
+          if (lenderType && lender.productInfo?.lenderTypes) {
+            if (!lender.productInfo.lenderTypes.includes(lenderType)) {
+              return false;
+            }
+          }
+
+          // Filter by property category if provided
+          if (propertyCategory && lender.propertyCategories) {
+            if (!lender.propertyCategories.includes(propertyCategory)) {
+              return false;
+            }
+          }
+
+          // Filter by state if provided
+          if (state && lender.states) {
+            if (!lender.states.includes(state)) {
+              return false;
+            }
+          }
+
+          // Filter by loan amount if provided
+          if (loanAmount) {
+            const cleanedAmount = loanAmount.replace(/[^0-9.]/g, '');
+            const amount = Number(cleanedAmount);
+
+            if (!isNaN(amount) && amount > 0) {
+              const minAmount = lender.productInfo?.minLoanAmount || 0;
+              const maxAmount =
+                lender.productInfo?.maxLoanAmount || Number.MAX_VALUE;
+
+              if (amount < minAmount || amount > maxAmount) {
+                return false;
               }
             }
-            return updatedLender;
-          });
-        })
-      );
+          }
+
+          // If all filters pass or no filters provided, include the lender
+          return true;
+        });
+      })
+    );
   }
 }

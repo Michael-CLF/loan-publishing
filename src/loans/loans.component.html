@@ -67,6 +67,9 @@
 
             <!-- Update this part in your loans.component.html -->
             <div class="loan-actions">
+                <button class="favorite-btn" (click)="toggleFavorite(loan)">
+                    <span class="heart" [class.filled]="loan.isFavorite">♥</span>
+                </button>
                 <!-- Only show the View button, centered -->
                 <button class="action-btn view-btn centered" (click)="viewLoanDetails(loan.id || '')">View More
                     Details</button>

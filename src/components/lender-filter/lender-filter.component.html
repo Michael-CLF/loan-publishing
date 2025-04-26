@@ -1,0 +1,51 @@
+<div class="filter-container">
+    <h2 class="filter-title">Filter Lenders</h2>
+
+    <div class="filter-form">
+        <div class="filter-row">
+            <div class="filter-group">
+                <label for="lenderType">Lender Type</label>
+                <select id="lenderType" [(ngModel)]="filters().lenderType"
+                    (ngModelChange)="updateFilter('lenderType', $event)">
+                    <option value="">All Lender Types</option>
+                    <option *ngFor="let type of lenderTypes" [value]="type">
+                        {{ getLenderTypeName(type) }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="propertyCategory">Property Category</label>
+                <select id="propertyCategory" [(ngModel)]="filters().propertyCategory">
+                    <option value="">All Property Categories</option>
+                    <option *ngFor="let category of propertyCategories" [value]="category">
+                        {{ category }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-group">
+                <label for="state">State</label>
+                <select id="state" [(ngModel)]="filters().state">
+                    <option value="">All States</option>
+                    <option *ngFor="let state of states" [value]="state">{{ state }}</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="filter-row">
+            <label for="loanAmount">Loan Amount ($)</label>
+            <input type="text" id="loanAmount" [ngModel]="filters().loanAmount || ''"
+                (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount" pattern="[0-9]*"
+                inputmode="numeric">
+        </div>
+        <div class="filter-actions">
+            <button class="filter-btn apply-btn" (click)="onApplyFilters()">
+                Apply Filters
+            </button>
+            <button class="filter-btn reset-btn" (click)="onResetFilters()">
+                Reset
+            </button>
+        </div>
+    </div>
+</div>

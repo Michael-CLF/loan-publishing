@@ -1,0 +1,91 @@
+/* lender-filter.component.css */
+.filter-container {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.filter-form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.filter-group {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-title {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+}
+
+label {
+  display: block;
+  margin-bottom: 6px;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+  color: #0a2463;
+}
+
+select,
+input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.filter-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+.apply-btn {
+  background-color: #0a2463;
+  color: white;
+}
+
+.apply-btn:hover {
+  background-color: #008080;
+}
+
+.reset-btn {
+  background-color: #6c757d;
+  color: white;
+}
+
+.reset-btn:hover {
+  background-color: #272727;
+}
+
+@media (max-width: 768px) {
+  .filter-group {
+    min-width: 100%;
+  }
+}
+
+select {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+}

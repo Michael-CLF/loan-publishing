@@ -1,4 +1,4 @@
-<h1 class="title">Dashboard</h1>
+<h1 class="title">Lender Dashboard</h1>
 <div class="dashboard-container">
     <!-- User Profile Section -->
     <div class="account-container">
@@ -8,7 +8,6 @@
             <div *ngIf="loading" class="loading">
                 Loading your profile...
             </div>
-
 
             <div class="profile-row">
                 <span class="label">Account #: </span>
@@ -37,90 +36,54 @@
                         <span class="value">{{ userData.city }}, {{ userData.state }}</span>
                     </div>
 
-                    <!-- Account action buttons with proper ngIf directive -->
+                    <!-- Account action buttons -->
                     <div *ngIf="userData && !loading" class="profile-actions">
                         <button class="action-btn account-edit-btn" (click)="editAccount()">Edit Account</button>
                         <button class="action-btn account-delete-btn" (click)="deleteAccount()">Delete Account</button>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Created Loans Section (for Originators only) -->
-    <div *ngIf="isOriginator()" class="loan-container">
-        <h3 class="loans">My Published Loans:</h3>
+    <!-- Lender Profile Section -->
+    <div class="lender-section">
+        <h2>Lending Profile</h2>
 
-        <!-- Loans Loading State -->
-        <div *ngIf="loansLoading()" class="loading">
-            <p>Loading your loans...</p>
-        </div>
-
-        <!-- Loans Error State -->
-        <div *ngIf="loansError()" class="error-message">
-            <p>{{ loansError() }}</p>
-            <button *ngIf="user" (click)="loadLoans(user.uid)">Try Again</button>
-        </div>
-
-        <!-- No Loans Message -->
-        <div *ngIf="!loansLoading() && !loansError() && loans().length === 0" class="empty-state">
-            <p>You haven't created any loans yet.</p>
-            <p>Click "Add new loan" to get started.</p>
-        </div>
-        <div class="button-container">
-            <a href="/loan" class="add-loan">Add new loan</a>
-        </div>
-
-        <!-- Loans List -->
-        <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
-            <div *ngFor="let loan of loans()" class="loan-card">
-                <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
-                    <span class="loan-type">
-                        {{ loan.propertyTypeCategory }}
-                    </span>
-
-                    <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
-                </div>
-
-                <div class="loan-body">
-                    <div class="loan-detail">
-                        <span class="detail-label">Property:</span>
-                        <span class="detail-value">{{ loan.propertySubCategory }}</span>
-                    </div>
-
-                    <div class="loan-detail">
-                        <span class="detail-label">Location:</span>
-                        <span class="detail-value">{{ loan.city }}, {{ loan.state }}</span>
-                    </div>
-
-                    <div class="loan-detail">
-                        <span class="detail-label">Loan Type:</span>
-                        <span class="detail-value">{{ loan.loanType }}</span>
-                    </div>
-
-                    <div class="loan-detail">
-                        <span class="detail-label">LTV:</span>
-                        <span class="detail-value">{{ loan.ltv }}%</span>
-                    </div>
-
-                    <div class="loan-detail">
-                        <span class="detail-label">Created:</span>
-                        <span class="detail-value">{{ getFormattedDate(loan.createdAt) }}</span>
-                    </div>
-                </div>
-
-                <div class="loan-actions">
-                    <button class="action-btn view-btn" (click)="viewLoanDetails(loan.id || '')">View</button>
-                    <button class="action-btn edit-btn" (click)="editLoan(loan.id || '')">Edit</button>
-                    <button class="action-btn delete-btn" (click)="deleteLoan(loan.id || '')">Delete</button>
-                </div>
+        <div *ngIf="lenderData" class="lender-info">
+            <div class="profile-row">
+                <span class="label">Min Loan:</span>
+                <span class="value">{{ formatCurrency(lenderData?.productInfo?.minLoanAmount) }}</span>
             </div>
+            <div class="profile-row">
+                <span class="label">Max Loan:</span>
+                <span class="value">{{ formatCurrency(lenderData?.productInfo?.maxLoanAmount) }}</span>
+            </div>
+
+            <!-- Additional lender-specific information -->
+            <div *ngIf="lenderData?.productInfo?.lenderTypes" class="profile-row">
+                <span class="label">Lender Types:</span>
+                <span class="value">{{ lenderData.productInfo.lenderTypes.join(', ') }}</span>
+            </div>
+
+            <div *ngIf="lenderData?.productInfo?.propertyCategories" class="profile-row">
+                <span class="label">Property Categories:</span>
+                <span class="value">{{ lenderData.productInfo.propertyCategories.join(', ') }}</span>
+            </div>
+
+            <div class="profile-actions">
+                <button class="action-btn primary-btn" (click)="editLenderProfile()">Edit Lending Profile</button>
+            </div>
+        </div>
+
+        <div *ngIf="!lenderData" class="lender-registration">
+            <p>Your lender profile is not complete.</p>
+            <a href="/lender-registration" class="action-btn primary-btn">Complete Lender Registration</a>
         </div>
     </div>
 
-    <!-- Saved Loans Section (only for Lenders) -->
-    <div *ngIf="isLender()" class="loan-container">
+    <!-- Saved Loans Section -->
+    <div class="loan-container">
         <h3 class="loans">Saved Loans:</h3>
 
         <!-- Saved Loans Loading State -->

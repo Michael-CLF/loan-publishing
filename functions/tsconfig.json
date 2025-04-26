@@ -30,7 +30,7 @@
     "strictTemplates": true
   },
   "files": [
-    "src/main.ts"
+    "src/index.ts"
   ],
   "include": [
     "src/**/*.ts"

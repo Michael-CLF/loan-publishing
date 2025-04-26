@@ -27,7 +27,7 @@ type PropertyCategory =
   | 'Industrial Property'
   | 'Multi-family'
   | 'Office'
-  | 'Residential Property'
+  | 'Residential'
   | 'Retail Property'
   | 'Special Purpose';
 
@@ -107,7 +107,7 @@ export class LoanComponent implements OnInit {
       'Student Housing',
     ],
     Office: ['Medical Office', 'Office Condo', 'Professional Office Building'],
-    'Residential Property': [
+    Residential: [
       '1-4 Units',
       'Condo',
       'Duplex',

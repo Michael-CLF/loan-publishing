@@ -1,4 +1,3 @@
-// lender-registration.component.ts
 import { Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
@@ -11,12 +10,20 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
+import { take, switchMap, catchError, finalize, map } from 'rxjs/operators';
+import { of, from, Observable } from 'rxjs';
+
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
 import { LenderService } from '../../services/lender.service';
 import { EmailExistsValidator } from '../../services/email-exists.validator';
+import { AuthService } from '../../services/auth.service';
+import { FirestoreService } from '../../services/firestore.service';
+import { Firestore, doc, setDoc } from '@angular/fire/firestore';
+import { collection } from '@angular/fire/firestore';
 
 export interface PropertyCategory {
   name: string;
@@ -70,14 +77,26 @@ export interface LoanTypes {
   styleUrls: ['./lender-registration.component.css'],
 })
 export class LenderRegistrationComponent implements OnInit {
+  // Injected services
   private lenderService = inject(LenderService);
   private emailExistsValidator = inject(EmailExistsValidator);
+  private router = inject(Router);
+  private authService = inject(AuthService);
+  private firestoreService = inject(FirestoreService);
+  private firestore = inject(Firestore);
+  private fb = inject(FormBuilder);
+
+  // Component state
   lenderForm!: FormGroup;
   currentStep = 0;
   isLoading = false;
   submitted = false;
   successMessage = '';
   errorMessage = '';
+
+  // User ID storage for linking documents
+  private userId: string | null = null;
+  private contactDataSaved = false;
 
   states: StateOption[] = [
     { value: 'AL', name: 'Alabama' },
@@ -311,12 +330,22 @@ export class LenderRegistrationComponent implements OnInit {
     },
   ];
 
-  constructor(private fb: FormBuilder) {}
+  constructor() {}
 
   ngOnInit(): void {
     this.initializeForm();
 
-    // Log initial form state
+    // Get current user ID if available
+    this.authService
+      .getCurrentUser()
+      .pipe(take(1))
+      .subscribe((user) => {
+        if (user) {
+          this.userId = user.uid;
+          console.log('Current user ID:', this.userId);
+        }
+      });
+
     console.log('Registration form initialized:', this.lenderForm);
   }
 
@@ -403,7 +432,6 @@ export class LenderRegistrationComponent implements OnInit {
           Validators.pattern(/^[A-Za-z ]+$/),
         ],
       ],
-
       firstName: [
         '',
         [
@@ -447,8 +475,8 @@ export class LenderRegistrationComponent implements OnInit {
 
     const productStep = this.fb.group({
       lenderTypes: lenderTypesArray,
-      minLoanAmount: [null, [Validators.required, Validators.min(6)]],
-      maxLoanAmount: [null, [Validators.required, Validators.min(6)]],
+      minLoanAmount: [null, [Validators.required, Validators.minLength(6)]],
+      maxLoanAmount: [null, [Validators.required, Validators.minLength(6)]],
       propertyCategories: propertyCategoriesArray,
       propertyTypes: propertyTypesArray,
     });
@@ -626,58 +654,110 @@ export class LenderRegistrationComponent implements OnInit {
     });
   }
 
-  nextStep(): void {
-    const currentForm = this.getStepFormGroup();
+  // ===== SPLIT STORAGE IMPLEMENTATION =====
 
-    // Mark all controls as touched to trigger validation
-    this.markAllAsTouched(currentForm);
-
-    // Your existing debug logging
-    console.log('Form valid:', currentForm.valid);
-    console.log('Form value:', currentForm.value);
-    console.log('Form errors:', currentForm.errors);
-
-    // Additional debugging for specific FormArrays in step 2
-    if (this.currentStep === 1) {
-      const lenderTypes = currentForm.get('lenderTypes') as FormArray;
-      const propertyCategories = currentForm.get(
-        'propertyCategories'
-      ) as FormArray;
-
-      console.log('Lender types selected:', lenderTypes.length);
-      console.log('Lender types valid:', lenderTypes.valid);
-      console.log('Lender types errors:', lenderTypes.errors);
-
-      console.log('Property categories selected:', propertyCategories.length);
-      console.log('Property categories valid:', propertyCategories.valid);
-      console.log('Property categories errors:', propertyCategories.errors);
-
-      console.log('Product form valid:', this.productForm.valid);
-      console.log(
-        'Min loan amount value:',
-        this.productForm.get('minLoanAmount')?.value
-      );
-      console.log(
-        'Max loan amount value:',
-        this.productForm.get('maxLoanAmount')?.value
-      );
-
-      console.log('Button should be enabled:', this.getStepFormGroup().valid);
-
-      // Check individual form controls
-      console.log(
-        'minLoanAmount valid:',
-        currentForm.get('minLoanAmount')?.valid
-      );
-      console.log(
-        'maxLoanAmount valid:',
-        currentForm.get('maxLoanAmount')?.valid
-      );
+  // Save user contact data after step 1
+  private saveUserData(): Observable<boolean> {
+    if (!this.contactForm.valid) {
+      return of(false);
     }
 
-    // Update to allow proceeding to the review step (step 3)
-    if (currentForm.valid && this.currentStep < 3) {
-      this.currentStep++;
+    // First, save to localStorage as a backup
+    try {
+      localStorage.setItem(
+        'lenderContactData',
+        JSON.stringify(this.contactForm.value)
+      );
+      this.contactDataSaved = true;
+    } catch (error) {
+      console.error('Error saving to localStorage:', error);
+    }
+
+    // Then, save user data to Firebase
+    return this.authService.getCurrentUser().pipe(
+      take(1),
+      switchMap((user) => {
+        if (!user) {
+          // If no user is logged in, create a new account
+          const contactData = this.contactForm.value;
+          return this.authService.registerUser(
+            contactData.contactEmail,
+            'tempPassword123', // Should be replaced with a proper password mechanism
+            contactData
+          );
+        }
+        return of(user);
+      }),
+      switchMap((user) => {
+        if (!user) {
+          throw new Error('Failed to get or create user');
+        }
+
+        this.userId = user.uid;
+        const contactData = this.contactForm.value;
+
+        // Prepare user data for storage
+        const userData = {
+          firstName: contactData.firstName,
+          lastName: contactData.lastName,
+          email: contactData.contactEmail || user.email,
+          company: contactData.company,
+          phone: contactData.contactPhone,
+          city: contactData.city,
+          state: contactData.state,
+          role: 'lender',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Save to users collection with the user's UID as document ID
+        return this.firestoreService.setDocument(`users/${user.uid}`, userData);
+      }),
+      map(() => true),
+      catchError((error) => {
+        console.error('Error saving user data:', error);
+        return of(false);
+      })
+    );
+  }
+
+  nextStep(): void {
+    const currentForm = this.getStepFormGroup();
+    this.markAllAsTouched(currentForm);
+
+    // Clear any previous error messages when attempting to go to the next step
+    this.errorMessage = '';
+
+    console.log('Form valid:', currentForm.valid);
+    console.log('Form value:', currentForm.value);
+
+    // If form is valid, proceed
+    if (currentForm.valid) {
+      // If completing step 1 (contact info) and not already saved, save user data to Firebase
+      if (this.currentStep === 0 && !this.contactDataSaved) {
+        this.isLoading = true;
+
+        this.saveUserData()
+          .pipe(
+            finalize(() => {
+              this.isLoading = false;
+            })
+          )
+          .subscribe((success) => {
+            if (success) {
+              this.contactDataSaved = true;
+              this.currentStep++;
+              // Clear error message explicitly on success
+              this.errorMessage = '';
+            } else {
+              this.errorMessage =
+                'Failed to save contact information. Please try again.';
+            }
+          });
+      } else if (this.currentStep < 3) {
+        // For other steps, just proceed
+        this.currentStep++;
+      }
     } else {
       // Display more specific error information
       Object.keys(currentForm.controls).forEach((key) => {
@@ -704,8 +784,7 @@ export class LenderRegistrationComponent implements OnInit {
     this.successMessage = '';
     this.isLoading = true;
 
-    this.lenderForm.get('termsAccepted')?.markAsTouched();
-    // Check if the entire form is valid before submission
+    // Ensure the form is valid
     if (!this.lenderForm.valid) {
       this.isLoading = false;
       if (this.lenderForm.get('termsAccepted')?.invalid) {
@@ -716,33 +795,87 @@ export class LenderRegistrationComponent implements OnInit {
       return;
     }
 
+    // Check if we need to generate a userId
+    if (!this.userId) {
+      // Generate a new ID for the lender document
+      const newDocRef = doc(collection(this.firestore, 'lenders'));
+      this.userId = newDocRef.id;
+    }
+
+    // Safe assertion that userId is not null at this point
+    const safeUserId: string = this.userId as string;
+
+    // Save the lender data with the ID
+    this.saveLenderData(safeUserId)
+      .pipe(
+        catchError((error) => {
+          this.isLoading = false;
+          this.errorMessage = `Error saving lender data: ${error.message}`;
+          console.error('Form submission error:', error);
+          return of(null);
+        }),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe(() => {
+        if (!this.errorMessage) {
+          this.handleSuccess();
+        }
+      });
+  }
+
+  // Modified version of saveLenderData to handle non-existent user documents
+  private saveLenderData(userId: string) {
     const formData = this.lenderForm.value;
 
-    formData.role = 'lender';
+    // Create lender document data structure
+    const lenderData = {
+      contactInfo: formData.contactInfo,
+      productInfo: formData.productInfo,
+      footprintInfo: formData.footprintInfo,
+      userId: userId, // Link to user document
+      role: 'lender',
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
 
-    this.lenderService
-      .createLender(formData)
-      .then((id: string) => {
-        // Explicitly define id as string type
-        this.isLoading = false;
-        this.successMessage = 'Lender registration completed successfully!';
-        console.log('Form Data saved with ID:', id);
-      })
-      .catch((error: Error) => {
-        // Explicitly define error as Error type
-        this.isLoading = false;
-        this.errorMessage = `Error saving data: ${error.message}`;
-        console.error('Form submission error:', error);
-        console.log('Form Data:', this.lenderForm.value);
-        console.log(
-          'Form Data before save:',
-          JSON.stringify(this.lenderForm.value, null, 2)
+    // Save to lenders collection
+    return from(
+      this.firestoreService.setDocument(`lenders/${userId}`, lenderData)
+    ).pipe(
+      switchMap(() => {
+        // Create a user document with the same ID if one doesn't exist
+        const contactData = this.contactForm.value;
+        const userData = {
+          firstName: contactData.firstName,
+          lastName: contactData.lastName,
+          email: contactData.contactEmail,
+          company: contactData.company,
+          phone: contactData.contactPhone,
+          city: contactData.city,
+          state: contactData.state,
+          role: 'lender',
+          lenderId: userId,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        // Set (create or overwrite) the user document instead of updating it
+        return from(
+          this.firestoreService.setDocument(`users/${userId}`, userData)
         );
-      });
-
-    // Process form submission (this would typically be an API call)
+      })
+    );
+  }
+  // Handle successful submission
+  private handleSuccess() {
     this.successMessage = 'Lender registration completed successfully!';
-    console.log('Form Data:', this.lenderForm.value);
+
+    // Redirect to dashboard after a short delay
+    setTimeout(() => {
+      this.router.navigate(['/dashboard']);
+    }, 1500);
   }
 
   // Object keys method for debug display
