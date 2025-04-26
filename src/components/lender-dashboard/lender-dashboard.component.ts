@@ -113,7 +113,7 @@ export class LenderDashboardComponent implements OnInit {
     Commercial: '#1E90FF',
     Healthcare: '#cb4335',
     Hospitality: '#1b4f72',
-    'Industrial Property': '#2c3e50',
+    Industrial: '#2c3e50',
     Land: '#023020',
     'Mixed Use': '#8A2BE2',
     'Multi-family': '#6c3483',

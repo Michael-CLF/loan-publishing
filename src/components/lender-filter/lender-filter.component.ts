@@ -56,7 +56,7 @@ export class LenderFilterComponent {
     'Commercial',
     'Healthcare',
     'Hospitality',
-    'Industrial Property',
+    'Industrial',
     'Land',
     'MixedUse',
     'Multi-family',

@@ -4,11 +4,12 @@
             <a href="/">DLP</a>
         </div>
         <div class="navbar-actions">
-            <div class="register">
+            <div class="register" *ngIf="!isLoggedIn">
                 <a href="/user-form" class="reg-btn">Register</a>
             </div>
             <div class="nav-menu">
-                <a href="/loans" class="all-loans">All Loans</a>
+                <!-- Hide "All Loans" from unauthenticated users -->
+                <a *ngIf="isLoggedIn" href="/loans" class="all-loans">All Loans</a>
                 <a href="/pricing" class="pricing">Pricing</a>
             </div>
 

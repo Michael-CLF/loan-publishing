@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -8,6 +8,9 @@ import {
 import { PasswordAuthService } from '../services/password-auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { Router } from '@angular/router';
+import { catchError, tap } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 export interface StateOption {
   value: string;
@@ -27,6 +30,10 @@ export interface UserTypeOption {
   styleUrls: ['./user-form.component.css'],
 })
 export class UserFormComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private passwordAuthService = inject(PasswordAuthService);
+  private router = inject(Router);
+
   userForm!: FormGroup;
   isLoading = false;
   successMessage = '';
@@ -95,11 +102,6 @@ export class UserFormComponent implements OnInit {
     { value: 'DC', name: 'District of Columbia' },
   ];
 
-  constructor(
-    private fb: FormBuilder,
-    private passwordAuthService: PasswordAuthService
-  ) {}
-
   ngOnInit(): void {
     this.userForm = this.fb.group({
       firstName: [
@@ -167,55 +169,50 @@ export class UserFormComponent implements OnInit {
   }
 
   onSubmit(): void {
-    if (this.userForm.invalid) return;
+    // Mark form as touched to show validation errors
+    Object.keys(this.userForm.controls).forEach((key) => {
+      const control = this.userForm.get(key);
+      control?.markAsTouched();
+    });
+
+    if (this.userForm.invalid) {
+      return;
+    }
 
     this.isLoading = true;
-    this.errorMessage = ''; // Clear previous errors
-    this.successMessage = ''; // Clear previous success messages
+    this.errorMessage = '';
+    this.successMessage = '';
 
-    const {
-      firstName,
-      lastName,
-      company,
-      userType,
-      email,
-      phone,
-      city,
-      state,
-      tos,
-    } = this.userForm.value;
+    const formData = this.userForm.value;
 
     this.passwordAuthService
-      .registerUser(email, 'defaultpassword', {
-        firstName,
-        lastName,
-        company,
-        userType,
-        email,
-        phone,
-        city,
-        state,
+      .registerUser(formData.email, 'defaultPassword', {
+        ...formData,
         role: 'originator',
       })
-      .subscribe(
-        (user) => {
+      .pipe(
+        tap((user) => {
           this.isLoading = false;
           this.successMessage = 'Registration successful!';
-        },
-        (error: Error) => {
+          // Navigate to dashboard after successful registration
+          this.router.navigate(['/dashboard']);
+        }),
+        catchError((error) => {
           this.isLoading = false;
-          // Check for specific Firebase error
-          if (
-            error.message &&
-            error.message.includes('auth/email-already-in-use')
-          ) {
+
+          console.error('Registration error:', error);
+
+          // Specific Firebase error code handling
+          if (error.code === 'auth/email-already-in-use') {
             this.errorMessage =
-              'This email is already registered. Please use a different email.';
+              'This email is already registered. Please use a different email or login with your existing account.';
           } else {
             this.errorMessage = 'Registration failed. Please try again.';
           }
-          console.error('Registration error:', error);
-        }
-      );
+
+          return of(null);
+        })
+      )
+      .subscribe();
   }
 }

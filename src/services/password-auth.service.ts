@@ -6,7 +6,7 @@ import {
   signOut,
 } from '@angular/fire/auth';
 import { FirestoreService } from './firestore.service';
-import { Observable, from, of } from 'rxjs';
+import { Observable, from, of, throwError } from 'rxjs';
 import { switchMap, catchError } from 'rxjs/operators';
 
 @Injectable({
@@ -43,7 +43,8 @@ export class PasswordAuthService {
       }),
       catchError((error) => {
         console.error('Error registering user:', error);
-        return of(null);
+        // Instead of returning of(null), throw the error to propagate it
+        return throwError(() => error);
       })
     );
   }

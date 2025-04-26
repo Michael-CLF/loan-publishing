@@ -19,12 +19,13 @@ import { RouterModule, Router } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
+import { ModalService } from '../services/modal.service';
 
 // Type definitions
 type PropertyCategory =
   | 'Healthcare'
   | 'Hospitality'
-  | 'Industrial Property'
+  | 'Industrial'
   | 'Multi-family'
   | 'Office'
   | 'Residential'
@@ -44,6 +45,7 @@ export class LoanComponent implements OnInit {
   private loanService = inject(LoanService);
   private destroyRef = inject(DestroyRef);
   private router = inject(Router);
+  private modalService = inject(ModalService);
 
   // Form group
   propertyForm!: FormGroup;
@@ -63,7 +65,7 @@ export class LoanComponent implements OnInit {
     { value: 'bridge', name: 'Bridge Loan' },
     { value: 'DSCR', name: 'DSCR' },
     { value: 'fixFlip', name: 'Fix & Flip' },
-    { value: 'hardMoney', name: 'Hard Money' }, // Change to hard_money for consistency if desired
+    { value: 'hardMoney', name: 'Hard Money' },
     { value: 'construction', name: 'New Construction' },
     { value: 'rehab', name: 'Rehab/Renovation' },
     { value: 'sba7a', name: 'SBA 7(a)' },
@@ -86,7 +88,7 @@ export class LoanComponent implements OnInit {
       'Motel',
       'Short-term Rentals',
     ],
-    'Industrial Property': [
+    Industrial: [
       'Cold Storage',
       'Flex Space',
       'Industrial Land',
@@ -320,7 +322,17 @@ export class LoanComponent implements OnInit {
           next: (loanId) => {
             console.log('Loan created with ID:', loanId);
             this.isSubmitting.set(false);
+            this.submissionError.set(null);
             this.submissionSuccess.set(true);
+
+            this.modalService.openLoanSuccessModal();
+
+            // Force change detection to ensure the success message appears
+            this.cdr.detectChanges();
+
+            setTimeout(() => {
+              this.router.navigate(['/dashboard']);
+            }, 3000);
           },
           error: (error) => {
             console.error('Error creating loan:', error);
@@ -344,6 +356,7 @@ export class LoanComponent implements OnInit {
       this.cdr.detectChanges();
     }
   }
+
   // Helper methods to simplify template code
   isInvalid(controlName: string): boolean {
     const control = this.propertyForm.get(controlName);
