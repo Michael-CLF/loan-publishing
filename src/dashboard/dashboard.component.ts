@@ -82,7 +82,7 @@ export class DashboardComponent implements OnInit {
     'Mixed Use': '#8A2BE2',
     'Multi-family': '#6c3483',
     Office: '#4682B4',
-    'Residential Property': '#DC143C',
+    Residential: '#DC143C',
     Retail: '#660000',
     'Special Purpose': '#6e2c00',
   };

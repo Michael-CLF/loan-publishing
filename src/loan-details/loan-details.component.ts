@@ -53,7 +53,7 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#c00000',
-    SpecialPurpose: '#A52A2A',
+    'Special Purpose': '#A52A2A',
   };
 
   ngOnInit(): void {
