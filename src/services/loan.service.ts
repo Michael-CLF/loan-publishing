@@ -32,6 +32,7 @@ import {
   throwError,
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { Loan as LoanModel } from '../models/loan-model.model';
 
 // Loan interface based on your form structure
 export interface Loan {
@@ -110,8 +111,13 @@ export class LoanService {
   }
 
   updateLoanFavorite(loanId: string, isFavorite: boolean) {
-    const loanRef = doc(this.firestore, 'loan', loanId);
-    return from(updateDoc(loanRef, { isFavorite }));
+    // Fix the collection name from 'loan' to 'loans'
+    const loanRef = doc(this.firestore, 'loans', loanId);
+    return from(
+      runInInjectionContext(this.injector, () =>
+        updateDoc(loanRef, { isFavorite })
+      )
+    );
   }
 
   /**
@@ -136,8 +142,6 @@ export class LoanService {
       })
     );
   }
-
-  // Add this method to your loan.service.ts file
 
   /**
    * Get a single loan by ID

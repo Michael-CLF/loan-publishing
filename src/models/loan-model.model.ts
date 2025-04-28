@@ -1,4 +1,3 @@
-// loan.model.ts
 export interface Loan {
   id?: string;
   propertyTypeCategory: string;
@@ -16,11 +15,12 @@ export interface Loan {
   sponsorFico: number;
   experienceInYears: number;
   contact: string;
-  company: string;
+  company: string; // Include any fields that existed in either model
   phone: string;
   email: string;
   notes?: string;
   createdBy?: string;
   createdAt?: Date;
   updatedAt?: Date;
+  isFavorite?: boolean;
 }

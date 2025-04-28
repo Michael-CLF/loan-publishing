@@ -5,7 +5,7 @@
         </div>
         <div class="navbar-actions">
             <div class="register" *ngIf="!isLoggedIn">
-                <a href="/user-form" class="reg-btn">Register</a>
+                <a href="/role-selection-modal" class="reg-btn">Register</a>
             </div>
             <div class="nav-menu">
                 <!-- Hide "All Loans" from unauthenticated users -->
@@ -19,7 +19,7 @@
             </div>
 
             <div *ngIf="isLoggedIn" class="user-menu">
-                <a [attr.href]="userRole === 'lender' ? '/lender-dashboard' : '/dashboard'"
+                <a [attr.href]="userRole === 'lender' ? '/dashboard' : '/dashboard'"
                     class="dashboard-link">Dashboard</a>
                 <!-- Replace this line only -->
                 <div class="account-dropdown">

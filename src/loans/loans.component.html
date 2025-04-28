@@ -68,7 +68,10 @@
             <!-- Update this part in your loans.component.html -->
             <div class="loan-actions">
                 <button class="favorite-btn" (click)="toggleFavorite(loan)">
-                    <i class="heart" [ngClass]="loan.isFavorite ? 'fas fa-heart' : 'far fa-heart'"></i>
+                    <i class="fa-heart heart-icon" [ngClass]="{
+                        'fa-solid selected': loan.isFavorite, 
+                        'fa-regular': !loan.isFavorite
+                      }"></i>
                 </button>
 
                 <!-- Only show the View button, centered -->

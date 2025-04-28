@@ -26,6 +26,7 @@ import {
 } from '@angular/fire/firestore';
 import { PropertyFilterComponent } from '../property-filter/property-filter.component';
 import { LOAN_TYPES } from '../shared/loan-constants';
+import { FirestoreService } from 'src/services/firestore.service';
 
 // Define the interface here instead of importing it
 interface LoanFilters {
@@ -51,6 +52,7 @@ export class LoansComponent implements OnInit {
   private firestore = inject(Firestore);
   private injector = inject(Injector);
   private authService = inject(AuthService);
+  private firestoreService = inject(FirestoreService);
 
   propertyColorMap: { [key: string]: string } = {
     Commercial: '#1E90FF',
@@ -156,7 +158,6 @@ export class LoansComponent implements OnInit {
         return;
       }
 
-      // Only lenders can save favorites
       const userDocRef = doc(this.firestore, `users/${user.uid}`);
       const userDoc = await runInInjectionContext(this.injector, () =>
         getDoc(userDocRef)
@@ -174,44 +175,15 @@ export class LoansComponent implements OnInit {
         return;
       }
 
-      // Toggle the UI state immediately for better UX
-      loan.isFavorite = !loan.isFavorite;
+      loan.isFavorite = !loan.isFavorite; // Immediate UI feedback
 
-      // Check if this loan is already favorited by this user
-      const favoritesRef = collection(this.firestore, 'favorites');
-      const q = query(
-        favoritesRef,
-        where('loanId', '==', loan.id),
-        where('userId', '==', user.uid)
+      await this.firestoreService.toggleFavoriteLoan(
+        user.uid,
+        loan,
+        loan.isFavorite
       );
-
-      const querySnapshot = await runInInjectionContext(this.injector, () =>
-        getDocs(q)
-      );
-
-      if (loan.isFavorite) {
-        // Add to favorites if not already saved
-        if (querySnapshot.empty) {
-          await runInInjectionContext(this.injector, () =>
-            addDoc(favoritesRef, {
-              loanId: loan.id,
-              userId: user.uid,
-              loanData: loan,
-              createdAt: new Date(),
-            })
-          );
-        }
-      } else {
-        // Remove from favorites
-        querySnapshot.forEach(async (document) => {
-          await runInInjectionContext(this.injector, () =>
-            deleteDoc(document.ref)
-          );
-        });
-      }
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      // Revert UI state if operation failed
       if (loan.isFavorite !== undefined) {
         loan.isFavorite = !loan.isFavorite;
       }

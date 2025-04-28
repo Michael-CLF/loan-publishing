@@ -181,13 +181,12 @@
   font-size: 2rem;
   z-index: 1; /* Ensure the button appears above other elements */
 }
-
-/* Heart symbol default state */
-.favorite-btn span {
-  background-color: transparent;
+.heart-icon {
+  font-size: 1.75rem;
+  transition: color 0.3s ease;
+  color: white; /* Default color if not selected */
 }
 
-/* Heart symbol when favorited */
-.favorite-btn span.filled {
-  color: yellow; /* Pink/red color for filled heart */
+.selected {
+  color: yellow; /* Or whatever color you want when selected */
 }

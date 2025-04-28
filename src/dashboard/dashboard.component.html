@@ -12,12 +12,13 @@
 
             <div class="profile-row">
                 <span class="label">Account #: </span>
-                <span class="value">{{ accountNumber }}</span>
+                <span class="value">{{ accountNumber | uppercase }}</span>
             </div>
 
             <div *ngIf="userData && !loading" class="profile-card">
                 <div class="profile-header">
                     <h3 class="user-name">{{ userData.firstName }} {{ userData.lastName }}</h3>
+                    <span class="value">{{ userData.firstName }}</span>
                     <h4 class="email">{{ userData.email }}</h4>
                 </div>
 
@@ -140,7 +141,7 @@
             <p>Browse all loans to find and save ones you're interested in.</p>
         </div>
         <div class="button-container">
-            <a href="/all-loans" class="browse-loans">Browse Loans</a>
+            <a href="/loans" class="browse-loans">Browse Loans</a>
         </div>
 
         <!-- Saved Loans List -->

@@ -1,5 +1,5 @@
-// Create a new file: src/app/services/favorites.service.ts
-import { Injectable, inject } from '@angular/core';
+// src/app/services/favorites.service.ts
+import { Injectable } from '@angular/core';
 import { BehaviorSubject, Observable } from 'rxjs';
 
 @Injectable({
@@ -21,10 +21,12 @@ export class FavoritesService {
       const key = localStorage.key(i);
       if (
         key &&
-        key.includes('-favorite') &&
+        key.startsWith('lender-') &&
+        key.endsWith('-favorite') &&
         localStorage.getItem(key) === 'true'
       ) {
-        const lenderId = key.split('-')[1]; // Extract lender ID from the key
+        // Extract lender ID from the key (format: lender-{id}-favorite)
+        const lenderId = key.split('-')[1];
         favorites.push(lenderId);
       }
     }

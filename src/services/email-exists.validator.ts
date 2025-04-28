@@ -7,6 +7,7 @@ import {
 import { Observable, of } from 'rxjs';
 import {
   map,
+  tap,
   catchError,
   debounceTime,
   switchMap,
@@ -21,17 +22,20 @@ export class EmailExistsValidator implements AsyncValidator {
   constructor(private firestoreService: FirestoreService) {}
 
   validate(control: AbstractControl): Observable<ValidationErrors | null> {
-    const email = control.value;
+    return this.checkEmailExists(control.value);
+  }
 
+  private checkEmailExists(email: string): Observable<ValidationErrors | null> {
     if (!email) {
       return of(null);
     }
 
     return of(email).pipe(
-      debounceTime(500), // Prevents checking on every keystroke
-      switchMap((email) => this.firestoreService.checkIfEmailExists(email)),
+      debounceTime(500),
+      switchMap((emailToCheck) =>
+        this.firestoreService.checkIfEmailExists(emailToCheck.toLowerCase())
+      ),
       map((exists) => (exists ? { emailExists: true } : null)),
-      first(),
       catchError(() => of(null))
     );
   }

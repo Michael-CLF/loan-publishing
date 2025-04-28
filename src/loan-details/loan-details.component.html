@@ -119,11 +119,7 @@
                     <div class="detail-row">
                         <span class="detail-label">Phone:</span>
                         <span class="detail-value">
-                            {{
-                            '(' + user()?.phone?.slice(0, 3) + ') ' +
-                            user()?.phone?.slice(3, 6) + '-' +
-                            user()?.phone?.slice(6)
-                            }}
+                            {{ user()?.phone }}
                         </span>
                     </div>
 

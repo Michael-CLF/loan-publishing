@@ -55,7 +55,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   userRole: string | null = null;
   getUserDashboardLink(): string {
-    return this.userRole === 'lender' ? '/lender-dashboard' : '/dashboard';
+    return this.userRole === 'lender' ? '/dashboard' : '/dashboard';
   }
 
   ngOnInit(): void {
