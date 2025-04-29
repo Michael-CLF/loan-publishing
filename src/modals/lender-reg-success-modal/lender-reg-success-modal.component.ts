@@ -1,4 +1,3 @@
-// loan-success-modal.component.ts
 import { Component, inject, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
@@ -8,16 +7,13 @@ import { firstValueFrom } from 'rxjs';
 import { filter } from 'rxjs/operators';
 import { User } from '@angular/fire/auth';
 
-filter((user: User | null) => !!user);
-
 @Component({
-  selector: 'app-loan-success-modal',
-  standalone: true,
-  imports: [CommonModule],
-  templateUrl: './loan-success-modal.component.html',
-  styleUrls: ['./loan-success-modal.component.css'],
+  selector: 'app-lender-reg-success-modal',
+  imports: [],
+  templateUrl: './lender-reg-success-modal.component.html',
+  styleUrl: './lender-reg-success-modal.component.css',
 })
-export class LoanSuccessModalComponent implements OnDestroy {
+export class LenderRegSuccessModalComponent {
   private authService = inject(AuthService);
   private router = inject(Router);
   countdown = 7; // 7 seconds before auto-redirect

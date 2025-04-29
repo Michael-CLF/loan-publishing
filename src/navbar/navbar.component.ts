@@ -8,7 +8,7 @@ import {
   DestroyRef,
   HostListener,
 } from '@angular/core';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -32,7 +32,7 @@ interface UserData {
 @Component({
   selector: 'app-navbar',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './navbar.component.html',
   styleUrl: './navbar.component.css',
 })
@@ -144,7 +144,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.accountNumber = user.uid.substring(0, 8);
 
           // Get user profile from Firestore using authenticated user's UID
-          const userDocRef = doc(this.firestore, `users/${user.uid}`);
+          const userDocRef = doc(this.firestore, `lenders/${user.uid}`);
           const docSnap = await getDoc(userDocRef);
 
           if (docSnap.exists()) {
@@ -175,7 +175,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           } else {
             // No user document found with matching UID
             console.error(
-              `NavbarComponent - No document found at users/${user.uid}`
+              `NavbarComponent - No document found at lenders/${user.uid}`
             );
             this.error = 'User profile not found';
 

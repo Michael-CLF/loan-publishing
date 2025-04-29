@@ -60,21 +60,20 @@ export class LenderListComponent implements OnInit, OnDestroy {
     this.loading = true;
     console.log('Starting to load lenders...');
 
-    this.lendersSubscription = this.lenderService.getAllLenders().subscribe({
-      next: (data: Lender[]) => {
-        // Add type annotation here
-        console.log('Lenders received:', data);
-        this.lenders = data;
-        this.loading = false;
-      },
-      error: (error: any) => {
-        // Add type annotation here
-        console.error('Error loading lenders:', error);
-        this.loading = false;
-      },
-      complete: () => {
-        console.log('Lenders subscription completed');
-      },
+    this.firestoreService.getCollection<Lender>('users').subscribe((data) => {
+      this.lenders = data;
+
+      this.lenderService.getAllLenders().subscribe({
+        next: (data) => {
+          console.log('Received lenders:', data);
+          this.lenders = data;
+          this.loading = false;
+        },
+        error: (error) => {
+          console.error('Error loading lenders:', error);
+          this.loading = false;
+        },
+      });
     });
   }
 

@@ -18,14 +18,13 @@ import { LenderContactComponent } from '../../lender/lender-contact/lender-conta
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
-import { LenderService } from '../../services/lender.service';
 import { EmailExistsValidator } from '../../services/email-exists.validator';
 import { AuthService } from '../../services/auth.service';
 import { FirestoreService } from '../../services/firestore.service';
-import { Firestore, doc, setDoc } from '@angular/fire/firestore';
+import { Firestore, doc } from '@angular/fire/firestore';
 import { collection } from '@angular/fire/firestore';
-import { EmailAuthService } from '../../services/email-auth.service';
 import { PasswordAuthService } from '../../services/password-auth.service';
+import { ModalService } from '../../services/modal.service';
 
 export interface PropertyCategory {
   name: string;
@@ -80,15 +79,14 @@ export interface LoanTypes {
 })
 export class LenderRegistrationComponent implements OnInit {
   // Injected services
-  private lenderService = inject(LenderService);
   private emailExistsValidator = inject(EmailExistsValidator);
   private router = inject(Router);
   private authService = inject(AuthService);
-  private emailAuthService = inject(EmailAuthService);
   private firestoreService = inject(FirestoreService);
   private firestore = inject(Firestore);
   private fb = inject(FormBuilder);
   private passwordAuthService = inject(PasswordAuthService);
+  private modalService = inject(ModalService);
 
   // Component state
   lenderForm!: FormGroup;
@@ -833,19 +831,20 @@ export class LenderRegistrationComponent implements OnInit {
           if (!user) {
             throw new Error('User registration failed');
           }
-          // Save the lender profile separately into lenderProfiles collection
-          const lenderProfileData = {
+          // Save the lender data directly into lenders collection
+          const lenderData = {
             contactInfo: formData.contactInfo,
             productInfo: formData.productInfo,
             footprintInfo: formData.footprintInfo,
+            role: 'lender', // Explicitly add role field
             createdAt: new Date(),
             updatedAt: new Date(),
           };
 
-          // Save to lenderProfiles/{user.uid}
+          // Save to lenders/{user.uid} instead of lenderProfiles/{user.uid}
           return this.firestoreService.setDocument(
-            `lenderProfiles/${user.uid}`,
-            lenderProfileData
+            `lenders/${user.uid}`,
+            lenderData
           );
         }),
         catchError((error) => {
@@ -859,7 +858,14 @@ export class LenderRegistrationComponent implements OnInit {
         if (result !== null && !this.errorMessage) {
           this.successMessage = 'Registration successful!';
           this.isLoading = false;
-          this.router.navigate(['/dashboard']);
+
+          // Show success modal (if you have a modal service)
+          this.modalService.openLenderRegistrationSuccessModal();
+
+          // Redirect to lender dashboard after a short delay
+          setTimeout(() => {
+            this.router.navigate(['/dashboard']);
+          }, 3000); // 3 second delay so user can see the success message
         }
       });
   }

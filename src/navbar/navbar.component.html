@@ -1,46 +1,27 @@
 <nav class="navbar">
     <div class="navbar-container">
+        <!-- Logo or Branding -->
         <div class="navbar-logo">
-            <a href="/">DLP</a>
+            <a routerLink="/" class="logo">MyApp</a>
         </div>
-        <div class="navbar-actions">
-            <div class="register" *ngIf="!isLoggedIn">
-                <a href="/role-selection-modal" class="reg-btn">Register</a>
-            </div>
-            <div class="nav-menu">
-                <!-- Hide "All Loans" from unauthenticated users -->
-                <a *ngIf="isLoggedIn" href="/lender-list" class="all-loans">Lenders</a>
-                <a *ngIf="isLoggedIn" href="/loans" class="all-loans">Loans</a>
-            </div>
 
-            <div *ngIf="!isLoggedIn" class="auth-links">
-                <a href="/login" class="login-btn">Log In</a>
-                <a href="/pricing" class="pricing">Pricing</a>
-            </div>
+        <!-- Navigation Menu -->
+        <div class="nav-menu">
+            <!-- Show only if user is logged in -->
+            <a *ngIf="isLoggedIn" routerLink="/lender-list" class="all-loans">Lenders</a>
+            <a *ngIf="isLoggedIn" routerLink="/loans" class="all-loans">Loans</a>
+            <a *ngIf="isLoggedIn" routerLink="/dashboard" class="dashboard-link">Dashboard</a>
 
-            <div *ngIf="isLoggedIn" class="user-menu">
-                <a [attr.href]="userRole === 'lender' ? '/dashboard' : '/dashboard'"
-                    class="dashboard-link">Dashboard</a>
-                <!-- Replace this line only -->
-                <div class="account-dropdown">
-                    <button type="button" (click)="toggleAccountDropdown($event)" class="account-link">
-                        My Account
-                    </button>
+            <!-- Show Login link if not logged in -->
+            <a *ngIf="!isLoggedIn" routerLink="/login" class="login-link">Login</a>
 
-                    <div *ngIf="isDropdownOpen" class="dropdown-content">
-                        <div *ngIf="loading" class="dropdown-loading">Loading...</div>
-                        <div *ngIf="userData && !loading" class="user-info">
-                            <p class="user-name">{{ userData.firstName }} {{ userData.lastName }}</p>
-                            <p class="user-email">{{ userData.email }}</p>
-                            <p><strong>Account #:</strong> {{ accountNumber }}</p>
-                            <p><strong>Phone:</strong> {{ formatPhoneNumber(userData.phone) }}</p>
-                            <p><strong>Company:</strong> {{ userData.company }}</p>
-                            <p><strong>Location:</strong> {{ userData.city }}, {{ userData.state }}</p>
-                            <button (click)="logout()" class="logout-btn">Logout</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
+            <!-- Show Register link if not logged in -->
+            <a *ngIf="!isLoggedIn" routerLink="/register" class="register-link">Register</a>
+
+            <!-- Logout button if logged in -->
+            <button *ngIf="isLoggedIn" (click)="logout()" class="logout-button">
+                Logout
+            </button>
         </div>
     </div>
 </nav>

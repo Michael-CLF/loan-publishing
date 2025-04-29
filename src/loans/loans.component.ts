@@ -158,14 +158,22 @@ export class LoansComponent implements OnInit {
         return;
       }
 
-      const userDocRef = doc(this.firestore, `users/${user.uid}`);
-      const userDoc = await runInInjectionContext(this.injector, () =>
+      let userDocRef = doc(this.firestore, `users/${user.uid}`);
+      let userDoc = await runInInjectionContext(this.injector, () =>
         getDoc(userDocRef)
       );
 
       if (!userDoc.exists()) {
-        alert('User profile not found');
-        return;
+        // Try in lenders collection
+        userDocRef = doc(this.firestore, `lenders/${user.uid}`);
+        userDoc = await runInInjectionContext(this.injector, () =>
+          getDoc(userDocRef)
+        );
+
+        if (!userDoc.exists()) {
+          alert('User profile not found');
+          return;
+        }
       }
 
       const userData = userDoc.data();

@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { User } from '@angular/fire/auth';
+
 import {
   Firestore,
   collection,
@@ -12,7 +14,6 @@ import {
   getDocs,
   query,
   where,
-  orderBy,
   deleteDoc,
   addDoc,
 } from '@angular/fire/firestore';
@@ -21,6 +22,7 @@ import {
 import { AuthService } from '../services/auth.service';
 import { FirestoreService } from '../services/firestore.service';
 import { LenderService } from '../services/lender.service';
+import { RouterLink } from '@angular/router';
 
 // Constants
 import { LOAN_TYPES } from '../shared/loan-constants';
@@ -38,7 +40,7 @@ import { Loan } from '../models/loan-model.model';
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterLink],
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
@@ -54,7 +56,7 @@ export class DashboardComponent implements OnInit {
   isLoggedIn = false;
   role: undefined;
   user: FirebaseUser | null = null;
-  userData: UserData | null = null;
+  userData: UserData = {} as UserData;
   userRole: 'originator' | 'lender' | undefined = undefined;
   loading = true;
   error: string | null = null;
@@ -119,7 +121,7 @@ export class DashboardComponent implements OnInit {
    * Handle logged out state
    */
   private handleLoggedOut(): void {
-    this.userData = null;
+    this.userData = {} as UserData;
     this.accountNumber = '';
     this.router.navigate(['/login']);
   }
@@ -181,7 +183,7 @@ export class DashboardComponent implements OnInit {
   private handleNoAuthenticatedUser(): void {
     console.log('DashboardComponent - No authenticated user found');
     this.error = 'Not logged in';
-    this.userData = null;
+    this.userData = {} as UserData;
     this.loading = false;
     this.router.navigate(['/login']);
   }
@@ -193,7 +195,7 @@ export class DashboardComponent implements OnInit {
     this.accountNumber = user.uid.substring(0, 8);
     this.user = user;
 
-    const userDocRef = doc(this.firestore, `users/${user.uid}`);
+    const userDocRef = doc(this.firestore, `lenders/${user.uid}`);
     const docSnap = await getDoc(userDocRef);
 
     if (docSnap.exists()) {
@@ -206,24 +208,59 @@ export class DashboardComponent implements OnInit {
   /**
    * Handle existing user profile
    */
-  private async handleExistingUserProfile(
+
+  async handleExistingUserProfile(
     docSnap: any,
-    user: FirebaseUser
+    user: User | null
   ): Promise<void> {
     console.log('DashboardComponent - User profile found:', docSnap.data());
 
-    this.userData = {
-      id: docSnap.id,
-      ...docSnap.data(),
-    } as UserData;
+    const data = docSnap.data();
+
+    if (data.role === 'lender') {
+      // It's a lender
+      this.userData = {
+        id: docSnap.id,
+        company: data.contactInfo.company,
+        firstName: data.contactInfo.firstName,
+        lastName: data.contactInfo.lastName,
+        phone: data.contactInfo.contactPhone,
+        email: data.contactInfo.contactEmail,
+        city: data.contactInfo.city,
+        state: data.contactInfo.state,
+        role: 'lender',
+      };
+    } else if (data.role === 'originator') {
+      // It's an originator
+      this.userData = {
+        id: docSnap.id,
+        ...data,
+      } as UserData;
+    } else {
+      console.error('DashboardComponent - Unknown user role:', data.role);
+    }
 
     this.userRole = this.userData.role;
 
     if (this.userRole === 'lender') {
-      await this.loadSavedLoans(user.uid);
+      if (this.user && this.user.uid) {
+        await this.loadSavedLoans(this.user.uid);
+      }
     }
 
-    await this.loadLoans(user.uid);
+    if (this.userRole === 'originator') {
+      if (this.user && this.user.uid) {
+        await this.loadSavedLenders(this.user.uid);
+      }
+    }
+
+    // ✅ Fixed: check if user exists before calling loadLoans
+    if (user && user.uid) {
+      await this.loadLoans(user.uid);
+    } else {
+      console.error('DashboardComponent - No valid user to load loans.');
+    }
+
     this.loading = false;
   }
 
@@ -231,7 +268,7 @@ export class DashboardComponent implements OnInit {
    * Handle missing user profile
    */
   private async handleMissingUserProfile(user: FirebaseUser): Promise<void> {
-    console.error(`No document found at users/${user.uid}`);
+    console.error(`No document found at lenders/${user.uid}`);
     this.error = 'User profile not found';
 
     this.userData = {
@@ -366,11 +403,11 @@ export class DashboardComponent implements OnInit {
   private async checkAndSaveLoan(loan: Loan): Promise<void> {
     if (!this.user) return;
 
-    const savedLoansCollectionRef = collection(this.firestore, 'Favorites'); // Notice Favorites
+    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites'); // Notice Favorites
     const q = query(
       savedLoansCollectionRef,
       where('loanId', '==', loan.id),
-      where('savedBy', '==', this.user.uid)
+      where('userId', '==', this.user.uid)
     );
 
     const querySnapshot = await getDocs(q);
@@ -383,8 +420,8 @@ export class DashboardComponent implements OnInit {
     const savedLoanData = {
       loanId: loan.id,
       loanData: loan,
-      savedBy: this.user.uid,
-      savedAt: new Date(),
+      userId: this.user.uid,
+      createdAt: new Date(),
     };
 
     await addDoc(savedLoansCollectionRef, savedLoanData);
@@ -403,7 +440,10 @@ export class DashboardComponent implements OnInit {
       confirm('Are you sure you want to remove this from your saved loans?')
     ) {
       try {
-        const savedLoanDocRef = doc(this.firestore, `Favorites/${savedLoanId}`);
+        const savedLoanDocRef = doc(
+          this.firestore,
+          `loanFavorites/${savedLoanId}`
+        );
 
         await deleteDoc(savedLoanDocRef);
 
@@ -417,6 +457,57 @@ export class DashboardComponent implements OnInit {
       } catch (error) {
         console.error('Error removing saved loan:', error);
         alert('Failed to remove loan: ' + this.getErrorMessage(error));
+      }
+    }
+  }
+
+  savedLenders = signal<any[]>([]);
+  savedLendersLoading = signal(true);
+  savedLendersError = signal<string | null>(null);
+
+  async loadSavedLenders(originatorId: string): Promise<void> {
+    console.log('Loading saved lenders for originator:', originatorId);
+    this.savedLendersLoading.set(true);
+    this.savedLendersError.set(null);
+
+    this.firestoreService
+      .getOriginatorLenderFavorites(originatorId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (favorites) => {
+          console.log(
+            `Found ${favorites.length} saved lenders for originator ${originatorId}`
+          );
+          this.savedLenders.set(favorites);
+          this.savedLendersLoading.set(false);
+        },
+        error: (error) => {
+          console.error('Error loading saved lenders:', error);
+          this.savedLendersError.set(
+            'Failed to load your saved lenders. Please try again.'
+          );
+          this.savedLendersLoading.set(false);
+        },
+      });
+  }
+  async removeSavedLender(savedFavoriteId: string): Promise<void> {
+    if (confirm('Are you sure you want to remove this saved lender?')) {
+      try {
+        const docRef = doc(
+          this.firestore,
+          `originatorLenderFavorites/${savedFavoriteId}`
+        );
+        await deleteDoc(docRef);
+
+        const currentFavorites = this.savedLenders();
+        this.savedLenders.set(
+          currentFavorites.filter((fav) => fav.id !== savedFavoriteId)
+        );
+
+        alert('Lender removed from favorites.');
+      } catch (error) {
+        console.error('Error removing saved lender:', error);
+        alert('Failed to remove saved lender.');
       }
     }
   }
@@ -621,7 +712,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // Delete user document from Firestore
-    const userDocRef = doc(this.firestore, `users/${this.userData.id}`);
+    const userDocRef = doc(this.firestore, `lenders/${this.userData.id}`);
     await deleteDoc(userDocRef);
 
     // Log out the user

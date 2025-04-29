@@ -1,5 +1,6 @@
 <h1 class="title">Dashboard</h1>
 <div class="dashboard-container">
+
     <!-- User Profile Section -->
     <div class="account-container">
         <div class="profile-section">
@@ -9,7 +10,6 @@
                 Loading your profile...
             </div>
 
-
             <div class="profile-row">
                 <span class="label">Account #: </span>
                 <span class="value">{{ accountNumber | uppercase }}</span>
@@ -18,69 +18,58 @@
             <div *ngIf="userData && !loading" class="profile-card">
                 <div class="profile-header">
                     <h3 class="user-name">{{ userData.firstName }} {{ userData.lastName }}</h3>
-                    <span class="value">{{ userData.firstName }}</span>
                     <h4 class="email">{{ userData.email }}</h4>
                 </div>
 
                 <div class="profile-details">
                     <div class="profile-row">
                         <span class="label">Phone: </span>
-                        <span class="value">{{ formatPhoneNumber(userData.phone )}}</span>
+                        <span class="value">{{ formatPhoneNumber(userData.phone) }}</span>
                     </div>
-
                     <div class="profile-row">
                         <span class="label">Company: </span>
                         <span class="value">{{ userData.company }}</span>
                     </div>
-
                     <div class="profile-row">
                         <span class="label">Location: </span>
                         <span class="value">{{ userData.city }}, {{ userData.state }}</span>
                     </div>
 
-                    <!-- Account action buttons with proper ngIf directive -->
-                    <div *ngIf="userData && !loading" class="profile-actions">
+                    <div class="profile-actions">
                         <button class="action-btn account-edit-btn" (click)="editAccount()">Edit Account</button>
                         <button class="action-btn account-delete-btn" (click)="deleteAccount()">Delete Account</button>
                     </div>
-
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Created Loans Section (for Originators only) -->
+    <!-- My Published Loans (Originators only) -->
     <div *ngIf="isOriginator()" class="loan-container">
         <h3 class="loans">My Published Loans:</h3>
 
-        <!-- Loans Loading State -->
         <div *ngIf="loansLoading()" class="loading">
             <p>Loading your loans...</p>
         </div>
 
-        <!-- Loans Error State -->
         <div *ngIf="loansError()" class="error-message">
             <p>{{ loansError() }}</p>
             <button *ngIf="user" (click)="loadLoans(user.uid)">Try Again</button>
         </div>
 
-        <!-- No Loans Message -->
         <div *ngIf="!loansLoading() && !loansError() && loans().length === 0" class="empty-state">
-            <p>You haven't created any loans yet.</p>
-            <p>Click "Add new loan" to get started.</p>
+            <p class="alert">You haven't created any loans yet.</p>
+            <p class="alert">Click "Add new loan" to get started.</p>
         </div>
+
         <div class="button-container">
             <a href="/loan" class="add-loan">Add new loan</a>
         </div>
 
-        <!-- Loans List -->
         <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
             <div *ngFor="let loan of loans()" class="loan-card">
                 <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
-                    <span class="loan-type">
-                        {{ loan.propertyTypeCategory }}
-                    </span>
-
+                    <span class="loan-type">{{ loan.propertyTypeCategory }}</span>
                     <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
                 </div>
 
@@ -89,22 +78,18 @@
                         <span class="detail-label">Property:</span>
                         <span class="detail-value">{{ loan.propertySubCategory }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Location:</span>
                         <span class="detail-value">{{ loan.city }}, {{ loan.state }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Loan Type:</span>
                         <span class="detail-value">{{ getLoanTypeName(loan.loanType) }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">LTV:</span>
                         <span class="detail-value">{{ loan.ltv }}%</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Created:</span>
                         <span class="detail-value">{{ getFormattedDate(loan.createdAt) }}</span>
@@ -120,37 +105,61 @@
         </div>
     </div>
 
-    <!-- Saved Loans Section (only for Lenders) -->
+    <!-- Saved Lenders (Originators only) -->
+    <div *ngIf="isOriginator()" class="loan-container">
+        <h3 class="loans">Saved Lenders:</h3>
+
+        <div *ngIf="savedLendersLoading()" class="loading">
+            <p>Loading your saved lenders...</p>
+        </div>
+
+        <div *ngIf="savedLendersError()" class="error-message">
+            <p>{{ savedLendersError() }}</p>
+            <button *ngIf="user" (click)="loadSavedLenders(user.uid)">Try Again</button>
+        </div>
+
+        <div *ngIf="!savedLendersLoading() && !savedLendersError() && savedLenders().length === 0" class="empty-state">
+            <p>You haven't saved any lenders yet.</p>
+            <p>Browse lenders to find and save ones you're interested in.</p>
+        </div>
+
+        <div *ngIf="!savedLendersLoading() && savedLenders().length > 0" class="loans-grid">
+            <div *ngFor="let lenderFavorite of savedLenders()" class="loan-card">
+                <div class="loan-header">
+                    <span class="loan-type">Saved Lender ID: {{ lenderFavorite.lenderId }}</span>
+                </div>
+                <div class="loan-actions">
+                    <button class="action-btn delete-btn" (click)="removeSavedLender(lenderFavorite.id)">Remove</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Saved Loans (Lenders only) -->
     <div *ngIf="isLender()" class="loan-container">
         <h3 class="loans">Saved Loans:</h3>
 
-        <!-- Saved Loans Loading State -->
         <div *ngIf="savedLoansLoading()" class="loading">
             <p>Loading your saved loans...</p>
         </div>
 
-        <!-- Saved Loans Error State -->
         <div *ngIf="savedLoansError()" class="error-message">
             <p>{{ savedLoansError() }}</p>
             <button *ngIf="user" (click)="loadSavedLoans(user.uid)">Try Again</button>
         </div>
 
-        <!-- No Saved Loans Message -->
         <div *ngIf="!savedLoansLoading() && !savedLoansError() && savedLoans().length === 0" class="empty-state">
-            <p>You haven't saved any loans yet.</p>
-            <p>Browse all loans to find and save ones you're interested in.</p>
-        </div>
-        <div class="button-container">
-            <a href="/loans" class="browse-loans">Browse Loans</a>
+            <p class="alert">You haven't saved any loans yet.</p>
         </div>
 
-        <!-- Saved Loans List -->
+        <div class="button-container">
+            <a routerLink="/loans" class="browse-loans">View Loans</a>
+        </div>
+
         <div *ngIf="!savedLoansLoading() && savedLoans().length > 0" class="loans-grid">
             <div *ngFor="let savedLoan of savedLoans()" class="loan-card">
                 <div class="loan-header" [style.backgroundColor]="getColor(savedLoan.loanData.propertyTypeCategory)">
-                    <span class="loan-type">
-                        {{ savedLoan.loanData.propertyTypeCategory }}
-                    </span>
+                    <span class="loan-type">{{ savedLoan.loanData.propertyTypeCategory }}</span>
                     <span class="loan-amount">{{ formatCurrency(savedLoan.loanData.loanAmount) }}</span>
                 </div>
 
@@ -159,22 +168,18 @@
                         <span class="detail-label">Property:</span>
                         <span class="detail-value">{{ savedLoan.loanData.propertySubCategory }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Location:</span>
                         <span class="detail-value">{{ savedLoan.loanData.city }}, {{ savedLoan.loanData.state }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Loan Type:</span>
                         <span class="detail-value">{{ getLoanTypeName(savedLoan.loanData.loanType) }}</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">LTV:</span>
                         <span class="detail-value">{{ savedLoan.loanData.ltv }}%</span>
                     </div>
-
                     <div class="loan-detail">
                         <span class="detail-label">Saved:</span>
                         <span class="detail-value">{{ getFormattedDate(savedLoan.savedAt) }}</span>

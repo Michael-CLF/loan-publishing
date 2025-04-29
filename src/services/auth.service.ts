@@ -35,12 +35,15 @@ import {
   Firestore,
   collection,
   doc,
+  getDoc,
   getDocs,
   query,
   where,
 } from '@angular/fire/firestore';
 import { FirestoreService } from './firestore.service';
 import { Router } from '@angular/router';
+import { reload } from '@angular/fire/auth';
+import { UserData } from '../models/user-data.model'; // or your correct path
 
 @Injectable({
   providedIn: 'root',
@@ -105,6 +108,17 @@ export class AuthService implements OnDestroy {
         'AuthService: Running in server environment, skipping auth initialization'
       );
     }
+  }
+  authState(): Observable<User | null> {
+    return authState(this.auth);
+  }
+
+  refreshCurrentUser(): Promise<void> {
+    const currentUser = this.auth.currentUser;
+    if (currentUser) {
+      return reload(currentUser);
+    }
+    return Promise.resolve();
   }
 
   ngOnDestroy() {
@@ -188,29 +202,55 @@ export class AuthService implements OnDestroy {
   /**
    * Loads user profile from Firestore and updates the profile subject
    */
-  private loadUserProfile(uid: string): void {
+  // Add this method to your AuthService
+
+  loadUserProfile(uid: string): void {
     console.log('AuthService: Loading user profile for UID:', uid);
 
+    // First check if user is a lender
     this.firestoreService
-      .getDocumentWithLogging<any>(`users/${uid}`)
+      .getDocumentWithLogging<any>(`lenders/${uid}`)
       .pipe(take(1))
       .subscribe({
         next: (profile) => {
           if (profile) {
             console.log(
-              'AuthService: User profile loaded from users collection:',
+              'AuthService: User profile loaded from lenders collection:',
               profile
             );
             this.userProfileSubject.next(profile);
           } else {
-            console.error(
-              'AuthService: No user profile found in users collection'
-            );
-            this.userProfileSubject.next(null);
+            // If not found in lenders, check users collection
+            this.firestoreService
+              .getDocumentWithLogging<any>(`users/${uid}`)
+              .pipe(take(1))
+              .subscribe({
+                next: (userProfile) => {
+                  if (userProfile) {
+                    console.log(
+                      'AuthService: User profile loaded from users collection:',
+                      userProfile
+                    );
+                    this.userProfileSubject.next(userProfile);
+                  } else {
+                    console.error(
+                      'AuthService: No user profile found in any collection'
+                    );
+                    this.userProfileSubject.next(null);
+                  }
+                },
+                error: (error) => {
+                  console.error(
+                    'AuthService: Error loading user profile:',
+                    error
+                  );
+                  this.userProfileSubject.next(null);
+                },
+              });
           }
         },
         error: (error) => {
-          console.error('AuthService: Error loading user profile:', error);
+          console.error('AuthService: Error loading lender profile:', error);
           this.userProfileSubject.next(null);
         },
       });
@@ -700,9 +740,41 @@ export class AuthService implements OnDestroy {
   /**
    * Get user profile for specific UID
    */
-  getUserProfile(uid: string): Observable<any> {
-    console.log('AuthService: Getting user profile for:', uid);
-    return this.firestoreService.getDocumentWithLogging<any>(`users/${uid}`);
+  // auth.service.ts
+
+  async getUserProfile(uid: string): Promise<UserData | null> {
+    try {
+      // Try to load from users collection first (for originators)
+      const userDocRef = doc(this.firestore, `users/$user.{uid}`);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        console.log('AuthService: Found user document in users collection.');
+        const { id, ...userData } = userDocSnap.data() as UserData;
+        return { id: userDocSnap.id, ...userData };
+      }
+
+      // If not found, try to load from lenders collection
+      const lenderDocRef = doc(this.firestore, `lenders/$user.{uid}`);
+      const lenderDocSnap = await getDoc(lenderDocRef);
+
+      if (lenderDocSnap.exists()) {
+        console.log(
+          'AuthService: Found lender document in lenders collection.'
+        );
+        const { id, ...lenderData } = lenderDocSnap.data() as UserData;
+        return { id: lenderDocSnap.id, ...lenderData };
+      }
+
+      // If not found in either collection, return null (NO search by email here for lenders)
+      console.error(
+        'AuthService: No document found for user in users or lenders collection.'
+      );
+      return null;
+    } catch (error) {
+      console.error('AuthService: Error loading user profile:', error);
+      return null;
+    }
   }
 
   /**

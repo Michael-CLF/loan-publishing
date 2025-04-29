@@ -42,20 +42,19 @@ export class FirestoreService {
   private firestore = inject(Firestore);
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
-  private destroyRef = inject(DestroyRef);
 
   private lenderFiltersSubject = new BehaviorSubject<LenderFilter>({});
 
   saveFavoriteLoan(lenderUid: string, loan: any) {
     // Use a consistent collection path that matches your dashboard component
-    const savedLoansCollectionRef = collection(this.firestore, 'Favorites');
+    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites');
 
     // Create a document with appropriate fields to match what your loadSavedLoans expects
     return runInInjectionContext(this.injector, () =>
       addDoc(savedLoansCollectionRef, {
         loanId: loan.id,
         loanData: loan,
-        savedBy: lenderUid,
+        userId: lenderUid,
         savedAt: new Date(),
       })
     );
@@ -206,14 +205,44 @@ export class FirestoreService {
    * @param email Email to check
    * @returns Observable boolean indicating email existence
    */
-  checkIfEmailExists(email: string): Observable<boolean> {
-    const usersCollection = collection(this.firestore, 'users');
+  // Add this method to your FirestoreService for checking if a lender exists
+
+  checkIfLenderExists(email: string): Observable<boolean> {
+    const lendersCollection = collection(this.firestore, 'lenders');
     const q = query(
-      usersCollection,
-      where('contactEmail', '==', email.toLowerCase())
+      lendersCollection,
+      where('contactInfo.contactEmail', '==', email.toLowerCase())
     );
 
     return from(getDocs(q)).pipe(map((snapshot) => !snapshot.empty));
+  }
+
+  // Update the checkIfEmailExists method to check both collections
+  checkIfEmailExists(email: string): Observable<boolean> {
+    const usersCollection = collection(this.firestore, 'users');
+    const lendersCollection = collection(this.firestore, 'lenders');
+
+    const userQuery = query(
+      usersCollection,
+      where('email', '==', email.toLowerCase())
+    );
+
+    const lenderQuery = query(
+      lendersCollection,
+      where('contactInfo.contactEmail', '==', email.toLowerCase())
+    );
+
+    return from(getDocs(userQuery)).pipe(
+      switchMap((userSnapshot) => {
+        if (!userSnapshot.empty) {
+          return of(true);
+        }
+
+        return from(getDocs(lenderQuery)).pipe(
+          map((lenderSnapshot) => !lenderSnapshot.empty)
+        );
+      })
+    );
   }
 
   /**
@@ -263,12 +292,12 @@ export class FirestoreService {
     loan: Loan,
     isFavorite: boolean
   ): Promise<void> {
-    const favoritesRef = collection(this.firestore, 'Favorites');
+    const favoritesRef = collection(this.firestore, 'loanFavorites');
 
     const q = query(
       favoritesRef,
       where('loanId', '==', loan.id),
-      where('savedBy', '==', userUid)
+      where('userId', '==', userUid)
     );
 
     const querySnapshot = await getDocs(q);
@@ -277,7 +306,7 @@ export class FirestoreService {
       if (querySnapshot.empty) {
         await addDoc(favoritesRef, {
           loanId: loan.id,
-          savedBy: userUid,
+          userId: userUid,
           loanData: loan,
           createdAt: new Date(),
         });
@@ -328,23 +357,75 @@ export class FirestoreService {
       console.log('Getting saved loans with exact userId:', userId);
       return runInInjectionContext(this.injector, () => {
         // Try both collection names to see if either works
-        const favoritesCollection = collection(this.firestore, 'Favorites');
+        const loanFavoritesCollection = collection(
+          this.firestore,
+          'loanFavorites'
+        );
 
         // Log the exact query parameters
         console.log(
-          'Query parameters: collection=Favorites, field=savedBy, value=',
+          'Query parameters: collection=loanFavorites, field=savedBy, value=',
           userId
         );
 
-        const q = query(favoritesCollection, where('savedBy', '==', userId));
+        const q = query(loanFavoritesCollection, where('userId', '==', userId));
 
         return collectionData(q, { idField: 'id' }).pipe(
           tap((data) =>
-            console.log('Raw result data from Favorites query:', data)
+            console.log('Raw result data from loanFavorites query:', data)
           )
         );
       });
     });
+  }
+
+  saveOriginatorLenderFavorite(originatorId: string, lenderId: string) {
+    const originatorFavoritesRef = collection(
+      this.firestore,
+      'originatorLenderFavorites'
+    );
+
+    return runInInjectionContext(this.injector, () =>
+      addDoc(originatorFavoritesRef, {
+        originatorId: originatorId,
+        lenderId: lenderId,
+        createdAt: new Date(),
+      })
+    );
+  }
+  async removeOriginatorLenderFavorite(
+    originatorId: string,
+    lenderId: string
+  ): Promise<void> {
+    const originatorFavoritesRef = collection(
+      this.firestore,
+      'originatorLenderFavorites'
+    );
+
+    const q = query(
+      originatorFavoritesRef,
+      where('originatorId', '==', originatorId),
+      where('lenderId', '==', lenderId)
+    );
+
+    const querySnapshot = await getDocs(q);
+
+    querySnapshot.forEach(async (docSnap) => {
+      await deleteDoc(docSnap.ref);
+    });
+  }
+  getOriginatorLenderFavorites(originatorId: string): Observable<any[]> {
+    const originatorFavoritesRef = collection(
+      this.firestore,
+      'originatorLenderFavorites'
+    );
+
+    const q = query(
+      originatorFavoritesRef,
+      where('originatorId', '==', originatorId)
+    );
+
+    return collectionData(q, { idField: 'id' });
   }
 
   /**
@@ -465,17 +546,20 @@ export class FirestoreService {
    * @param data Partial update data
    * @returns Observable of document update operation
    */
-  // Add this to your FirestoreService
+
   // Add this to your FirestoreService
   testFavoritesQuery(): Observable<any[]> {
     return this.ngZone.run(() => {
       console.log('Running test query on Favorites collection');
       return runInInjectionContext(this.injector, () => {
         // Try querying the Favorites collection with no filters
-        const favoritesCollection = collection(this.firestore, 'Favorites');
+        const loanFavoritesCollection = collection(
+          this.firestore,
+          'loanFavorites'
+        );
 
         // Just get all documents from the collection to verify it exists and has data
-        return collectionData(favoritesCollection, { idField: 'id' }).pipe(
+        return collectionData(loanFavoritesCollection, { idField: 'id' }).pipe(
           tap((data) => console.log('All Favorites collection data:', data))
         );
       });

@@ -2,6 +2,7 @@
 export interface Lender {
   id?: string;
   contactInfo: {
+    company: string;
     firstName: string;
     lastName: string;
     contactPhone: string;

@@ -11,6 +11,7 @@ import { filter, Subscription } from 'rxjs';
 import { LoanSuccessModalComponent } from '../components/loan-success-modal/loan-success-modal.component';
 import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
 import { UserRole } from '../role-selection-modal/role-selection-modal.component';
+import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 
 @Injectable({
   providedIn: 'root',
@@ -30,6 +31,23 @@ export class ModalService implements OnDestroy {
         // Close any open modal when navigation starts
         this.closeModal();
       });
+  }
+
+  openLenderRegistrationSuccessModal(): void {
+    // Create the component
+    const componentRef = createComponent(LenderRegSuccessModalComponent, {
+      environmentInjector: this.injector,
+    });
+
+    // Store reference to component
+    this.modalComponentRef = componentRef;
+
+    // Attach to the view
+    this.appRef.attachView(componentRef.hostView);
+
+    // Add to the DOM
+    const domElement = (componentRef.hostView as any).rootNodes[0];
+    document.body.appendChild(domElement);
   }
 
   openRoleSelectionModal(): void {

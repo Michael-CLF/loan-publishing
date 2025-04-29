@@ -5,15 +5,8 @@ import {
   ValidationErrors,
 } from '@angular/forms';
 import { Observable, of } from 'rxjs';
-import {
-  map,
-  tap,
-  catchError,
-  debounceTime,
-  switchMap,
-  first,
-} from 'rxjs/operators';
-import { FirestoreService } from './firestore.service'; // Adjust path as needed
+import { map, debounceTime, switchMap } from 'rxjs/operators';
+import { FirestoreService } from './firestore.service';
 
 @Injectable({
   providedIn: 'root',
@@ -35,8 +28,7 @@ export class EmailExistsValidator implements AsyncValidator {
       switchMap((emailToCheck) =>
         this.firestoreService.checkIfEmailExists(emailToCheck.toLowerCase())
       ),
-      map((exists) => (exists ? { emailExists: true } : null)),
-      catchError(() => of(null))
+      map((exists) => (exists ? { emailExists: true } : null))
     );
   }
 }

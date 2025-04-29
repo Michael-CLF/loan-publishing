@@ -32,18 +32,29 @@ export class PasswordAuthService {
         // Generate account number from the first 8 characters of UID
         const accountNumber = user.uid.substring(0, 8);
 
-        return from(
-          this.firestoreService.addDocument('users', {
-            uid: user.uid,
-            accountNumber: accountNumber, // Add the account number
-            ...userData,
-            createdAt: new Date(),
-          })
-        ).pipe(switchMap(() => of(user)));
+        if (userData.role === 'lender') {
+          return from(
+            this.firestoreService.setDocument(`lenders/${user.uid}`, {
+              uid: user.uid,
+              accountNumber: accountNumber,
+              ...userData,
+              createdAt: new Date(),
+            })
+          ).pipe(switchMap(() => of(user)));
+        } else {
+          // For non-lender roles, maintain original behavior
+          return from(
+            this.firestoreService.addDocument('users', {
+              uid: user.uid,
+              accountNumber: accountNumber,
+              ...userData,
+              createdAt: new Date(),
+            })
+          ).pipe(switchMap(() => of(user)));
+        }
       }),
       catchError((error) => {
         console.error('Error registering user:', error);
-        // Instead of returning of(null), throw the error to propagate it
         return throwError(() => error);
       })
     );

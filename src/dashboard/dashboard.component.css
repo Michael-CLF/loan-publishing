@@ -227,3 +227,22 @@
   padding: 20px;
   color: #008080;
 }
+
+.alert {
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: #0a2463;
+}
+.browse-loans {
+  color: #fff;
+  background-color: #0a2463;
+  padding: 10px 12px 10px 12px;
+  text-decoration: none;
+  border-radius: 6px;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+}
+&:hover {
+  background-color: #008080;
+}

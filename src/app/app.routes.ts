@@ -19,6 +19,7 @@ import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details
 import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
 import { EditAccountComponent } from 'src/edit-account/edit-account.component';
 import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
+import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 
 export const routes: Routes = [
   {
@@ -34,9 +35,9 @@ export const routes: Routes = [
     component: LenderListComponent,
     canActivate: [AuthGuard],
   },
+  { path: 'lender-reg', component: LenderRegSuccessModalComponent },
   { path: 'user-form', component: UserFormComponent },
   { path: 'login', component: EmailLoginComponent },
-  // Add explicit verify route to handle email verification
   { path: 'login/verify', component: EmailLoginComponent },
 
   { path: 'lender-registration', component: LenderRegistrationComponent },
