@@ -73,62 +73,35 @@
             </div>
         </div>
 
-        <!-- Property Categories Section (similar to Subcategories) -->
-        <div class="details-section">
-            <h3 class="section-title">Property Categories</h3>
-            <div class="details-grid">
-                <div class="detail-item full-width">
-                    <div class="subcategories-container">
-                        <div class="subcategory-group">
-                            <div class="subcategory-list">
-                                <ng-container *ngFor="let category of getPropertyCategoriesArray()">
-                                    <div class="subcategory-item">
-                                        <span class="detail-value">{{ category }}</span>
-                                    </div>
-                                </ng-container>
+        <!-- Property Categories & Subcategories Section -->
+        <div class="details-section property-categories-section" *ngIf="hasSubcategories()">
+            <h3 class="section-title property-categories-title">Property Categories & Subcategories</h3>
+            <div class="detail-item full-width">
+                <div class="subcategory-container">
+                    <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
+                        <div class="subcategory">
+                            <!-- Category Header -->
+                            <div class="category-header">
+                                {{ category.key }}
+                            </div>
+
+                            <!-- Subcategory Grid -->
+                            <div class="subcategory-grid">
+                                <div *ngFor="let sub of category.value" class="subcategory-item">
+                                    <span class="subcategory-value">{{ formatSubcategory(sub) }}</span>
+                                </div>
                             </div>
                         </div>
-                    </div>
+                    </ng-container>
                 </div>
             </div>
         </div>
 
-        <!-- Property Types Section -->
-        <div class="details-section" *ngIf="hasPropertyTypes()">
-            <h3 class="section-title">Property Types</h3>
-            <div class="property-types-container">
-                <div class="property-types-grid">
-                    <div *ngFor="let type of getPropertyTypesArray()" class="property-type-card">
-                        <div class="property-icon">🏗️</div>
-                        <span class="property-type-label">{{ type }}</span>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Subcategories Section -->
-        <div class="details-section" *ngIf="hasSubcategories()">
-            <h3 class="section-title">Property Subcategories</h3>
-            <div class="details-grid">
-                <div class="detail-item full-width">
-                    <div class="subcategories-container">
-                        <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
-                            <div class="subcategory-group">
-                                <h4 class="section-title">{{ category.key }}</h4>
-                                <div class="subcategory-list">
-                                    <div *ngFor="let subcategory of category.value" class="subcategory-item">
-                                        <span class="detail-value">{{ formatSubcategory(subcategory) }}</span>
-                                    </div>
-                                </div>
-                            </div>
-                        </ng-container>
-                    </div>
-                </div>
-            </div>
-        </div>
+
 
         <!-- Loan Types Section (conditional) -->
         <div class="details-section" *ngIf="hasLoanTypes()">
-            <h3 class="section-title">Loan Types</h3>
+            <h3 class="section-title">Loan Types Offered</h3>
             <div class="details-grid">
                 <div class="detail-item full-width">
                     <div class="subcategories-container">

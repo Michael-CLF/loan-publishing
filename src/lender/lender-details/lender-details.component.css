@@ -129,6 +129,8 @@
 /* Three-column grid for subcategories */
 .subcategory-container {
   margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
 }
 
 .subcategory-group {
@@ -139,23 +141,24 @@
 }
 
 .subcategory-title {
-  color: #0a2463;
+  color: white;
   font-family: "roboto", sans-serif;
   font-size: 1.2rem;
-  font-weight: 600;
+  font-weight: 500;
   margin-bottom: 0.75rem;
   padding-bottom: 0.25rem;
   border-bottom: 1px solid #e5e7eb;
-}
-
-.subcategory-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
+  background-color: #2c3e50;
+  width: 50%;
+  padding: 10px 12px 10px 12px;
+  border-radius: 6px;
+  text-align: center;
 }
 
 .subcategory-item {
-  background-color: white;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  background-color: hite;
   border-radius: 0.375rem;
   padding: 0.5rem 0.75rem;
   border: 1px solid #e5e7eb;
@@ -168,6 +171,7 @@
   color: #0a2463;
   font-weight: 400;
   font-size: 0.95rem;
+  width: 50%;
 }
 
 /* Responsive adjustments */
@@ -267,7 +271,7 @@
 /* States three-column layout */
 .states-container {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 0.75rem;
   margin-top: 0.75rem;
 }
@@ -277,7 +281,7 @@
   color: #0a2463;
   font-family: "roboto", sans-serif;
   font-size: 1rem;
-  font-weight: 400;
+  font-weight: 500;
   border-radius: 0.375rem;
   padding: 0.5rem;
   text-align: center;
@@ -306,7 +310,7 @@
 }
 .subcategory-list {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 0.75rem;
   margin-top: 0.5rem;
 }
@@ -345,43 +349,75 @@
   font-size: 1.1rem;
 }
 
-/* Property Categories special styling */
-/* CSS for property categories in three-column layout */
-.property-categories {
-  flex-direction: column;
-  align-items: flex-start;
+/* Property Categories & Subcategories Section */
+.property-categories-section {
+  margin-bottom: 20px;
 }
 
-.property-categories .product-label {
-  margin-bottom: 0.75rem;
+.property-categories-title {
+  font-size: 1.5rem;
+  font-weight: 500;
+  color: #0a2463;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #e5e7eb;
 }
 
-.property-categories-content {
+.subcategory-container {
+  margin-bottom: 20px;
+}
+
+.subcategory {
+  margin-bottom: 30px;
+}
+
+.category-header {
+  background-color: #304462;
+  color: white;
+  padding: 12px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  font-size: 1.1rem;
+  margin-bottom: 10px;
+  text-align: center;
+}
+
+.subcategory-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 0.75rem;
-  width: 100%;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 10px;
 }
 
-.category-item {
+.subcategory-item {
   background-color: white;
   border: 1px solid #e5e7eb;
-  border-radius: 0.375rem;
-  padding: 0.5rem 0.75rem;
-  text-align: center;
+  border-radius: 4px;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 46px;
+}
+
+.subcategory-value {
   color: #0a2463;
   font-size: 0.95rem;
+  font-family: "roboto", sans-serif;
+  width: 100%;
+  font-weight: 500;
 }
 
-/* Responsive adjustments for category grid */
-@media (max-width: 992px) {
-  .property-categories-content {
-    grid-template-columns: repeat(2, 1fr);
-  }
+.subcategory-x {
+  color: #e63946;
+  font-weight: bold;
+  font-size: 1.2rem;
+  transform: rotate(-15deg);
 }
 
+/* Responsive adjustments */
 @media (max-width: 576px) {
-  .property-categories-content {
+  .subcategory-grid {
     grid-template-columns: 1fr;
   }
 }
