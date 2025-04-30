@@ -19,12 +19,25 @@ export class UserService {
   private firestore = inject(Firestore);
   private auth = inject(Auth);
 
-  updateUser(userId: string, userData: any): Observable<void> {
-    const userDocRef = doc(this.firestore, `users/${userId}`);
+  updateUser(
+    userId: string,
+    userData: any,
+    userRole: 'lender' | 'originator' | null
+  ): Observable<void> {
+    console.log('UserService: Updating user', userId, 'with role', userRole);
+    const collection = userRole === 'lender' ? 'lenders' : 'users';
+    console.log('UserService: Using collection', collection);
+    const userDocRef = doc(this.firestore, `${collection}/${userId}`);
+
     return from(
       updateDoc(userDocRef, {
         ...userData,
         updatedAt: new Date(),
+      })
+    ).pipe(
+      catchError((error) => {
+        console.error('UserService: Error updating user:', error);
+        return throwError(() => error);
       })
     );
   }

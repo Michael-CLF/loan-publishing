@@ -1,4 +1,10 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  Injector,
+  runInInjectionContext,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -25,6 +31,7 @@ import { Firestore, doc } from '@angular/fire/firestore';
 import { collection } from '@angular/fire/firestore';
 import { PasswordAuthService } from '../../services/password-auth.service';
 import { ModalService } from '../../services/modal.service';
+import { getUserId } from '../../utils/user-helpers';
 
 export interface PropertyCategory {
   name: string;
@@ -87,6 +94,7 @@ export class LenderRegistrationComponent implements OnInit {
   private fb = inject(FormBuilder);
   private passwordAuthService = inject(PasswordAuthService);
   private modalService = inject(ModalService);
+  private injector = inject(Injector);
 
   // Component state
   lenderForm!: FormGroup;
@@ -343,7 +351,7 @@ export class LenderRegistrationComponent implements OnInit {
       .pipe(take(1))
       .subscribe((user) => {
         if (user) {
-          this.userId = user.uid;
+          this.userId = getUserId(user) || '';
           console.log('Current user ID:', this.userId);
         }
       });
@@ -656,6 +664,7 @@ export class LenderRegistrationComponent implements OnInit {
     });
   }
 
+  // Also replace the saveUserData() method with this version:
   private saveUserData(): Observable<boolean> {
     if (!this.contactForm.valid) {
       return of(false);
@@ -672,61 +681,57 @@ export class LenderRegistrationComponent implements OnInit {
       console.error('Error saving to localStorage:', error);
     }
 
-    // Then, save user data to Firebase
-    return this.authService.getCurrentUser().pipe(
-      take(1),
-      switchMap((user) => {
-        if (!user) {
-          // If no user is logged in, we need to handle this case
-          // Since we're in the middle of a form flow, we need to keep the user's progress
-          // We'll create a temp user document with a generated ID
-          const newDocRef = doc(collection(this.firestore, 'lenderProfiles'));
-          this.userId = newDocRef.id;
+    // Then, save user data to Firebase (inside injection context)
+    return runInInjectionContext(this.injector, () => {
+      return this.authService.getCurrentUser().pipe(
+        take(1),
+        switchMap((user) => {
+          if (!user) {
+            // If no user is logged in, handle this case
+            const newDocRef = doc(collection(this.firestore, 'lenders'));
+            this.userId = newDocRef.id;
+            localStorage.setItem('pendingLenderId', this.userId);
+            return of({ uid: this.userId, isTemporary: true } as any);
+          }
+          return of(user);
+        }),
+        switchMap((user) => {
+          if (!user) {
+            throw new Error('Failed to get or create user');
+          }
 
-          // Store data in localStorage for later association with auth
-          localStorage.setItem('pendingLenderId', this.userId);
+          this.userId = user.uid;
+          const contactData = this.contactForm.value;
 
-          // Return as if we have a user but note it's temporary
-          return of({ uid: this.userId, isTemporary: true } as any);
-        }
-        return of(user);
-      }),
-      switchMap((user) => {
-        if (!user) {
-          throw new Error('Failed to get or create user');
-        }
+          // Save to lenders collection
+          const lenderProfileData = {
+            userId: user.uid,
+            contactInfo: {
+              firstName: contactData.firstName,
+              lastName: contactData.lastName,
+              contactEmail: contactData.contactEmail,
+              contactPhone: contactData.contactPhone,
+              company: contactData.company,
+              city: contactData.city,
+              state: contactData.state,
+            },
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
 
-        this.userId = user.uid;
-        const contactData = this.contactForm.value;
-
-        // Save to lenderProfiles collection instead of users
-        const lenderProfileData = {
-          userId: user.uid,
-          contactInfo: {
-            firstName: contactData.firstName,
-            lastName: contactData.lastName,
-            contactEmail: contactData.contactEmail,
-            contactPhone: contactData.contactPhone,
-            company: contactData.company,
-            city: contactData.city,
-            state: contactData.state,
-          },
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-
-        // Store in lenderProfiles collection
-        return this.firestoreService.setDocument(
-          `lenderProfiles/${user.uid}`,
-          lenderProfileData
-        );
-      }),
-      map(() => true),
-      catchError((error) => {
-        console.error('Error saving user data:', error);
-        return of(false);
-      })
-    );
+          // Store in lenders collection
+          return this.firestoreService.setDocument(
+            `lenders/${user.uid}`,
+            lenderProfileData
+          );
+        }),
+        map(() => true),
+        catchError((error) => {
+          console.error('Error saving user data:', error);
+          return of(false);
+        })
+      );
+    });
   }
 
   nextStep(): void {
@@ -790,8 +795,21 @@ export class LenderRegistrationComponent implements OnInit {
     this.submitted = true;
     this.errorMessage = '';
     this.successMessage = '';
+    console.log('Submit button clicked!');
 
     this.markAllAsTouched(this.lenderForm);
+
+    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
+    console.log('Form valid:', this.lenderForm.valid);
+    if (!this.lenderForm.valid) {
+      console.log('Invalid controls:');
+      Object.keys(this.lenderForm.controls).forEach((key) => {
+        const control = this.lenderForm.get(key);
+        if (control && control.invalid) {
+          console.log(`${key} is invalid:`, control.errors);
+        }
+      });
+    }
 
     if (!this.lenderForm.valid) {
       this.isLoading = false;
@@ -814,60 +832,63 @@ export class LenderRegistrationComponent implements OnInit {
       return;
     }
 
-    // Create Firebase Auth user immediately
-    this.passwordAuthService
-      .registerUser(email, 'defaultPassword', {
-        company: formData.contactInfo?.company,
-        firstName: formData.contactInfo?.firstName,
-        lastName: formData.contactInfo?.lastName,
-        email: email,
-        phone: formData.contactInfo?.contactPhone,
-        city: formData.contactInfo?.city,
-        state: formData.contactInfo?.state,
-        role: 'lender', // 🔥 Important: Set role as 'lender'
-      })
-      .pipe(
-        switchMap((user: any) => {
-          if (!user) {
-            throw new Error('User registration failed');
-          }
-          // Save the lender data directly into lenders collection
-          const lenderData = {
-            contactInfo: formData.contactInfo,
-            productInfo: formData.productInfo,
-            footprintInfo: formData.footprintInfo,
-            role: 'lender', // Explicitly add role field
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          // Save to lenders/{user.uid} instead of lenderProfiles/{user.uid}
-          return this.firestoreService.setDocument(
-            `lenders/${user.uid}`,
-            lenderData
-          );
-        }),
-        catchError((error) => {
-          console.error('Registration error:', error);
-          this.errorMessage = 'Registration failed. Please try again.';
-          this.isLoading = false;
-          return of(null);
+    // Run all Firebase operations inside injection context
+    runInInjectionContext(this.injector, () => {
+      // Create Firebase Auth user immediately
+      this.passwordAuthService
+        .registerUser(email, 'defaultPassword', {
+          company: formData.contactInfo?.company,
+          firstName: formData.contactInfo?.firstName,
+          lastName: formData.contactInfo?.lastName,
+          email: email,
+          phone: formData.contactInfo?.contactPhone,
+          city: formData.contactInfo?.city,
+          state: formData.contactInfo?.state,
+          role: 'lender', // Important: Set role as 'lender'
         })
-      )
-      .subscribe((result: any) => {
-        if (result !== null && !this.errorMessage) {
-          this.successMessage = 'Registration successful!';
-          this.isLoading = false;
+        .pipe(
+          switchMap((user: any) => {
+            if (!user) {
+              throw new Error('User registration failed');
+            }
+            // Save the lender data directly into lenders collection
+            const lenderData = {
+              contactInfo: formData.contactInfo,
+              productInfo: formData.productInfo,
+              footprintInfo: formData.footprintInfo,
+              role: 'lender', // Explicitly add role field
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
 
-          // Show success modal (if you have a modal service)
-          this.modalService.openLenderRegistrationSuccessModal();
+            // Save to lenders/{user.uid}
+            return this.firestoreService.setDocument(
+              `lenders/${user.uid}`,
+              lenderData
+            );
+          }),
+          catchError((error) => {
+            console.error('Registration error:', error);
+            this.errorMessage = 'Registration failed. Please try again.';
+            this.isLoading = false;
+            return of(null);
+          })
+        )
+        .subscribe((result: any) => {
+          if (result !== null && !this.errorMessage) {
+            this.successMessage = 'Registration successful!';
+            this.isLoading = false;
 
-          // Redirect to lender dashboard after a short delay
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 3000); // 3 second delay so user can see the success message
-        }
-      });
+            // Show success modal
+            this.modalService.openLenderRegistrationSuccessModal();
+
+            // Redirect to lender dashboard after a short delay
+            setTimeout(() => {
+              this.router.navigate(['/dashboard']);
+            }, 3000); // 3 second delay so user can see the success message
+          }
+        });
+    });
   }
 
   // Your existing helper methods remain unchanged
@@ -924,7 +945,7 @@ export class LenderRegistrationComponent implements OnInit {
   private saveLenderData(userId: string): Observable<any> {
     const formData = this.lenderForm.value;
 
-    // Skip updating lenderProfiles since it's already created
+    // Skip updating lenders since it's already created
     // Go directly to saving products data
     const productData = {
       lenderProfileId: userId,

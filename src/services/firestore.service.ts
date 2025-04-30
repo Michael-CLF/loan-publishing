@@ -2,7 +2,6 @@ import {
   Injectable,
   inject,
   NgZone,
-  DestroyRef,
   Injector,
   runInInjectionContext,
 } from '@angular/core';
@@ -25,7 +24,7 @@ import {
   DocumentData,
 } from '@angular/fire/firestore';
 import { Observable, from, of, BehaviorSubject, throwError } from 'rxjs';
-import { map, catchError, tap, switchMap } from 'rxjs/operators';
+import { map, catchError, tap, switchMap, share } from 'rxjs/operators';
 import { Loan } from './loan.service';
 
 export interface LenderFilter {
@@ -44,6 +43,8 @@ export class FirestoreService {
   private injector = inject(Injector);
 
   private lenderFiltersSubject = new BehaviorSubject<LenderFilter>({});
+  private validatedEmails = new Set<string>();
+  private existingEmails = new Set<string>();
 
   saveFavoriteLoan(lenderUid: string, loan: any) {
     // Use a consistent collection path that matches your dashboard component
@@ -217,32 +218,76 @@ export class FirestoreService {
     return from(getDocs(q)).pipe(map((snapshot) => !snapshot.empty));
   }
 
-  // Update the checkIfEmailExists method to check both collections
   checkIfEmailExists(email: string): Observable<boolean> {
-    const usersCollection = collection(this.firestore, 'users');
-    const lendersCollection = collection(this.firestore, 'lenders');
+    // Normalize the email to lowercase for consistent checking
+    const normalizedEmail = email.toLowerCase();
 
-    const userQuery = query(
-      usersCollection,
-      where('email', '==', email.toLowerCase())
-    );
+    // If we already know this email exists, return true immediately
+    if (this.existingEmails.has(normalizedEmail)) {
+      console.log('Email already known to exist (cached):', normalizedEmail);
+      return of(true);
+    }
 
-    const lenderQuery = query(
-      lendersCollection,
-      where('contactInfo.contactEmail', '==', email.toLowerCase())
-    );
+    // If we already validated this email and know it doesn't exist, return false immediately
+    if (this.validatedEmails.has(normalizedEmail)) {
+      console.log(
+        'Email already validated as unique (cached):',
+        normalizedEmail
+      );
+      return of(false);
+    }
 
-    return from(getDocs(userQuery)).pipe(
-      switchMap((userSnapshot) => {
-        if (!userSnapshot.empty) {
-          return of(true);
-        }
+    // Only perform the check if the email hasn't been validated either way
+    return this.ngZone.run(() => {
+      return runInInjectionContext(this.injector, () => {
+        console.log('Checking if email exists:', normalizedEmail);
+        const usersCollection = collection(this.firestore, 'users');
+        const lendersCollection = collection(this.firestore, 'lenders');
 
-        return from(getDocs(lenderQuery)).pipe(
-          map((lenderSnapshot) => !lenderSnapshot.empty)
+        const userQuery = query(
+          usersCollection,
+          where('email', '==', normalizedEmail)
         );
-      })
-    );
+
+        const lenderQuery = query(
+          lendersCollection,
+          where('contactInfo.contactEmail', '==', normalizedEmail)
+        );
+
+        return from(getDocs(userQuery)).pipe(
+          switchMap((userSnapshot) => {
+            if (!userSnapshot.empty) {
+              // Add to existing emails cache
+              this.existingEmails.add(normalizedEmail);
+              return of(true);
+            }
+
+            return from(getDocs(lenderQuery)).pipe(
+              map((lenderSnapshot) => {
+                const exists = !lenderSnapshot.empty;
+
+                // Update the appropriate cache based on result
+                if (exists) {
+                  this.existingEmails.add(normalizedEmail);
+                } else {
+                  this.validatedEmails.add(normalizedEmail);
+                }
+
+                return exists;
+              })
+            );
+          }),
+          // Add the share operator to ensure multiple subscriptions use the same result
+          share()
+        );
+      });
+    });
+  }
+
+  clearEmailCache(): void {
+    this.validatedEmails.clear();
+    this.existingEmails.clear();
+    console.log('Email validation cache cleared');
   }
 
   /**

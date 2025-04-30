@@ -44,8 +44,8 @@ export class LenderRegSuccessModalComponent {
     await this.authService.refreshCurrentUser();
 
     await firstValueFrom(
-      this.authService.authState().pipe(
-        filter((user: User | null) => !!user) // Wait until Firebase says user is ready
+      this.authService.getFirebaseUser().pipe(
+        filter((user: User | null) => !!user) // correctly inside pipe
       )
     );
 

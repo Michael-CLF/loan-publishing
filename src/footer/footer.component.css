@@ -5,13 +5,11 @@
 }
 
 footer {
+  position: relative;
   background-color: #272727;
   color: #ffffff;
   padding: 20px;
   text-align: center;
   font-family: "roboto";
-  width: 100%;
-  position: fixed;
-  bottom: 0;
   width: 100%;
 }

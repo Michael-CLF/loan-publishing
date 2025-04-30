@@ -1,5 +1,4 @@
-// edit-account.component.ts
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, DestroyRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
   FormBuilder,
@@ -12,8 +11,8 @@ import { UserService } from '../services/user.service';
 import { AuthService } from '../services/auth.service';
 import { StateOption } from '../user-form/user-form.component';
 import { Firestore } from '@angular/fire/firestore';
-
-import { UserData } from '../models/user-data.model'; // Make sure you import or define UserData correctly
+import { getUserId } from '../utils/user-helpers';
+import { UserData } from '../models/user-data.model';
 
 @Component({
   selector: 'app-edit-account',
@@ -29,6 +28,8 @@ export class EditAccountComponent implements OnInit {
   private authService = inject(AuthService);
   private firestore = inject(Firestore);
 
+  userRole: 'lender' | 'originator' | null = null;
+
   accountForm!: FormGroup;
   emailChangeForm!: FormGroup;
   showEmailChangeForm = false;
@@ -43,28 +44,15 @@ export class EditAccountComponent implements OnInit {
 
   states: StateOption[] = [
     { value: 'AL', name: 'Alabama' },
-    // add all other states here...
+    // Add all other states here
   ];
 
   ngOnInit(): void {
+    console.log('EditAccountComponent: Starting initialization');
     this.initForms();
+    console.log('EditAccountComponent: Forms initialized');
     this.loadUserData();
-  }
-
-  formatPhoneNumber(): void {
-    const phoneControl = this.accountForm.get('phone');
-    if (phoneControl) {
-      let phone = phoneControl.value || '';
-      phone = phone.replace(/\D/g, ''); // Remove all non-digit characters
-
-      if (phone.length === 10) {
-        const formattedPhone = `(${phone.slice(0, 3)}) ${phone.slice(
-          3,
-          6
-        )}-${phone.slice(6)}`;
-        phoneControl.setValue(formattedPhone, { emitEvent: false });
-      }
-    }
+    console.log('EditAccountComponent: User data load requested');
   }
 
   private initForms(): void {
@@ -85,7 +73,7 @@ export class EditAccountComponent implements OnInit {
         [
           Validators.required,
           Validators.pattern(/^[\d\(\)\-\+\s]*$/),
-          Validators.minLength(14),
+          Validators.minLength(10),
         ],
       ],
       city: [
@@ -97,6 +85,12 @@ export class EditAccountComponent implements OnInit {
         ],
       ],
       state: ['', [Validators.required]],
+
+      // Add lender-specific fields to the form
+      licenseNumber: [''],
+      lenderType: [''],
+      minLoanAmount: [0],
+      maxLoanAmount: [0],
     });
 
     this.emailChangeForm = this.fb.group({
@@ -105,61 +99,116 @@ export class EditAccountComponent implements OnInit {
     });
   }
 
-  private async loadUserData(): Promise<void> {
+  private loadUserData(): void {
+    console.log('EditAccountComponent: Loading user data started');
     this.isLoading = true;
     this.errorMessage = '';
 
-    try {
-      const user = await this.authService.getCurrentUser().toPromise();
+    // Get current user as Observable
+    this.authService.getCurrentUser().subscribe({
+      next: (user) => {
+        console.log(
+          'EditAccountComponent: Current user retrieved',
+          user ? 'exists' : 'null'
+        );
 
-      if (!user) {
-        console.log('No authenticated user found');
-        this.errorMessage = 'Not logged in';
+        if (!user) {
+          console.log('EditAccountComponent: No authenticated user found');
+          this.errorMessage = 'Not logged in';
+          this.isLoading = false;
+          return;
+        }
+
+        this.userId = getUserId(user) || '';
+        console.log('EditAccountComponent: User ID:', this.userId);
+
+        const uid = user?.uid || user?.id;
+        if (!uid) {
+          console.error('EditAccountComponent: No UID found');
+          this.isLoading = false;
+          return;
+        }
+
+        // Since getUserProfile returns a Promise, handle it properly
+        this.authService
+          .getUserProfile(uid)
+          .then((profile) => {
+            console.log(
+              'EditAccountComponent: Profile retrieved',
+              profile ? 'exists' : 'null'
+            );
+
+            if (profile) {
+              this.userData = profile;
+              this.userRole =
+                profile.role === 'lender' ? 'lender' : 'originator';
+              console.log('EditAccountComponent: User role:', this.userRole);
+
+              const contact =
+                this.userRole === 'lender'
+                  ? profile['contactInfo'] || {}
+                  : profile;
+
+              this.userFirstName = contact.firstName || '';
+              this.userFullName = `${contact.firstName || ''} ${
+                contact.lastName || ''
+              }`.trim();
+
+              // Patch basic form values
+              this.accountForm.patchValue({
+                firstName: contact.firstName || '',
+                lastName: contact.lastName || '',
+                email: contact.contactEmail || profile.email || '',
+                company: profile.company || '',
+                phone: contact.contactPhone || '',
+                city: contact.city || '',
+                state: contact.state || '',
+              });
+
+              // Add lender-specific field values if user is a lender
+              if (this.userRole === 'lender') {
+                this.accountForm.patchValue({
+                  licenseNumber: profile['licenseNumber'] || '',
+                  lenderType:
+                    profile['productInfo']?.['lenderTypes']?.[0] || '',
+                  minLoanAmount: profile['productInfo']?.['minLoanAmount'] || 0,
+                  maxLoanAmount: profile['productInfo']?.['maxLoanAmount'] || 0,
+                });
+              }
+
+              this.currentEmail = contact.contactEmail || profile.email || '';
+            } else {
+              console.warn('Profile not found, using auth user fallback');
+              this.currentEmail = user.email || '';
+
+              this.accountForm.patchValue({
+                email: this.currentEmail,
+              });
+
+              this.errorMessage =
+                'Profile data not found. Please complete your profile.';
+            }
+          })
+          .catch((error) => {
+            console.error(
+              'EditAccountComponent: Error loading user profile:',
+              error
+            );
+            this.errorMessage = 'Failed to load profile data';
+          })
+          .finally(() => {
+            this.isLoading = false;
+            console.log(
+              'EditAccountComponent: Loading completed, isLoading set to false'
+            );
+          });
+      },
+      error: (err) => {
+        console.error('EditAccountComponent: Error getting current user:', err);
+        this.errorMessage = 'Authentication error';
         this.isLoading = false;
-        return;
-      }
-
-      this.userId = user.uid;
-      console.log('Current user ID:', this.userId);
-
-      const profile = await this.authService.getUserProfile(user.uid);
-
-      if (profile) {
-        this.userData = profile;
-
-        this.userFirstName = profile.firstName || '';
-        this.userFullName = `${profile.firstName || ''} ${
-          profile.lastName || ''
-        }`.trim();
-
-        this.accountForm.patchValue({
-          firstName: profile.firstName || '',
-          lastName: profile.lastName || '',
-          email: profile.email || '',
-          company: profile.company || '',
-          phone: profile.phone || '',
-          city: profile.city || '',
-          state: profile.state || '',
-        });
-
-        this.currentEmail = profile.email || '';
-      } else {
-        console.warn('Profile not found, using auth user fallback');
-        this.currentEmail = user.email || '';
-
-        this.accountForm.patchValue({
-          email: this.currentEmail,
-        });
-
-        this.errorMessage =
-          'Profile data not found. Please complete your profile.';
-      }
-    } catch (err) {
-      console.error('Error loading user profile:', err);
-      this.errorMessage = 'Failed to load profile data';
-    } finally {
-      this.isLoading = false;
-    }
+      },
+    });
   }
 
   onSubmit(): void {
@@ -169,28 +218,56 @@ export class EditAccountComponent implements OnInit {
     this.errorMessage = '';
     this.successMessage = '';
 
-    const formData = {
-      firstName: this.accountForm.get('firstName')?.value || '',
-      lastName: this.accountForm.get('lastName')?.value || '',
+    let formData: any = {
       company: this.accountForm.get('company')?.value || '',
-      phone: this.accountForm.get('phone')?.value || '',
-      city: this.accountForm.get('city')?.value || '',
-      state: this.accountForm.get('state')?.value || '',
       email: this.currentEmail,
     };
 
-    this.userService.updateUser(this.userId, formData).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.successMessage = 'Profile updated successfully!';
-        setTimeout(() => this.router.navigate(['/dashboard']), 1500);
-      },
-      error: (err) => {
-        console.error('Failed to update profile:', err);
-        this.errorMessage = 'Failed to update profile';
-        this.isLoading = false;
-      },
-    });
+    if (this.userRole === 'originator') {
+      formData = {
+        ...formData,
+        firstName: this.accountForm.get('firstName')?.value || '',
+        lastName: this.accountForm.get('lastName')?.value || '',
+        phone: this.accountForm.get('phone')?.value || '',
+        city: this.accountForm.get('city')?.value || '',
+        state: this.accountForm.get('state')?.value || '',
+      };
+    }
+
+    if (this.userRole === 'lender') {
+      formData = {
+        ...formData,
+        licenseNumber: this.accountForm.get('licenseNumber')?.value || '',
+        productInfo: {
+          lenderTypes: [this.accountForm.get('lenderType')?.value || ''],
+          minLoanAmount: this.accountForm.get('minLoanAmount')?.value || 0,
+          maxLoanAmount: this.accountForm.get('maxLoanAmount')?.value || 0,
+        },
+        contactInfo: {
+          firstName: this.accountForm.get('firstName')?.value || '',
+          lastName: this.accountForm.get('lastName')?.value || '',
+          contactPhone: this.accountForm.get('phone')?.value || '',
+          contactEmail: this.currentEmail,
+          city: this.accountForm.get('city')?.value || '',
+          state: this.accountForm.get('state')?.value || '',
+        },
+      };
+    }
+
+    this.userService
+      .updateUser(this.userId, formData, this.userRole)
+      .subscribe({
+        next: () => {
+          this.isLoading = false;
+          this.successMessage = 'Profile updated successfully!';
+          setTimeout(() => this.router.navigate(['/dashboard']), 1500);
+        },
+        error: (err) => {
+          console.error('Failed to update profile:', err);
+          this.errorMessage = 'Failed to update profile';
+          this.isLoading = false;
+        },
+      });
   }
 
   toggleEmailChangeForm(): void {
@@ -231,6 +308,22 @@ export class EditAccountComponent implements OnInit {
           }
         },
       });
+  }
+
+  formatPhoneNumber(): void {
+    const phoneControl = this.accountForm.get('phone');
+    if (phoneControl) {
+      let phone = phoneControl.value || '';
+      phone = phone.replace(/\D/g, '');
+
+      if (phone.length === 10) {
+        const formattedPhone = `(${phone.slice(0, 3)}) ${phone.slice(
+          3,
+          6
+        )}-${phone.slice(6)}`;
+        phoneControl.setValue(formattedPhone, { emitEvent: false });
+      }
+    }
   }
 
   cancel(): void {

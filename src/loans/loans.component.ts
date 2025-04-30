@@ -12,6 +12,7 @@ import { CommonModule } from '@angular/common';
 import { LoanService, Loan } from '../services/loan.service';
 import { AuthService } from '../services/auth.service';
 import { take } from 'rxjs/operators';
+import { firstValueFrom } from 'rxjs';
 import {
   Firestore,
   collection,
@@ -27,6 +28,7 @@ import {
 import { PropertyFilterComponent } from '../property-filter/property-filter.component';
 import { LOAN_TYPES } from '../shared/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
+import { getUserId } from '../utils/user-helpers';
 
 // Define the interface here instead of importing it
 interface LoanFilters {
@@ -147,60 +149,73 @@ export class LoansComponent implements OnInit {
    */
   async toggleFavorite(loan: Loan): Promise<void> {
     try {
-      const user = await this.authService
-        .getCurrentUser()
-        .pipe(take(1))
-        .toPromise();
+      const user = await firstValueFrom(
+        this.authService.getCurrentUser().pipe(take(1))
+      );
 
       if (!user) {
         alert('Please log in to save favorites');
         this.router.navigate(['/login']);
         return;
       }
+      const userId = user.uid || user.id || '';
 
-      let userDocRef = doc(this.firestore, `users/${user.uid}`);
+      if (!userId) {
+        console.error('User ID is missing from user object:', user);
+        alert('Unable to save favorite: User ID not found');
+        return;
+      }
+
+      // First check if user is a lender
+      if (user.role !== 'lender') {
+        alert('Only lenders can save favorite loans');
+        return;
+      }
+
+      // Store current favorite state
+      const isFavorite = loan.isFavorite === true;
+
+      // Toggle for UI feedback - using explicit boolean assignment
+      loan.isFavorite = !isFavorite;
+
+      let userDocRef = doc(
+        this.firestore,
+        `lenders/${userId}` // Changed from users to lenders since we know it's a lender
+      );
+
       let userDoc = await runInInjectionContext(this.injector, () =>
         getDoc(userDocRef)
       );
 
       if (!userDoc.exists()) {
-        // Try in lenders collection
-        userDocRef = doc(this.firestore, `lenders/${user.uid}`);
-        userDoc = await runInInjectionContext(this.injector, () =>
-          getDoc(userDocRef)
-        );
+        console.error('Lender profile not found');
+        alert('Lender profile not found');
 
-        if (!userDoc.exists()) {
-          alert('User profile not found');
-          return;
-        }
-      }
-
-      const userData = userDoc.data();
-
-      if (!userData || userData['role'] !== 'lender') {
-        alert('Only lenders can save favorite loans');
+        // Revert UI state
+        loan.isFavorite = isFavorite;
         return;
       }
 
-      loan.isFavorite = !loan.isFavorite; // Immediate UI feedback
-
-      await this.firestoreService.toggleFavoriteLoan(
-        user.uid,
-        loan,
-        loan.isFavorite
+      // Call service with the toggled boolean value
+      await runInInjectionContext(this.injector, () =>
+        this.firestoreService.toggleFavoriteLoan(
+          userId,
+          loan,
+          !isFavorite // Pass the toggled boolean directly
+        )
       );
     } catch (error) {
       console.error('Error toggling favorite:', error);
-      if (loan.isFavorite !== undefined) {
-        loan.isFavorite = !loan.isFavorite;
-      }
+
+      // Revert UI state if operation failed - safely toggle back
+      const currentState = loan.isFavorite === true;
+      loan.isFavorite = !currentState;
+
       this.errorMessage.set(
         'Failed to update favorite status. Please try again.'
       );
     }
   }
-
   /**
    * Checks if each loan is favorited by the current user
    */
@@ -213,7 +228,7 @@ export class LoansComponent implements OnInit {
       if (!user) return;
 
       const favoritesRef = collection(this.firestore, 'favorites');
-      const q = query(favoritesRef, where('userId', '==', user.uid));
+      const q = query(favoritesRef, where('userId', '==', user['uid']));
 
       const querySnapshot = await runInInjectionContext(this.injector, () =>
         getDocs(q)

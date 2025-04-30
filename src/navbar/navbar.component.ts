@@ -3,18 +3,20 @@ import {
   Component,
   OnInit,
   OnDestroy,
+  HostListener,
   inject,
   NgZone,
   DestroyRef,
-  HostListener,
+  ViewChild,
 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { AuthService } from '../services/auth.service';
 import { Subscription } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { AuthService } from '../services/auth.service';
+import { ModalService } from '../services/modal.service';
+import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
 
-// Define user data interface
 interface UserData {
   id: string;
   email?: string;
@@ -37,26 +39,25 @@ interface UserData {
   styleUrl: './navbar.component.css',
 })
 export class NavbarComponent implements OnInit, OnDestroy {
+  @ViewChild(RoleSelectionModalComponent)
+  roleModal!: RoleSelectionModalComponent;
   isLoggedIn = false;
   isDropdownOpen = false;
   userData: UserData | null = null;
   loading = false;
   error: string | null = null;
   accountNumber: string = '';
-  private authSubscription!: Subscription;
-  private userDataSubscription: Subscription | null = null;
+  userRole: string | null = null;
 
-  // Inject services
   private authService = inject(AuthService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
   private firestore = inject(Firestore);
   private destroyRef = inject(DestroyRef);
+  private modalService = inject(ModalService);
 
-  userRole: string | null = null;
-  getUserDashboardLink(): string {
-    return this.userRole === 'lender' ? '/dashboard' : '/dashboard';
-  }
+  private authSubscription!: Subscription;
+  private userDataSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     console.log('NavbarComponent - Initializing');
@@ -67,17 +68,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Subscribe to authentication state changes
     this.authSubscription = this.authService.isLoggedIn$.subscribe(
       (loggedIn) => {
         console.log('NavbarComponent - Auth state changed:', loggedIn);
         this.isLoggedIn = loggedIn;
 
-        // Load user data when logged in
         if (loggedIn) {
           this.loadUserData();
         } else {
-          // Clear user data when logged out
           this.userData = null;
           this.accountNumber = '';
         }
@@ -86,14 +84,18 @@ export class NavbarComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Clean up subscriptions
     if (this.authSubscription) {
       this.authSubscription.unsubscribe();
     }
-
     if (this.userDataSubscription) {
       this.userDataSubscription.unsubscribe();
     }
+  }
+
+  openRoleSelectionModal(): void {
+    // Simply use the modal service and nothing else
+    this.modalService.openRoleSelectionModal();
+    console.log('NavbarComponent - Opening role selection modal');
   }
 
   toggleAccountDropdown(event: Event): void {
@@ -122,17 +124,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
     this.loading = true;
     this.error = null;
 
-    // Get the current authenticated user from AuthService
     this.userDataSubscription = this.authService
       .getCurrentUser()
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(async (user) => {
-        // Important debug logs
         console.log('NavbarComponent - Current Auth User:', user?.email);
-        console.log('NavbarComponent - Auth UID:', user?.uid);
 
         if (!user) {
-          console.log('NavbarComponent - No authenticated user found');
           this.error = 'Not logged in';
           this.userData = null;
           this.loading = false;
@@ -140,66 +138,57 @@ export class NavbarComponent implements OnInit, OnDestroy {
         }
 
         try {
-          // Generate the shortened UID for the account number
-          this.accountNumber = user.uid.substring(0, 8);
+          this.accountNumber = user?.uid?.substring(0, 8) || '';
 
-          // Get user profile from Firestore using authenticated user's UID
-          const userDocRef = doc(this.firestore, `lenders/${user.uid}`);
+          const uid = user?.uid || user?.id || '';
+          const role = user?.role || 'originator';
+          const collection = role === 'lender' ? 'lenders' : 'users';
+          const userDocRef = doc(this.firestore, `${collection}/${uid}`);
           const docSnap = await getDoc(userDocRef);
 
           if (docSnap.exists()) {
-            // User profile found with matching UID
-            console.log(
-              'NavbarComponent - User profile found in Firestore:',
-              docSnap.data()
-            );
-
-            // Store the user data
+            const data = docSnap.data();
             this.userData = {
               id: docSnap.id,
-              ...docSnap.data(),
-            } as UserData;
+              firstName: data['contactInfo'].firstName || '',
+              lastName: data['contactInfo'].lastName || '',
+              email: data['contactInfo'].contactEmail || '',
+              phone: data['contactInfo'].contactPhone || '',
+              city: data['contactInfo'].city || '',
+              state: data['contactInfo'].state || '',
+              company: data['contactInfo'].company || '',
+              role: data['role'] || '',
+              accountNumber: this.accountNumber,
+            };
 
-            // Additional validation - ensure emails match
             if (this.userData.email && this.userData.email !== user.email) {
-              console.warn(
-                'NavbarComponent - WARNING: Email mismatch between Auth and Firestore!',
-                {
-                  authEmail: user.email,
-                  firestoreEmail: this.userData.email,
-                }
-              );
+              console.warn('NavbarComponent - Email mismatch!', {
+                authEmail: user.email,
+                firestoreEmail: this.userData.email,
+              });
             }
 
             this.loading = false;
           } else {
-            // No user document found with matching UID
             console.error(
-              `NavbarComponent - No document found at lenders/${user.uid}`
+              `NavbarComponent - No document at ${collection}/${uid}`
             );
             this.error = 'User profile not found';
-
-            // IMPORTANT: Don't fall back to another user's data
-            // Just display the authenticated user's email from Firebase Auth
             this.userData = {
-              id: user.uid,
+              id: uid,
               email: user.email || 'Unknown email',
               firstName: 'Account',
               lastName: 'Needs Setup',
-            } as UserData;
-
+            };
             this.loading = false;
           }
         } catch (error) {
-          console.error('NavbarComponent - Error in loadUserData:', error);
+          console.error('NavbarComponent - Error loading user:', error);
           this.error = 'Error loading profile';
-
-          // Fallback to using just the auth data instead of no data
           this.userData = {
-            id: user.uid,
+            id: user['uid'] !== undefined ? user['uid'] : '',
             email: user.email || 'Unknown email',
-          } as UserData;
-
+          };
           this.loading = false;
         }
       });
@@ -207,13 +196,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';
-
     const cleaned = phone.replace(/\D/g, '');
     const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
-    if (match) {
-      return `(${match[1]}) ${match[2]}-${match[3]}`;
-    }
-    return phone; // fallback
+    return match ? `(${match[1]}) ${match[2]}-${match[3]}` : phone;
   }
 
   logout(): void {
@@ -226,16 +211,13 @@ export class NavbarComponent implements OnInit, OnDestroy {
       .subscribe({
         next: () => {
           console.log('NavbarComponent - Logout successful');
-          // Clear local user data immediately
           this.userData = null;
           this.accountNumber = '';
           this.isLoggedIn = false;
 
-          // Additional cleanup
           localStorage.removeItem('isLoggedIn');
           localStorage.removeItem('redirectUrl');
 
-          // Clear any other auth-related items
           document.cookie.split(';').forEach((c) => {
             document.cookie = c
               .replace(/^ +/, '')
@@ -248,7 +230,7 @@ export class NavbarComponent implements OnInit, OnDestroy {
           this.router.navigate(['/login']);
         },
         error: (error) => {
-          console.error('NavbarComponent - Error during logout:', error);
+          console.error('NavbarComponent - Logout error:', error);
           this.error = 'Logout failed';
           this.loading = false;
         },

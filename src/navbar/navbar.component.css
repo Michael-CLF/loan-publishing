@@ -46,6 +46,7 @@
   border-radius: 6px;
   border: 1px solid #fff;
   text-decoration: none;
+  cursor: pointer;
 }
 
 .login-btn,
@@ -57,11 +58,13 @@
 }
 
 .logout-button {
+  display: block;
   background-color: #008080;
   border-radius: 4px;
   padding: 8px 15px;
   border: none;
   color: white;
+  margin: 0 auto;
   cursor: pointer;
   text-decoration: none;
   font-family: "Roboto", sans-serif;

@@ -126,7 +126,8 @@
     <div [formGroup]="lenderForm" class="form-group full-width tos-container">
         <label class="checkbox-label">
             <input type="checkbox" formControlName="termsAccepted" class="form-check-input">
-            I have read, acknowledge and agree to the <a href="/terms" target="_blank"> Terms of Service</a>
+            I have read, acknowledge and agree to the <a href="/terms" target="_blank" (click)="onTermsClick($event)">
+                Terms of Service</a>
         </label>
         <div *ngIf="lenderForm.get('termsAccepted')?.invalid && lenderForm.get('termsAccepted')?.touched" class="error">
             *You must agree to the Terms of Service to continue.

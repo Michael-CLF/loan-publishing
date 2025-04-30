@@ -1,6 +1,10 @@
 .grid-container {
   margin-bottom: 50px;
   margin-top: 30px;
+  padding-bottom: 20px;
+}
+.container:last-child {
+  margin-bottom: 100px;
 }
 .headline {
   color: #0a2463;

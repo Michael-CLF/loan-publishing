@@ -51,31 +51,51 @@ export class ModalService implements OnDestroy {
   }
 
   openRoleSelectionModal(): void {
+    console.log('ModalService - Beginning to create modal');
+
     if (this.modalComponentRef) {
+      console.log('ModalService - Closing existing modal');
       this.closeModal();
     }
 
-    const componentRef = createComponent(RoleSelectionModalComponent, {
-      environmentInjector: this.injector,
-    });
+    try {
+      console.log('ModalService - Creating component');
+      const componentRef = createComponent(RoleSelectionModalComponent, {
+        environmentInjector: this.injector,
+      });
 
-    this.modalComponentRef = componentRef;
+      console.log('ModalService - Component created');
+      this.modalComponentRef = componentRef;
 
-    this.appRef.attachView(componentRef.hostView);
+      // CRITICAL: Call open() method on the instance
+      componentRef.instance.open();
+      console.log('ModalService - Called open() on modal instance');
 
-    const domElement = (componentRef.hostView as any).rootNodes[0];
-    document.body.appendChild(domElement);
+      this.appRef.attachView(componentRef.hostView);
+      console.log('ModalService - View attached');
 
-    // ⭐ Listen for role selection
-    componentRef.instance.roleSelected.subscribe((role: UserRole) => {
-      this.router.navigate(['/register'], { queryParams: { role } });
-      this.closeModal(); // Close after navigation
-    });
+      const domElement = (componentRef.hostView as any).rootNodes[0];
+      document.body.appendChild(domElement);
+      console.log('ModalService - Added to DOM');
 
-    // ⭐ Also listen if modal manually closed
-    componentRef.instance.modalClosed.subscribe(() => {
-      this.closeModal();
-    });
+      // Listen for role selection
+      componentRef.instance.roleSelected.subscribe((role: UserRole) => {
+        if (role === 'originator') {
+          this.router.navigate(['/user-form']);
+        } else if (role === 'lender') {
+          this.router.navigate(['/lender-registration']);
+        }
+
+        this.closeModal();
+      });
+      // Also listen if modal manually closed
+      componentRef.instance.modalClosed.subscribe(() => {
+        console.log('ModalService - Modal closed by user');
+        this.closeModal();
+      });
+    } catch (error) {
+      console.error('ModalService - Error creating modal:', error);
+    }
   }
 
   ngOnDestroy(): void {

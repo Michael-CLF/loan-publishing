@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { User } from '@angular/fire/auth';
 
 import {
   Firestore,
@@ -28,12 +27,19 @@ import { RouterLink } from '@angular/router';
 import { LOAN_TYPES } from '../shared/loan-constants';
 
 // Models
-
-import { UserData } from '../models/user-data.model';
 import { Loan as LoanModel } from '../models/loan-model.model';
 import { SavedLoan } from '../models/saved-loan.model';
 import { LoanService } from '../services/loan.service';
 import { Loan } from '../models/loan-model.model';
+import { getUserId } from '../utils/user-helpers';
+import {
+  UserData,
+  Originator,
+  Lender,
+  isLender,
+  isOriginator,
+  userDataToUser,
+} from '../models';
 
 @Component({
   selector: 'app-dashboard',
@@ -54,7 +60,7 @@ export class DashboardComponent implements OnInit {
 
   // State properties
   isLoggedIn = false;
-  role: undefined;
+  role: string | undefined;
   user: FirebaseUser | null = null;
   userData: UserData = {} as UserData;
   userRole: 'originator' | 'lender' | undefined = undefined;
@@ -73,6 +79,10 @@ export class DashboardComponent implements OnInit {
   savedLoans = signal<SavedLoan[]>([]);
   savedLoansLoading = signal(true);
   savedLoansError = signal<string | null>(null);
+
+  savedLenders = signal<any[]>([]);
+  savedLendersLoading = signal(true);
+  savedLendersError = signal<string | null>(null);
 
   // Property colors for visualization
   propertyColorMap: Record<string, string> = {
@@ -147,34 +157,38 @@ export class DashboardComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.authService
-      .getCurrentUser()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: async (user) => {
-          console.log('DashboardComponent - Current Auth User:', user?.email);
+    this.authService.getCurrentUser().subscribe({
+      next: async (user) => {
+        if (!user) {
+          this.handleNoAuthenticatedUser();
+          return;
+        }
 
-          if (!user) {
-            this.handleNoAuthenticatedUser();
-            return;
-          }
+        this.user = {
+          uid: user.uid || user.id,
+          email: user.email,
+          // Add other necessary FirebaseUser properties
+        } as FirebaseUser;
 
-          // ADD THIS ↓↓↓
-          console.log('Logged in user UID:', user.uid);
-          // ADD THIS ↑↑↑
-
+        const userId = getUserId(user);
+        console.log('Logged in user ID:', userId);
+        if (userId) {
           try {
-            await this.fetchUserProfile(user);
-          } catch (error) {
-            this.handleUserProfileError(error, user);
+            await this.fetchUserProfile(this.user);
+          } catch (error: any) {
+            this.handleUserProfileError(error, userId);
           }
-        },
-        error: (error) => {
-          console.error('Error getting current user:', error);
-          this.error = 'Authentication error';
-          this.loading = false;
-        },
-      });
+        } else {
+          console.error('No user ID available');
+          this.handleNoAuthenticatedUser();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error getting current user:', error);
+        this.error = 'Authentication error';
+        this.loading = false;
+      },
+    });
   }
 
   /**
@@ -191,27 +205,42 @@ export class DashboardComponent implements OnInit {
   /**
    * Fetch user profile from Firestore
    */
-  private async fetchUserProfile(user: FirebaseUser): Promise<void> {
-    this.accountNumber = user.uid.substring(0, 8);
-    this.user = user;
-
-    const userDocRef = doc(this.firestore, `lenders/${user.uid}`);
-    const docSnap = await getDoc(userDocRef);
-
-    if (docSnap.exists()) {
-      await this.handleExistingUserProfile(docSnap, user);
-    } else {
-      await this.handleMissingUserProfile(user);
+  private async fetchUserProfile(fbUser: FirebaseUser): Promise<void> {
+    if (!fbUser || !fbUser.uid) {
+      this.handleNoAuthenticatedUser();
+      return;
     }
+
+    this.accountNumber = fbUser.uid.substring(0, 8);
+
+    // Try lenders collection first
+    const lenderDocRef = doc(this.firestore, `lenders/${fbUser.uid}`);
+    const lenderSnap = await getDoc(lenderDocRef);
+
+    if (lenderSnap.exists()) {
+      await this.handleExistingUserProfile(lenderSnap, fbUser);
+      return;
+    }
+
+    // If not found in lenders, try users collection
+    const userDocRef = doc(this.firestore, `users/${fbUser.uid}`);
+    const userSnap = await getDoc(userDocRef);
+
+    if (userSnap.exists()) {
+      await this.handleExistingUserProfile(userSnap, fbUser);
+      return;
+    }
+
+    // If not found in either collection
+    await this.handleMissingUserProfile(fbUser);
   }
 
   /**
    * Handle existing user profile
    */
-
   async handleExistingUserProfile(
     docSnap: any,
-    user: User | null
+    fbUser: FirebaseUser
   ): Promise<void> {
     console.log('DashboardComponent - User profile found:', docSnap.data());
 
@@ -221,13 +250,13 @@ export class DashboardComponent implements OnInit {
       // It's a lender
       this.userData = {
         id: docSnap.id,
-        company: data.contactInfo.company,
-        firstName: data.contactInfo.firstName,
-        lastName: data.contactInfo.lastName,
-        phone: data.contactInfo.contactPhone,
-        email: data.contactInfo.contactEmail,
-        city: data.contactInfo.city,
-        state: data.contactInfo.state,
+        company: data.contactInfo?.company || '',
+        firstName: data.contactInfo?.firstName || '',
+        lastName: data.contactInfo?.lastName || '',
+        phone: data.contactInfo?.contactPhone || '',
+        email: data.contactInfo?.contactEmail || '',
+        city: data.contactInfo?.city || '',
+        state: data.contactInfo?.state || '',
         role: 'lender',
       };
     } else if (data.role === 'originator') {
@@ -242,23 +271,16 @@ export class DashboardComponent implements OnInit {
 
     this.userRole = this.userData.role;
 
-    if (this.userRole === 'lender') {
-      if (this.user && this.user.uid) {
-        await this.loadSavedLoans(this.user.uid);
-      }
+    if (this.userRole === 'lender' && fbUser.uid) {
+      await this.loadSavedLoans(fbUser.uid);
     }
 
-    if (this.userRole === 'originator') {
-      if (this.user && this.user.uid) {
-        await this.loadSavedLenders(this.user.uid);
-      }
+    if (this.userRole === 'originator' && fbUser.uid) {
+      await this.loadSavedLenders(fbUser.uid);
     }
 
-    // ✅ Fixed: check if user exists before calling loadLoans
-    if (user && user.uid) {
-      await this.loadLoans(user.uid);
-    } else {
-      console.error('DashboardComponent - No valid user to load loans.');
+    if (fbUser.uid) {
+      await this.loadLoans(fbUser.uid);
     }
 
     this.loading = false;
@@ -267,13 +289,13 @@ export class DashboardComponent implements OnInit {
   /**
    * Handle missing user profile
    */
-  private async handleMissingUserProfile(user: FirebaseUser): Promise<void> {
-    console.error(`No document found at lenders/${user.uid}`);
+  private async handleMissingUserProfile(fbUser: FirebaseUser): Promise<void> {
+    console.error(`No document found for user ID: ${fbUser.uid}`);
     this.error = 'User profile not found';
 
     this.userData = {
-      id: user.uid,
-      email: user.email || 'Unknown email',
+      id: fbUser.uid,
+      email: fbUser.email || 'Unknown email',
       firstName: 'Account',
       lastName: 'Needs Setup',
     } as UserData;
@@ -284,13 +306,13 @@ export class DashboardComponent implements OnInit {
   /**
    * Handle error loading user profile
    */
-  private handleUserProfileError(error: any, user: FirebaseUser): void {
-    console.error('DashboardComponent - Error in loadUserData:', error);
+  private handleUserProfileError(error: any, userId: string): void {
+    console.error(`Error fetching profile for user ${userId}:`, error);
     this.error = 'Error loading profile';
 
     this.userData = {
-      id: user.uid,
-      email: user.email || 'Unknown email',
+      id: userId,
+      email: this.user?.email || 'Unknown email',
     } as UserData;
 
     this.loading = false;
@@ -299,11 +321,11 @@ export class DashboardComponent implements OnInit {
   /**
    * Create default user profile if none exists
    */
-  async createDefaultUserProfile(user: FirebaseUser): Promise<void> {
+  async createDefaultUserProfile(fbUser: FirebaseUser): Promise<void> {
     try {
       const defaultUserData: Partial<UserData> = {
-        id: user.uid,
-        email: user.email || '',
+        id: fbUser.uid,
+        email: fbUser.email || '',
         firstName: '',
         lastName: '',
         company: '',
@@ -343,6 +365,7 @@ export class DashboardComponent implements OnInit {
       },
     });
   }
+
   /**
    * Load saved loans for lenders
    */
@@ -362,7 +385,7 @@ export class DashboardComponent implements OnInit {
           this.savedLoans.set(userSavedLoans);
           this.savedLoansLoading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           // In your loadSavedLoans method
           console.log('Loading saved loans for user ID:', userId);
           // Compare this printed ID with what you see in your Firestore console
@@ -374,11 +397,12 @@ export class DashboardComponent implements OnInit {
         },
       });
   }
+
   /**
    * Save a loan for a lender
    */
   async saveLoan(loan: Loan): Promise<void> {
-    if (!this.user) {
+    if (!this.user || !this.user.uid) {
       alert('Please log in to save loans');
       this.router.navigate(['/login']);
       return;
@@ -401,9 +425,11 @@ export class DashboardComponent implements OnInit {
    * Check if loan is already saved and save if not
    */
   private async checkAndSaveLoan(loan: Loan): Promise<void> {
-    if (!this.user) return;
+    if (!this.user || !this.user.uid) {
+      return;
+    }
 
-    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites'); // Notice Favorites
+    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites');
     const q = query(
       savedLoansCollectionRef,
       where('loanId', '==', loan.id),
@@ -427,8 +453,8 @@ export class DashboardComponent implements OnInit {
     await addDoc(savedLoansCollectionRef, savedLoanData);
     alert('Loan saved successfully');
 
-    if (this.user) {
-      this.loadSavedLoans(this.user.uid);
+    if (this.user && this.user.uid) {
+      await this.loadSavedLoans(this.user.uid);
     }
   }
 
@@ -461,10 +487,6 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  savedLenders = signal<any[]>([]);
-  savedLendersLoading = signal(true);
-  savedLendersError = signal<string | null>(null);
-
   async loadSavedLenders(originatorId: string): Promise<void> {
     console.log('Loading saved lenders for originator:', originatorId);
     this.savedLendersLoading.set(true);
@@ -481,7 +503,7 @@ export class DashboardComponent implements OnInit {
           this.savedLenders.set(favorites);
           this.savedLendersLoading.set(false);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error loading saved lenders:', error);
           this.savedLendersError.set(
             'Failed to load your saved lenders. Please try again.'
@@ -490,6 +512,7 @@ export class DashboardComponent implements OnInit {
         },
       });
   }
+
   async removeSavedLender(savedFavoriteId: string): Promise<void> {
     if (confirm('Are you sure you want to remove this saved lender?')) {
       try {
@@ -524,7 +547,7 @@ export class DashboardComponent implements OnInit {
         this.loading = false;
         this.navigateAfterRoleSelection(role);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error updating user role:', error);
         this.error = 'Failed to update role';
         this.loading = false;
@@ -707,12 +730,13 @@ export class DashboardComponent implements OnInit {
    * Delete user document and logout
    */
   private async deleteUserAndLogout(): Promise<void> {
-    if (!this.user || !this.userData) {
+    if (!this.userData || !this.userData.id) {
       throw new Error('User account information not available');
     }
 
-    // Delete user document from Firestore
-    const userDocRef = doc(this.firestore, `lenders/${this.userData.id}`);
+    // Determine the appropriate collection based on user role
+    const collection = this.userRole === 'lender' ? 'lenders' : 'users';
+    const userDocRef = doc(this.firestore, `${collection}/${this.userData.id}`);
     await deleteDoc(userDocRef);
 
     // Log out the user
@@ -721,7 +745,7 @@ export class DashboardComponent implements OnInit {
         alert('Your account has been deleted successfully');
         this.router.navigate(['/login']);
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('Error during logout after account deletion:', error);
         throw error;
       },
@@ -743,7 +767,7 @@ export class DashboardComponent implements OnInit {
           console.log('Logout successful');
           this.router.navigate(['/login']);
         },
-        error: (error) => {
+        error: (error: any) => {
           console.error('Error during logout:', error);
           this.error = 'Error during logout';
           this.loading = false;

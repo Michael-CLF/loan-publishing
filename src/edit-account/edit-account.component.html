@@ -25,7 +25,6 @@
             <div class="form-group">
                 <label for="firstName">First Name</label>
                 <input type="text" id="firstName" formControlName="firstName" class="form-control read-only">
-
             </div>
 
             <div class="form-group">
@@ -146,6 +145,30 @@
                     class="invalid-feedback">
                     <div *ngIf="accountForm.get('state')?.errors?.['required']">State is required.</div>
                 </div>
+            </div>
+        </div>
+
+        <!-- Special Section for Lenders - NOW INSIDE THE FORM -->
+        <div *ngIf="userRole === 'lender'" class="form-section">
+            <h2>Lender Information</h2>
+
+            <div class="form-group">
+                <label for="lenderType">Lender Type</label>
+                <input type="text" id="lenderType" formControlName="lenderType" class="form-control"
+                    [class.is-invalid]="accountForm.get('lenderType')?.invalid && accountForm.get('lenderType')?.touched">
+                <small class="form-text text-muted">Examples: Bank, Private Lender, Credit Union, etc.</small>
+            </div>
+
+            <div class="form-group">
+                <label for="minLoanAmount">Minimum Loan Amount</label>
+                <input type="number" id="minLoanAmount" formControlName="minLoanAmount" class="form-control"
+                    [class.is-invalid]="accountForm.get('minLoanAmount')?.invalid && accountForm.get('minLoanAmount')?.touched">
+            </div>
+
+            <div class="form-group">
+                <label for="maxLoanAmount">Maximum Loan Amount</label>
+                <input type="number" id="maxLoanAmount" formControlName="maxLoanAmount" class="form-control"
+                    [class.is-invalid]="accountForm.get('maxLoanAmount')?.invalid && accountForm.get('maxLoanAmount')?.touched">
             </div>
         </div>
 

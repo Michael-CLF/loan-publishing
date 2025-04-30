@@ -152,6 +152,12 @@ export class AppComponent implements OnInit {
       );
     });
   }
+  isRoleSelectionModalOpen = false;
+
+  openRoleModalFromNavbar() {
+    console.log('NAVBAR: CLICK WORKS'); // ✅ check this!
+    this.isRoleSelectionModalOpen = true;
+  }
 
   private handleEmailVerification(): void {
     console.log('Checking for email verification link...');

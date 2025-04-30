@@ -90,7 +90,7 @@ export class LoanService {
         const timestamp = new Date();
         const newLoan: Loan = {
           ...loanData,
-          createdBy: user.uid,
+          createdBy: user['uid'],
           createdAt: timestamp,
           updatedAt: timestamp,
         };
@@ -223,7 +223,7 @@ export class LoanService {
 
         const myLoansQuery = query(
           this.loansCollection,
-          where('createdBy', '==', user.uid),
+          where('createdBy', '==', user['uid']),
           orderBy('createdAt', 'desc')
         );
 

@@ -8,11 +8,12 @@ import {
 import { UserRoleService } from '../services/user-role.service';
 import { AuthService } from '../services/auth.service';
 import { take } from 'rxjs/operators';
+import { ModalService } from 'src/services/modal.service';
 
 @Component({
   selector: 'app-home',
   standalone: true,
-  imports: [CommonModule, RoleSelectionModalComponent],
+  imports: [CommonModule],
   templateUrl: './home.component.html',
   styleUrl: './home.component.css',
 })
@@ -24,11 +25,12 @@ export class HomeComponent {
 
   constructor(
     private router: Router,
+    private modalService: ModalService,
     private userRoleService: UserRoleService
   ) {}
 
   openRoleSelectionModal(): void {
-    // Check if user is authenticated
+    this.modalService.openRoleSelectionModal();
     this.authService
       .getAuthStatus()
       .pipe(take(1))
@@ -41,19 +43,5 @@ export class HomeComponent {
           this.roleModal.open();
         }
       });
-  }
-
-  handleRoleSelection(role: UserRole): void {
-    this.userRoleService.setUserRole(role);
-
-    console.log('Selected role:', role);
-
-    if (role.toString().toUpperCase() === 'LENDER') {
-      console.log('Navigating to lender registration');
-      this.router.navigate(['/lender-registration']);
-    } else {
-      console.log('Navigating to user form');
-      this.router.navigate(['/user-form']);
-    }
   }
 }

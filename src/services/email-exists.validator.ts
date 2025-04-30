@@ -1,4 +1,9 @@
-import { Injectable } from '@angular/core';
+import {
+  Injectable,
+  inject,
+  Injector,
+  runInInjectionContext,
+} from '@angular/core';
 import {
   AbstractControl,
   AsyncValidator,
@@ -12,10 +17,13 @@ import { FirestoreService } from './firestore.service';
   providedIn: 'root',
 })
 export class EmailExistsValidator implements AsyncValidator {
-  constructor(private firestoreService: FirestoreService) {}
+  private firestoreService = inject(FirestoreService);
+  private injector = inject(Injector);
 
   validate(control: AbstractControl): Observable<ValidationErrors | null> {
-    return this.checkEmailExists(control.value);
+    return runInInjectionContext(this.injector, () => {
+      return this.checkEmailExists(control.value);
+    });
   }
 
   private checkEmailExists(email: string): Observable<ValidationErrors | null> {
@@ -26,7 +34,11 @@ export class EmailExistsValidator implements AsyncValidator {
     return of(email).pipe(
       debounceTime(500),
       switchMap((emailToCheck) =>
-        this.firestoreService.checkIfEmailExists(emailToCheck.toLowerCase())
+        runInInjectionContext(this.injector, () => {
+          return this.firestoreService.checkIfEmailExists(
+            emailToCheck.toLowerCase()
+          );
+        })
       ),
       map((exists) => (exists ? { emailExists: true } : null))
     );

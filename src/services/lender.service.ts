@@ -19,6 +19,7 @@ import { FirestoreService } from './firestore.service';
 import { UserData } from '../models/user-data.model';
 
 // Keep your original Lender interface
+// In lender.service.ts, update the productInfo type within the Lender interface:
 export interface Lender {
   id?: string;
   name: string;
@@ -31,6 +32,8 @@ export interface Lender {
     lenderTypes?: string[];
     propertyCategories?: string[];
     propertyTypes?: string[];
+    subcategorySelections?: string[]; // Add this line
+    loanTypes?: string[]; // Add this if needed
   };
   contactInfo?: any;
   footprintInfo?: {
@@ -134,12 +137,13 @@ export class LenderService {
         lenderTypes: lender.productInfo?.lenderTypes || [],
         propertyCategories: lender.productInfo?.propertyCategories || [],
         propertyTypes: lender.productInfo?.propertyTypes || [],
+        subcategorySelections: lender.productInfo?.subcategorySelections || [],
+        loanTypes: lender.productInfo?.loanTypes || [],
       },
       contactInfo: lender.contactInfo || {},
       footprintInfo: lender.footprintInfo || { lendingFootprint: [] },
     };
   }
-
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
     if (!value) return 0;

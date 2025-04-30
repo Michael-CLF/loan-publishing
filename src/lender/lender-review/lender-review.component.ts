@@ -1,6 +1,13 @@
-import { Component, Input, OnInit } from '@angular/core';
+import { Component, Input, OnInit, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormGroup, FormArray, ReactiveFormsModule } from '@angular/forms';
+import {
+  FormGroup,
+  FormArray,
+  FormBuilder,
+  ReactiveFormsModule,
+  FormControl,
+  Validators,
+} from '@angular/forms';
 import {
   PropertyCategory,
   StateOption,
@@ -8,6 +15,9 @@ import {
   LoanTypes,
   SubCategory,
 } from '../lender-registration/lender-registration.component';
+import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
+import { FirestoreService } from 'src/services/firestore.service';
+import { AuthService } from 'src/services/auth.service';
 
 interface CountyInfo {
   state: string;
@@ -28,6 +38,14 @@ interface PropertyTypeInfo {
   styleUrls: ['./lender-review.component.css'],
 })
 export class LenderReviewComponent implements OnInit {
+  private fb = inject(FormBuilder);
+  private firestoreService = inject(FirestoreService);
+  private authService = inject(AuthService);
+
+  registrationForm!: FormGroup;
+  currentStep = 1;
+  emailValidated = false;
+
   @Input() lenderForm!: FormGroup;
   @Input() states: StateOption[] = [];
   @Input() lenderTypes: LenderTypeOption[] = [];
@@ -44,6 +62,30 @@ export class LenderReviewComponent implements OnInit {
 
     // Process property subcategories
     this.processPropertySubcategories();
+
+    // Check if termsAccepted control exists
+    if (!this.lenderForm.get('termsAccepted')) {
+      console.log('Adding termsAccepted control to form');
+      this.lenderForm.addControl(
+        'termsAccepted',
+        new FormControl(false, Validators.requiredTrue)
+      );
+    }
+
+    // Log initial terms state
+    console.log(
+      'Terms control exists:',
+      !!this.lenderForm.get('termsAccepted')
+    );
+    console.log(
+      'Terms initially accepted:',
+      this.lenderForm.get('termsAccepted')?.value
+    );
+
+    // Subscribe to terms changes
+    this.lenderForm.get('termsAccepted')?.valueChanges.subscribe((value) => {
+      console.log('Terms accepted changed to:', value);
+    });
   }
 
   // Helper methods to get display values
@@ -70,6 +112,7 @@ export class LenderReviewComponent implements OnInit {
     );
     return category ? category.name : categoryCode;
   }
+
   getLoanTypeName(typeCode: string): string {
     if (!typeCode) return 'Unknown';
     const type = this.loanTypes.find((t) => t.value === typeCode);
@@ -176,10 +219,75 @@ export class LenderReviewComponent implements OnInit {
   }
 
   // Format currency properly
-  formatCurrency(value: string): number {
+  formatCurrency(value: string | number): number {
     if (!value) return 0;
     // Remove all non-digit characters except for decimal point
     const cleanValue = value.toString().replace(/[^0-9.]/g, '');
     return parseFloat(cleanValue) || 0;
+  }
+
+  // Handle terms of service link click
+  onTermsClick(event: Event): void {
+    console.log('Terms of Service link clicked');
+    // Don't prevent default behavior - let it open in new tab
+
+    // Log for debugging
+    const target = event.target as HTMLAnchorElement;
+    console.log('Terms link href:', target.href);
+  }
+
+  // Handle terms checkbox click directly
+  onTermsCheckboxChange(event: Event): void {
+    const checkbox = event.target as HTMLInputElement;
+    console.log('Terms checkbox clicked, new value:', checkbox.checked);
+
+    // Make sure form control is updated
+    const termsControl = this.lenderForm.get('termsAccepted');
+    if (termsControl) {
+      // Only update if different to avoid infinite loop with valueChanges subscription
+      if (termsControl.value !== checkbox.checked) {
+        termsControl.setValue(checkbox.checked);
+        termsControl.markAsTouched();
+        termsControl.updateValueAndValidity();
+      }
+    } else {
+      console.error('Terms control not found in form');
+    }
+  }
+
+  // Method to check if form is valid including terms
+  isFormValid(): boolean {
+    // Make sure all controls are marked as touched to show validation errors
+    this.markFormGroupTouched(this.lenderForm);
+
+    // Specifically check terms
+    const termsAccepted = this.lenderForm.get('termsAccepted')?.value === true;
+
+    // Log validation status
+    console.log('Form valid:', this.lenderForm.valid);
+    console.log('Terms accepted:', termsAccepted);
+
+    return this.lenderForm.valid && termsAccepted;
+  }
+
+  // Helper method to mark all form controls as touched
+  private markFormGroupTouched(formGroup: FormGroup): void {
+    Object.values(formGroup.controls).forEach((control) => {
+      control.markAsTouched();
+
+      if (control instanceof FormGroup) {
+        this.markFormGroupTouched(control);
+      }
+
+      if (control instanceof FormArray) {
+        control.controls.forEach((arrayControl) => {
+          if (arrayControl instanceof FormGroup) {
+            this.markFormGroupTouched(arrayControl);
+          } else {
+            arrayControl.markAsTouched();
+          }
+        });
+      }
+    });
   }
 }
