@@ -25,6 +25,17 @@
             </div>
 
             <div class="filter-group">
+                <label for="loanType">Loan Type</label>
+                <select id="loanType" [(ngModel)]="filters().loanType"
+                    (ngModelChange)="updateFilter('loanType', $event)">
+                    <option value="">All Loan Types</option>
+                    <option *ngFor="let type of loanTypes" [value]="type">
+                        {{ type }}
+                    </option>
+                </select>
+            </div>
+
+            <div class="filter-group">
                 <label for="state">State</label>
                 <select id="state" [(ngModel)]="filters().state">
                     <option value="">All States</option>
@@ -33,10 +44,10 @@
             </div>
         </div>
 
-        <div class="filter-row">
-            <label for="loanAmount">Loan Amount ($)</label>
-            <input type="text" id="loanAmount" [ngModel]="filters().loanAmount || ''"
-                (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount" pattern="[0-9]*"
+        <div class="filter-group">
+            <label for="loanAmount">Loan Amount</label>
+            <input type="text" id="loanAmount" [ngModel]="filters().loanAmount | currency:'USD':'symbol':'1.0-0'"
+                (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount"
                 inputmode="numeric">
         </div>
         <div class="filter-actions">

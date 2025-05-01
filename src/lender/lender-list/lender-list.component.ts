@@ -5,22 +5,11 @@ import { FirestoreService } from '../../services/firestore.service';
 import { LenderFilterComponent } from '../../components/lender-filter/lender-filter.component';
 import { LenderService } from '../../services/lender.service';
 import { Subscription } from 'rxjs';
+// Import Lender from the service instead of the model
+import { Lender } from '../../services/lender.service';
 
-export interface Lender {
-  id?: string;
-  name: string;
-  lenderType: string;
-  propertyCategories?: string[];
-  states?: string[];
-  productInfo?: {
-    minLoanAmount?: number;
-    maxLoanAmount?: number;
-    lenderTypes?: string[];
-  };
-  contactInfo?: any;
-}
-
-export interface LenderFilters {
+// Define LenderFilters interface
+interface LenderFilters {
   lenderType: string;
   propertyCategory: string;
   state: string;
@@ -38,7 +27,7 @@ export class LenderListComponent implements OnInit, OnDestroy {
   lenders: Lender[] = [];
   loading = true;
   private lenderService = inject(LenderService);
-  private lendersSubscription: Subscription | null = null; // Add this line
+  private lendersSubscription: Subscription | null = null;
   private subscription: Subscription | null = null;
 
   constructor(
@@ -51,8 +40,12 @@ export class LenderListComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
+    // Unsubscribe from all subscriptions
     if (this.subscription) {
       this.subscription.unsubscribe();
+    }
+    if (this.lendersSubscription) {
+      this.lendersSubscription.unsubscribe();
     }
   }
 
@@ -60,20 +53,17 @@ export class LenderListComponent implements OnInit, OnDestroy {
     this.loading = true;
     console.log('Starting to load lenders...');
 
-    this.firestoreService.getCollection<Lender>('users').subscribe((data) => {
-      this.lenders = data;
-
-      this.lenderService.getAllLenders().subscribe({
-        next: (data) => {
-          console.log('Received lenders:', data);
-          this.lenders = data;
-          this.loading = false;
-        },
-        error: (error) => {
-          console.error('Error loading lenders:', error);
-          this.loading = false;
-        },
-      });
+    // No nested subscription - use only one data source
+    this.subscription = this.lenderService.getAllLenders().subscribe({
+      next: (data) => {
+        console.log('Received lenders:', data);
+        this.lenders = data;
+        this.loading = false;
+      },
+      error: (error) => {
+        console.error('Error loading lenders:', error);
+        this.loading = false;
+      },
     });
   }
 
@@ -93,18 +83,25 @@ export class LenderListComponent implements OnInit, OnDestroy {
         filters.loanAmount
       )
       .subscribe({
-        next: (data: Lender[]) => {
-          // Add type annotation here
+        next: (data) => {
           console.log('Filtered lenders received:', data);
           this.lenders = data;
           this.loading = false;
         },
-        error: (error: any) => {
-          // Add type annotation here
+        error: (error) => {
           console.error('Error filtering lenders:', error);
           this.loading = false;
         },
       });
+  }
+
+  // Method to handle reset from filter component
+  resetFilters(): void {
+    this.loading = true;
+    console.log('Resetting filters...');
+
+    // Load all lenders again
+    this.loadLenders();
   }
 
   getLenderTypeName(value: string): string {
@@ -120,6 +117,7 @@ export class LenderListComponent implements OnInit, OnDestroy {
       crowdfunding: 'Crowdfunding Platform',
       direct_lender: 'Direct Lender',
       family_office: 'Family Office',
+      general: 'General',
       hard_money: 'Hard Money Lender',
       life_insurance: 'Life Insurance Lender',
       mezzanine_lender: 'Mezzanine Lender',

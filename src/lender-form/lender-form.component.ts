@@ -107,6 +107,7 @@ export class LenderFormComponent implements OnInit {
     { value: 'crowdfunding', name: 'Crowdfunding Platform' },
     { value: 'direct_lender', name: 'Direct Lender' },
     { value: 'family_office', name: 'Family Office' },
+    { value: 'general', name: 'General' },
     { value: 'hard_money', name: 'Hard Money Lender' },
     { value: 'life_insurance', name: 'Life Insurance Lender' },
     { value: 'mezzanine_lender', name: 'Mezzanine Lender' },

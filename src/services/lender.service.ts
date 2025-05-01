@@ -87,12 +87,8 @@ export class LenderService {
 
   // Get all lenders
   getAllLenders(): Observable<Lender[]> {
-    return this.firestoreService.getCollection<any>('lenders').pipe(
+    return this.firestoreService.getCollection<Lender>('lenders').pipe(
       tap((lenders) => console.log('Found lenders:', lenders.length)),
-      map((lenders) => lenders.filter((lender) => lender.role === 'lender')),
-      tap((filteredLenders) =>
-        console.log('Filtered lenders:', filteredLenders.length)
-      ),
       catchError((error) => {
         console.error('Error getting lenders:', error);
         return of([]);
@@ -164,69 +160,78 @@ export class LenderService {
     return this.firestoreService.updateDocument(`users/${id}`, userData);
   }
 
-  // Search lenders with proper filtering
+  // In lender.service.ts
   searchLenders(
     lenderType: string = '',
     propertyCategory: string = '',
     state: string = '',
     loanAmount: string = ''
   ): Observable<Lender[]> {
-    // Get all lender users first
-    return this.firestoreService
-      .queryCollection<UserData>('users', where('role', '==', 'lender'))
-      .pipe(
-        map((users) => {
-          console.log('Found lender users to filter:', users.length);
+    console.log('Search criteria:', {
+      lenderType,
+      propertyCategory,
+      state,
+      loanAmount,
+    });
 
-          // First convert users to lenders
-          const lenders = users.map((user) => this.mapUserToLender(user));
+    // If all filters are empty, just return all lenders
+    if (!lenderType && !propertyCategory && !state && !loanAmount) {
+      return this.getAllLenders();
+    }
 
-          // Then apply filters as in your original code
-          return lenders.filter((lender) => {
-            // Filter by lender type if provided
-            if (lenderType && lender.productInfo?.lenderTypes) {
-              if (!lender.productInfo.lenderTypes.includes(lenderType)) {
+    // Get all lenders and filter in memory
+    return this.getAllLenders().pipe(
+      map((lenders) => {
+        console.log('Filtering lenders:', lenders.length);
+
+        return lenders.filter((lender) => {
+          // Filter by lender type if provided
+          if (lenderType && lenderType !== '') {
+            const lenderTypes = lender.productInfo?.lenderTypes || [];
+            if (!lenderTypes.includes(lenderType)) {
+              return false;
+            }
+          }
+
+          // Filter by property category if provided
+          if (propertyCategory && propertyCategory !== '') {
+            const categories = lender.productInfo?.propertyCategories || [];
+            if (!categories.includes(propertyCategory)) {
+              return false;
+            }
+          }
+
+          // Filter by state if provided
+          if (state && state !== '') {
+            const states = lender.footprintInfo?.lendingFootprint || [];
+            if (!states.includes(state)) {
+              return false;
+            }
+          }
+
+          // Filter by loan amount if provided
+          if (loanAmount && loanAmount !== '') {
+            const amount = parseFloat(loanAmount.replace(/[^0-9.]/g, ''));
+            if (!isNaN(amount) && amount > 0) {
+              const minAmount =
+                this.parseNumericValue(lender.productInfo?.minLoanAmount) || 0;
+              const maxAmount =
+                this.parseNumericValue(lender.productInfo?.maxLoanAmount) ||
+                Number.MAX_VALUE;
+
+              if (amount < minAmount || amount > maxAmount) {
                 return false;
               }
             }
+          }
 
-            // Filter by property category if provided
-            if (propertyCategory && lender.propertyCategories) {
-              if (!lender.propertyCategories.includes(propertyCategory)) {
-                return false;
-              }
-            }
-
-            // Filter by state if provided
-            if (state && lender.states) {
-              if (!lender.states.includes(state)) {
-                return false;
-              }
-            }
-
-            // Filter by loan amount if provided
-            if (loanAmount) {
-              const cleanedAmount = loanAmount.replace(/[^0-9.]/g, '');
-              const amount = Number(cleanedAmount);
-
-              if (!isNaN(amount) && amount > 0) {
-                const minAmount = lender.productInfo?.minLoanAmount || 0;
-                const maxAmount =
-                  lender.productInfo?.maxLoanAmount || Number.MAX_VALUE;
-
-                if (amount < minAmount || amount > maxAmount) {
-                  return false;
-                }
-              }
-            }
-
-            // If all filters pass or no filters provided, include the lender
-            return true;
-          });
-        }),
-        tap((filteredLenders) => {
-          console.log('After filtering:', filteredLenders.length, 'lenders');
-        })
-      );
+          // If all filters pass, include the lender
+          return true;
+        });
+      }),
+      tap((filteredLenders) => {
+        console.log('After filtering:', filteredLenders.length, 'lenders');
+      })
+    );
   }
 }

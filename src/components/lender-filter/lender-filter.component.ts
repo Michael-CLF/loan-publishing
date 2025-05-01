@@ -1,5 +1,5 @@
 import { Component, EventEmitter, Output, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 
 export interface LenderFilters {
@@ -7,12 +7,13 @@ export interface LenderFilters {
   propertyCategory: string;
   state: string;
   loanAmount: string;
+  loanType: string;
 }
 
 @Component({
   selector: 'app-lender-filter',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CurrencyPipe],
   templateUrl: './lender-filter.component.html',
   styleUrl: './lender-filter.component.css',
 })
@@ -26,6 +27,7 @@ export class LenderFilterComponent {
     propertyCategory: '',
     state: '',
     loanAmount: '',
+    loanType: '',
   });
 
   // Lender types
@@ -41,6 +43,7 @@ export class LenderFilterComponent {
     'crowdfunding',
     'direct_lender',
     'family_office',
+    'general',
     'hard_money',
     'life_insurance',
     'mezzanine_lender',
@@ -64,6 +67,20 @@ export class LenderFilterComponent {
     'Residential',
     'Retail',
     'Special Purpose',
+  ];
+
+  // Loan Types
+  loanTypes = [
+    'Agency',
+    'Bridge',
+    'CMBS',
+    'Commercial',
+    'Constrction',
+    'Hard Money',
+    'Mezzanine',
+    'Non-QM',
+    'Rehab',
+    'SBA',
   ];
 
   // US states
@@ -127,10 +144,19 @@ export class LenderFilterComponent {
   }
 
   updateFilter(field: keyof LenderFilters, value: string | null): void {
-    this.filters.update((current) => ({
-      ...current,
-      [field]: value,
-    }));
+    if (field === 'loanAmount' && value) {
+      // Strip currency formatting for internal storage
+      const numericValue = value.replace(/[^0-9.]/g, '');
+      this.filters.update((current) => ({
+        ...current,
+        [field]: numericValue, // Store numeric value without formatting
+      }));
+    } else {
+      this.filters.update((current) => ({
+        ...current,
+        [field]: value,
+      }));
+    }
   }
 
   formatLoanAmount(value: string): string {
@@ -174,6 +200,7 @@ export class LenderFilterComponent {
       propertyCategory: '',
       state: '',
       loanAmount: '',
+      loanType: '',
     });
 
     this.applyFilters.emit(this.filters());
@@ -192,6 +219,7 @@ export class LenderFilterComponent {
       crowdfunding: 'Crowdfunding Platform',
       direct_lender: 'Direct Lender',
       family_office: 'Family Office',
+      general: 'General',
       hard_money: 'Hard Money Lender',
       life_insurance: 'Life Insurance Lender',
       mezzanine_lender: 'Mezzanine Lender',
