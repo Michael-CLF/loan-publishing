@@ -1,43 +1,33 @@
 // lender.service.ts
 import { Injectable, inject } from '@angular/core';
-import {
-  Firestore,
-  collection,
-  query,
-  where,
-  doc,
-  getDoc,
-  addDoc,
-  updateDoc,
-  deleteDoc,
-  QueryConstraint,
-  docData,
-} from '@angular/fire/firestore';
+import { Firestore } from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { FirestoreService } from './firestore.service';
 import { UserData } from '../models/user-data.model';
 
-// Keep your original Lender interface
-// In lender.service.ts, update the productInfo type within the Lender interface:
 export interface Lender {
-  id?: string;
-  name: string;
-  lenderType: string;
-  propertyCategories?: string[];
-  states?: string[];
-  productInfo?: {
-    minLoanAmount?: number;
-    maxLoanAmount?: number;
-    lenderTypes?: string[];
-    propertyCategories?: string[];
-    propertyTypes?: string[];
-    subcategorySelections?: string[]; // Add this line
-    loanTypes?: string[]; // Add this if needed
+  id: string;
+  contactInfo?: {
+    firstName?: string;
+    lastName?: string;
+    company?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    city?: string;
+    state?: string;
   };
-  contactInfo?: any;
+  productInfo?: {
+    lenderTypes?: string[]; // Using value format (e.g., 'agency', 'bank')
+    propertyCategories?: string[]; // Using value format (e.g., 'commercial', 'retail')
+    propertyTypes?: string[];
+    loanTypes?: string[]; // Using value format (e.g., 'agency', 'bridge')
+    minLoanAmount?: string | number;
+    maxLoanAmount?: string | number;
+    subcategorySelections?: string[];
+  };
   footprintInfo?: {
-    lendingFootprint: string[];
+    lendingFootprint?: string[];
   };
 }
 
@@ -53,17 +43,6 @@ export class LenderService {
     // Create a default Lender object with empty/default values
     const lender: Lender = {
       id: user.id,
-      name: `${user['firstName'] || ''} ${user.lastName || ''}`.trim(),
-      lenderType: user['lenderType'] || 'default',
-      propertyCategories: user['propertyCategories'] || [],
-      states: user['states'] || [user.state || ''].filter((s) => s !== ''),
-      productInfo: {
-        minLoanAmount: user['minLoanAmount'] || 1000000,
-        maxLoanAmount: user['maxLoanAmount'] || 1000000,
-        lenderTypes: [user['lenderType'] || ''].filter((lt) => lt !== ''),
-        propertyCategories: user['propertyCategories'] || [],
-        propertyTypes: user['propertyTypes'] || [],
-      },
       contactInfo: {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
@@ -72,8 +51,16 @@ export class LenderService {
         city: user.city || '',
         state: user.state || '',
       },
+      productInfo: {
+        minLoanAmount: user['minLoanAmount'] || 1000000,
+        maxLoanAmount: user['maxLoanAmount'] || 1000000,
+        lenderTypes: [user['lenderType'] || ''].filter((lt) => lt !== ''),
+        propertyCategories: user['propertyCategories'] || [],
+        propertyTypes: user['propertyTypes'] || [],
+        loanTypes: [],
+      },
       footprintInfo: {
-        lendingFootprint: user['lendingFootprint'] || [],
+        lendingFootprint: user['lendingFootprint'] || user['states'] || [],
       },
     };
 
@@ -82,8 +69,6 @@ export class LenderService {
 
     return lender;
   }
-
-  // Modify the methods in LenderService to get data from lenders collection
 
   // Get all lenders
   getAllLenders(): Observable<Lender[]> {
@@ -117,12 +102,15 @@ export class LenderService {
   private mapLenderData(lender: any): Lender {
     return {
       id: lender.id,
-      name: `${lender.contactInfo?.firstName || ''} ${
-        lender.contactInfo?.lastName || ''
-      }`.trim(),
-      lenderType: lender.productInfo?.lenderTypes?.[0] || 'default',
-      propertyCategories: lender.productInfo?.propertyCategories || [],
-      states: lender.footprintInfo?.lendingFootprint || [],
+      contactInfo: {
+        firstName: lender.contactInfo?.firstName || '',
+        lastName: lender.contactInfo?.lastName || '',
+        company: lender.contactInfo?.company || '',
+        contactEmail: lender.contactInfo?.contactEmail || '',
+        contactPhone: lender.contactInfo?.contactPhone || '',
+        city: lender.contactInfo?.city || '',
+        state: lender.contactInfo?.state || '',
+      },
       productInfo: {
         minLoanAmount: this.parseNumericValue(
           lender.productInfo?.minLoanAmount
@@ -136,10 +124,12 @@ export class LenderService {
         subcategorySelections: lender.productInfo?.subcategorySelections || [],
         loanTypes: lender.productInfo?.loanTypes || [],
       },
-      contactInfo: lender.contactInfo || {},
-      footprintInfo: lender.footprintInfo || { lendingFootprint: [] },
+      footprintInfo: {
+        lendingFootprint: lender.footprintInfo?.lendingFootprint || [],
+      },
     };
   }
+
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
     if (!value) return 0;
@@ -160,57 +150,85 @@ export class LenderService {
     return this.firestoreService.updateDocument(`users/${id}`, userData);
   }
 
-  // In lender.service.ts
+  // Search lenders with filters
+  // src/app/services/lender.service.ts (partial update)
+  // Add loanType parameter to searchLenders method
   searchLenders(
-    lenderType: string = '',
-    propertyCategory: string = '',
-    state: string = '',
-    loanAmount: string = ''
+    lenderType: string,
+    propertyCategory: string,
+    state: string,
+    loanAmount: string,
+    loanType: string // Added this parameter
   ): Observable<Lender[]> {
-    console.log('Search criteria:', {
+    console.log('Searching lenders with criteria:', {
       lenderType,
       propertyCategory,
       state,
       loanAmount,
+      loanType,
     });
-
-    // If all filters are empty, just return all lenders
-    if (!lenderType && !propertyCategory && !state && !loanAmount) {
-      return this.getAllLenders();
-    }
 
     // Get all lenders and filter in memory
     return this.getAllLenders().pipe(
       map((lenders) => {
-        console.log('Filtering lenders:', lenders.length);
-
         return lenders.filter((lender) => {
+          let includeThisLender = true;
+
           // Filter by lender type if provided
-          if (lenderType && lenderType !== '') {
+          if (lenderType && lenderType.trim() !== '') {
             const lenderTypes = lender.productInfo?.lenderTypes || [];
-            if (!lenderTypes.includes(lenderType)) {
-              return false;
+            const hasMatchingType = lenderTypes.some(
+              (type) => type.toLowerCase() === lenderType.toLowerCase()
+            );
+
+            if (!hasMatchingType) {
+              includeThisLender = false;
+            }
+          }
+
+          // Filter by loan type if provided
+          if (loanType && loanType.trim() !== '' && includeThisLender) {
+            const loanTypes = lender.productInfo?.loanTypes || [];
+            const hasMatchingLoanType = loanTypes.some(
+              (type) => type.toLowerCase() === loanType.toLowerCase()
+            );
+
+            if (!hasMatchingLoanType) {
+              includeThisLender = false;
             }
           }
 
           // Filter by property category if provided
-          if (propertyCategory && propertyCategory !== '') {
+          if (
+            propertyCategory &&
+            propertyCategory.trim() !== '' &&
+            includeThisLender
+          ) {
             const categories = lender.productInfo?.propertyCategories || [];
-            if (!categories.includes(propertyCategory)) {
-              return false;
+            const hasMatchingCategory = categories.some(
+              (category) =>
+                category.toLowerCase() === propertyCategory.toLowerCase()
+            );
+
+            if (!hasMatchingCategory) {
+              includeThisLender = false;
             }
           }
 
           // Filter by state if provided
-          if (state && state !== '') {
+          if (state && state.trim() !== '' && includeThisLender) {
             const states = lender.footprintInfo?.lendingFootprint || [];
-            if (!states.includes(state)) {
-              return false;
+            const hasMatchingState = states.some(
+              (s) => s.toLowerCase() === state.toLowerCase()
+            );
+
+            if (!hasMatchingState) {
+              includeThisLender = false;
             }
           }
 
           // Filter by loan amount if provided
-          if (loanAmount && loanAmount !== '') {
+          if (loanAmount && loanAmount.trim() !== '' && includeThisLender) {
             const amount = parseFloat(loanAmount.replace(/[^0-9.]/g, ''));
             if (!isNaN(amount) && amount > 0) {
               const minAmount =
@@ -220,13 +238,12 @@ export class LenderService {
                 Number.MAX_VALUE;
 
               if (amount < minAmount || amount > maxAmount) {
-                return false;
+                includeThisLender = false;
               }
             }
           }
 
-          // If all filters pass, include the lender
-          return true;
+          return includeThisLender;
         });
       }),
       tap((filteredLenders) => {

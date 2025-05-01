@@ -143,7 +143,7 @@
                             <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['required']">
                                 *Minimum loan amount is required
                             </div>
-                            <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['minlength']">
+                            <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['pattern']">
                                 *6 Digits are required
                             </div>
                             <!-- Add other specific error messages as needed -->
@@ -159,7 +159,7 @@
                             <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['required']">
                                 *Maximum loan amount is required
                             </div>
-                            <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['minlength']">
+                            <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['pattern']">
                                 *6 digits are required
                             </div>
                             <!-- Add other specific error messages as needed -->

@@ -365,6 +365,7 @@
 
 .subcategory-container {
   margin-bottom: 20px;
+  gap: 20px;
 }
 
 .subcategory {

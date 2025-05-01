@@ -43,17 +43,17 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
 
   // Property type color map
   propertyColorMap: { [key: string]: string } = {
-    Commercial: '#1E90FF',
+    Commercial: '#d4ac0d',
     Healthcare: '#cb4335',
     Hospitality: '#1b4f72',
-    Industrial: '#708090',
+    Industrial: '#2c3e50',
     Land: '#023020',
     MixedUse: '#8A2BE2',
     'Multi-family': '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#c00000',
-    'Special Purpose': '#A52A2A',
+    'Special Purpose': '#6e2c00',
   };
 
   ngOnInit(): void {

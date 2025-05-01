@@ -172,8 +172,8 @@ export class LenderRegistrationComponent implements OnInit {
     { value: 'credit_union', name: 'Credit Union' },
     { value: 'crowdfunding', name: 'Crowdfunding Platform' },
     { value: 'direct_lender', name: 'Direct Lender' },
-    { value: 'Family Office', name: 'Family Office' },
-    { value: 'General', name: 'General' },
+    { value: 'family_office', name: 'Family Office' },
+    { value: 'general', name: 'General' },
     { value: 'hard_money', name: 'Hard Money Lender' },
     { value: 'life_insurance', name: 'Life Insurance Lender' },
     { value: 'mezzanine_lender', name: 'Mezzanine Lender' },
@@ -207,7 +207,6 @@ export class LenderRegistrationComponent implements OnInit {
         { value: 'business-center', name: 'Business Center' },
         { value: 'call-center', name: 'Call Center' },
         { value: 'car-wash', name: 'Car Wash' },
-        { value: 'distribution-center', name: 'Distribution Center' },
         { value: 'dry-cleaner', name: 'Dry Cleaner' },
         { value: 'funeral-home', name: 'Funeral Home' },
         { value: 'general-commercial', name: 'General Commercial' },
@@ -231,20 +230,19 @@ export class LenderRegistrationComponent implements OnInit {
       value: 'hospitality',
       name: 'Hospitality',
       subcategories: [
-        { value: 'hospitality-land', name: 'Hospitality Land' },
         { value: 'hotel', name: 'Hotel' },
-        { value: 'long-term-rentals', name: 'Long-term rentals' },
+        { value: 'long-term-rentals', name: 'Long-Term Rentals' },
         { value: 'motel', name: 'Motel' },
-        { value: 'short-term-rentals', name: 'Short-term rentals' },
+        { value: 'short-term-rentals', name: 'Short-Term Rentals' },
       ],
     },
     {
-      value: 'industrial-property',
-      name: 'Industrial property',
+      value: 'industrial',
+      name: 'Industrial',
       subcategories: [
         { value: 'cold-storage', name: 'Cold Storage' },
-        { value: 'flex-space', name: 'Flex space' },
-        { value: 'industrial-land', name: 'Industrial Land' },
+        { value: 'distribution-center', name: 'Distribution Center' },
+        { value: 'flex-space', name: 'Flex Space' },
         { value: 'self-storage', name: 'Self Storage' },
         { value: 'warehouse', name: 'Warehouse' },
       ],
@@ -257,47 +255,41 @@ export class LenderRegistrationComponent implements OnInit {
         { value: 'entitled-land', name: 'Entitled Land' },
         { value: 'farm', name: 'Farm' },
         { value: 'golf-course', name: 'Golf Course' },
-        { value: 'hospitality-land', name: 'Hospitality Land' },
         { value: 'industrial-land', name: 'Industrial Land' },
-        { value: 'retail-land', name: 'Retail Land' },
         { value: 'raw-land', name: 'Raw Land' },
+        { value: 'retail-land', name: 'Retail Land' },
       ],
     },
-
     {
       value: 'mixed-use',
       name: 'Mixed Use',
       subcategories: [
         { value: 'live-work', name: 'Live/Work Units' },
-        { value: 'residential-retail', name: 'Residential over Retail' },
         { value: 'residential-office', name: 'Residential + Office' },
+        { value: 'residential-retail', name: 'Residential over Retail' },
         { value: 'retail-office', name: 'Retail + Office' },
       ],
     },
-
     {
       value: 'office',
       name: 'Office',
       subcategories: [
-        { value: 'medical-office', name: 'Medical office' },
+        { value: 'medical-office', name: 'Medical Office' },
         {
           value: 'professional-office-building',
-          name: 'Professional office building',
+          name: 'Professional Office Building',
         },
       ],
     },
     {
-      value: 'residential-types',
-      name: 'Residential Types',
+      value: 'residential',
+      name: 'Residential',
       subcategories: [
-        {
-          value: '1-4-units',
-          name: '1-4 Units',
-        },
+        { value: '1-4-units', name: '1-4 Units' },
         { value: 'co-op', name: 'CO-OP' },
         { value: 'condominium', name: 'Condominium' },
         { value: 'quadplex', name: 'Quadplex' },
-        { value: 'single-family', name: 'Single family' },
+        { value: 'single-family', name: 'Single Family' },
         { value: 'triplex', name: 'Triplex' },
       ],
     },
@@ -307,35 +299,30 @@ export class LenderRegistrationComponent implements OnInit {
       subcategories: [
         { value: 'anchored-center', name: 'Anchored Center' },
         { value: 'mall', name: 'Mall' },
-        { value: 'nnn-retail', name: 'NNN retail' },
+        { value: 'mixed-use-retail', name: 'Mixed-Use Retail' },
+        { value: 'nnn-retail', name: 'NNN Retail' },
         { value: 'restaurant', name: 'Restaurant' },
-        { value: 'retail-land', name: 'Retail land' },
-        { value: 'single-tenant', name: 'Single tenant' },
-        { value: 'strip-mall', name: 'Strip mall' },
-        { value: 'mixed_use', name: 'Mixed-Use' },
+        { value: 'single-tenant', name: 'Single Tenant' },
+        { value: 'strip-mall', name: 'Strip Mall' },
       ],
     },
     {
-      value: 'special-purpose-loans',
-      name: 'Special purpose loans',
+      value: 'special-purpose',
+      name: 'Special Purpose',
       subcategories: [
-        { value: 'auto-dealership', name: 'Auto dealership' },
+        { value: 'auto-dealership', name: 'Auto Dealership' },
         { value: 'church', name: 'Church' },
-        { value: 'data-center', name: 'Data center' },
+        { value: 'data-center', name: 'Data Center' },
         { value: 'daycare', name: 'Daycare' },
-        { value: 'energy-park', name: 'Energy Park' },
-        { value: 'farm', name: 'Farm' },
-        { value: 'gas-station', name: 'Gas station' },
-        { value: 'golf-course', name: 'Golf Course' },
+        { value: 'gas-station', name: 'Gas Station' },
         { value: 'marina', name: 'Marina' },
-        { value: 'mobile-home-park', name: 'Mobile home Park' },
-        { value: 'parking-garage', name: 'Parking garage' },
-        { value: 'r-and-d', name: 'R&D' },
+        { value: 'mobile-home-park', name: 'Mobile Home Park' },
+        { value: 'parking-garage', name: 'Parking Garage' },
+        { value: 'r-and-d', name: 'R&D Facility' },
         { value: 'resort-rv-park', name: 'Resort RV Park' },
-        { value: 'service-station', name: 'Service station' },
-        { value: 'data_center', name: 'Data Center' },
+        { value: 'service-station', name: 'Service Station' },
+        { value: 'sports-complex', name: 'Sports Complex' },
         { value: 'stadium', name: 'Stadium' },
-        { value: 'sports_complex', name: 'Sports Complex' },
       ],
     },
   ];
@@ -485,8 +472,14 @@ export class LenderRegistrationComponent implements OnInit {
 
     const productStep = this.fb.group({
       lenderTypes: lenderTypesArray,
-      minLoanAmount: [null, [Validators.required, Validators.minLength(7)]],
-      maxLoanAmount: [null, [Validators.required, Validators.minLength(7)]],
+      minLoanAmount: [
+        null,
+        [Validators.required, Validators.pattern(/^\d{6,}$/)],
+      ],
+      maxLoanAmount: [
+        null,
+        [Validators.required, Validators.pattern(/^\d{6,}$/)],
+      ],
       propertyCategories: propertyCategoriesArray,
       propertyTypes: propertyTypesArray,
     });
@@ -664,7 +657,6 @@ export class LenderRegistrationComponent implements OnInit {
     });
   }
 
-  // Also replace the saveUserData() method with this version:
   private saveUserData(): Observable<boolean> {
     if (!this.contactForm.valid) {
       return of(false);
@@ -687,43 +679,40 @@ export class LenderRegistrationComponent implements OnInit {
         take(1),
         switchMap((user) => {
           if (!user) {
-            // If no user is logged in, handle this case
+            // Only create a temporary ID, but don't create a document yet
             const newDocRef = doc(collection(this.firestore, 'lenders'));
             this.userId = newDocRef.id;
             localStorage.setItem('pendingLenderId', this.userId);
-            return of({ uid: this.userId, isTemporary: true } as any);
+
+            // Just return the ID without creating a document
+            return of(true);
+          } else {
+            // We have a user, store their ID
+            this.userId = user.uid || '';
+            const contactData = this.contactForm.value;
+
+            // Save to lenders collection
+            const lenderProfileData = {
+              userId: this.userId,
+              contactInfo: {
+                firstName: contactData.firstName,
+                lastName: contactData.lastName,
+                contactEmail: contactData.contactEmail,
+                contactPhone: contactData.contactPhone,
+                company: contactData.company,
+                city: contactData.city,
+                state: contactData.state,
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            };
+
+            // Store in lenders collection
+            return this.firestoreService.setDocument(
+              `lenders/${this.userId}`,
+              lenderProfileData
+            );
           }
-          return of(user);
-        }),
-        switchMap((user) => {
-          if (!user) {
-            throw new Error('Failed to get or create user');
-          }
-
-          this.userId = user.uid;
-          const contactData = this.contactForm.value;
-
-          // Save to lenders collection
-          const lenderProfileData = {
-            userId: user.uid,
-            contactInfo: {
-              firstName: contactData.firstName,
-              lastName: contactData.lastName,
-              contactEmail: contactData.contactEmail,
-              contactPhone: contactData.contactPhone,
-              company: contactData.company,
-              city: contactData.city,
-              state: contactData.state,
-            },
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
-
-          // Store in lenders collection
-          return this.firestoreService.setDocument(
-            `lenders/${user.uid}`,
-            lenderProfileData
-          );
         }),
         map(() => true),
         catchError((error) => {
@@ -801,15 +790,6 @@ export class LenderRegistrationComponent implements OnInit {
 
     console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
     console.log('Form valid:', this.lenderForm.valid);
-    if (!this.lenderForm.valid) {
-      console.log('Invalid controls:');
-      Object.keys(this.lenderForm.controls).forEach((key) => {
-        const control = this.lenderForm.get(key);
-        if (control && control.invalid) {
-          console.log(`${key} is invalid:`, control.errors);
-        }
-      });
-    }
 
     if (!this.lenderForm.valid) {
       this.isLoading = false;
@@ -834,7 +814,7 @@ export class LenderRegistrationComponent implements OnInit {
 
     // Run all Firebase operations inside injection context
     runInInjectionContext(this.injector, () => {
-      // Create Firebase Auth user immediately
+      // Create Firebase Auth user
       this.passwordAuthService
         .registerUser(email, 'defaultPassword', {
           company: formData.contactInfo?.company,
@@ -844,24 +824,44 @@ export class LenderRegistrationComponent implements OnInit {
           phone: formData.contactInfo?.contactPhone,
           city: formData.contactInfo?.city,
           state: formData.contactInfo?.state,
-          role: 'lender', // Important: Set role as 'lender'
+          role: 'lender',
         })
         .pipe(
           switchMap((user: any) => {
             if (!user) {
               throw new Error('User registration failed');
             }
-            // Save the lender data directly into lenders collection
+
+            // Create a clean lender data object
             const lenderData = {
+              userId: user.uid,
               contactInfo: formData.contactInfo,
-              productInfo: formData.productInfo,
-              footprintInfo: formData.footprintInfo,
-              role: 'lender', // Explicitly add role field
+              productInfo: {
+                lenderTypes: this.extractLenderTypes(
+                  formData.productInfo.lenderTypes
+                ),
+                propertyCategories:
+                  formData.productInfo.propertyCategories || [],
+                subcategorySelections:
+                  formData.productInfo.subcategorySelections || [],
+                loanTypes: formData.productInfo.loanTypes || [],
+                minLoanAmount: this.parseNumericValue(
+                  formData.productInfo.minLoanAmount
+                ),
+                maxLoanAmount: this.parseNumericValue(
+                  formData.productInfo.maxLoanAmount
+                ),
+              },
+              footprintInfo: {
+                lendingFootprint: formData.footprintInfo.lendingFootprint || [],
+                states: this.extractStatesData(formData.footprintInfo.states),
+              },
+              role: 'lender',
               createdAt: new Date(),
               updatedAt: new Date(),
             };
 
-            // Save to lenders/{user.uid}
+            // Save to lenders collection
             return this.firestoreService.setDocument(
               `lenders/${user.uid}`,
               lenderData
@@ -875,20 +875,74 @@ export class LenderRegistrationComponent implements OnInit {
           })
         )
         .subscribe((result: any) => {
-          if (result !== null && !this.errorMessage) {
+          if (result !== null) {
             this.successMessage = 'Registration successful!';
             this.isLoading = false;
 
             // Show success modal
             this.modalService.openLenderRegistrationSuccessModal();
 
-            // Redirect to lender dashboard after a short delay
+            // Redirect to dashboard after a short delay
             setTimeout(() => {
               this.router.navigate(['/dashboard']);
-            }, 3000); // 3 second delay so user can see the success message
+            }, 3000);
           }
         });
     });
+  }
+
+  private handleRegistrationSuccess(): void {
+    this.successMessage = 'Registration successful!';
+    this.isLoading = false;
+
+    // Show success modal
+    this.modalService.openLenderRegistrationSuccessModal();
+
+    // Redirect to lender dashboard after a short delay
+    setTimeout(() => {
+      this.router.navigate(['/dashboard']);
+    }, 3000); // 3 second delay so user can see the success message
+  }
+
+  private filterSelectedStatesAndCounties(
+    statesData: any
+  ): Record<string, boolean | Record<string, boolean>> {
+    if (!statesData) return {};
+
+    const filteredStates: Record<string, boolean | Record<string, boolean>> =
+      {};
+
+    // Only include states that are true (selected)
+    Object.keys(statesData).forEach((key) => {
+      // If it's a state boolean and is true, include it
+      if (!key.includes('_counties') && statesData[key] === true) {
+        filteredStates[key] = true;
+
+        // If there's a counties object for this state, filter it too
+        const countiesKey = `${key}_counties`;
+        if (
+          statesData[countiesKey] &&
+          typeof statesData[countiesKey] === 'object'
+        ) {
+          const countiesObj = statesData[countiesKey];
+          const filteredCounties: Record<string, boolean> = {};
+
+          // Only include counties that are true (selected)
+          Object.keys(countiesObj).forEach((countyKey) => {
+            if (countiesObj[countyKey] === true) {
+              filteredCounties[countyKey] = true;
+            }
+          });
+
+          // Only add the counties object if at least one county is selected
+          if (Object.keys(filteredCounties).length > 0) {
+            filteredStates[countiesKey] = filteredCounties;
+          }
+        }
+      }
+    });
+
+    return filteredStates;
   }
 
   // Your existing helper methods remain unchanged
@@ -918,24 +972,38 @@ export class LenderRegistrationComponent implements OnInit {
   ): Record<string, boolean | Record<string, boolean>> {
     if (!statesData) return {};
 
-    // Create a clean copy without any circular references
+    // Create a clean copy without any circular references and only selected items
     const cleanStatesData: Record<string, boolean | Record<string, boolean>> =
       {};
 
-    // Extract only the state selections and county selections
+    // Extract only the selected state selections and county selections
     if (statesData && typeof statesData === 'object') {
       Object.keys(statesData).forEach((key) => {
-        // Either it's a state boolean or a counties object
-        if (typeof statesData[key] === 'boolean') {
+        // Only include states that are selected (true)
+        if (!key.includes('_counties') && statesData[key] === true) {
           cleanStatesData[key] = statesData[key];
-        } else if (
-          key.includes('_counties') &&
-          typeof statesData[key] === 'object'
-        ) {
-          // It's a counties object, copy it
-          cleanStatesData[key] = {
-            ...(statesData[key] as Record<string, boolean>),
-          };
+
+          // Check if there are counties for this state
+          const countiesKey = `${key}_counties`;
+          if (
+            statesData[countiesKey] &&
+            typeof statesData[countiesKey] === 'object'
+          ) {
+            const countiesObj = statesData[countiesKey];
+            const selectedCounties: Record<string, boolean> = {};
+
+            // Only include selected counties
+            Object.keys(countiesObj).forEach((countyKey) => {
+              if (countiesObj[countyKey] === true) {
+                selectedCounties[countyKey] = true;
+              }
+            });
+
+            // Only add counties if at least one is selected
+            if (Object.keys(selectedCounties).length > 0) {
+              cleanStatesData[countiesKey] = selectedCounties;
+            }
+          }
         }
       });
     }
@@ -966,11 +1034,16 @@ export class LenderRegistrationComponent implements OnInit {
       this.firestoreService.setDocument(`products/${userId}`, productData)
     ).pipe(
       switchMap(() => {
-        // Then save footprint data
+        // Filter footprint data to only include selected states
+        const filteredStates = this.extractStatesData(
+          formData.footprintInfo.states
+        );
+
+        // Then save footprint data with only selected states
         const locationData = {
           lenderProfileId: userId,
           lendingFootprint: formData.footprintInfo.lendingFootprint || [],
-          states: this.extractStatesData(formData.footprintInfo.states),
+          states: filteredStates, // Use the filtered states data
           createdAt: new Date(),
           updatedAt: new Date(),
         };

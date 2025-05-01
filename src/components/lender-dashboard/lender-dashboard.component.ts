@@ -11,7 +11,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { LenderService } from '../../services/lender.service';
-import { User } from '@angular/fire/auth';
+import { User as FirebaseUser } from '@angular/fire/auth';
 import { take } from 'rxjs/operators';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
@@ -25,25 +25,15 @@ import {
   where,
   orderBy,
   deleteDoc,
+  DocumentData,
+  DocumentSnapshot,
+  Timestamp,
 } from '@angular/fire/firestore';
+import { UserData } from '../../models/user-data.model';
+// Import the Lender interface from the service instead of the model file
+import { Lender } from '../../services/lender.service';
 
-// Define interfaces - reuse from your existing component
-interface UserData {
-  id: string;
-  email?: string;
-  firstName?: string;
-  lastName?: string;
-  company?: string;
-  phone?: string;
-  city?: string;
-  state?: string;
-  role?: 'originator' | 'lender' | null;
-  createdAt?: any;
-  accountNumber?: string;
-  lenderId?: string;
-  [key: string]: any;
-}
-
+// Interface for loan data
 interface Loan {
   id?: string;
   propertyTypeCategory: string;
@@ -65,16 +55,17 @@ interface Loan {
   email: string;
   notes?: string;
   createdBy?: string;
-  createdAt?: any;
-  updatedAt?: any;
+  createdAt?: Timestamp;
+  updatedAt?: Timestamp;
 }
 
+// Interface for saved loan data
 interface SavedLoan {
-  id?: string;
+  id: string; // Ensure this is required, not optional
   loanId: string;
   loanData: Loan;
   savedBy: string;
-  savedAt: any;
+  savedAt: Timestamp;
 }
 
 @Component({
@@ -85,7 +76,7 @@ interface SavedLoan {
   imports: [CommonModule],
 })
 export class LenderDashboardComponent implements OnInit {
-  // Injected services
+  // Injected services using dependency injection
   private authService = inject(AuthService);
   private router = inject(Router);
   private lenderService = inject(LenderService);
@@ -93,15 +84,15 @@ export class LenderDashboardComponent implements OnInit {
   private injector = inject(Injector);
   private firestore = inject(Firestore);
 
-  // User state
-  user: User | null = null;
-  userData: UserData | null = null;
-  loading = true;
-  error: string | null = null;
-  accountNumber: string = '';
+  // User state with proper typing
+  firebaseUser = signal<FirebaseUser | null>(null);
+  userData = signal<UserData | null>(null);
+  loading = signal(true);
+  error = signal<string | null>(null);
+  accountNumber = signal<string>('');
 
-  // Lender-specific data
-  lenderData: any | null = null;
+  // Lender-specific data with proper typing
+  lenderData = signal<Lender | null>(null);
 
   // Signals for lender's saved loans
   savedLoans = signal<SavedLoan[]>([]);
@@ -109,7 +100,7 @@ export class LenderDashboardComponent implements OnInit {
   savedLoansError = signal<string | null>(null);
 
   // Property colors for visualization
-  propertyColorMap: { [key: string]: string } = {
+  propertyColorMap: Record<string, string> = {
     Commercial: '#1E90FF',
     Healthcare: '#cb4335',
     Hospitality: '#1b4f72',
@@ -132,242 +123,225 @@ export class LenderDashboardComponent implements OnInit {
   }
 
   /**
-   * Load lender data from Firebase
-   */
-  /**
-   * Load lender data from Firebase
+   * Load lender data from LenderService
    */
   loadLenderData(lenderId: string): void {
     console.log(`Loading lender data for ID: ${lenderId}`);
 
-    // First try using the lender service
-    this.lenderService.getLender(lenderId).subscribe(
-      (lenderData) => {
-        console.log('Lender data loaded from service:', lenderData);
-        this.lenderData = lenderData;
-      },
-      (error) => {
-        console.error('Error loading lender data from service:', error);
-
-        // Fallback: Try to get the lender document directly
-        const lenderDocRef = doc(this.firestore, `lenders/${lenderId}`);
-        runInInjectionContext(this.injector, () => getDoc(lenderDocRef))
-          .then((docSnap) => {
-            if (docSnap.exists()) {
-              console.log(
-                'Lender data loaded directly from Firestore:',
-                docSnap.data()
-              );
-              this.lenderData = docSnap.data();
-              return;
-            } else {
-              console.error('Lender document not found in lenders collection');
-
-              // Try one more fallback - check if this user is in the users collection with role='lender'
-              const userDocRef = doc(this.firestore, `users/${lenderId}`);
-              return runInInjectionContext(this.injector, () =>
-                getDoc(userDocRef)
-              ).then((userDocSnap) => {
-                if (
-                  userDocSnap.exists() &&
-                  userDocSnap.data()['role'] === 'lender'
-                ) {
-                  console.log(
-                    'Found lender data in users collection:',
-                    userDocSnap.data()
-                  );
-
-                  // Create a basic lender profile from user data
-                  this.lenderData = {
-                    id: userDocSnap.id,
-                    productInfo: userDocSnap.data()['lenderProductInfo'] || {
-                      minLoanAmount: '0',
-                      maxLoanAmount: '0',
-                    },
-                    contactInfo: {
-                      firstName: userDocSnap.data()['firstName'] || '',
-                      lastName: userDocSnap.data()['lastName'] || '',
-                      contactEmail: userDocSnap.data()['email'] || '',
-                      contactPhone: userDocSnap.data()['phone'] || '',
-                      city: userDocSnap.data()['city'] || '',
-                      state: userDocSnap.data()['state'] || '',
-                    },
-                  };
-                } else {
-                  console.error('No lender information found for this user');
-                  this.error =
-                    'Lender profile not found. Please complete your lender registration.';
-                }
-              });
-            }
-          })
-          .catch((err) => {
-            console.error('Error loading lender document directly:', err);
-            this.error = 'Failed to load lender information';
-          });
-      }
-    );
+    // Use the lender service to fetch lender data
+    this.lenderService
+      .getLender(lenderId)
+      .pipe(take(1))
+      .subscribe({
+        next: (lenderData) => {
+          console.log('Lender data loaded from service:', lenderData);
+          if (lenderData) {
+            // Make sure id is not undefined by using lenderId as fallback
+            const lenderWithId: Lender = {
+              ...lenderData,
+              id: lenderData.id ?? lenderId,
+            };
+            this.lenderData.set(lenderWithId);
+          } else {
+            this.fetchLenderDataDirectly(lenderId);
+          }
+        },
+        error: (error) => {
+          console.error('Error loading lender data from service:', error);
+          this.fetchLenderDataDirectly(lenderId);
+        },
+      });
   }
 
+  /**
+   * Fallback method to fetch lender data directly from Firestore
+   */
+  private async fetchLenderDataDirectly(lenderId: string): Promise<void> {
+    try {
+      // Try to get the lender document directly
+      const lenderDocRef = doc(this.firestore, `lenders/${lenderId}`);
+      const docSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(lenderDocRef)
+      );
+
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+        if (!data) {
+          console.error('Lender document exists but has no data');
+          this.error.set(
+            'Lender profile incomplete. Please update your profile.'
+          );
+          return;
+        }
+
+        console.log('Lender data loaded directly from Firestore:', data);
+
+        // Create a minimal Lender object from document data ensuring id is always defined
+        const lenderData: Lender = {
+          id: docSnap.id, // This will always be defined as it comes from the docSnap.id
+          name: data['name'] || '',
+          lenderType: data['lenderType'] || '',
+          // Add other required properties with defaults
+          propertyCategories: data['propertyCategories'] || [],
+          states: data['states'] || [],
+          productInfo: data['productInfo'] || {},
+          contactInfo: data['contactInfo'] || {},
+          footprintInfo: data['footprintInfo'] || { lendingFootprint: [] },
+        };
+
+        this.lenderData.set(lenderData);
+        return;
+      }
+
+      console.error('Lender document not found in lenders collection');
+      // Try one more fallback - check if this user is in the users collection with role='lender'
+      await this.checkUserAsLender(lenderId);
+    } catch (err) {
+      console.error('Error loading lender document directly:', err);
+      this.error.set('Failed to load lender information');
+    }
+  }
+
+  /**
+   * Check if user exists in users collection with role='lender'
+   */
+  private async checkUserAsLender(userId: string): Promise<void> {
+    try {
+      const userDocRef = doc(this.firestore, `users/${userId}`);
+      const userDocSnap = await runInInjectionContext(this.injector, () =>
+        getDoc(userDocRef)
+      );
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        if (userData && userData['role'] === 'lender') {
+          console.log('Found lender data in users collection:', userData);
+
+          // Create a basic lender profile from user data ensuring id is non-optional
+          const lenderData: Lender = {
+            id: userDocSnap.id, // This comes from the document ID so it's always defined
+            name: `${userData['firstName'] || ''} ${
+              userData['lastName'] || ''
+            }`.trim(),
+            lenderType: userData['lenderType'] || '',
+            propertyCategories: userData['propertyCategories'] || [],
+            states: userData['states'] || [],
+            productInfo: {
+              minLoanAmount: userData['minLoanAmount'] || 0,
+              maxLoanAmount: userData['maxLoanAmount'] || 0,
+              lenderTypes: [userData['lenderType'] || ''].filter(
+                (lt) => lt !== ''
+              ),
+              propertyCategories: userData['propertyCategories'] || [],
+              propertyTypes: userData['propertyTypes'] || [],
+            },
+            contactInfo: {
+              firstName: userData['firstName'] || '',
+              lastName: userData['lastName'] || '',
+              contactPhone: userData['phone'] || '',
+              contactEmail: userData['email'] || '',
+              city: userData['city'] || '',
+              state: userData['state'] || '',
+            },
+            footprintInfo: {
+              lendingFootprint: userData['lendingFootprint'] || [],
+            },
+          };
+
+          this.lenderData.set(lenderData);
+          return;
+        }
+      }
+
+      console.error('No lender information found for this user');
+      this.error.set(
+        'Lender profile not found. Please complete your lender registration.'
+      );
+    } catch (err) {
+      console.error('Error checking user as lender:', err);
+      this.error.set('Failed to load user information');
+    }
+  }
+
+  /**
+   * Load user data from Firebase Authentication and Firestore
+   */
   loadUserData(): void {
     console.log('Loading user data...');
-    this.loading = true;
-    this.error = null;
+    this.loading.set(true);
+    this.error.set(null);
 
     try {
       // Get the current authenticated user
       this.authService
         .getCurrentUser()
         .pipe(take(1))
-        .subscribe(
-          async (user) => {
-            if (!user) {
+        .subscribe({
+          next: async (userData) => {
+            if (!userData) {
               console.log('No user logged in');
-              this.error = 'Not logged in';
-              this.loading = false;
+              this.error.set('Not logged in');
+              this.loading.set(false);
               this.router.navigate(['/login']);
               return;
             }
 
-            this.user = user;
-            console.log('Authenticated user:', user.email);
-            this.accountNumber = this.authService.getShortUid(user.uid);
+            console.log('Authenticated user:', userData.email);
+            this.userData.set(userData);
 
-            // Get user profile from Firestore
-            try {
-              // First check the users collection
-              const userDocRef = doc(this.firestore, `users/${user.uid}`);
-              const userDocSnap = await runInInjectionContext(
-                this.injector,
-                () => getDoc(userDocRef)
-              );
-
-              if (userDocSnap.exists()) {
-                // Found user document in users collection
-                const userData = {
-                  id: userDocSnap.id,
-                  ...userDocSnap.data(),
-                } as UserData;
-
-                this.userData = userData;
-
-                // Check if this user is a lender
-                if (userData.role === 'lender') {
-                  // If user has a lenderId, load lender data
-                  if (userData.lenderId) {
-                    this.loadLenderData(userData.lenderId);
-                  } else {
-                    // Try using user's ID as lenderId
-                    this.loadLenderData(user.uid);
+            // Also get the Firebase user for auth operations
+            this.authService
+              .getFirebaseUser()
+              .pipe(take(1))
+              .subscribe({
+                next: (fbUser) => {
+                  this.firebaseUser.set(fbUser);
+                  if (fbUser) {
+                    this.accountNumber.set(
+                      this.authService.getShortUid(fbUser.uid)
+                    );
                   }
+                },
+              });
 
-                  // Load saved loans
-                  this.loadSavedLoans(user.uid);
-                } else {
-                  // This user is not a lender, redirect to the appropriate dashboard
-                  console.log(
-                    'User is not a lender, redirecting to user dashboard'
-                  );
-                  this.router.navigate(['/dashboard']);
-                  return;
-                }
+            // Check if this user is a lender
+            if (userData.role === 'lender') {
+              // If user has a lenderId, load lender data
+              if (userData.lenderId) {
+                this.loadLenderData(userData.lenderId);
               } else {
-                // User not found in users collection, check lenders collection
-                console.log(
-                  'Checking for user in lenders collection at path:',
-                  `lenders/${user.uid}`
-                );
-
-                const lenderDocRef = doc(this.firestore, `lenders/${user.uid}`);
-                const lenderDocSnap = await runInInjectionContext(
-                  this.injector,
-                  () => getDoc(lenderDocRef)
-                );
-
-                console.log('Lender document exists:', lenderDocSnap.exists());
-
-                if (lenderDocSnap.exists()) {
-                  // Found user in lenders collection
-                  console.log(
-                    'Lender document data found:',
-                    lenderDocSnap.data()
-                  );
-                  const lenderData = lenderDocSnap.data();
-
-                  // Create user data from lender document
-                  const userData = {
-                    id: lenderDocSnap.id,
-                    firstName: lenderData['contactInfo']?.firstName || '',
-                    lastName: lenderData['contactInfo']?.lastName || '',
-                    email:
-                      lenderData['contactInfo']?.contactEmail ||
-                      user.email ||
-                      '',
-                    company: lenderData['contactInfo']?.company || '',
-                    phone: lenderData['contactInfo']?.contactPhone || '',
-                    city: lenderData['contactInfo']?.city || '',
-                    state: lenderData['contactInfo']?.state || '',
-                    role: 'lender', // Explicitly set role
-                    lenderId: user.uid, // Use user ID as lenderId
-                  } as UserData;
-
-                  this.userData = userData;
-
-                  // Set lender data
-                  this.lenderData = lenderData;
-
-                  // Load saved loans for this lender
-                  this.loadSavedLoans(user.uid);
-
-                  // Create a proper user record in the users collection for future use
-                  try {
-                    // Using runInInjectionContext to run Firestore operations
-                    const userDocRef = doc(this.firestore, `users/${user.uid}`);
-                    await runInInjectionContext(this.injector, () =>
-                      setDoc(userDocRef, userData)
-                    );
-                    console.log('Created user record from lender data');
-                  } catch (err) {
-                    console.warn(
-                      'Failed to create user record from lender data:',
-                      err
-                    );
-                    // Non-fatal error, continue
-                  }
-                } else {
-                  // User not found in either collection
-                  console.error(
-                    `No user document found in any collection for ID: ${user.uid}`
-                  );
-                  this.error =
-                    'User profile not found. Please complete your registration.';
-
-                  // Redirect to registration or dashboard based on your app flow
-                  this.router.navigate(['/dashboard']);
-                }
+                // Try using user's ID as lenderId
+                this.loadLenderData(userData.id);
               }
-            } catch (error) {
-              console.error('Error fetching user document:', error);
-              this.error = 'Error loading user profile';
-              this.loading = false;
+
+              // Load saved loans
+              this.loadSavedLoans(userData.id);
+            } else {
+              // This user is not a lender, redirect to the appropriate dashboard
+              console.log(
+                'User is not a lender, redirecting to user dashboard'
+              );
+              this.router.navigate(['/dashboard']);
             }
 
-            this.loading = false;
+            this.loading.set(false);
           },
-          (error) => {
+          error: (error) => {
             console.error('Error getting current user:', error);
-            this.error = 'Authentication error';
-            this.loading = false;
-          }
-        );
+            this.error.set('Authentication error');
+            this.loading.set(false);
+          },
+        });
     } catch (error) {
       console.error('Error in loadUserData:', error);
-      this.error =
+      this.error.set(
         'Error fetching data: ' +
-        (error instanceof Error ? error.message : String(error));
-      this.loading = false;
+          (error instanceof Error ? error.message : String(error))
+      );
+      this.loading.set(false);
     }
   }
+
   /**
    * Load saved loans for the lender
    */
@@ -390,9 +364,13 @@ export class LenderDashboardComponent implements OnInit {
 
       const userSavedLoans: SavedLoan[] = [];
       querySnapshot.forEach((doc) => {
+        const data = doc.data();
         userSavedLoans.push({
           id: doc.id,
-          ...doc.data(),
+          loanId: data['loanId'],
+          loanData: data['loanData'],
+          savedBy: data['savedBy'],
+          savedAt: data['savedAt'],
         } as SavedLoan);
       });
 
@@ -444,7 +422,7 @@ export class LenderDashboardComponent implements OnInit {
   }
 
   /**
-   * Contact the loan originator
+   * Contact the loan originator via email
    */
   contactOriginator(loan: Loan): void {
     if (loan.email) {
@@ -454,7 +432,9 @@ export class LenderDashboardComponent implements OnInit {
     }
   }
 
-  // Utility methods
+  /**
+   * Format phone number to (XXX) XXX-XXXX
+   */
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';
 
@@ -466,7 +446,10 @@ export class LenderDashboardComponent implements OnInit {
     return phone;
   }
 
-  formatCurrency(value: string | number): string {
+  /**
+   * Format currency values
+   */
+  formatCurrency(value: string | number | undefined): string {
     if (!value) return '$0';
 
     if (typeof value === 'string' && value.includes('$')) {
@@ -486,11 +469,32 @@ export class LenderDashboardComponent implements OnInit {
     }).format(numValue);
   }
 
-  getFormattedDate(date: any): string {
+  /**
+   * Format date values from Firestore Timestamp or Date
+   */
+  getFormattedDate(date: Timestamp | Date | unknown): string {
     if (!date) return 'N/A';
 
     try {
-      const timestamp = date.toDate ? date.toDate() : new Date(date);
+      let timestamp: Date;
+
+      if (date instanceof Timestamp) {
+        timestamp = date.toDate();
+      } else if (date instanceof Date) {
+        timestamp = date;
+      } else if (
+        typeof date === 'object' &&
+        date !== null &&
+        'toDate' in date &&
+        typeof date.toDate === 'function'
+      ) {
+        // Handle Firestore Timestamp-like objects
+        timestamp = (date as { toDate: () => Date }).toDate();
+      } else {
+        // Try to parse as a date string
+        timestamp = new Date(String(date));
+      }
+
       return timestamp.toLocaleDateString('en-US', {
         year: 'numeric',
         month: 'short',
@@ -502,54 +506,87 @@ export class LenderDashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Get color for property type
+   */
   getColor(propertyType: string): string {
     return this.propertyColorMap[propertyType] || '#000000';
   }
 
-  // Navigation and action methods
+  /**
+   * Navigate to loan details page
+   */
   viewLoanDetails(loanId: string): void {
     this.router.navigate(['/loans', loanId]);
   }
 
+  /**
+   * Navigate to account edit page
+   */
   editAccount(): void {
     this.router.navigate(['/account/edit']);
   }
 
+  /**
+   * Navigate to lender profile edit page
+   */
   editLenderProfile(): void {
     this.router.navigate(['/lender-profile/edit']);
   }
 
-  deleteAccount(): Promise<void> {
+  /**
+   * Delete user account from Firebase
+   */
+  async deleteAccount(): Promise<void> {
     if (
       confirm(
         'Are you sure you want to delete your account? This action cannot be undone.'
       )
     ) {
       try {
-        if (this.user && this.userData) {
-          // Delete user document from Firestore
-          const userDocRef = doc(this.firestore, `users/${this.userData.id}`);
-          return runInInjectionContext(this.injector, () =>
-            deleteDoc(userDocRef)
-          ).then(() => {
-            // Log out the user
-            this.authService.logout().subscribe({
-              next: () => {
-                alert('Your account has been deleted successfully');
-                this.router.navigate(['/login']);
-              },
-              error: (error) => {
-                console.error(
-                  'Error during logout after account deletion:',
-                  error
-                );
-                throw error;
-              },
-            });
-          });
-        } else {
+        const userData = this.userData();
+        if (!userData) {
           throw new Error('User account information not available');
         }
+
+        // Delete user document from Firestore
+        const userDocRef = doc(this.firestore, `users/${userData.id}`);
+        await runInInjectionContext(this.injector, () => deleteDoc(userDocRef));
+
+        // Delete lender document if it exists
+        if (userData.lenderId) {
+          const lenderDocRef = doc(
+            this.firestore,
+            `lenders/${userData.lenderId}`
+          );
+          try {
+            await runInInjectionContext(this.injector, () =>
+              deleteDoc(lenderDocRef)
+            );
+            console.log('Deleted lender document');
+          } catch (err) {
+            console.warn('Failed to delete lender document:', err);
+            // Non-fatal error, continue with logout
+          }
+        }
+
+        // Log out the user
+        this.authService
+          .logout()
+          .pipe(take(1))
+          .subscribe({
+            next: () => {
+              alert('Your account has been deleted successfully');
+              this.router.navigate(['/login']);
+            },
+            error: (error) => {
+              console.error(
+                'Error during logout after account deletion:',
+                error
+              );
+              throw error;
+            },
+          });
       } catch (error) {
         console.error('Error deleting account:', error);
         alert(
@@ -562,9 +599,12 @@ export class LenderDashboardComponent implements OnInit {
     return Promise.resolve();
   }
 
+  /**
+   * Log out the current user
+   */
   logout(): void {
     console.log('Logging out...');
-    this.loading = true;
+    this.loading.set(true);
 
     this.authService
       .logout()
@@ -576,8 +616,8 @@ export class LenderDashboardComponent implements OnInit {
         },
         error: (error) => {
           console.error('Error during logout:', error);
-          this.error = 'Error during logout';
-          this.loading = false;
+          this.error.set('Error during logout');
+          this.loading.set(false);
         },
       });
   }

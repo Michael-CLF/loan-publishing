@@ -158,47 +158,95 @@ export class FirestoreService {
    * @param propertyCategory Optional property category filter
    * @param state Optional state filter
    * @param loanAmount Optional loan amount filter
+   * @param loantype
    * @returns Observable of filtered lenders
    */
+
   filterLenders(
     lenderType: string = '',
     propertyCategory: string = '',
     state: string = '',
-    loanAmount: string = ''
+    loanAmount: string = '',
+    loanType: string = ''
   ): Observable<any[]> {
+    console.log('Filtering lenders with criteria:', {
+      lenderType,
+      propertyCategory,
+      state,
+      loanAmount,
+    });
+
     const collectionRef = collection(this.firestore, 'lenders');
-    const constraints: QueryConstraint[] = [];
+    let q = query(collectionRef);
+    const queryConstraints: QueryConstraint[] = [];
 
-    // Add constraints only for non-empty values
-    if (lenderType) {
-      constraints.push(where('lenderType', '==', lenderType));
-    }
-
-    if (propertyCategory) {
-      constraints.push(
-        where('propertyCategories', 'array-contains', propertyCategory)
+    // Add constraints for server-side filtering
+    // Use advanced Firestore query capabilities where possible
+    if (lenderType && lenderType.trim() !== '') {
+      // For lender type, we need to query for objects in array that match this value
+      queryConstraints.push(
+        where('productInfo.lenderTypes', 'array-contains', lenderType)
       );
     }
 
-    if (state) {
-      constraints.push(where('states', 'array-contains', state));
+    // Apply any constraints to our query
+    if (queryConstraints.length > 0) {
+      q = query(q, ...queryConstraints);
     }
 
-    if (loanAmount && loanAmount.trim() !== '') {
-      const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
-      if (!isNaN(amount) && amount > 0) {
-        constraints.push(where('productInfo.minLoanAmount', '<=', amount));
-        constraints.push(where('productInfo.maxLoanAmount', '>=', amount));
-      }
-    }
+    // Execute the base query
+    return collectionData(q, { idField: 'id' }).pipe(
+      map((lenders) => {
+        console.log('Initial lenders found:', lenders.length);
 
-    // If we have constraints, query with them; otherwise, get all documents
-    if (constraints.length > 0) {
-      const q = query(collectionRef, ...constraints);
-      return collectionData(q, { idField: 'id' });
-    } else {
-      return collectionData(collectionRef, { idField: 'id' });
-    }
+        // Apply client-side filtering for more complex criteria
+        return lenders.filter((lender) => {
+          // Log the structure for debugging
+          if (lenders.length > 0 && lender === lenders[0]) {
+            console.log(
+              'Sample lender structure:',
+              JSON.stringify(lender, null, 2)
+            );
+          }
+
+          // Filter by property category
+          if (propertyCategory && propertyCategory.trim() !== '') {
+            const categories = lender['productInfo'].propertyCategories || [];
+            const hasCategory = categories.includes(propertyCategory);
+            if (!hasCategory) return false;
+          }
+
+          // Filter by state
+          if (state && state.trim() !== '') {
+            // Check if state is in the states object
+            const states = lender['footprintInfo'].states || {};
+            const hasState = states[state] === true;
+            if (!hasState) return false;
+          }
+
+          // Filter by loan amount
+          if (loanAmount && loanAmount.trim() !== '') {
+            const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
+            if (!isNaN(amount) && amount > 0) {
+              const minAmount =
+                Number(lender['productInfo'].minLoanAmount) || 0;
+              const maxAmount =
+                Number(lender['productInfo'].maxLoanAmount) || 0;
+
+              // Check if amount is in range
+              if (amount < minAmount || (maxAmount > 0 && amount > maxAmount)) {
+                return false;
+              }
+            }
+          }
+
+          return true;
+        });
+      }),
+      tap((filteredLenders) => {
+        console.log('Filtered lenders count:', filteredLenders.length);
+      })
+    );
   }
 
   /**
@@ -611,8 +659,10 @@ export class FirestoreService {
     });
   }
 
+  // Add to firestore.service.ts if not already present
   updateDocument(path: string, data: any): Observable<void> {
-    return this.safeDocumentOperation('update', path, data) as Observable<void>;
+    const docRef = doc(this.firestore, path);
+    return from(updateDoc(docRef, data));
   }
 
   /**

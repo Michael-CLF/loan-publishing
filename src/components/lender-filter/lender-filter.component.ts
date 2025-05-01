@@ -1,14 +1,8 @@
-import { Component, EventEmitter, Output, signal } from '@angular/core';
+import { Component, EventEmitter, Output, inject } from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-
-export interface LenderFilters {
-  lenderType: string;
-  propertyCategory: string;
-  state: string;
-  loanAmount: string;
-  loanType: string;
-}
+import { LenderFilterService } from '../../services/lender-filter.service';
+import { LenderFilters, FilterOption } from '../../models/lender-filters.model';
 
 @Component({
   selector: 'app-lender-filter',
@@ -20,67 +14,64 @@ export interface LenderFilters {
 export class LenderFilterComponent {
   // Output event to emit when filters are applied
   @Output() applyFilters = new EventEmitter<LenderFilters>();
+  private filterService = inject(LenderFilterService);
 
-  // Current filters state
-  filters = signal<LenderFilters>({
-    lenderType: '',
-    propertyCategory: '',
-    state: '',
-    loanAmount: '',
-    loanType: '',
-  });
+  // Use the filters from the service
+  get filters() {
+    return this.filterService.filters;
+  }
 
   // Lender types
-  lenderTypes = [
-    'agency',
-    'bank',
-    'bridge_lender',
-    'cdfi',
-    'conduit_lender',
-    'construction_lender',
-    'correspondent_lender',
-    'credit_union',
-    'crowdfunding',
-    'direct_lender',
-    'family_office',
-    'general',
-    'hard_money',
-    'life_insurance',
-    'mezzanine_lender',
-    'non_qm_lender',
-    'portfolio_lender',
-    'private_lender',
-    'sba',
-    'usda',
+  lenderTypeOptions: FilterOption[] = [
+    { value: 'agency', name: 'Agency Lender' },
+    { value: 'bank', name: 'Bank' },
+    { value: 'bridge_lender', name: 'Bridge Lender' },
+    { value: 'cdfi', name: 'CDFI Lender' },
+    { value: 'conduit_lender', name: 'Conduit Lender (CMBS)' },
+    { value: 'construction_lender', name: 'Construction Lender' },
+    { value: 'correspondent_lender', name: 'Correspondent Lender' },
+    { value: 'credit_union', name: 'Credit Union' },
+    { value: 'crowdfunding', name: 'Crowdfunding Platform' },
+    { value: 'direct_lender', name: 'Direct Lender' },
+    { value: 'family_office', name: 'Family Office' },
+    { value: 'general', name: 'General' },
+    { value: 'hard_money', name: 'Hard Money Lender' },
+    { value: 'life_insurance', name: 'Life Insurance Lender' },
+    { value: 'mezzanine_lender', name: 'Mezzanine Lender' },
+    { value: 'non_qm_lender', name: 'Non-QM Lender' },
+    { value: 'portfolio_lender', name: 'Portfolio Lender' },
+    { value: 'private_lender', name: 'Private Lender' },
+    { value: 'sba', name: 'SBA Lender' },
+    { value: 'usda', name: 'USDA Lender' },
   ];
-
   // Property categories
-  propertyCategories = [
-    'Commercial',
-    'Healthcare',
-    'Hospitality',
-    'Industrial',
-    'Land',
-    'MixedUse',
-    'Multi-family',
-    'Office',
-    'Residential',
-    'Retail',
-    'Special Purpose',
+  propertyCategoryOptions: FilterOption[] = [
+    { value: 'commercial', name: 'Commercial' },
+    { value: 'healthcare', name: 'Healthcare' },
+    { value: 'hospitality', name: 'Hospitality' },
+    { value: 'industrial', name: 'Industrial' },
+    { value: 'land', name: 'Land' },
+    { value: 'mixed_use', name: 'Mixed Use' },
+    { value: 'multi-family', name: 'Multi-family' },
+    { value: 'office', name: 'Office' },
+    { value: 'residential', name: 'Residential' },
+    { value: 'retail', name: 'Retail' },
+    { value: 'special_purpose', name: 'Special Purpose' },
   ];
 
-  // Loan Types
-  loanTypes = [
-    'Agency',
-    'Bridge',
-    'CMBS',
-    'Commercial',
-    'Constrction',
-    'Hard Money',
-    'Mezzanine',
-    'Non-QM',
-    'Rehab',
-    'SBA',
+  // Loan Types with display names
+  loanTypeOptions: FilterOption[] = [
+    { value: 'agency', name: 'Agency' },
+    { value: 'bridge', name: 'Bridge' },
+    { value: 'cmbs', name: 'CMBS' },
+    { value: 'commercial', name: 'Commercial' },
+    { value: 'construction', name: 'Construction' },
+    { value: 'general', name: 'General' },
+    { value: 'hard_money', name: 'Hard Money' },
+    { value: 'mezzanine', name: 'Mezzanine' },
+    { value: 'non-qm', name: 'Non-QM' },
+    { value: 'rehab', name: 'Rehab' },
+    { value: 'sba', name: 'SBA' },
   ];
 
   // US states
@@ -144,19 +135,15 @@ export class LenderFilterComponent {
   }
 
   updateFilter(field: keyof LenderFilters, value: string | null): void {
+    let updatedValue = value;
+
     if (field === 'loanAmount' && value) {
-      // Strip currency formatting for internal storage
-      const numericValue = value.replace(/[^0-9.]/g, '');
-      this.filters.update((current) => ({
-        ...current,
-        [field]: numericValue, // Store numeric value without formatting
-      }));
-    } else {
-      this.filters.update((current) => ({
-        ...current,
-        [field]: value,
-      }));
+      updatedValue = value.replace(/[^0-9.]/g, '');
     }
+
+    this.filterService.updateFilters({
+      [field]: updatedValue,
+    } as Partial<LenderFilters>);
   }
 
   formatLoanAmount(value: string): string {
@@ -173,16 +160,18 @@ export class LenderFilterComponent {
   }
 
   onApplyFilters(): void {
-    const cleanedFilters = { ...this.filters() };
+    const currentFilters = this.filterService.getFilters();
 
-    if (cleanedFilters.loanAmount) {
-      cleanedFilters.loanAmount = cleanedFilters.loanAmount.replace(
+    // Clean up loan amount before emitting
+    if (currentFilters.loanAmount) {
+      currentFilters.loanAmount = currentFilters.loanAmount.replace(
         /[^0-9.]/g,
         ''
       );
     }
 
-    this.applyFilters.emit(cleanedFilters);
+    console.log('Emitting filters:', currentFilters);
+    this.applyFilters.emit(currentFilters);
   }
 
   cleanLoanAmount(value: string): string {
@@ -195,15 +184,8 @@ export class LenderFilterComponent {
   }
 
   onResetFilters(): void {
-    this.filters.set({
-      lenderType: '',
-      propertyCategory: '',
-      state: '',
-      loanAmount: '',
-      loanType: '',
-    });
-
-    this.applyFilters.emit(this.filters());
+    this.filterService.resetFilters();
+    this.applyFilters.emit(this.filterService.getFilters());
   }
 
   getLenderTypeName(value: string): string {

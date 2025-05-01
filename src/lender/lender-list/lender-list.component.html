@@ -31,7 +31,7 @@
             </thead>
             <tbody>
                 <tr *ngFor="let lender of lenders" class="hover:bg-gray-50 border-b cursor-pointer"
-                    (click)="navigateTo(lender.id!)">
+                    (click)="navigateTo(lender.id)">
                     <td class="lender-detail">
                         {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
                     </td>
@@ -43,12 +43,13 @@
                             </div>
                         </div>
                     </td>
-
                     <td class="lender-detail">
                         ${{ lender.productInfo?.minLoanAmount | number }} -
                         ${{ lender.productInfo?.maxLoanAmount | number }}
                     </td>
                 </tr>
+
+
             </tbody>
         </table>
     </div>

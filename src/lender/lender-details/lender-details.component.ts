@@ -6,6 +6,7 @@ import { FavoritesService } from '../../services/favorites.service';
 import { AuthService } from '../../services/auth.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
+import { propertyColorMap } from '../../shared/property-category-colors';
 
 @Component({
   selector: 'app-lender-details',
@@ -55,6 +56,11 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     });
   }
 
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   loadLenderDetails(id: string): void {
     this.loading = true;
 
@@ -80,11 +86,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   checkFavoriteStatus(lenderId: string): void {
     this.isFavorited = this.favoritesService.isFavorite(lenderId);
   }
@@ -104,7 +105,21 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     this.router.navigate(['/lender-list']);
   }
 
-  // --- Helper methods for contact information ---
+  // Color mapping for category headers
+  getCategoryColor(category: string): string {
+    return propertyColorMap[category] || '#808080'; // fallback to gray
+  }
+
+  getCategoryStyle(category: string): { [key: string]: string } {
+    return {
+      'background-color': this.getCategoryColor(category),
+      color: '#fff',
+      padding: '8px',
+      'border-radius': '4px',
+    };
+  }
+
+  // Contact Info
   getContactName(): string {
     const firstName = this.lender?.contactInfo?.firstName || '';
     const lastName = this.lender?.contactInfo?.lastName || '';
@@ -129,227 +144,24 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return city && state ? `${city}, ${state}` : 'Not specified';
   }
 
-  // --- Helper methods for product information ---
+  // Product Info
   getLenderTypes(): string {
-    if (
-      !this.lender?.productInfo?.lenderTypes ||
-      this.lender.productInfo.lenderTypes.length === 0
-    ) {
-      return 'None specified';
-    }
+    if (!this.lender?.productInfo?.lenderTypes?.length) return 'None specified';
     return this.lender.productInfo.lenderTypes
-      .map((type) => this.getLenderTypeName(type))
+      .map(this.getLenderTypeName)
       .join(', ');
   }
 
   getPropertyCategories(): string {
-    if (
-      !this.lender?.productInfo?.propertyCategories ||
-      this.lender.productInfo.propertyCategories.length === 0
-    ) {
+    if (!this.lender?.productInfo?.propertyCategories?.length)
       return 'None specified';
-    }
     return this.lender.productInfo.propertyCategories
-      .map((category) => this.getPropertyCategoryName(category))
+      .map(this.getPropertyCategoryName)
       .join(', ');
   }
 
-  // Add this method to your component class
-  getPropertyCategoryName(value: string): string {
-    const propertyCategoryMap: { [key: string]: string } = {
-      'industrial-property': 'Industrial Property',
-      hospitality: 'Hospitality',
-      'mixed-use': 'Mixed-Use',
-      office: 'Office',
-      commercial: 'Commercial',
-      healthcare: 'Healthcare',
-      // Add all your property categories here
-    };
-    return propertyCategoryMap[value] || value;
-  }
-
-  getLoanTypeName(value: string): string {
-    const loanTypeMap: { [key: string]: string } = {
-      commercial: 'Commercial Loans',
-      construction: 'Construction Loans',
-      bridge: 'Bridge Loans',
-      rehab: 'Rehab Loans',
-      'non-qm': 'Non-QM Loans',
-      sba: 'SBA Loans',
-      cmbs: 'CMBS Loans',
-      agency: 'Agency Loans',
-      hard_money: 'Hard Money Loans',
-      mezzanine: 'Mezzanine Loan',
-    };
-    return loanTypeMap[value] || value;
-  }
-  getPropertyCategoriesArray(): string[] {
-    if (!this.lender?.productInfo?.propertyCategories) return [];
-
-    return this.lender.productInfo.propertyCategories.map((category) =>
-      this.getPropertyCategoryName(category)
-    );
-  }
-
-  getPropertyTypes(): string {
-    if (
-      !this.lender?.productInfo?.propertyTypes ||
-      this.lender.productInfo.propertyTypes.length === 0
-    ) {
-      return 'None specified';
-    }
-    return this.lender.productInfo.propertyTypes.join(', ');
-  }
-
-  getLoanRange(): string {
-    if (!this.lender?.productInfo) {
-      return 'Not specified';
-    }
-
-    let min = 0;
-    let max = 0;
-
-    try {
-      const minValue = this.lender?.productInfo?.minLoanAmount as
-        | string
-        | number;
-      const maxValue = this.lender?.productInfo?.maxLoanAmount as
-        | string
-        | number;
-
-      if (typeof minValue === 'number') {
-        min = minValue;
-      } else if (typeof minValue === 'string') {
-        min = parseFloat(minValue.replace(/[^0-9.]/g, '')) || 0;
-      }
-
-      if (typeof maxValue === 'number') {
-        max = maxValue;
-      } else if (typeof maxValue === 'string') {
-        max = parseFloat(maxValue.replace(/[^0-9.]/g, '')) || 0;
-      }
-    } catch (error) {
-      console.error('Error processing loan amounts:', error);
-    }
-
-    return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-  }
-
-  // Check if loan types exist
-  hasLoanTypes(): boolean {
-    return (
-      !!this.lender?.productInfo?.loanTypes &&
-      this.lender.productInfo.loanTypes.length > 0
-    );
-  }
-
-  getLoanTypesArray(): string[] {
-    if (!this.lender?.productInfo?.loanTypes) return [];
-    return this.lender.productInfo.loanTypes.map((type) =>
-      this.getLoanTypeName(type)
-    );
-  }
-  // --- Helper methods for footprint information ---
-  getLendingStates(): string {
-    if (
-      !this.lender?.footprintInfo?.lendingFootprint ||
-      this.lender.footprintInfo.lendingFootprint.length === 0
-    ) {
-      return 'None specified';
-    }
-    return this.lender.footprintInfo.lendingFootprint.join(', ');
-  }
-
-  // --- Helper methods for property types ---
-  hasPropertyTypes(): boolean {
-    return (
-      !!this.lender?.productInfo?.propertyTypes &&
-      this.lender.productInfo.propertyTypes.length > 0
-    );
-  }
-
-  getPropertyTypesArray(): string[] {
-    return this.lender?.productInfo?.propertyTypes || [];
-  }
-
-  // --- Helper methods for subcategories ---
-  // Add this method to your component
-  getFormattedSubcategories(): string {
-    if (
-      !this.lender?.productInfo?.subcategorySelections ||
-      this.lender.productInfo.subcategorySelections.length === 0
-    ) {
-      return 'None specified';
-    }
-
-    // Format each subcategory for display
-    return this.lender.productInfo.subcategorySelections
-      .map((subcategory) => {
-        // Split by colon and format nicely
-        const parts = subcategory.split(':');
-        if (parts.length > 1) {
-          return parts[1]
-            .split('-')
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(' ');
-        }
-        return subcategory;
-      })
-      .join(', ');
-  }
-
-  getSubcategories(): string[] {
-    return this.lender?.productInfo?.subcategorySelections || [];
-  }
-
-  hasSubcategories(): boolean {
-    return (
-      !!this.lender?.productInfo?.subcategorySelections &&
-      this.lender.productInfo.subcategorySelections.length > 0
-    );
-  }
-
-  formatSubcategory(subcategory: string): string {
-    const parts = subcategory.split(':');
-    if (parts.length > 1) {
-      return parts[1]
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-    return subcategory;
-  }
-
-  getCategoryFromSubcategory(subcategory: string): string {
-    const parts = subcategory.split(':');
-    if (parts.length > 0) {
-      // Transform the category name from kebab-case to Title Case
-      return parts[0]
-        .split('-')
-        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-        .join(' ');
-    }
-    return '';
-  }
-
-  getGroupedSubcategories(): { [category: string]: string[] } {
-    const subcategories = this.getSubcategories();
-    const grouped: { [category: string]: string[] } = {};
-
-    subcategories.forEach((subcategory) => {
-      const category = this.getCategoryFromSubcategory(subcategory);
-      if (!grouped[category]) {
-        grouped[category] = [];
-      }
-      grouped[category].push(subcategory);
-    });
-
-    return grouped;
-  }
-
-  // --- Mapping helper methods ---
   getLenderTypeName(value: string): string {
-    const lenderTypeMap: { [key: string]: string } = {
+    const map: { [key: string]: string } = {
       agency: 'Agency Lender',
       bank: 'Bank',
       bridge_lender: 'Bridge Lender',
@@ -370,10 +182,137 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       sba: 'SBA Lender',
       usda: 'USDA Lender',
     };
-    return lenderTypeMap[value] || value;
+    return map[value] || value;
   }
+
+  getPropertyCategoryName(value: string): string {
+    const propertyCategoryMap: { [key: string]: string } = {
+      commercial: 'Commercial',
+      healthcare: 'Healthcare',
+      hospitality: 'Hospitality',
+      industrial: 'Industrial',
+      land: 'Land',
+      mixed_use: 'Mixed Use',
+      office: 'Office',
+      residential: 'Residential',
+      retail: 'Retail',
+      special_purpose: 'Special Purpose',
+    };
+    return propertyCategoryMap[value] || value;
+  }
+
+  getLoanTypeName(value: string): string {
+    const loanTypeMap: { [key: string]: string } = {
+      agency: 'Agency Loans',
+      bridge: 'Bridge Loans',
+      cmbs: 'CMBS Loans',
+      commercial: 'Commercial Loans',
+      construction: 'Construction Loans',
+      hard_money: 'Hard Money Loans',
+      mezzanine: 'Mezzanine Loan',
+      'non-qm': 'Non-QM Loans',
+      rehab: 'Rehab Loans',
+      sba: 'SBA Loans',
+    };
+    return loanTypeMap[value] || value;
+  }
+
+  getLoanRange(): string {
+    if (!this.lender?.productInfo) return 'Not specified';
+
+    const parseAmount = (val: string | number): number =>
+      typeof val === 'number'
+        ? val
+        : parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
+
+    const min = parseAmount(this.lender?.productInfo?.minLoanAmount ?? 0);
+    const max = parseAmount(this.lender?.productInfo?.maxLoanAmount ?? 0);
+
+    return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
+  }
+
+  hasLoanTypes(): boolean {
+    return !!this.lender?.productInfo?.loanTypes?.length;
+  }
+
+  getLoanTypesArray(): string[] {
+    return this.lender?.productInfo?.loanTypes?.map(this.getLoanTypeName) || [];
+  }
+
+  getPropertyTypes(): string {
+    return (
+      this.lender?.productInfo?.propertyTypes?.join(', ') || 'None specified'
+    );
+  }
+
+  hasPropertyTypes(): boolean {
+    return !!this.lender?.productInfo?.propertyTypes?.length;
+  }
+
+  getPropertyCategoriesArray(): string[] {
+    return (
+      this.lender?.productInfo?.propertyCategories?.map(
+        this.getPropertyCategoryName
+      ) || []
+    );
+  }
+
+  // Lending Footprint
+  getLendingStates(): string {
+    return (
+      this.lender?.footprintInfo?.lendingFootprint?.join(', ') ||
+      'None specified'
+    );
+  }
+
   getLendingStatesArray(): string[] {
-    const states = this.getLendingStates(); // existing method, probably returns a string like "NC, SC, GA"
-    return states ? states.split(',').map((state) => state.trim()) : [];
+    return this.getLendingStates()
+      .split(',')
+      .map((s) => s.trim());
+  }
+
+  // Subcategories
+  getFormattedSubcategories(): string {
+    return (
+      this.lender?.productInfo?.subcategorySelections
+        ?.map(this.formatSubcategory)
+        .join(', ') || 'None specified'
+    );
+  }
+
+  getSubcategories(): string[] {
+    return this.lender?.productInfo?.subcategorySelections || [];
+  }
+
+  hasSubcategories(): boolean {
+    return !!this.lender?.productInfo?.subcategorySelections?.length;
+  }
+
+  formatSubcategory(sub: string): string {
+    const parts = sub.split(':');
+    return parts.length > 1
+      ? parts[1]
+          .split('-')
+          .map((w) => w[0].toUpperCase() + w.slice(1))
+          .join(' ')
+      : sub;
+  }
+
+  getCategoryFromSubcategory(sub: string): string {
+    const parts = sub.split(':')[0];
+    return parts
+      .split('-')
+      .map((w) => w[0].toUpperCase() + w.slice(1))
+      .join(' ');
+  }
+
+  getGroupedSubcategories(): { [category: string]: string[] } {
+    const grouped: { [key: string]: string[] } = {};
+    for (const sub of this.getSubcategories()) {
+      const cat = this.getCategoryFromSubcategory(sub);
+      if (!grouped[cat]) grouped[cat] = [];
+      grouped[cat].push(sub);
+    }
+    return grouped;
   }
 }

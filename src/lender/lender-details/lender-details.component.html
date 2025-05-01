@@ -80,10 +80,10 @@
                 <div class="subcategory-container">
                     <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
                         <div class="subcategory">
-                            <!-- Category Header -->
-                            <div class="category-header">
+                            <div class="category-header" [ngStyle]="getCategoryStyle(category.key)">
                                 {{ category.key }}
                             </div>
+
 
                             <!-- Subcategory Grid -->
                             <div class="subcategory-grid">

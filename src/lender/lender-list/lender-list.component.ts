@@ -3,18 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import { FirestoreService } from '../../services/firestore.service';
 import { LenderFilterComponent } from '../../components/lender-filter/lender-filter.component';
-import { LenderService } from '../../services/lender.service';
+import { LenderFilterService } from '../../services/lender-filter.service';
+import { LenderService, Lender } from '../../services/lender.service';
 import { Subscription } from 'rxjs';
-// Import Lender from the service instead of the model
-import { Lender } from '../../services/lender.service';
-
-// Define LenderFilters interface
-interface LenderFilters {
-  lenderType: string;
-  propertyCategory: string;
-  state: string;
-  loanAmount: string;
-}
+import { LenderFilters } from '../../models/lender-filters.model';
 
 @Component({
   selector: 'app-lender-list',
@@ -25,15 +17,15 @@ interface LenderFilters {
 })
 export class LenderListComponent implements OnInit, OnDestroy {
   lenders: Lender[] = [];
+  filteredLenders: Lender[] = [];
   loading = true;
-  private lenderService = inject(LenderService);
-  private lendersSubscription: Subscription | null = null;
-  private subscription: Subscription | null = null;
+  error = false;
 
-  constructor(
-    private firestoreService: FirestoreService,
-    public router: Router
-  ) {}
+  private firestoreService = inject(FirestoreService);
+  private lenderService = inject(LenderService);
+  private router = inject(Router);
+  private lendersSubscription: Subscription | null = null;
+  private filterService = inject(LenderFilterService);
 
   ngOnInit(): void {
     this.loadLenders();
@@ -41,9 +33,6 @@ export class LenderListComponent implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     // Unsubscribe from all subscriptions
-    if (this.subscription) {
-      this.subscription.unsubscribe();
-    }
     if (this.lendersSubscription) {
       this.lendersSubscription.unsubscribe();
     }
@@ -51,22 +40,27 @@ export class LenderListComponent implements OnInit, OnDestroy {
 
   loadLenders(): void {
     this.loading = true;
-    console.log('Starting to load lenders...');
 
-    // No nested subscription - use only one data source
-    this.subscription = this.lenderService.getAllLenders().subscribe({
-      next: (data) => {
-        console.log('Received lenders:', data);
-        this.lenders = data;
+    if (this.lendersSubscription) {
+      this.lendersSubscription.unsubscribe();
+    }
+
+    // Use the getAllLenders method from LenderService
+    this.lendersSubscription = this.lenderService.getAllLenders().subscribe({
+      next: (lenders: Lender[]) => {
+        this.lenders = lenders;
         this.loading = false;
+        console.log('Loaded lenders:', this.lenders.length);
       },
-      error: (error) => {
-        console.error('Error loading lenders:', error);
+      error: (err: Error) => {
+        console.error('Error loading lenders:', err);
+        this.error = true;
         this.loading = false;
       },
     });
   }
 
+  // This method matches the (applyFilters) output from LenderFilterComponent
   applyFilters(filters: LenderFilters): void {
     this.loading = true;
     console.log('Applying filters:', filters);
@@ -75,32 +69,35 @@ export class LenderListComponent implements OnInit, OnDestroy {
       this.lendersSubscription.unsubscribe();
     }
 
+    // Use the searchLenders method from LenderService
     this.lendersSubscription = this.lenderService
       .searchLenders(
         filters.lenderType,
         filters.propertyCategory,
         filters.state,
-        filters.loanAmount
+        filters.loanAmount,
+        filters.loanType
       )
       .subscribe({
-        next: (data) => {
-          console.log('Filtered lenders received:', data);
-          this.lenders = data;
+        next: (filteredLenders: Lender[]) => {
+          this.lenders = filteredLenders; // Update the lenders array directly
           this.loading = false;
+          console.log('Filtered lenders:', filteredLenders.length);
         },
-        error: (error) => {
-          console.error('Error filtering lenders:', error);
+        error: (err: Error) => {
+          console.error('Error filtering lenders:', err);
+          this.error = true;
           this.loading = false;
         },
       });
   }
 
-  // Method to handle reset from filter component
+  // This method matches the (resetFilters) output from LenderFilterComponent
   resetFilters(): void {
     this.loading = true;
     console.log('Resetting filters...');
 
-    // Load all lenders again
+    // Reset to original lenders list
     this.loadLenders();
   }
 
@@ -131,7 +128,8 @@ export class LenderListComponent implements OnInit, OnDestroy {
     return lenderTypeMap[value] || value;
   }
 
-  navigateTo(id: string): void {
-    this.router.navigate(['/lender-details', id]);
+  // This is for the template click handler
+  navigateTo(lenderId: string): void {
+    this.router.navigate(['/lender-details', lenderId]);
   }
 }

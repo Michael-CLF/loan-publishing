@@ -8,18 +8,19 @@
                 <select id="lenderType" [(ngModel)]="filters().lenderType"
                     (ngModelChange)="updateFilter('lenderType', $event)">
                     <option value="">All Lender Types</option>
-                    <option *ngFor="let type of lenderTypes" [value]="type">
-                        {{ getLenderTypeName(type) }}
+                    <option *ngFor="let option of lenderTypeOptions" [value]="option.value">
+                        {{ option.name }}
                     </option>
                 </select>
             </div>
 
             <div class="filter-group">
                 <label for="propertyCategory">Property Category</label>
-                <select id="propertyCategory" [(ngModel)]="filters().propertyCategory">
+                <select id="propertyCategory" [(ngModel)]="filters().propertyCategory"
+                    (ngModelChange)="updateFilter('propertyCategory', $event)">
                     <option value="">All Property Categories</option>
-                    <option *ngFor="let category of propertyCategories" [value]="category">
-                        {{ category }}
+                    <option *ngFor="let option of propertyCategoryOptions" [value]="option.value">
+                        {{ option.name }}
                     </option>
                 </select>
             </div>
@@ -29,15 +30,15 @@
                 <select id="loanType" [(ngModel)]="filters().loanType"
                     (ngModelChange)="updateFilter('loanType', $event)">
                     <option value="">All Loan Types</option>
-                    <option *ngFor="let type of loanTypes" [value]="type">
-                        {{ type }}
+                    <option *ngFor="let option of loanTypeOptions" [value]="option.value">
+                        {{ option.name }}
                     </option>
                 </select>
             </div>
 
             <div class="filter-group">
                 <label for="state">State</label>
-                <select id="state" [(ngModel)]="filters().state">
+                <select id="state" [(ngModel)]="filters().state" (ngModelChange)="updateFilter('state', $event)">
                     <option value="">All States</option>
                     <option *ngFor="let state of states" [value]="state">{{ state }}</option>
                 </select>
