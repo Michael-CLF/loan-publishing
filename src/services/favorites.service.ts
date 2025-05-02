@@ -14,17 +14,15 @@ import {
 import {
   BehaviorSubject,
   Observable,
-  from,
   of,
   switchMap,
   map,
   catchError,
 } from 'rxjs';
 import { AuthService } from './auth.service';
-// Add this import at the top of your LenderDetailsComponent
 import { firstValueFrom } from 'rxjs';
 
-interface LenderFavorite {
+export interface LenderFavorite {
   id?: string;
   originatorId: string;
   lenderId: string;
@@ -37,6 +35,10 @@ interface LenderFavorite {
 export class FavoritesService {
   private favoritesSubject = new BehaviorSubject<string[]>([]);
   public favorites$ = this.favoritesSubject.asObservable();
+
+  // Add BehaviorSubject for modal visibility
+  private showModalSubject = new BehaviorSubject<boolean>(false);
+  public showModal$ = this.showModalSubject.asObservable();
 
   // Dependency injection
   private firestore = inject(Firestore);
@@ -113,6 +115,14 @@ export class FavoritesService {
         lenderId: lenderId,
         createdAt: new Date(),
       });
+
+      // Show success modal
+      this.showModalSubject.next(true);
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        this.showModalSubject.next(false);
+      }, 3000);
     }
 
     // Reload favorites to update the subject
@@ -181,5 +191,10 @@ export class FavoritesService {
         );
       })
     );
+  }
+
+  // Method to close the modal programmatically
+  closeModal(): void {
+    this.showModalSubject.next(false);
   }
 }

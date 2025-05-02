@@ -1,17 +1,25 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  DestroyRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Lender, LenderService } from '../../services/lender.service';
 import { FavoritesService } from '../../services/favorites.service';
 import { AuthService } from '../../services/auth.service';
-import { Subject, firstValueFrom } from 'rxjs';
+import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
+import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-lender-details',
   standalone: true,
-  imports: [CommonModule, RouterModule],
+  imports: [CommonModule, RouterModule, SavedLenderSuccessModalComponent],
   templateUrl: './lender-details.component.html',
   styleUrls: ['./lender-details.component.css'],
 })
@@ -22,6 +30,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   isFavorited = false;
   userRole: 'originator' | 'lender' | null = null;
   isAuthenticated = false;
+  showModal = false;
 
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
@@ -29,6 +38,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private favoritesService = inject(FavoritesService);
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
+  private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe((user) => {
@@ -54,6 +64,17 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
         this.loading = false;
       }
     });
+
+    // Subscribe to modal visibility
+    this.favoritesService.showModal$
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((showModal) => {
+        this.showModal = showModal;
+      });
+  }
+
+  closeModal(): void {
+    this.favoritesService.closeModal();
   }
 
   ngOnDestroy(): void {
@@ -86,13 +107,23 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  async checkFavoriteStatus(lenderId: string): Promise<void> {
-    try {
-      this.isFavorited = await this.favoritesService.isFavorite(lenderId);
-    } catch (error) {
-      console.error('Error checking favorite status:', error);
+  checkFavoriteStatus(lenderId: string): void {
+    // Skip if not authenticated or not an originator
+    if (!this.isAuthenticated || this.userRole !== 'originator') {
       this.isFavorited = false;
+      return;
     }
+
+    // Use the async method to get the initial state
+    this.favoritesService
+      .isFavorite(lenderId)
+      .then((isFavorited) => {
+        this.isFavorited = isFavorited;
+      })
+      .catch((error) => {
+        console.error('Error checking favorite status:', error);
+        this.isFavorited = false;
+      });
   }
 
   async toggleFavorite(): Promise<void> {
@@ -118,12 +149,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 
       // Update the local state
       this.isFavorited = await this.favoritesService.isFavorite(this.lender.id);
-
-      // Show feedback to user
-      const message = this.isFavorited
-        ? 'Lender added to favorites'
-        : 'Lender removed from favorites';
-      alert(message);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       alert('There was an error updating your favorites. Please try again.');
@@ -297,7 +322,8 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   getLendingStatesArray(): string[] {
     return this.getLendingStates()
       .split(',')
-      .map((s) => s.trim());
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
   }
 
   // Subcategories

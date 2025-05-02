@@ -517,7 +517,9 @@ export class DashboardComponent implements OnInit {
             `Found ${favorites.length} saved lenders for originator ${originatorId}`
           );
           this.savedLenders.set(favorites);
-          this.savedLendersLoading.set(false);
+
+          // Load the full lender details for each favorite
+          this.loadLenderDetailsForFavorites(favorites);
         },
         error: (error: any) => {
           console.error('Error loading saved lenders:', error);
@@ -527,6 +529,137 @@ export class DashboardComponent implements OnInit {
           this.savedLendersLoading.set(false);
         },
       });
+  }
+  savedLendersWithDetails = signal<any[]>([]);
+  private loadLenderDetailsForFavorites(favorites: any[]): void {
+    if (favorites.length === 0) {
+      this.savedLendersWithDetails.set([]);
+      this.savedLendersLoading.set(false);
+      return;
+    }
+
+    const lendersWithDetails: any[] = [];
+    let loadedCount = 0;
+
+    // For each favorite, fetch the lender details
+    favorites.forEach((favorite) => {
+      this.lenderService.getLender(favorite.lenderId).subscribe({
+        next: (lender) => {
+          if (lender) {
+            lendersWithDetails.push({
+              ...favorite,
+              lenderData: lender,
+            });
+          } else {
+            // Handle missing lender (we'll keep the favorite but mark it)
+            lendersWithDetails.push({
+              ...favorite,
+              lenderData: { notFound: true },
+            });
+          }
+          loadedCount++;
+          if (loadedCount === favorites.length) {
+            this.savedLendersWithDetails.set(lendersWithDetails);
+            this.savedLendersLoading.set(false);
+          }
+        },
+        error: (err) => {
+          console.error(
+            `Error loading lender details for ${favorite.lenderId}:`,
+            err
+          );
+          // Still count this as loaded, but with an error
+          lendersWithDetails.push({
+            ...favorite,
+            lenderData: { error: true },
+          });
+
+          loadedCount++;
+          if (loadedCount === favorites.length) {
+            this.savedLendersWithDetails.set(lendersWithDetails);
+            this.savedLendersLoading.set(false);
+          }
+        },
+      });
+    });
+  }
+  getLenderContactName(lenderFavorite: any): string {
+    if (
+      !lenderFavorite.lenderData ||
+      lenderFavorite.lenderData.notFound ||
+      lenderFavorite.lenderData.error
+    ) {
+      return 'Unknown';
+    }
+
+    const firstName = lenderFavorite.lenderData.contactInfo?.firstName || '';
+    const lastName = lenderFavorite.lenderData.contactInfo?.lastName || '';
+
+    return firstName || lastName
+      ? `${firstName} ${lastName}`.trim()
+      : 'Not specified';
+  }
+
+  /**
+   * Get lender types as string
+   */
+  getLenderTypes(lenderFavorite: any): string {
+    if (
+      !lenderFavorite.lenderData ||
+      !lenderFavorite.lenderData.productInfo?.lenderTypes?.length
+    ) {
+      return 'Not specified';
+    }
+
+    // Return just the first lender type to keep it concise in the table
+    const firstType = lenderFavorite.lenderData.productInfo.lenderTypes[0];
+    return this.getLenderTypeName(firstType);
+  }
+  getLenderLoanRange(lenderFavorite: any): string {
+    if (!lenderFavorite.lenderData || !lenderFavorite.lenderData.productInfo) {
+      return 'Not specified';
+    }
+
+    const minAmount = lenderFavorite.lenderData.productInfo.minLoanAmount;
+    const maxAmount = lenderFavorite.lenderData.productInfo.maxLoanAmount;
+
+    if (!minAmount && !maxAmount) {
+      return 'Not specified';
+    }
+
+    return (
+      this.formatCurrency(minAmount || 0) +
+      ' - ' +
+      this.formatCurrency(maxAmount || 0)
+    );
+  }
+  getLenderTypeName(value: string): string {
+    const map: { [key: string]: string } = {
+      agency: 'Agency Lender',
+      bank: 'Bank',
+      bridge_lender: 'Bridge Lender',
+      cdfi: 'CDFI Lender',
+      conduit_lender: 'Conduit Lender (CMBS)',
+      construction_lender: 'Construction Lender',
+      correspondent_lender: 'Correspondent Lender',
+      credit_union: 'Credit Union',
+      crowdfunding: 'Crowdfunding Platform',
+      direct_lender: 'Direct Lender',
+      family_office: 'Family Office',
+      hard_money: 'Hard Money Lender',
+      life_insurance: 'Life Insurance Lender',
+      mezzanine_lender: 'Mezzanine Lender',
+      non_qm_lender: 'Non-QM Lender',
+      portfolio_lender: 'Portfolio Lender',
+      private_lender: 'Private Lender',
+      sba: 'SBA Lender',
+      usda: 'USDA Lender',
+    };
+
+    return map[value] || value;
+  }
+  viewLenderDetails(lenderId: string): void {
+    this.router.navigate(['/lender-details', lenderId]);
   }
 
   async removeSavedLender(savedFavoriteId: string): Promise<void> {

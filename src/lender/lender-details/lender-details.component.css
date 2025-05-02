@@ -43,11 +43,29 @@
   background-color: #008080;
 }
 
+.favorite-section {
+  display: flex;
+  align-items: center;
+  gap: 12px; /* Adjust the space between buttons */
+}
+
 .favorite-button {
   color: #fff;
   background-color: #008080;
   padding: 6px 10px;
   border-radius: 0.35rem;
+}
+.dashboard-button {
+  color: #fff;
+  background-color: #008080;
+  padding: 6px 10px;
+  border-radius: 0.35rem;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+}
+
+.dashboard-button:hover {
+  background-color: #0a2463;
 }
 
 .favorite-button.favorited {

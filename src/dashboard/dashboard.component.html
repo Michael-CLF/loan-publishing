@@ -105,6 +105,9 @@
         </div>
     </div>
 
+    <!-- src/app/dashboard/dashboard.component.html -->
+    <!-- Replace the saved lenders section with this code -->
+
     <!-- Saved Lenders (Originators only) -->
     <div *ngIf="isOriginator()" class="loan-container">
         <h3 class="loans">Saved Lenders:</h3>
@@ -123,15 +126,37 @@
             <p>Browse lenders to find and save ones you're interested in.</p>
         </div>
 
-        <div *ngIf="!savedLendersLoading() && savedLenders().length > 0" class="loans-grid">
-            <div *ngFor="let lenderFavorite of savedLenders()" class="loan-card">
-                <div class="loan-header">
-                    <span class="loan-type">Saved Lender ID: {{ lenderFavorite.lenderId }}</span>
-                </div>
-                <div class="loan-actions">
-                    <button class="action-btn delete-btn" (click)="removeSavedLender(lenderFavorite.id)">Remove</button>
-                </div>
-            </div>
+        <div class="button-container">
+            <a routerLink="/lender-list" class="browse-loans">Browse Lenders</a>
+        </div>
+
+        <!-- Saved Lenders Table -->
+        <div *ngIf="!savedLendersLoading() && savedLenders().length > 0" class="lender-table-container">
+            <table class="lender-table">
+                <thead>
+                    <tr>
+                        <th>Company Name</th>
+                        <th>Contact Name</th>
+                        <th>Lender Type</th>
+                        <th>Loan Range</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr *ngFor="let lender of savedLendersWithDetails()" class="lender-row"
+                        (click)="viewLenderDetails(lender.lenderId)">
+                        <td>{{ lender.lenderData?.contactInfo?.company || 'Unknown Company' }}</td>
+                        <td>{{ getLenderContactName(lender) }}</td>
+                        <td>{{ getLenderTypes(lender) }}</td>
+                        <td>{{ getLenderLoanRange(lender) }}</td>
+                        <td class="actions-cell" (click)="$event.stopPropagation()">
+                            <button class="action-btn view-btn"
+                                (click)="viewLenderDetails(lender.lenderId)">View</button>
+                            <button class="action-btn delete-btn" (click)="removeSavedLender(lender.id)">Remove</button>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
