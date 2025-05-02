@@ -119,6 +119,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
+  /**
+   * Load user data from Firestore
+   */
   loadUserData(): void {
     console.log('NavbarComponent - Loading user data...');
     this.loading = true;
@@ -148,18 +151,36 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
           if (docSnap.exists()) {
             const data = docSnap.data();
-            this.userData = {
-              id: docSnap.id,
-              firstName: data['contactInfo'].firstName || '',
-              lastName: data['contactInfo'].lastName || '',
-              email: data['contactInfo'].contactEmail || '',
-              phone: data['contactInfo'].contactPhone || '',
-              city: data['contactInfo'].city || '',
-              state: data['contactInfo'].state || '',
-              company: data['contactInfo'].company || '',
-              role: data['role'] || '',
-              accountNumber: this.accountNumber,
-            };
+
+            if (role === 'lender') {
+              // For lenders, structure uses contactInfo nested object
+              this.userData = {
+                id: docSnap.id,
+                firstName: data['contactInfo']?.firstName || '',
+                lastName: data['contactInfo']?.lastName || '',
+                email: data['contactInfo']?.contactEmail || '',
+                phone: data['contactInfo']?.contactPhone || '',
+                city: data['contactInfo']?.city || '',
+                state: data['contactInfo']?.state || '',
+                company: data['contactInfo']?.company || '',
+                role: data['role'] || '',
+                accountNumber: this.accountNumber,
+              };
+            } else {
+              // For originators, structure has properties at top level
+              this.userData = {
+                id: docSnap.id,
+                firstName: data['firstName'] || '',
+                lastName: data['lastName'] || '',
+                email: data['email'] || '',
+                phone: data['phone'] || '',
+                city: data['city'] || '',
+                state: data['state'] || '',
+                company: data['company'] || '',
+                role: data['role'] || '',
+                accountNumber: this.accountNumber,
+              };
+            }
 
             if (this.userData.email && this.userData.email !== user.email) {
               console.warn('NavbarComponent - Email mismatch!', {

@@ -11,7 +11,8 @@ import { filter, Subscription } from 'rxjs';
 import { LoanSuccessModalComponent } from '../components/loan-success-modal/loan-success-modal.component';
 import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
 import { UserRole } from '../role-selection-modal/role-selection-modal.component';
-import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
+import { LenderRegSuccessModalComponent } from '../modals/lender-reg-success-modal/lender-reg-success-modal.component';
+import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 
 @Injectable({
   providedIn: 'root',
@@ -31,6 +32,37 @@ export class ModalService implements OnDestroy {
         // Close any open modal when navigation starts
         this.closeModal();
       });
+  }
+
+  openUserRegSuccessModal(): void {
+    // Create the component
+    const componentRef = createComponent(UserRegSuccessModalComponent, {
+      environmentInjector: this.injector,
+    });
+
+    // Store reference to component
+    this.modalComponentRef = componentRef;
+
+    // Attach to the view
+    this.appRef.attachView(componentRef.hostView);
+
+    // Add to the DOM
+    const domElement = (componentRef.hostView as any).rootNodes[0];
+    document.body.appendChild(domElement);
+
+    // Call open() method on the instance
+    componentRef.instance.open();
+
+    // Listen for modal closed event
+    componentRef.instance.modalClosed.subscribe(() => {
+      this.closeModal();
+    });
+
+    // Auto-redirect to dashboard after 3 seconds
+    setTimeout(() => {
+      this.closeModal();
+      this.router.navigate(['/dashboard']);
+    }, 3000);
   }
 
   openLenderRegistrationSuccessModal(): void {

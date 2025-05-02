@@ -1,0 +1,42 @@
+<div class="container">
+    <h2 class="headline">Complete Your Registration</h2>
+    <div class="form-section">
+        <p>We've sent a verification code to your email. Please enter it below to complete your registration.</p>
+
+        <form [formGroup]="verificationForm" (ngSubmit)="onSubmit()" class="grid-form">
+            <div class="form-group">
+                <label for="code">Verification Code</label>
+                <input type="text" id="code" formControlName="code"
+                    [ngClass]="{'invalid': verificationForm.get('code')?.invalid && verificationForm.get('code')?.touched}" />
+                <div *ngIf="verificationForm.get('code')?.invalid && verificationForm.get('code')?.touched"
+                    class="error">
+                    <div *ngIf="verificationForm.get('code')?.errors?.['required']">
+                        *Verification code is required.
+                    </div>
+                    <div *ngIf="verificationForm.get('code')?.errors?.['pattern']">
+                        *Verification code must be 6 digits.
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-container full-width">
+                <button type="submit" [disabled]="verificationForm.invalid || isLoading">
+                    <span *ngIf="!isLoading">Verify & Continue</span>
+                    <span *ngIf="isLoading">Verifying...</span>
+                </button>
+            </div>
+        </form>
+
+        <div *ngIf="successMessage" class="success-message">
+            {{ successMessage }}
+        </div>
+
+        <div *ngIf="errorMessage" class="error-message">
+            {{ errorMessage }}
+        </div>
+
+        <div class="resend-link">
+            <p>Didn't receive the code? <a href="javascript:void(0)" (click)="resendCode()">Resend</a></p>
+        </div>
+    </div>
+</div>

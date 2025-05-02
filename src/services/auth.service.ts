@@ -132,6 +132,49 @@ export class AuthService implements OnDestroy {
   }
 
   /**
+   * Resolve any inconsistencies between localStorage and Firebase auth state
+   */
+  private resolveAuthInconsistency(): void {
+    if (this.isBrowser) {
+      console.log('AuthService: Checking for auth inconsistencies');
+      console.log(
+        'localStorage isLoggedIn:',
+        localStorage.getItem('isLoggedIn')
+      );
+      console.log('Current Firebase user:', this.auth.currentUser);
+
+      // If localStorage thinks we're logged in but Firebase doesn't have a current user
+      if (
+        localStorage.getItem('isLoggedIn') === 'true' &&
+        !this.auth.currentUser
+      ) {
+        console.log(
+          'Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not'
+        );
+        // Clear the localStorage flag
+        localStorage.removeItem('isLoggedIn');
+        // Update the login state
+        this.isLoggedInSubject.next(false);
+        this.userProfileSubject.next(null);
+        // Force a redirect to login
+        this.router.navigate(['/login']);
+      }
+    }
+  }
+
+  /**
+   * Force logout the user and clear all auth state
+   */
+  forceLogout(): void {
+    console.log('AuthService: Force logout called');
+    localStorage.removeItem('isLoggedIn');
+    sessionStorage.clear();
+    this.isLoggedInSubject.next(false);
+    this.userProfileSubject.next(null);
+    this.router.navigate(['/login']);
+  }
+
+  /**
    * Checks if the current URL is an email sign-in link
    */
   isEmailSignInLink(): Observable<boolean> {
@@ -183,6 +226,9 @@ export class AuthService implements OnDestroy {
    */
   private initializeAuthState(): void {
     console.log('AuthService: Initializing auth state');
+
+    // Check for inconsistencies first
+    this.resolveAuthInconsistency();
 
     // Set up Firebase auth state listener
     this.authStateSubscription = authState(this.auth).subscribe((user) => {
@@ -245,7 +291,15 @@ export class AuthService implements OnDestroy {
   getCurrentUser(): Observable<UserData | null> {
     return authState(this.auth).pipe(
       switchMap((firebaseUser) => {
-        if (!firebaseUser) return of(null);
+        if (!firebaseUser) {
+          // No Firebase user, but localStorage thinks we're logged in - clear it
+          if (localStorage.getItem('isLoggedIn') === 'true') {
+            console.log('Fixing inconsistent state in getCurrentUser');
+            localStorage.removeItem('isLoggedIn');
+            this.isLoggedInSubject.next(false);
+          }
+          return of(null);
+        }
 
         // First check the users collection (Originators)
         const userDocRef = doc(this.firestore, 'users', firebaseUser.uid);
@@ -280,6 +334,15 @@ export class AuthService implements OnDestroy {
                   };
                   return lender;
                 }
+
+                // No user document found in either collection
+                // This means authentication succeeded but we have no user document
+                console.error(
+                  'No user profile document found for authenticated user:',
+                  firebaseUser.uid
+                );
+                // Force logout if there's no profile document
+                this.forceLogout();
                 return null;
               })
             );
@@ -374,6 +437,14 @@ export class AuthService implements OnDestroy {
       } else {
         console.error('AuthService: No profile found for user:', uid);
         this.userProfileSubject.next(null);
+
+        // If we're logged in but have no profile, this is an inconsistent state
+        if (this.isLoggedInSubject.value) {
+          console.warn(
+            'AuthService: User is logged in but has no profile - forcing logout'
+          );
+          this.forceLogout();
+        }
       }
     });
   }
@@ -393,6 +464,10 @@ export class AuthService implements OnDestroy {
    */
   checkAuthAndRedirect(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
+
+    // First resolve any inconsistencies
+    this.resolveAuthInconsistency();
+
     return this.waitForAuthInit().pipe(
       switchMap(() => this.isLoggedIn$),
       take(1),
@@ -517,7 +592,31 @@ export class AuthService implements OnDestroy {
             `${collection}/${firebaseUser.uid}`,
             profileData
           )
-        ).pipe(map(() => firebaseUser));
+        ).pipe(
+          map(() => {
+            console.log(
+              `User profile document created in ${collection} collection with ID: ${firebaseUser.uid}`
+            );
+            return firebaseUser;
+          }),
+          catchError((error) => {
+            console.error(
+              `Error creating user profile document in ${collection} collection:`,
+              error
+            );
+            // If document creation fails, attempt to delete the Firebase Auth user
+            // to maintain consistency
+            if (firebaseUser) {
+              firebaseUser.delete().catch((deleteError) => {
+                console.error(
+                  'Failed to delete Firebase Auth user after document creation error:',
+                  deleteError
+                );
+              });
+            }
+            return throwError(() => error);
+          })
+        );
       }),
       catchError((err) => {
         console.error('Registration error:', err);
@@ -525,7 +624,6 @@ export class AuthService implements OnDestroy {
       })
     );
   }
-  // src/app/services/auth.service.ts (continued)
 
   /**
    * Update user role
@@ -593,6 +691,7 @@ export class AuthService implements OnDestroy {
       })
     );
   }
+
   /**
    * Update user profile
    */

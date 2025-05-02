@@ -4,6 +4,7 @@ import {
   NgZone,
   Injector,
   runInInjectionContext,
+  DestroyRef,
 } from '@angular/core';
 import {
   Firestore,
@@ -41,24 +42,53 @@ export class FirestoreService {
   private firestore = inject(Firestore);
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
+  private destroyRef = inject(DestroyRef);
 
   private lenderFiltersSubject = new BehaviorSubject<LenderFilter>({});
   private validatedEmails = new Set<string>();
   private existingEmails = new Set<string>();
 
-  saveFavoriteLoan(lenderUid: string, loan: any) {
-    // Use a consistent collection path that matches your dashboard component
-    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites');
+  /**
+   * Helper method to safely run Firebase operations within the injection context
+   * @param fn Function that returns an Observable
+   * @returns Observable from the function wrapped in proper injection context
+   */
+  private runSafely<T>(fn: () => Observable<T>): Observable<T> {
+    return this.ngZone.run(() => {
+      return runInInjectionContext(this.injector, () => {
+        return fn();
+      });
+    });
+  }
 
-    // Create a document with appropriate fields to match what your loadSavedLoans expects
-    return runInInjectionContext(this.injector, () =>
-      addDoc(savedLoansCollectionRef, {
-        loanId: loan.id,
-        loanData: loan,
-        userId: lenderUid,
-        savedAt: new Date(),
-      })
-    );
+  /**
+   * Helper method to safely run async Firebase operations within the injection context
+   * @param fn Function that returns a Promise
+   * @returns Promise from the function wrapped in proper injection context
+   */
+  private async runSafelyAsync<T>(fn: () => Promise<T>): Promise<T> {
+    return this.ngZone.run(() => {
+      return runInInjectionContext(this.injector, async () => {
+        return await fn();
+      });
+    });
+  }
+
+  saveFavoriteLoan(lenderUid: string, loan: any) {
+    return this.runSafely(() => {
+      const savedLoansCollectionRef = collection(
+        this.firestore,
+        'loanFavorites'
+      );
+      return from(
+        addDoc(savedLoansCollectionRef, {
+          loanId: loan.id,
+          loanData: loan,
+          userId: lenderUid,
+          savedAt: new Date(),
+        })
+      );
+    });
   }
 
   /**
@@ -161,7 +191,6 @@ export class FirestoreService {
    * @param loantype
    * @returns Observable of filtered lenders
    */
-
   filterLenders(
     lenderType: string = '',
     propertyCategory: string = '',
@@ -169,103 +198,113 @@ export class FirestoreService {
     loanAmount: string = '',
     loanType: string = ''
   ): Observable<any[]> {
-    console.log('Filtering lenders with criteria:', {
-      lenderType,
-      propertyCategory,
-      state,
-      loanAmount,
-    });
+    return this.runSafely(() => {
+      console.log('Filtering lenders with criteria:', {
+        lenderType,
+        propertyCategory,
+        state,
+        loanAmount,
+      });
 
-    const collectionRef = collection(this.firestore, 'lenders');
-    let q = query(collectionRef);
-    const queryConstraints: QueryConstraint[] = [];
+      const collectionRef = collection(this.firestore, 'lenders');
+      let q = query(collectionRef);
+      const queryConstraints: QueryConstraint[] = [];
 
-    // Add constraints for server-side filtering
-    // Use advanced Firestore query capabilities where possible
-    if (lenderType && lenderType.trim() !== '') {
-      // For lender type, we need to query for objects in array that match this value
-      queryConstraints.push(
-        where('productInfo.lenderTypes', 'array-contains', lenderType)
-      );
-    }
+      // Add constraints for server-side filtering
+      // Use advanced Firestore query capabilities where possible
+      if (lenderType && lenderType.trim() !== '') {
+        // For lender type, we need to query for objects in array that match this value
+        queryConstraints.push(
+          where('productInfo.lenderTypes', 'array-contains', lenderType)
+        );
+      }
 
-    // Apply any constraints to our query
-    if (queryConstraints.length > 0) {
-      q = query(q, ...queryConstraints);
-    }
+      // Apply any constraints to our query
+      if (queryConstraints.length > 0) {
+        q = query(q, ...queryConstraints);
+      }
 
-    // Execute the base query
-    return collectionData(q, { idField: 'id' }).pipe(
-      map((lenders) => {
-        console.log('Initial lenders found:', lenders.length);
+      // Execute the base query
+      return collectionData(q, { idField: 'id' }).pipe(
+        map((lenders) => {
+          console.log('Initial lenders found:', lenders.length);
 
-        // Apply client-side filtering for more complex criteria
-        return lenders.filter((lender) => {
-          // Log the structure for debugging
-          if (lenders.length > 0 && lender === lenders[0]) {
-            console.log(
-              'Sample lender structure:',
-              JSON.stringify(lender, null, 2)
-            );
-          }
+          // Apply client-side filtering for more complex criteria
+          return lenders.filter((lender) => {
+            // Log the structure for debugging
+            if (lenders.length > 0 && lender === lenders[0]) {
+              console.log(
+                'Sample lender structure:',
+                JSON.stringify(lender, null, 2)
+              );
+            }
 
-          // Filter by property category
-          if (propertyCategory && propertyCategory.trim() !== '') {
-            const categories = lender['productInfo'].propertyCategories || [];
-            const hasCategory = categories.includes(propertyCategory);
-            if (!hasCategory) return false;
-          }
+            // Filter by property category
+            if (propertyCategory && propertyCategory.trim() !== '') {
+              const categories = lender['productInfo'].propertyCategories || [];
+              const hasCategory = categories.includes(propertyCategory);
+              if (!hasCategory) return false;
+            }
 
-          // Filter by state
-          if (state && state.trim() !== '') {
-            // Check if state is in the states object
-            const states = lender['footprintInfo'].states || {};
-            const hasState = states[state] === true;
-            if (!hasState) return false;
-          }
+            // Filter by state
+            if (state && state.trim() !== '') {
+              // Check if state is in the states object
+              const states = lender['footprintInfo'].states || {};
+              const hasState = states[state] === true;
+              if (!hasState) return false;
+            }
 
-          // Filter by loan amount
-          if (loanAmount && loanAmount.trim() !== '') {
-            const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
-            if (!isNaN(amount) && amount > 0) {
-              const minAmount =
-                Number(lender['productInfo'].minLoanAmount) || 0;
-              const maxAmount =
-                Number(lender['productInfo'].maxLoanAmount) || 0;
+            // Filter by loan amount
+            if (loanAmount && loanAmount.trim() !== '') {
+              const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
+              if (!isNaN(amount) && amount > 0) {
+                const minAmount =
+                  Number(lender['productInfo'].minLoanAmount) || 0;
+                const maxAmount =
+                  Number(lender['productInfo'].maxLoanAmount) || 0;
 
-              // Check if amount is in range
-              if (amount < minAmount || (maxAmount > 0 && amount > maxAmount)) {
-                return false;
+                // Check if amount is in range
+                if (
+                  amount < minAmount ||
+                  (maxAmount > 0 && amount > maxAmount)
+                ) {
+                  return false;
+                }
               }
             }
-          }
 
-          return true;
-        });
-      }),
-      tap((filteredLenders) => {
-        console.log('Filtered lenders count:', filteredLenders.length);
-      })
-    );
+            return true;
+          });
+        }),
+        tap((filteredLenders) => {
+          console.log('Filtered lenders count:', filteredLenders.length);
+        })
+      );
+    });
   }
 
   /**
-   * Check if an email already exists in the users collection
+   * Check if a lender exists with the given email
+   * @param email Email to check
+   * @returns Observable boolean indicating lender existence
+   */
+  checkIfLenderExists(email: string): Observable<boolean> {
+    return this.runSafely(() => {
+      const lendersCollection = collection(this.firestore, 'lenders');
+      const q = query(
+        lendersCollection,
+        where('contactInfo.contactEmail', '==', email.toLowerCase())
+      );
+
+      return from(getDocs(q)).pipe(map((snapshot) => !snapshot.empty));
+    });
+  }
+
+  /**
+   * Check if an email already exists in users or lenders collections
    * @param email Email to check
    * @returns Observable boolean indicating email existence
    */
-  // Add this method to your FirestoreService for checking if a lender exists
-
-  checkIfLenderExists(email: string): Observable<boolean> {
-    const lendersCollection = collection(this.firestore, 'lenders');
-    const q = query(
-      lendersCollection,
-      where('contactInfo.contactEmail', '==', email.toLowerCase())
-    );
-
-    return from(getDocs(q)).pipe(map((snapshot) => !snapshot.empty));
-  }
-
   checkIfEmailExists(email: string): Observable<boolean> {
     // Normalize the email to lowercase for consistent checking
     const normalizedEmail = email.toLowerCase();
@@ -286,52 +325,53 @@ export class FirestoreService {
     }
 
     // Only perform the check if the email hasn't been validated either way
-    return this.ngZone.run(() => {
-      return runInInjectionContext(this.injector, () => {
-        console.log('Checking if email exists:', normalizedEmail);
-        const usersCollection = collection(this.firestore, 'users');
-        const lendersCollection = collection(this.firestore, 'lenders');
+    return this.runSafely(() => {
+      console.log('Checking if email exists:', normalizedEmail);
+      const usersCollection = collection(this.firestore, 'users');
+      const lendersCollection = collection(this.firestore, 'lenders');
 
-        const userQuery = query(
-          usersCollection,
-          where('email', '==', normalizedEmail)
-        );
+      const userQuery = query(
+        usersCollection,
+        where('email', '==', normalizedEmail)
+      );
 
-        const lenderQuery = query(
-          lendersCollection,
-          where('contactInfo.contactEmail', '==', normalizedEmail)
-        );
+      const lenderQuery = query(
+        lendersCollection,
+        where('contactInfo.contactEmail', '==', normalizedEmail)
+      );
 
-        return from(getDocs(userQuery)).pipe(
-          switchMap((userSnapshot) => {
-            if (!userSnapshot.empty) {
-              // Add to existing emails cache
-              this.existingEmails.add(normalizedEmail);
-              return of(true);
-            }
+      return from(getDocs(userQuery)).pipe(
+        switchMap((userSnapshot) => {
+          if (!userSnapshot.empty) {
+            // Add to existing emails cache
+            this.existingEmails.add(normalizedEmail);
+            return of(true);
+          }
 
-            return from(getDocs(lenderQuery)).pipe(
-              map((lenderSnapshot) => {
-                const exists = !lenderSnapshot.empty;
+          return from(getDocs(lenderQuery)).pipe(
+            map((lenderSnapshot) => {
+              const exists = !lenderSnapshot.empty;
 
-                // Update the appropriate cache based on result
-                if (exists) {
-                  this.existingEmails.add(normalizedEmail);
-                } else {
-                  this.validatedEmails.add(normalizedEmail);
-                }
+              // Update the appropriate cache based on result
+              if (exists) {
+                this.existingEmails.add(normalizedEmail);
+              } else {
+                this.validatedEmails.add(normalizedEmail);
+              }
 
-                return exists;
-              })
-            );
-          }),
-          // Add the share operator to ensure multiple subscriptions use the same result
-          share()
-        );
-      });
+              return exists;
+            })
+          );
+        }),
+        // Add the share operator to ensure multiple subscriptions use the same result
+        share()
+      );
     });
   }
 
+  /**
+   * Clear the email validation cache
+   */
   clearEmailCache(): void {
     this.validatedEmails.clear();
     this.existingEmails.clear();
@@ -346,14 +386,12 @@ export class FirestoreService {
   getCollection<T extends DocumentData>(
     path: string
   ): Observable<Array<T & { id: string }>> {
-    return this.ngZone.run(() => {
+    return this.runSafely(() => {
       console.log('Getting collection:', path);
-      return runInInjectionContext(this.injector, () => {
-        const collectionRef = collection(this.firestore, path);
-        return collectionData(collectionRef, { idField: 'id' }) as Observable<
-          Array<T & { id: string }>
-        >;
-      });
+      const collectionRef = collection(this.firestore, path);
+      return collectionData(collectionRef, { idField: 'id' }) as Observable<
+        Array<T & { id: string }>
+      >;
     });
   }
 
@@ -365,50 +403,56 @@ export class FirestoreService {
   getDocument<T extends DocumentData>(
     path: string
   ): Observable<(T & { id: string }) | null> {
-    return this.ngZone.run(() => {
+    return this.runSafely(() => {
       console.log('Getting document:', path);
-      return runInInjectionContext(this.injector, () => {
-        const docRef = doc(this.firestore, path);
-        return docData(docRef, { idField: 'id' }).pipe(
-          map((data) => (data ? (data as T & { id: string }) : null)),
-          catchError((error) => {
-            console.error('Error getting document:', error);
-            return of(null);
-          })
-        );
-      });
+      const docRef = doc(this.firestore, path);
+      return docData(docRef, { idField: 'id' }).pipe(
+        map((data) => (data ? (data as T & { id: string }) : null)),
+        catchError((error) => {
+          console.error('Error getting document:', error);
+          return of(null);
+        })
+      );
     });
   }
 
+  /**
+   * Toggle favorite status for a loan
+   * @param userUid User ID
+   * @param loan Loan object
+   * @param isFavorite Whether to mark as favorite or not
+   */
   async toggleFavoriteLoan(
     userUid: string,
     loan: Loan,
     isFavorite: boolean
   ): Promise<void> {
-    const favoritesRef = collection(this.firestore, 'loanFavorites');
+    return this.runSafelyAsync(async () => {
+      const favoritesRef = collection(this.firestore, 'loanFavorites');
 
-    const q = query(
-      favoritesRef,
-      where('loanId', '==', loan.id),
-      where('userId', '==', userUid)
-    );
+      const q = query(
+        favoritesRef,
+        where('loanId', '==', loan.id),
+        where('userId', '==', userUid)
+      );
 
-    const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q);
 
-    if (isFavorite) {
-      if (querySnapshot.empty) {
-        await addDoc(favoritesRef, {
-          loanId: loan.id,
-          userId: userUid,
-          loanData: loan,
-          createdAt: new Date(),
+      if (isFavorite) {
+        if (querySnapshot.empty) {
+          await addDoc(favoritesRef, {
+            loanId: loan.id,
+            userId: userUid,
+            loanData: loan,
+            createdAt: new Date(),
+          });
+        }
+      } else {
+        querySnapshot.forEach(async (document) => {
+          await deleteDoc(document.ref);
         });
       }
-    } else {
-      querySnapshot.forEach(async (document) => {
-        await deleteDoc(document.ref);
-      });
-    }
+    });
   }
 
   /**
@@ -419,121 +463,147 @@ export class FirestoreService {
   getDocumentWithLogging<T extends DocumentData>(
     path: string
   ): Observable<(T & { id: string }) | null> {
-    return this.ngZone.run(() => {
+    return this.runSafely(() => {
       console.log('Getting document with detailed logging:', path);
-      return runInInjectionContext(this.injector, () => {
-        const docRef = doc(this.firestore, path);
-        return docData(docRef, { idField: 'id' }).pipe(
-          tap((data) => console.log('Raw document data received:', data)),
-          map((data) => {
-            if (data) {
-              console.log('Document exists with data keys:', Object.keys(data));
-              return data as T & { id: string };
-            } else {
-              console.log('Document does not exist at path:', path);
-              return null;
-            }
-          }),
-          catchError((error) => {
-            console.error('Error getting document:', error);
-            console.error('Error details:', error.code, error.message);
-            return of(null);
-          })
-        );
-      });
+      const docRef = doc(this.firestore, path);
+      return docData(docRef, { idField: 'id' }).pipe(
+        tap((data) => console.log('Raw document data received:', data)),
+        map((data) => {
+          if (data) {
+            console.log('Document exists with data keys:', Object.keys(data));
+            return data as T & { id: string };
+          } else {
+            console.log('Document does not exist at path:', path);
+            return null;
+          }
+        }),
+        catchError((error) => {
+          console.error('Error getting document:', error);
+          console.error('Error details:', error.code, error.message);
+          return of(null);
+        })
+      );
     });
   }
 
-  // In your FirestoreService
+  /**
+   * Get saved loans for a user
+   * @param userId User ID
+   * @returns Observable of saved loans
+   */
   getSavedLoans(userId: string): Observable<any[]> {
-    return this.ngZone.run(() => {
+    return this.runSafely(() => {
       console.log('Getting saved loans with exact userId:', userId);
-      return runInInjectionContext(this.injector, () => {
-        // Try both collection names to see if either works
-        const loanFavoritesCollection = collection(
-          this.firestore,
-          'loanFavorites'
-        );
+      // Try both collection names to see if either works
+      const loanFavoritesCollection = collection(
+        this.firestore,
+        'loanFavorites'
+      );
 
-        // Log the exact query parameters
-        console.log(
-          'Query parameters: collection=loanFavorites, field=savedBy, value=',
-          userId
-        );
+      // Log the exact query parameters
+      console.log(
+        'Query parameters: collection=loanFavorites, field=userId, value=',
+        userId
+      );
 
-        const q = query(loanFavoritesCollection, where('userId', '==', userId));
+      const q = query(loanFavoritesCollection, where('userId', '==', userId));
 
-        return collectionData(q, { idField: 'id' }).pipe(
-          tap((data) =>
-            console.log('Raw result data from loanFavorites query:', data)
-          )
-        );
-      });
+      return collectionData(q, { idField: 'id' }).pipe(
+        tap((data) =>
+          console.log('Raw result data from loanFavorites query:', data)
+        )
+      );
     });
   }
 
-  saveOriginatorLenderFavorite(originatorId: string, lenderId: string) {
-    const originatorFavoritesRef = collection(
-      this.firestore,
-      'originatorLenderFavorites'
-    );
+  /**
+   * Save a favorite lender for an originator
+   * @param originatorId Originator ID
+   * @param lenderId Lender ID
+   * @returns Observable of document reference
+   */
+  saveOriginatorLenderFavorite(
+    originatorId: string,
+    lenderId: string
+  ): Observable<DocumentReference<DocumentData>> {
+    return this.runSafely(() => {
+      const originatorFavoritesRef = collection(
+        this.firestore,
+        'originatorLenderFavorites'
+      );
 
-    return runInInjectionContext(this.injector, () =>
-      addDoc(originatorFavoritesRef, {
-        originatorId: originatorId,
-        lenderId: lenderId,
-        createdAt: new Date(),
-      })
-    );
+      return from(
+        addDoc(originatorFavoritesRef, {
+          originatorId: originatorId,
+          lenderId: lenderId,
+          createdAt: new Date(),
+        })
+      );
+    });
   }
+
+  /**
+   * Remove a favorite lender for an originator
+   * @param originatorId Originator ID
+   * @param lenderId Lender ID
+   */
   async removeOriginatorLenderFavorite(
     originatorId: string,
     lenderId: string
   ): Promise<void> {
-    const originatorFavoritesRef = collection(
-      this.firestore,
-      'originatorLenderFavorites'
-    );
+    return this.runSafelyAsync(async () => {
+      const originatorFavoritesRef = collection(
+        this.firestore,
+        'originatorLenderFavorites'
+      );
 
-    const q = query(
-      originatorFavoritesRef,
-      where('originatorId', '==', originatorId),
-      where('lenderId', '==', lenderId)
-    );
+      const q = query(
+        originatorFavoritesRef,
+        where('originatorId', '==', originatorId),
+        where('lenderId', '==', lenderId)
+      );
 
-    const querySnapshot = await getDocs(q);
+      const querySnapshot = await getDocs(q);
 
-    querySnapshot.forEach(async (docSnap) => {
-      await deleteDoc(docSnap.ref);
+      for (const docSnap of querySnapshot.docs) {
+        await deleteDoc(docSnap.ref);
+      }
     });
-  }
-  getOriginatorLenderFavorites(originatorId: string): Observable<any[]> {
-    const originatorFavoritesRef = collection(
-      this.firestore,
-      'originatorLenderFavorites'
-    );
-
-    const q = query(
-      originatorFavoritesRef,
-      where('originatorId', '==', originatorId)
-    );
-
-    return collectionData(q, { idField: 'id' });
   }
 
   /**
-   * Wrapper method for safer document operations with comprehensive logging
-   * @param operation Operation to perform (add, set, update)
-   * @param path Firestore document or collection path
-   * @param data Document data
-   * @returns Observable or Promise of the operation
+   * Get favorite lenders for an originator
+   * @param originatorId Originator ID
+   * @returns Observable of favorite lenders
+   */
+  getOriginatorLenderFavorites(originatorId: string): Observable<any[]> {
+    return this.runSafely(() => {
+      const originatorFavoritesRef = collection(
+        this.firestore,
+        'originatorLenderFavorites'
+      );
+
+      const q = query(
+        originatorFavoritesRef,
+        where('originatorId', '==', originatorId)
+      );
+
+      return collectionData(q, { idField: 'id' });
+    });
+  }
+
+  /**
+   * Save a favorite lender for an originator
+   * @param originatorId Originator ID
+   * @param lenderId Lender ID
+   * @returns Observable of document reference
    */
   private safeDocumentOperation(
     operation: 'add' | 'set' | 'update',
     path: string,
     data: any
-  ): Observable<DocumentReference | void> {
-    return this.ngZone.run(() => {
+  ): Observable<DocumentReference<DocumentData> | void> {
+    return this.runSafely<DocumentReference<DocumentData> | void>(() => {
       // Sanitize the data
       const sanitizedData = this.sanitizeData(data);
 
@@ -549,63 +619,51 @@ export class FirestoreService {
         return throwError(() => new Error(`No valid data to ${operation}`));
       }
 
-      return runInInjectionContext(this.injector, () => {
-        try {
-          switch (operation) {
-            case 'add':
-              const collectionRef = collection(this.firestore, path);
-              const addOperation = addDoc(collectionRef, sanitizedData);
-              return from(addOperation).pipe(
-                tap(() => {
-                  console.log('Document added successfully');
-                  console.groupEnd();
-                }),
-                catchError((error) => {
-                  console.error('Add document error:', error);
-                  console.groupEnd();
-                  return throwError(() => error);
-                })
-              );
+      try {
+        switch (operation) {
+          case 'add':
+            const collectionRef = collection(this.firestore, path);
+            const addOperation = addDoc(collectionRef, sanitizedData);
+            return from(addOperation).pipe(
+              tap(() => {
+                console.log('Document added successfully');
+                console.groupEnd();
+              }),
+              catchError((error) => {
+                console.error('Add document error:', error);
+                console.groupEnd();
+                return throwError(() => error);
+              })
+            );
 
-            case 'set':
-              const docRef = doc(this.firestore, path);
-              const setOperation = setDoc(docRef, sanitizedData);
-              return from(setOperation).pipe(
-                tap(() => {
-                  console.log('Document set successfully');
-                  console.groupEnd();
-                }),
-                catchError((error) => {
-                  console.error('Set document error:', error);
-                  console.groupEnd();
-                  return throwError(() => error);
-                })
-              );
+          case 'set':
+          case 'update':
+            const docRef = doc(this.firestore, path);
+            const operation2 =
+              operation === 'set'
+                ? setDoc(docRef, sanitizedData)
+                : updateDoc(docRef, sanitizedData);
 
-            case 'update':
-              const updateDocRef = doc(this.firestore, path);
-              const updateOperation = updateDoc(updateDocRef, sanitizedData);
-              return from(updateOperation).pipe(
-                tap(() => {
-                  console.log('Document updated successfully');
-                  console.groupEnd();
-                }),
-                catchError((error) => {
-                  console.error('Update document error:', error);
-                  console.groupEnd();
-                  return throwError(() => error);
-                })
-              );
+            return from(operation2).pipe(
+              tap(() => {
+                console.log(`Document ${operation}d successfully`);
+                console.groupEnd();
+              }),
+              catchError((error) => {
+                console.error(`${operation} document error:`, error);
+                console.groupEnd();
+                return throwError(() => error);
+              })
+            );
 
-            default:
-              throw new Error('Invalid operation');
-          }
-        } catch (error) {
-          console.error('Firestore operation error:', error);
-          console.groupEnd();
-          return throwError(() => error);
+          default:
+            throw new Error('Invalid operation');
         }
-      });
+      } catch (error) {
+        console.error('Firestore operation error:', error);
+        console.groupEnd();
+        return throwError(() => error);
+      }
     });
   }
 
@@ -634,35 +692,35 @@ export class FirestoreService {
   }
 
   /**
-   * Update a document with enhanced safety
-   * @param path Document path
-   * @param data Partial update data
-   * @returns Observable of document update operation
+   * Test query for favorites collection
+   * @returns Observable of all favorites
    */
-
-  // Add this to your FirestoreService
   testFavoritesQuery(): Observable<any[]> {
-    return this.ngZone.run(() => {
+    return this.runSafely(() => {
       console.log('Running test query on Favorites collection');
-      return runInInjectionContext(this.injector, () => {
-        // Try querying the Favorites collection with no filters
-        const loanFavoritesCollection = collection(
-          this.firestore,
-          'loanFavorites'
-        );
+      const loanFavoritesCollection = collection(
+        this.firestore,
+        'loanFavorites'
+      );
 
-        // Just get all documents from the collection to verify it exists and has data
-        return collectionData(loanFavoritesCollection, { idField: 'id' }).pipe(
-          tap((data) => console.log('All Favorites collection data:', data))
-        );
-      });
+      // Just get all documents from the collection to verify it exists and has data
+      return collectionData(loanFavoritesCollection, { idField: 'id' }).pipe(
+        tap((data) => console.log('All Favorites collection data:', data))
+      );
     });
   }
 
-  // Add to firestore.service.ts if not already present
+  /**
+   * Update a document
+   * @param path Document path
+   * @param data Document data
+   * @returns Observable of update operation
+   */
   updateDocument(path: string, data: any): Observable<void> {
-    const docRef = doc(this.firestore, path);
-    return from(updateDoc(docRef, data));
+    return this.runSafely(() => {
+      const docRef = doc(this.firestore, path);
+      return from(updateDoc(docRef, data));
+    });
   }
 
   /**
@@ -670,13 +728,11 @@ export class FirestoreService {
    * @param path Document path
    * @returns Promise when document is deleted
    */
-  deleteDocument(path: string): Promise<void> {
-    return this.ngZone.run(() => {
+  async deleteDocument(path: string): Promise<void> {
+    return this.runSafelyAsync(async () => {
       console.log('Deleting document:', path);
-      return runInInjectionContext(this.injector, () => {
-        const docRef = doc(this.firestore, path);
-        return deleteDoc(docRef);
-      });
+      const docRef = doc(this.firestore, path);
+      return await deleteDoc(docRef);
     });
   }
 
@@ -690,22 +746,24 @@ export class FirestoreService {
     path: string,
     ...queryConstraints: QueryConstraint[]
   ): Observable<T[]> {
-    const collectionRef = collection(this.firestore, path);
-    const q = query(collectionRef, ...queryConstraints);
+    return this.runSafely(() => {
+      const collectionRef = collection(this.firestore, path);
+      const q = query(collectionRef, ...queryConstraints);
 
-    return from(getDocs(q)).pipe(
-      map((snapshot) => {
-        const results: T[] = [];
-        snapshot.forEach((doc) => {
-          results.push({ id: doc.id, ...doc.data() } as T);
-        });
-        return results;
-      }),
-      catchError((error) => {
-        console.error(`Error querying collection at ${path}:`, error);
-        return of([]);
-      })
-    );
+      return from(getDocs(q)).pipe(
+        map((snapshot) => {
+          const results: T[] = [];
+          snapshot.forEach((doc) => {
+            results.push({ id: doc.id, ...doc.data() } as T);
+          });
+          return results;
+        }),
+        catchError((error) => {
+          console.error(`Error querying collection at ${path}:`, error);
+          return of([]);
+        })
+      );
+    });
   }
 
   /**

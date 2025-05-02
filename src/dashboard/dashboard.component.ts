@@ -157,38 +157,41 @@ export class DashboardComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.authService.getCurrentUser().subscribe({
-      next: async (user) => {
-        if (!user) {
-          this.handleNoAuthenticatedUser();
-          return;
-        }
-
-        this.user = {
-          uid: user.uid || user.id,
-          email: user.email,
-          // Add other necessary FirebaseUser properties
-        } as FirebaseUser;
-
-        const userId = getUserId(user);
-        console.log('Logged in user ID:', userId);
-        if (userId) {
-          try {
-            await this.fetchUserProfile(this.user);
-          } catch (error: any) {
-            this.handleUserProfileError(error, userId);
+    this.authService
+      .getCurrentUser()
+      .pipe(takeUntilDestroyed(this.destroyRef)) // Add this line
+      .subscribe({
+        next: async (user) => {
+          if (!user) {
+            this.handleNoAuthenticatedUser();
+            return;
           }
-        } else {
-          console.error('No user ID available');
-          this.handleNoAuthenticatedUser();
-        }
-      },
-      error: (error: any) => {
-        console.error('Error getting current user:', error);
-        this.error = 'Authentication error';
-        this.loading = false;
-      },
-    });
+
+          this.user = {
+            uid: user.uid || user.id,
+            email: user.email,
+            // Add other necessary FirebaseUser properties
+          } as FirebaseUser;
+
+          const userId = getUserId(user);
+          console.log('Logged in user ID:', userId);
+          if (userId) {
+            try {
+              await this.fetchUserProfile(this.user);
+            } catch (error: any) {
+              this.handleUserProfileError(error, userId);
+            }
+          } else {
+            console.error('No user ID available');
+            this.handleNoAuthenticatedUser();
+          }
+        },
+        error: (error: any) => {
+          console.error('Error getting current user:', error);
+          this.error = 'Authentication error';
+          this.loading = false;
+        },
+      });
   }
 
   /**
@@ -238,6 +241,9 @@ export class DashboardComponent implements OnInit {
   /**
    * Handle existing user profile
    */
+  /**
+   * Handle existing user profile
+   */
   async handleExistingUserProfile(
     docSnap: any,
     fbUser: FirebaseUser
@@ -271,18 +277,29 @@ export class DashboardComponent implements OnInit {
 
     this.userRole = this.userData.role;
 
+    // Add safety check before loading additional data
+    if (!this.destroyRef) return;
+
     if (this.userRole === 'lender' && fbUser.uid) {
       await this.loadSavedLoans(fbUser.uid);
     }
+
+    // Add safety check before calling potentially problematic method
+    if (!this.destroyRef) return;
 
     if (this.userRole === 'originator' && fbUser.uid) {
       await this.loadSavedLenders(fbUser.uid);
     }
 
+    // Final safety check before updating UI state
+    if (!this.destroyRef) return;
+
     if (fbUser.uid) {
       await this.loadLoans(fbUser.uid);
     }
 
+    // Final UI update
+    if (!this.destroyRef) return;
     this.loading = false;
   }
 
@@ -318,9 +335,6 @@ export class DashboardComponent implements OnInit {
     this.loading = false;
   }
 
-  /**
-   * Create default user profile if none exists
-   */
   async createDefaultUserProfile(fbUser: FirebaseUser): Promise<void> {
     try {
       const defaultUserData: Partial<UserData> = {
@@ -397,7 +411,6 @@ export class DashboardComponent implements OnInit {
         },
       });
   }
-
   /**
    * Save a loan for a lender
    */
@@ -487,6 +500,9 @@ export class DashboardComponent implements OnInit {
     }
   }
 
+  /**
+   * Load saved lenders for originators
+   */
   async loadSavedLenders(originatorId: string): Promise<void> {
     console.log('Loading saved lenders for originator:', originatorId);
     this.savedLendersLoading.set(true);

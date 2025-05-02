@@ -9,8 +9,11 @@ import { PasswordAuthService } from '../services/password-auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, switchMap } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { VerificationCodeService } from '../services/verification-code.service';
+import { EmailService } from '../services/email.service';
+import { ModalService } from '../services/modal.service';
 
 export interface StateOption {
   value: string;
@@ -28,11 +31,15 @@ export interface UserTypeOption {
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.css'],
+  providers: [EmailService],
 })
 export class UserFormComponent implements OnInit {
   private fb = inject(FormBuilder);
   private passwordAuthService = inject(PasswordAuthService);
   private router = inject(Router);
+  private emailService = inject(EmailService);
+  private verificationService = inject(VerificationCodeService);
+  private modalService = inject(ModalService); // Inject ModalService
 
   userForm!: FormGroup;
   isLoading = false;
@@ -149,6 +156,7 @@ export class UserFormComponent implements OnInit {
       state: ['', [Validators.required]],
       tos: [false, [Validators.requiredTrue]],
     });
+
     console.log('Initial TOS control state:', {
       value: this.userForm.get('tos')?.value,
       status: this.userForm.get('tos')?.status,
@@ -185,24 +193,36 @@ export class UserFormComponent implements OnInit {
 
     const formData = this.userForm.value;
 
+    // For direct registration without email verification
     this.passwordAuthService
-      .registerUser(formData.email, 'defaultPassword', {
-        ...formData,
-        role: 'originator',
-      })
+      .registerUser(
+        formData.email,
+        'defaultPassword123', // You can generate a random password or use a default one
+        {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          company: formData.company,
+          userType: formData.userType,
+          phone: formData.phone,
+          city: formData.city,
+          state: formData.state,
+          role: 'originator',
+        }
+      )
       .pipe(
-        tap((user) => {
+        tap(() => {
           this.isLoading = false;
-          this.successMessage = 'Registration successful!';
-          // Navigate to dashboard after successful registration
-          this.router.navigate(['/dashboard']);
+
+          // Show success modal
+          this.modalService.openUserRegSuccessModal();
+
+          // Clear form
+          this.userForm.reset();
         }),
         catchError((error) => {
           this.isLoading = false;
-
           console.error('Registration error:', error);
 
-          // Specific Firebase error code handling
           if (error.code === 'auth/email-already-in-use') {
             this.errorMessage =
               'This email is already registered. Please use a different email or login with your existing account.';

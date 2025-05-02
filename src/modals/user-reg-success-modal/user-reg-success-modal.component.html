@@ -1,0 +1,13 @@
+<!-- src/app/components/user-reg-success-modal/user-reg-success-modal.component.html -->
+<div class="modal-overlay" [class.show]="isVisible">
+    <div class="modal-container">
+        <div class="modal-content">
+            <h2 class="modal-title">Registration Successful!</h2>
+            <h4>Your account has been created successfully.</h4>
+            <p>You will be redirected to your dashboard.</p>
+            <div class="modal-actions">
+                <button (click)="goToDashboard()" class="primary-button">Go to Dashboard Now</button>
+            </div>
+        </div>
+    </div>
+</div>
