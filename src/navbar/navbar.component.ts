@@ -162,7 +162,10 @@ export class NavbarComponent implements OnInit, OnDestroy {
                 phone: data['contactInfo']?.contactPhone || '',
                 city: data['contactInfo']?.city || '',
                 state: data['contactInfo']?.state || '',
-                company: data['contactInfo']?.company || '',
+                company:
+                  data['company'] ||
+                  (data['contactInfo'] && data['contactInfo.company']) ||
+                  '',
                 role: data['role'] || '',
                 accountNumber: this.accountNumber,
               };

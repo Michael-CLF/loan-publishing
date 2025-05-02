@@ -10,8 +10,9 @@
             </div>
 
             <div class="nav-menu">
-                <a *ngIf="isLoggedIn" routerLink="/lender-list" class="all-loans">Lenders</a>
-                <a *ngIf="isLoggedIn" routerLink="/loans" class="all-loans">Loans</a>
+                <a *ngIf="isLoggedIn && userRole === 'originator'" routerLink="/lender-list"
+                    class="all-loans">Lenders</a>
+                <a *ngIf="isLoggedIn && userRole === 'lender'" routerLink="/loans" class="all-loans">Loans</a>
             </div>
 
             <div *ngIf="!isLoggedIn" class="auth-links">

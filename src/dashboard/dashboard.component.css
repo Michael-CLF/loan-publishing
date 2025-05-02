@@ -238,13 +238,13 @@
 .browse-loans {
   color: #fff;
   background-color: #0a2463;
-  padding: 10px 12px 10px 12px;
+  padding: 10px 20px 10px 20px;
+  border-radius: 8px;
   text-decoration: none;
-  border-radius: 6px;
   font-family: "roboto", sans-serif;
-  font-size: 1.1rem;
+  font-size: 1.375rem;
 }
-&:hover {
+.browse-loans:hover {
   background-color: #008080;
 }
 /*--Saved--Lender--Table*/
@@ -278,6 +278,10 @@
 .lender-table th {
   padding: 12px 15px;
   border-bottom: 1px solid #e4e9f0;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+  color: #0a2463;
+  font-weight: 500;
 }
 
 /* Table rows */
@@ -298,7 +302,8 @@
 /* Table cells */
 .lender-table td {
   padding: 12px 15px;
-  color: #333;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
 }
 
 /* Actions cell */
@@ -306,6 +311,12 @@
   text-align: center;
   padding: 8px;
   cursor: default;
+}
+.lender-info {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
 }
 
 /* Responsive adjustments */

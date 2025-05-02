@@ -104,6 +104,12 @@ export class AuthService implements OnDestroy {
   private authStateSubscription: Subscription | null = null;
   private tokenRefreshSubscription: Subscription | null = null;
 
+  // Flag to track if auth initialization is in progress
+  private authInitInProgress = false;
+
+  // Longer timeout for auth initialization
+  private AUTH_INIT_TIMEOUT = 5000; // 5 seconds
+
   constructor() {
     // Default action code settings
     this.actionCodeSettings = {
@@ -113,6 +119,9 @@ export class AuthService implements OnDestroy {
 
     if (this.isBrowser) {
       console.log('AuthService: Initializing in browser environment');
+
+      // Check for persistent auth FIRST before initializing Firebase auth
+      this.checkPersistentAuth();
 
       // Update action code settings with current origin
       this.ngZone.run(() => {
@@ -128,6 +137,33 @@ export class AuthService implements OnDestroy {
       console.log(
         'AuthService: Running in server environment, skipping auth initialization'
       );
+    }
+  }
+
+  /**
+   * Check for persistent auth state in localStorage
+   * This helps prevent the login screen flash by assuming the user is logged in
+   * if localStorage has the flag set, while waiting for Firebase to confirm
+   */
+  private checkPersistentAuth(): void {
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      console.log('AuthService: Persistent auth detected in localStorage');
+
+      // Temporarily assume user is logged in to prevent login screen flash
+      this.isLoggedInSubject.next(true);
+      this.authInitInProgress = true;
+
+      // Set a timeout to revert if Firebase doesn't confirm within extended timeout
+      setTimeout(() => {
+        if (this.authInitInProgress && !this.auth.currentUser) {
+          console.log(
+            'AuthService: Auth timeout - Firebase did not confirm login state'
+          );
+          localStorage.removeItem('isLoggedIn');
+          this.isLoggedInSubject.next(false);
+          this.authInitInProgress = false;
+        }
+      }, this.AUTH_INIT_TIMEOUT);
     }
   }
 
@@ -233,6 +269,9 @@ export class AuthService implements OnDestroy {
     // Set up Firebase auth state listener
     this.authStateSubscription = authState(this.auth).subscribe((user) => {
       this.ngZone.run(() => {
+        // Auth initialization is complete
+        this.authInitInProgress = false;
+
         const wasLoggedIn = this.isLoggedInSubject.value;
         const isNowLoggedIn = !!user;
 
@@ -289,11 +328,19 @@ export class AuthService implements OnDestroy {
    * Get current user info across all collections
    */
   getCurrentUser(): Observable<UserData | null> {
+    // If we already have the user profile in the subject, return that first
+    if (this.userProfileSubject.value) {
+      return of(this.userProfileSubject.value);
+    }
+
     return authState(this.auth).pipe(
       switchMap((firebaseUser) => {
         if (!firebaseUser) {
           // No Firebase user, but localStorage thinks we're logged in - clear it
-          if (localStorage.getItem('isLoggedIn') === 'true') {
+          if (
+            localStorage.getItem('isLoggedIn') === 'true' &&
+            !this.authInitInProgress
+          ) {
             console.log('Fixing inconsistent state in getCurrentUser');
             localStorage.removeItem('isLoggedIn');
             this.isLoggedInSubject.next(false);
@@ -313,6 +360,9 @@ export class AuthService implements OnDestroy {
                 role: 'originator',
                 ...userData,
               };
+
+              // Update the subject
+              this.userProfileSubject.next(user);
               return of(user);
             }
 
@@ -332,6 +382,9 @@ export class AuthService implements OnDestroy {
                     role: 'lender',
                     ...lenderData,
                   };
+
+                  // Update the subject
+                  this.userProfileSubject.next(lender);
                   return lender;
                 }
 
@@ -341,8 +394,12 @@ export class AuthService implements OnDestroy {
                   'No user profile document found for authenticated user:',
                   firebaseUser.uid
                 );
-                // Force logout if there's no profile document
-                this.forceLogout();
+
+                // Don't force logout during auth initialization
+                if (!this.authInitInProgress) {
+                  // Force logout if there's no profile document
+                  this.forceLogout();
+                }
                 return null;
               })
             );
@@ -356,7 +413,13 @@ export class AuthService implements OnDestroy {
    * Get current user profile from subject
    */
   getCurrentUserProfile(): Observable<UserData | null> {
-    return this.userProfile$;
+    // If we have a value in the subject, return it immediately
+    if (this.userProfileSubject.value) {
+      return of(this.userProfileSubject.value);
+    }
+
+    // Otherwise, get the current user which will populate the subject
+    return this.getCurrentUser();
   }
 
   /**
@@ -439,7 +502,8 @@ export class AuthService implements OnDestroy {
         this.userProfileSubject.next(null);
 
         // If we're logged in but have no profile, this is an inconsistent state
-        if (this.isLoggedInSubject.value) {
+        // Don't force logout during auth initialization
+        if (this.isLoggedInSubject.value && !this.authInitInProgress) {
           console.warn(
             'AuthService: User is logged in but has no profile - forcing logout'
           );
@@ -453,6 +517,12 @@ export class AuthService implements OnDestroy {
    * Wait for auth initialization to complete
    */
   waitForAuthInit(): Observable<boolean> {
+    // If authReady is already true, return immediately
+    if (this.authReadySubject.value) {
+      return of(true);
+    }
+
+    // Otherwise, wait for auth to be ready
     return this.authReady$.pipe(
       filter((ready) => ready),
       first()
@@ -465,7 +535,13 @@ export class AuthService implements OnDestroy {
   checkAuthAndRedirect(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
 
-    // First resolve any inconsistencies
+    // Check localStorage first for a quick decision
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      // Trust localStorage initially
+      return of(true);
+    }
+
+    // Then resolve any inconsistencies and wait for full auth
     this.resolveAuthInconsistency();
 
     return this.waitForAuthInit().pipe(
@@ -567,45 +643,87 @@ export class AuthService implements OnDestroy {
   registerUser(
     email: string,
     password: string,
-    userData: Partial<UserData>
-  ): Observable<FirebaseUser> {
-    // Determine role, default to originator if not specified
-    const role = userData.role || 'originator';
-    const collection = role === 'lender' ? 'lenders' : 'users';
+    additionalData: any = {}
+  ): Observable<any> {
+    // Always use lowercase email for consistency
+    const normalizedEmail = email.toLowerCase();
+    const role = additionalData.role || 'originator';
+
+    // Log the registration attempt
+    console.log(
+      'Registering user with email:',
+      normalizedEmail,
+      'and role:',
+      role
+    );
 
     return from(
-      createUserWithEmailAndPassword(this.auth, email, password)
+      createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
     ).pipe(
       switchMap((cred) => {
         const firebaseUser = cred.user;
-        const profileData = {
+
+        // Create base user data for users collection
+        const userData = {
           uid: firebaseUser.uid,
           id: firebaseUser.uid,
-          email,
-          ...userData,
-          role, // Ensure role is set
+          email: normalizedEmail,
+          firstName: additionalData.firstName || '',
+          lastName: additionalData.lastName || '',
+          company: additionalData.company || '',
+          phone: additionalData.phone || '',
+          city: additionalData.city || '',
+          state: additionalData.state || '',
+          role: role,
           createdAt: new Date(),
+          updatedAt: new Date(),
         };
 
+        // First save to the users collection (for all user types)
         return from(
           this.firestoreService.setDocument(
-            `${collection}/${firebaseUser.uid}`,
-            profileData
+            `users/${firebaseUser.uid}`,
+            userData
           )
         ).pipe(
-          map(() => {
-            console.log(
-              `User profile document created in ${collection} collection with ID: ${firebaseUser.uid}`
+          switchMap(() => {
+            console.log('User document created in users collection');
+
+            // Now create a standardized contact structure in the role-specific collection
+            const contactData = {
+              userId: firebaseUser.uid,
+              contactInfo: {
+                firstName: additionalData.firstName || '',
+                lastName: additionalData.lastName || '',
+                contactEmail: normalizedEmail, // Store email in contactEmail field
+                contactPhone: additionalData.phone || '',
+                company: additionalData.company || '',
+                city: additionalData.city || '',
+                state: additionalData.state || '',
+              },
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              role: role,
+            };
+
+            // Determine the collection based on role
+            const collection = role === 'lender' ? 'lenders' : 'originators';
+
+            // Create document in role-specific collection with standardized structure
+            return from(
+              this.firestoreService.setDocument(
+                `${collection}/${firebaseUser.uid}`,
+                contactData
+              )
             );
+          }),
+          map(() => {
+            console.log('User registration completed successfully');
             return firebaseUser;
           }),
           catchError((error) => {
-            console.error(
-              `Error creating user profile document in ${collection} collection:`,
-              error
-            );
+            console.error('Error creating user documents:', error);
             // If document creation fails, attempt to delete the Firebase Auth user
-            // to maintain consistency
             if (firebaseUser) {
               firebaseUser.delete().catch((deleteError) => {
                 console.error(

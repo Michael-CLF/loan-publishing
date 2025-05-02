@@ -190,3 +190,10 @@
 .selected {
   color: yellow; /* Or whatever color you want when selected */
 }
+
+.no-loan {
+  color: #c00000;
+  font-family: "roboto" sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+}

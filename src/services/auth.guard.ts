@@ -1,74 +1,71 @@
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import {
-  AbstractControl,
-  AsyncValidator,
-  ValidationErrors,
-} from '@angular/forms';
-import {
-  Observable,
-  of,
-  map,
-  catchError,
-  debounceTime,
-  switchMap,
-  take,
-} from 'rxjs';
-import { FirestoreService } from './firestore.service';
-import { where } from '@angular/fire/firestore';
-import { inject } from '@angular/core';
-import { Router } from '@angular/router';
+  CanActivate,
+  ActivatedRouteSnapshot,
+  RouterStateSnapshot,
+  Router,
+} from '@angular/router';
+import { Observable } from 'rxjs';
+import { filter, map, take, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
-import { Auth, authState } from '@angular/fire/auth';
 
 @Injectable({
   providedIn: 'root',
 })
-export class EmailExistsValidator implements AsyncValidator {
-  constructor(private firestoreService: FirestoreService) {}
+export class AuthGuard implements CanActivate {
+  private router = inject(Router);
+  private authService = inject(AuthService);
 
-  validate(control: AbstractControl): Observable<ValidationErrors | null> {
-    return this.checkEmailExists(control.value);
-  }
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ): Observable<boolean> {
+    // Store the attempted URL for redirecting
+    localStorage.setItem('redirectUrl', state.url);
 
-  private checkEmailExists(email: string): Observable<ValidationErrors | null> {
-    if (!email) {
-      return of(null);
+    // First check if user is already on the dashboard
+    if (state.url === '/dashboard') {
+      // Get the current URL from the router
+      const currentUrl = this.router.url;
+
+      // If we're already on the dashboard, don't trigger auth checks
+      // This helps prevent the login flash when refreshing the dashboard
+      if (currentUrl === '/dashboard') {
+        // Skip the full auth check, assume valid (the full check will happen in app.component)
+        return this.authService.isLoggedIn$.pipe(
+          take(1),
+          map((isLoggedIn) => {
+            // Only redirect if we're sure the user is not logged in
+            if (!isLoggedIn) {
+              // Double check localStorage as a backup
+              if (localStorage.getItem('isLoggedIn') !== 'true') {
+                this.router.navigate(['/login']);
+                return false;
+              }
+            }
+            return true;
+          })
+        );
+      }
     }
 
-    return of(email).pipe(
-      debounceTime(500),
-      switchMap((emailToCheck) => {
-        // First check the lenders collection
-        return this.firestoreService
-          .queryCollection(
-            'lenders',
-            where('contactInfo.contactEmail', '==', emailToCheck.toLowerCase())
-          )
-          .pipe(
-            map((results) => results.length > 0),
-            catchError(() => of(false))
-          );
-      }),
-      map((exists) => (exists ? { emailExists: true } : null)),
-      catchError(() => of(null))
+    // Normal auth check for all other routes
+    return this.authService.authReady$.pipe(
+      // Wait for auth to be ready
+      filter((ready) => ready),
+      take(1),
+      // Then check if user is logged in
+      switchMap(() => this.authService.isLoggedIn$),
+      take(1),
+      map((isLoggedIn) => {
+        if (isLoggedIn) {
+          return true;
+        }
+
+        // If user is not logged in, redirect to login
+        this.router.navigate(['/login']);
+        return false;
+      })
     );
   }
 }
-
-// Modern functional route guard for Angular 18
-export const AuthGuard = () => {
-  const router = inject(Router);
-  const authService = inject(AuthService);
-
-  return authService.isLoggedIn$.pipe(
-    take(1),
-    map((isLoggedIn) => {
-      if (isLoggedIn) {
-        return true;
-      }
-
-      // Redirect to login page if not authenticated
-      return router.createUrlTree(['/login']);
-    })
-  );
-};

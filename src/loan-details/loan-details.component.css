@@ -146,8 +146,11 @@
 }
 
 .description {
-  line-height: 1.6;
-  color: #333;
+  font-size: 1rem;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  font-size: 1.1rem;
+  font-weight: 400;
 }
 
 .empty-state {

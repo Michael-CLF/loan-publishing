@@ -1,4 +1,3 @@
-// src/app/services/favorites.service.ts
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
@@ -35,6 +34,9 @@ export interface LenderFavorite {
 export class FavoritesService {
   private favoritesSubject = new BehaviorSubject<string[]>([]);
   public favorites$ = this.favoritesSubject.asObservable();
+
+  // Track lender IDs that are currently being processed to prevent duplicates
+  private processingLenderIds = new Set<string>();
 
   // Add BehaviorSubject for modal visibility
   private showModalSubject = new BehaviorSubject<boolean>(false);
@@ -93,40 +95,58 @@ export class FavoritesService {
   }
 
   async toggleFavorite(lenderId: string): Promise<void> {
-    const user = await firstValueFrom(this.authService.getCurrentUser());
-
-    if (!user || !user.uid) {
-      console.error('User must be logged in to manage favorites');
+    // Check if this lender ID is already being processed
+    if (this.processingLenderIds.has(lenderId)) {
+      console.log(
+        `Lender ${lenderId} is already being processed. Skipping duplicate operation.`
+      );
       return;
     }
 
-    const userId = user.uid;
-    const isFavorited = await this.checkFavoriteInFirestore(userId, lenderId);
+    // Mark as being processed
+    this.processingLenderIds.add(lenderId);
 
-    if (isFavorited.exists) {
-      // Remove from favorites
-      await deleteDoc(
-        doc(this.firestore, `originatorLenderFavorites/${isFavorited.id}`)
-      );
-    } else {
-      // Add to favorites
-      await addDoc(this.favoritesCollection, {
-        originatorId: userId,
-        lenderId: lenderId,
-        createdAt: new Date(),
-      });
+    try {
+      const user = await firstValueFrom(this.authService.getCurrentUser());
 
-      // Show success modal
-      this.showModalSubject.next(true);
+      if (!user || !user.uid) {
+        console.error('User must be logged in to manage favorites');
+        return;
+      }
 
-      // Auto-hide after 3 seconds
-      setTimeout(() => {
-        this.showModalSubject.next(false);
-      }, 3000);
+      const userId = user.uid;
+      const isFavorited = await this.checkFavoriteInFirestore(userId, lenderId);
+
+      if (isFavorited.exists) {
+        // Remove from favorites
+        await deleteDoc(
+          doc(this.firestore, `originatorLenderFavorites/${isFavorited.id}`)
+        );
+      } else {
+        // Add to favorites
+        await addDoc(this.favoritesCollection, {
+          originatorId: userId,
+          lenderId: lenderId,
+          createdAt: new Date(),
+        });
+
+        // Show success modal
+        this.showModalSubject.next(true);
+
+        // Auto-hide after 3 seconds
+        setTimeout(() => {
+          this.showModalSubject.next(false);
+        }, 3000);
+      }
+
+      // Reload favorites to update the subject
+      this.loadFavoritesFromFirestore();
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+    } finally {
+      // Remove from processing set when done
+      this.processingLenderIds.delete(lenderId);
     }
-
-    // Reload favorites to update the subject
-    this.loadFavoritesFromFirestore();
   }
 
   async isFavorite(lenderId: string): Promise<boolean> {

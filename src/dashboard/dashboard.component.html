@@ -145,10 +145,10 @@
                 <tbody>
                     <tr *ngFor="let lender of savedLendersWithDetails()" class="lender-row"
                         (click)="viewLenderDetails(lender.lenderId)">
-                        <td>{{ lender.lenderData?.contactInfo?.company || 'Unknown Company' }}</td>
-                        <td>{{ getLenderContactName(lender) }}</td>
-                        <td>{{ getLenderTypes(lender) }}</td>
-                        <td>{{ getLenderLoanRange(lender) }}</td>
+                        <td class="lender-info">{{ lender.lenderData?.contactInfo?.company || 'Unknown Company' }}</td>
+                        <td class="lender-info">{{ getLenderContactName(lender) }}</td>
+                        <td class="lender-info">{{ getLenderTypes(lender) }}</td>
+                        <td class="lender-info">{{ getLenderLoanRange(lender) }}</td>
                         <td class="actions-cell" (click)="$event.stopPropagation()">
                             <button class="action-btn view-btn"
                                 (click)="viewLenderDetails(lender.lenderId)">View</button>

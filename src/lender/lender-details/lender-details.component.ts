@@ -1,10 +1,5 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  inject,
-  DestroyRef,
-} from '@angular/core';
+// lender-details.component.ts - Add missing methods
+import { Component, OnInit, OnDestroy, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Lender, LenderService } from '../../services/lender.service';
@@ -14,7 +9,6 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
 import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 @Component({
   selector: 'app-lender-details',
@@ -38,7 +32,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private favoritesService = inject(FavoritesService);
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
-  private destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe((user) => {
@@ -67,7 +60,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 
     // Subscribe to modal visibility
     this.favoritesService.showModal$
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(takeUntil(this.destroy$))
       .subscribe((showModal) => {
         this.showModal = showModal;
       });
@@ -107,6 +100,26 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
+  // Add missing goBack method
+  goBack(): void {
+    this.router.navigate(['/lender-list']);
+  }
+
+  // Add missing getCategoryStyle method
+  getCategoryStyle(category: string): { [key: string]: string } {
+    return {
+      'background-color': this.getCategoryColor(category),
+      color: '#fff',
+      padding: '8px',
+      'border-radius': '4px',
+    };
+  }
+
+  // Add get color function needed by getCategoryStyle
+  getCategoryColor(category: string): string {
+    return propertyColorMap[category] || '#808080'; // fallback to gray
+  }
+
   checkFavoriteStatus(lenderId: string): void {
     // Skip if not authenticated or not an originator
     if (!this.isAuthenticated || this.userRole !== 'originator') {
@@ -127,6 +140,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   async toggleFavorite(): Promise<void> {
+    // Check if lender and lender id are available
     if (!this.lender?.id) {
       console.warn('Lender ID is not available.');
       return;
@@ -144,36 +158,45 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     }
 
     try {
-      // Toggle in Firestore (the UI update will happen via the observable)
-      await this.favoritesService.toggleFavorite(this.lender.id);
+      // Store the lender ID in a local variable to ensure it's not null in the closure
+      const lenderId = this.lender.id;
 
-      // Update the local state
-      this.isFavorited = await this.favoritesService.isFavorite(this.lender.id);
+      // Disable button during operation to prevent multiple clicks
+      const savedBtn = document.querySelector(
+        '.favorite-button'
+      ) as HTMLButtonElement;
+      if (savedBtn) {
+        savedBtn.disabled = true;
+      }
+
+      // Toggle in Firestore using the stored lender ID
+      await this.favoritesService.toggleFavorite(lenderId);
+
+      // Wait a moment for the operation to be processed
+      setTimeout(async () => {
+        // Update the local state based on the current state in Firestore
+        this.isFavorited = await this.favoritesService.isFavorite(lenderId);
+
+        // Re-enable button
+        if (savedBtn) {
+          savedBtn.disabled = false;
+        }
+      }, 500);
     } catch (error) {
       console.error('Error toggling favorite:', error);
       alert('There was an error updating your favorites. Please try again.');
+
+      // Re-enable button on error
+      const savedBtn = document.querySelector(
+        '.favorite-button'
+      ) as HTMLButtonElement;
+      if (savedBtn) {
+        savedBtn.disabled = false;
+      }
     }
   }
 
-  goBack(): void {
-    this.router.navigate(['/lender-list']);
-  }
-
-  // Color mapping for category headers
-  getCategoryColor(category: string): string {
-    return propertyColorMap[category] || '#808080'; // fallback to gray
-  }
-
-  getCategoryStyle(category: string): { [key: string]: string } {
-    return {
-      'background-color': this.getCategoryColor(category),
-      color: '#fff',
-      padding: '8px',
-      'border-radius': '4px',
-    };
-  }
-
-  // Contact Info
+  // Keep all the existing methods...
   getContactName(): string {
     const firstName = this.lender?.contactInfo?.firstName || '';
     const lastName = this.lender?.contactInfo?.lastName || '';

@@ -1,9 +1,8 @@
-// src/app/dashboard/dashboard.component.ts
-import { Component, OnInit, inject, DestroyRef, signal } from '@angular/core';
+// Import what we need
+import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import {
   Firestore,
@@ -21,7 +20,7 @@ import {
 import { AuthService } from '../services/auth.service';
 import { FirestoreService } from '../services/firestore.service';
 import { LenderService } from '../services/lender.service';
-import { RouterLink } from '@angular/router';
+import { LoanService } from '../services/loan.service';
 
 // Constants
 import { LOAN_TYPES } from '../shared/loan-constants';
@@ -29,7 +28,6 @@ import { LOAN_TYPES } from '../shared/loan-constants';
 // Models
 import { Loan as LoanModel } from '../models/loan-model.model';
 import { SavedLoan } from '../models/saved-loan.model';
-import { LoanService } from '../services/loan.service';
 import { Loan } from '../models/loan-model.model';
 import { getUserId } from '../utils/user-helpers';
 import {
@@ -55,7 +53,6 @@ export class DashboardComponent implements OnInit {
   private readonly firestore = inject(Firestore);
   private readonly firestoreService = inject(FirestoreService);
   private readonly lenderService = inject(LenderService);
-  private readonly destroyRef = inject(DestroyRef);
   private readonly loanService = inject(LoanService);
 
   // State properties
@@ -83,6 +80,7 @@ export class DashboardComponent implements OnInit {
   savedLenders = signal<any[]>([]);
   savedLendersLoading = signal(true);
   savedLendersError = signal<string | null>(null);
+  savedLendersWithDetails = signal<any[]>([]);
 
   // Property colors for visualization
   propertyColorMap: Record<string, string> = {
@@ -113,18 +111,16 @@ export class DashboardComponent implements OnInit {
    * Subscribe to authentication state changes
    */
   private subscribeToAuthState(): void {
-    this.authService.isLoggedIn$
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((loggedIn) => {
-        console.log('DashboardComponent - Auth state changed:', loggedIn);
-        this.isLoggedIn = loggedIn;
+    this.authService.isLoggedIn$.subscribe((loggedIn) => {
+      console.log('DashboardComponent - Auth state changed:', loggedIn);
+      this.isLoggedIn = loggedIn;
 
-        if (loggedIn) {
-          this.loadUserData();
-        } else {
-          this.handleLoggedOut();
-        }
-      });
+      if (loggedIn) {
+        this.loadUserData();
+      } else {
+        this.handleLoggedOut();
+      }
+    });
   }
 
   /**
@@ -157,41 +153,38 @@ export class DashboardComponent implements OnInit {
     this.loading = true;
     this.error = null;
 
-    this.authService
-      .getCurrentUser()
-      .pipe(takeUntilDestroyed(this.destroyRef)) // Add this line
-      .subscribe({
-        next: async (user) => {
-          if (!user) {
-            this.handleNoAuthenticatedUser();
-            return;
-          }
+    this.authService.getCurrentUser().subscribe({
+      next: async (user) => {
+        if (!user) {
+          this.handleNoAuthenticatedUser();
+          return;
+        }
 
-          this.user = {
-            uid: user.uid || user.id,
-            email: user.email,
-            // Add other necessary FirebaseUser properties
-          } as FirebaseUser;
+        this.user = {
+          uid: user.uid || user.id,
+          email: user.email,
+          // Add other necessary FirebaseUser properties
+        } as FirebaseUser;
 
-          const userId = getUserId(user);
-          console.log('Logged in user ID:', userId);
-          if (userId) {
-            try {
-              await this.fetchUserProfile(this.user);
-            } catch (error: any) {
-              this.handleUserProfileError(error, userId);
-            }
-          } else {
-            console.error('No user ID available');
-            this.handleNoAuthenticatedUser();
+        const userId = getUserId(user);
+        console.log('Logged in user ID:', userId);
+        if (userId) {
+          try {
+            await this.fetchUserProfile(this.user);
+          } catch (error: any) {
+            this.handleUserProfileError(error, userId);
           }
-        },
-        error: (error: any) => {
-          console.error('Error getting current user:', error);
-          this.error = 'Authentication error';
-          this.loading = false;
-        },
-      });
+        } else {
+          console.error('No user ID available');
+          this.handleNoAuthenticatedUser();
+        }
+      },
+      error: (error: any) => {
+        console.error('Error getting current user:', error);
+        this.error = 'Authentication error';
+        this.loading = false;
+      },
+    });
   }
 
   /**
@@ -241,9 +234,6 @@ export class DashboardComponent implements OnInit {
   /**
    * Handle existing user profile
    */
-  /**
-   * Handle existing user profile
-   */
   async handleExistingUserProfile(
     docSnap: any,
     fbUser: FirebaseUser
@@ -256,7 +246,8 @@ export class DashboardComponent implements OnInit {
       // It's a lender
       this.userData = {
         id: docSnap.id,
-        company: data.contactInfo?.company || '',
+        company:
+          data.company || (data.contactInfo && data.contactInfo.company) || '',
         firstName: data.contactInfo?.firstName || '',
         lastName: data.contactInfo?.lastName || '',
         phone: data.contactInfo?.contactPhone || '',
@@ -266,9 +257,11 @@ export class DashboardComponent implements OnInit {
         role: 'lender',
       };
     } else if (data.role === 'originator') {
-      // It's an originator
+      // It's an originator - check both possible locations for company
       this.userData = {
         id: docSnap.id,
+        company:
+          data.company || (data.contactInfo && data.contactInfo.company) || '',
         ...data,
       } as UserData;
     } else {
@@ -277,32 +270,22 @@ export class DashboardComponent implements OnInit {
 
     this.userRole = this.userData.role;
 
-    // Add safety check before loading additional data
-    if (!this.destroyRef) return;
-
+    // Rest of the method remains unchanged
     if (this.userRole === 'lender' && fbUser.uid) {
       await this.loadSavedLoans(fbUser.uid);
     }
 
-    // Add safety check before calling potentially problematic method
-    if (!this.destroyRef) return;
-
     if (this.userRole === 'originator' && fbUser.uid) {
       await this.loadSavedLenders(fbUser.uid);
     }
-
-    // Final safety check before updating UI state
-    if (!this.destroyRef) return;
 
     if (fbUser.uid) {
       await this.loadLoans(fbUser.uid);
     }
 
     // Final UI update
-    if (!this.destroyRef) return;
     this.loading = false;
   }
-
   /**
    * Handle missing user profile
    */
@@ -388,29 +371,27 @@ export class DashboardComponent implements OnInit {
     this.savedLoansLoading.set(true);
     this.savedLoansError.set(null);
 
-    this.firestoreService
-      .getSavedLoans(userId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (userSavedLoans) => {
-          console.log(
-            `Found ${userSavedLoans.length} saved loans for user ${userId}`
-          );
-          this.savedLoans.set(userSavedLoans);
-          this.savedLoansLoading.set(false);
-        },
-        error: (error: any) => {
-          // In your loadSavedLoans method
-          console.log('Loading saved loans for user ID:', userId);
-          // Compare this printed ID with what you see in your Firestore console
-          console.error('Error loading saved loans:', error);
-          this.savedLoansError.set(
-            'Failed to load your saved loans. Please try again.'
-          );
-          this.savedLoansLoading.set(false);
-        },
-      });
+    this.firestoreService.getSavedLoans(userId).subscribe({
+      next: (userSavedLoans) => {
+        console.log(
+          `Found ${userSavedLoans.length} saved loans for user ${userId}`
+        );
+        this.savedLoans.set(userSavedLoans);
+        this.savedLoansLoading.set(false);
+      },
+      error: (error: any) => {
+        // In your loadSavedLoans method
+        console.log('Loading saved loans for user ID:', userId);
+        // Compare this printed ID with what you see in your Firestore console
+        console.error('Error loading saved loans:', error);
+        this.savedLoansError.set(
+          'Failed to load your saved loans. Please try again.'
+        );
+        this.savedLoansLoading.set(false);
+      },
+    });
   }
+
   /**
    * Save a loan for a lender
    */
@@ -508,29 +489,26 @@ export class DashboardComponent implements OnInit {
     this.savedLendersLoading.set(true);
     this.savedLendersError.set(null);
 
-    this.firestoreService
-      .getOriginatorLenderFavorites(originatorId)
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (favorites) => {
-          console.log(
-            `Found ${favorites.length} saved lenders for originator ${originatorId}`
-          );
-          this.savedLenders.set(favorites);
+    this.firestoreService.getOriginatorLenderFavorites(originatorId).subscribe({
+      next: (favorites) => {
+        console.log(
+          `Found ${favorites.length} saved lenders for originator ${originatorId}`
+        );
+        this.savedLenders.set(favorites);
 
-          // Load the full lender details for each favorite
-          this.loadLenderDetailsForFavorites(favorites);
-        },
-        error: (error: any) => {
-          console.error('Error loading saved lenders:', error);
-          this.savedLendersError.set(
-            'Failed to load your saved lenders. Please try again.'
-          );
-          this.savedLendersLoading.set(false);
-        },
-      });
+        // Load the full lender details for each favorite
+        this.loadLenderDetailsForFavorites(favorites);
+      },
+      error: (error: any) => {
+        console.error('Error loading saved lenders:', error);
+        this.savedLendersError.set(
+          'Failed to load your saved lenders. Please try again.'
+        );
+        this.savedLendersLoading.set(false);
+      },
+    });
   }
-  savedLendersWithDetails = signal<any[]>([]);
+
   private loadLenderDetailsForFavorites(favorites: any[]): void {
     if (favorites.length === 0) {
       this.savedLendersWithDetails.set([]);
@@ -583,6 +561,7 @@ export class DashboardComponent implements OnInit {
       });
     });
   }
+
   getLenderContactName(lenderFavorite: any): string {
     if (
       !lenderFavorite.lenderData ||
@@ -615,6 +594,7 @@ export class DashboardComponent implements OnInit {
     const firstType = lenderFavorite.lenderData.productInfo.lenderTypes[0];
     return this.getLenderTypeName(firstType);
   }
+
   getLenderLoanRange(lenderFavorite: any): string {
     if (!lenderFavorite.lenderData || !lenderFavorite.lenderData.productInfo) {
       return 'Not specified';
@@ -633,6 +613,7 @@ export class DashboardComponent implements OnInit {
       this.formatCurrency(maxAmount || 0)
     );
   }
+
   getLenderTypeName(value: string): string {
     const map: { [key: string]: string } = {
       agency: 'Agency Lender',
@@ -658,6 +639,7 @@ export class DashboardComponent implements OnInit {
 
     return map[value] || value;
   }
+
   viewLenderDetails(lenderId: string): void {
     this.router.navigate(['/lender-details', lenderId]);
   }
@@ -674,6 +656,12 @@ export class DashboardComponent implements OnInit {
         const currentFavorites = this.savedLenders();
         this.savedLenders.set(
           currentFavorites.filter((fav) => fav.id !== savedFavoriteId)
+        );
+
+        // Update the details list too
+        const currentDetails = this.savedLendersWithDetails();
+        this.savedLendersWithDetails.set(
+          currentDetails.filter((fav) => fav.id !== savedFavoriteId)
         );
 
         alert('Lender removed from favorites.');
@@ -696,6 +684,7 @@ export class DashboardComponent implements OnInit {
         this.loading = false;
         this.navigateAfterRoleSelection(role);
       },
+
       error: (error: any) => {
         console.error('Error updating user role:', error);
         this.error = 'Failed to update role';
@@ -908,20 +897,17 @@ export class DashboardComponent implements OnInit {
     console.log('Logging out...');
     this.loading = true;
 
-    this.authService
-      .logout()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: () => {
-          console.log('Logout successful');
-          this.router.navigate(['/login']);
-        },
-        error: (error: any) => {
-          console.error('Error during logout:', error);
-          this.error = 'Error during logout';
-          this.loading = false;
-        },
-      });
+    this.authService.logout().subscribe({
+      next: () => {
+        console.log('Logout successful');
+        this.router.navigate(['/login']);
+      },
+      error: (error: any) => {
+        console.error('Error during logout:', error);
+        this.error = 'Error during logout';
+        this.loading = false;
+      },
+    });
   }
 
   /**

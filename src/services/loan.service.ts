@@ -59,6 +59,7 @@ export interface Loan {
   createdAt?: Date;
   updatedAt?: Date;
   isFavorite?: boolean;
+  originatorId?: string;
 }
 
 @Injectable({

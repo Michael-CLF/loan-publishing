@@ -3,16 +3,20 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LoanService, Loan } from '../services/loan.service';
 import { AuthService } from '../services/auth.service';
-import { switchMap, catchError, tap } from 'rxjs/operators';
+import { switchMap, catchError, tap, map } from 'rxjs/operators';
 import { Observable, of, Subscription } from 'rxjs';
 import {
   Firestore,
   collection,
   query,
+  doc,
+  getDoc,
   where,
   getDocs,
 } from '@angular/fire/firestore';
 import { User } from '../models/user.model';
+import { LoanTypeService } from '../services/loan-type.service';
+import { FirestoreService } from '../services/firestore.service';
 
 @Component({
   selector: 'app-loan-details',
@@ -28,6 +32,8 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
   private loanService = inject(LoanService);
   private authService = inject(AuthService);
   private firestore = inject(Firestore);
+  private firestoreService = inject(FirestoreService);
+  public loanTypeService = inject(LoanTypeService);
 
   // Subscriptions
   private authSubscription: Subscription | null = null;
@@ -40,6 +46,7 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   isAuthenticated = signal<boolean>(false);
+  originatorDetails = signal<any | null>(null);
 
   // Property type color map
   propertyColorMap: { [key: string]: string } = {
@@ -80,16 +87,244 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
             return of(null);
           }
 
-          return this.loadLoanDetails(id);
+          // Instead of calling loadLoanDetails, directly use loanService here
+          this.isLoading.set(true);
+          this.errorMessage.set(null);
+
+          return this.loanService.getLoanById(id).pipe(
+            tap((loan) => {
+              if (loan) {
+                console.log('LOAN DETAILS: Loan loaded:', loan);
+                this.loan.set(loan);
+
+                // If the loan has a createdBy field, load that user's data
+                if (loan.createdBy) {
+                  this.loadLoanCreatorData(loan.createdBy);
+                } else {
+                  console.log(
+                    'Loan has no createdBy field to load creator data'
+                  );
+                }
+
+                // If the loan has an originatorId, load the originator details
+                if (loan.originatorId) {
+                  this.loadOriginatorDetails(loan.originatorId);
+                } else {
+                  console.log(
+                    'Loan has no originatorId to load originator data'
+                  );
+                }
+              } else {
+                this.errorMessage.set('Loan not found.');
+              }
+            }),
+            catchError((error) => {
+              console.error('Error loading loan details:', error);
+              this.errorMessage.set(
+                'Failed to load loan details. Please try again.'
+              );
+              return of(null);
+            }),
+            tap(() => {
+              this.isLoading.set(false);
+            })
+          );
         })
       )
       .subscribe();
+  }
+
+  loadLoanCreatorData(creatorId: string): void {
+    if (!creatorId) {
+      console.log('No creator ID available for this loan');
+      return;
+    }
+
+    console.log('Loading loan creator (originator) data for ID:', creatorId);
+
+    // First check the 'users' collection which should have the originator
+    const userDocRef = doc(this.firestore, 'users', creatorId);
+
+    getDoc(userDocRef)
+      .then((docSnap) => {
+        if (docSnap.exists()) {
+          const userData = docSnap.data();
+          console.log('Found originator data in users collection:', userData);
+
+          // Create a properly structured User object with type assertion
+          const user: User = {
+            uid: docSnap.id,
+            firstName: userData['firstName'] || '',
+            lastName: userData['lastName'] || '',
+            email: userData['email'] || '',
+            company:
+              userData['company'] || userData['contactInfo']?.['company'] || '',
+            phone: userData['phone'] || '',
+            city: userData['city'] || '',
+            state: userData['state'] || '',
+            role: 'originator' as 'originator', // Type assertion
+            createdAt: userData['createdAt']?.toDate() || new Date(),
+          };
+
+          this.user.set(user);
+          console.log('Originator user data set to:', this.user());
+        } else {
+          // If not found in users, try the originators collection
+          const originatorDocRef = doc(
+            this.firestore,
+            'originators',
+            creatorId
+          );
+          getDoc(originatorDocRef).then((originatorSnap) => {
+            if (originatorSnap.exists()) {
+              const originatorData = originatorSnap.data();
+              console.log(
+                'Found originator in originators collection:',
+                originatorData
+              );
+
+              // Standardize the data structure with proper typing
+              const user: User = {
+                uid: originatorSnap.id,
+                firstName:
+                  originatorData['contactInfo']?.['firstName'] ||
+                  originatorData['firstName'] ||
+                  '',
+                lastName:
+                  originatorData['contactInfo']?.['lastName'] ||
+                  originatorData['lastName'] ||
+                  '',
+                email:
+                  originatorData['contactInfo']?.['contactEmail'] ||
+                  originatorData['email'] ||
+                  '',
+                company:
+                  originatorData['contactInfo']?.['company'] ||
+                  originatorData['company'] ||
+                  '',
+                phone:
+                  originatorData['contactInfo']?.['contactPhone'] ||
+                  originatorData['phone'] ||
+                  '',
+                city:
+                  originatorData['contactInfo']?.['city'] ||
+                  originatorData['city'] ||
+                  '',
+                state:
+                  originatorData['contactInfo']?.['state'] ||
+                  originatorData['state'] ||
+                  '',
+                role: 'originator' as 'originator', // Type assertion
+                createdAt: originatorData['createdAt']?.toDate() || new Date(),
+              };
+
+              this.user.set(user);
+              console.log(
+                'Originator user data set from originators collection:',
+                this.user()
+              );
+            } else {
+              console.log('No originator found with ID:', creatorId);
+            }
+          });
+        }
+      })
+      .catch((error) => {
+        console.error('Error finding originator by ID:', error);
+      });
+  }
+
+  loadOriginatorDetails(originatorId: string): void {
+    console.log('Loading originator details for ID:', originatorId);
+
+    // First try the originators collection (new structure)
+    this.firestoreService
+      .getDocument(`originators/${originatorId}`)
+      .pipe(
+        catchError((error) => {
+          console.error('Error fetching from originators collection:', error);
+
+          // Fallback to users collection if not found in originators collection
+          return this.firestoreService
+            .getDocument(`users/${originatorId}`)
+            .pipe(
+              map((userData) => {
+                if (!userData) return null;
+
+                console.log('Found user data in users collection:', userData);
+
+                // Map the users collection data to the standard contact structure
+                return {
+                  id: userData.id,
+                  contactInfo: {
+                    firstName: userData['firstName'] || '',
+                    lastName: userData['lastName'] || '',
+                    contactEmail: userData['email'] || '', // Map email to contactEmail
+                    contactPhone: userData['phone'] || '',
+                    company: userData['company'] || '',
+                    city: userData['city'] || '',
+                    state: userData['state'] || '',
+                  },
+                };
+              })
+            );
+        })
+      )
+      .subscribe({
+        next: (data) => {
+          if (data) {
+            console.log('Originator details loaded:', data);
+            this.originatorDetails.set(data);
+
+            // ADDITION: Also set the user data if not already set
+            // This ensures both signals have the data
+            if (!this.user()) {
+              const user: User = {
+                uid: data.id,
+                firstName: data.contactInfo?.firstName || '',
+                lastName: data.contactInfo?.lastName || '',
+                email: data.contactInfo?.contactEmail || '',
+                company: data.contactInfo?.company || '',
+                phone: data.contactInfo?.contactPhone || '',
+                city: data.contactInfo?.city || '',
+                state: data.contactInfo?.state || '',
+                role: 'originator' as 'originator',
+                createdAt: new Date(),
+              };
+              this.user.set(user);
+              console.log(
+                'User signal set from originator details:',
+                this.user()
+              );
+            }
+          } else {
+            console.log('No originator details found');
+            this.originatorDetails.set(null);
+          }
+        },
+        error: (err) => {
+          console.error('Error loading originator details:', err);
+          this.originatorDetails.set(null);
+        },
+      });
+  }
+
+  // Add this method to your LoanDetailsComponent class
+  getLoanTypeName(loanType: string | undefined): string {
+    if (!loanType) return '';
+    return this.loanTypeService.getLoanTypeName(loanType);
   }
 
   /**
    * Load the current user's profile data
    */
   loadCurrentUserData(): void {
+    // Don't reload user data if we already have it from the loan's creator
+    if (this.loan() && this.loan()?.createdBy && this.user()) {
+      console.log('LOAN DETAILS: User data already loaded from loan creator');
+      return;
+    }
+
     console.log('LOAN DETAILS: Loading current user data');
 
     this.userSubscription = this.authService
@@ -142,39 +377,53 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Loads loan details by ID
-   */
-  loadLoanDetails(id: string): Observable<Loan | null> {
-    this.isLoading.set(true);
-    this.errorMessage.set(null);
-
-    return this.loanService.getLoanById(id).pipe(
-      tap((loan) => {
-        if (loan) {
-          console.log('LOAN DETAILS: Loan loaded:', loan);
-          this.loan.set(loan);
-        } else {
-          this.errorMessage.set('Loan not found.');
-        }
-      }),
-      catchError((error) => {
-        console.error('Error loading loan details:', error);
-        this.errorMessage.set('Failed to load loan details. Please try again.');
-        return of(null);
-      }),
-      tap(() => {
-        this.isLoading.set(false);
-      })
-    );
-  }
-
-  /**
    * Retry loading the loan details
    */
   retryLoadLoan(): void {
     const id = this.route.snapshot.paramMap.get('id');
     if (id) {
-      this.loadLoanDetails(id).subscribe();
+      // Reset loading states
+      this.isLoading.set(true);
+      this.errorMessage.set(null);
+
+      // Use loanService directly instead of calling loadLoanDetails
+      this.loanService
+        .getLoanById(id)
+        .pipe(
+          tap((loan) => {
+            if (loan) {
+              console.log('LOAN DETAILS: Loan loaded:', loan);
+              this.loan.set(loan);
+
+              // If the loan has a createdBy field, load that user's data
+              if (loan.createdBy) {
+                this.loadLoanCreatorData(loan.createdBy);
+              } else {
+                console.log('Loan has no createdBy field to load creator data');
+              }
+
+              // If the loan has an originatorId, load the originator details
+              if (loan.originatorId) {
+                this.loadOriginatorDetails(loan.originatorId);
+              } else {
+                console.log('Loan has no originatorId to load originator data');
+              }
+            } else {
+              this.errorMessage.set('Loan not found.');
+            }
+          }),
+          catchError((error) => {
+            console.error('Error loading loan details:', error);
+            this.errorMessage.set(
+              'Failed to load loan details. Please try again.'
+            );
+            return of(null);
+          }),
+          tap(() => {
+            this.isLoading.set(false);
+          })
+        )
+        .subscribe();
     } else {
       this.errorMessage.set('Loan ID not found in URL.');
     }

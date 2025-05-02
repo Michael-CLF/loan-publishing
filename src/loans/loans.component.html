@@ -20,8 +20,7 @@
 
     <!-- Empty state -->
     <div *ngIf="!loansLoading() && loans().length === 0" class="empty-state">
-        <p>No loans found in the database.</p>
-        <button class="create-btn" routerLink="/loans/create">Create New Loan</button>
+        <p class="no-loan">Oops, there are no loans found for your search.</p>
     </div>
 
     <!-- Loans List -->

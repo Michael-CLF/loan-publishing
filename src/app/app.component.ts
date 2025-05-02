@@ -31,11 +31,14 @@ import { filter, take, switchMap, tap } from 'rxjs/operators';
 })
 export class AppComponent implements OnInit {
   title = 'loanpost';
+  // No authInitialized property - it's causing errors
+
   // Force injection of Auth service
   private auth = inject(Auth);
   private authService = inject(AuthService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+  // Do not add destroyRef - it's causing errors
 
   ngOnInit() {
     // Debug which environment file is being loaded
