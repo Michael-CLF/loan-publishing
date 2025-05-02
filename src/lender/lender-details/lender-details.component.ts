@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Lender, LenderService } from '../../services/lender.service';
 import { FavoritesService } from '../../services/favorites.service';
 import { AuthService } from '../../services/auth.service';
-import { Subject } from 'rxjs';
+import { Subject, firstValueFrom } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
 
@@ -86,19 +86,48 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
-  checkFavoriteStatus(lenderId: string): void {
-    this.isFavorited = this.favoritesService.isFavorite(lenderId);
+  async checkFavoriteStatus(lenderId: string): Promise<void> {
+    try {
+      this.isFavorited = await this.favoritesService.isFavorite(lenderId);
+    } catch (error) {
+      console.error('Error checking favorite status:', error);
+      this.isFavorited = false;
+    }
   }
 
-  toggleFavorite(): void {
+  async toggleFavorite(): Promise<void> {
     if (!this.lender?.id) {
       console.warn('Lender ID is not available.');
       return;
     }
 
-    this.isFavorited = !this.isFavorited;
-    this.favoritesService.toggleFavorite(this.lender.id);
-    this.isFavorited = this.favoritesService.isFavorite(this.lender.id);
+    if (!this.isAuthenticated) {
+      // Redirect to login if not logged in
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    if (this.userRole !== 'originator') {
+      alert('Only originators can save lenders to favorites.');
+      return;
+    }
+
+    try {
+      // Toggle in Firestore (the UI update will happen via the observable)
+      await this.favoritesService.toggleFavorite(this.lender.id);
+
+      // Update the local state
+      this.isFavorited = await this.favoritesService.isFavorite(this.lender.id);
+
+      // Show feedback to user
+      const message = this.isFavorited
+        ? 'Lender added to favorites'
+        : 'Lender removed from favorites';
+      alert(message);
+    } catch (error) {
+      console.error('Error toggling favorite:', error);
+      alert('There was an error updating your favorites. Please try again.');
+    }
   }
 
   goBack(): void {

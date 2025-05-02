@@ -63,7 +63,7 @@
         </div>
 
         <div class="button-container">
-            <a href="/loan" class="add-loan">Add new loan</a>
+            <button (click)="createNewLoan()" class="add-loan">Add new loan</button>
         </div>
 
         <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
