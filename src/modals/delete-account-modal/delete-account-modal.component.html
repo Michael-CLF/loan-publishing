@@ -1,0 +1,21 @@
+<div class="modal-backdrop" *ngIf="isOpen" [@fadeInOut]>
+    <div class="modal-container" [@fadeInOut]>
+        <div class="modal-header">
+            <h2>Delete Your Account</h2>
+        </div>
+
+        <div class="modal-body">
+            <p class="warning-text">Are you sure you want to delete your account?</p>
+
+            <p class="user-type-message">Your account and all associated data will
+                be permanently deleted.</p>
+
+            <p class="permanent-warning">This action cannot be undone!</p>
+        </div>
+
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="onCancel()">Cancel</button>
+            <button class="delete-btn" (click)="onConfirm()">Delete My Account</button>
+        </div>
+    </div>
+</div>

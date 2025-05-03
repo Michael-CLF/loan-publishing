@@ -8,7 +8,6 @@ import { AuthGuard } from '../services/auth.guard';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { PricingComponent } from '../pricing/pricing.component';
 import { TermsComponent } from 'src/terms/terms.component';
-import { LenderFormComponent } from 'src/lender-form/lender-form.component';
 import { LenderContactComponent } from 'src/lender/lender-contact/lender-contact.component';
 import { LenderProductComponent } from 'src/lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-footprint.component';
@@ -29,7 +28,6 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   { path: '', component: HomeComponent },
-  { path: 'lender-form', component: LenderFormComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },
   {
     path: 'lender-list',

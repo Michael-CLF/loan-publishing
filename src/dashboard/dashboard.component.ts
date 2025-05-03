@@ -38,6 +38,7 @@ import {
   isOriginator,
   userDataToUser,
 } from '../models';
+import { ModalService } from '../services/modal.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -54,6 +55,7 @@ export class DashboardComponent implements OnInit {
   private readonly firestoreService = inject(FirestoreService);
   private readonly lenderService = inject(LenderService);
   private readonly loanService = inject(LoanService);
+  private readonly modalService = inject(ModalService);
 
   // State properties
   isLoggedIn = false;
@@ -850,11 +852,13 @@ export class DashboardComponent implements OnInit {
    * Delete user account
    */
   async deleteAccount(): Promise<void> {
-    if (
-      confirm(
-        'Are you sure you want to delete your account? This action cannot be undone.'
-      )
-    ) {
+    // Determine the user type based on the current userRole
+    const userType = this.userRole as 'lender' | 'originator';
+
+    // Open the delete account modal
+    const confirmed = await this.modalService.openDeleteAccountModal(userType);
+
+    if (confirmed) {
       try {
         await this.deleteUserAndLogout();
       } catch (error) {
@@ -864,9 +868,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  /**
-   * Delete user document and logout
-   */
+  // Update the deleteUserAndLogout method to redirect to home page
   private async deleteUserAndLogout(): Promise<void> {
     if (!this.userData || !this.userData.id) {
       throw new Error('User account information not available');
@@ -881,7 +883,7 @@ export class DashboardComponent implements OnInit {
     this.authService.logout().subscribe({
       next: () => {
         alert('Your account has been deleted successfully');
-        this.router.navigate(['/login']);
+        this.router.navigate(['/']); // Redirect to home page
       },
       error: (error: any) => {
         console.error('Error during logout after account deletion:', error);
