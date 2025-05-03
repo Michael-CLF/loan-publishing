@@ -457,10 +457,24 @@ export class DashboardComponent implements OnInit {
   /**
    * Remove a saved loan
    */
+  /**
+   * Remove a saved loan
+   */
   async removeSavedLoan(savedLoanId: string): Promise<void> {
-    if (
-      confirm('Are you sure you want to remove this from your saved loans?')
-    ) {
+    // Get the saved loan data from our current list
+    const savedLoan = this.savedLoans().find((loan) => loan.id === savedLoanId);
+
+    if (!savedLoan) {
+      console.error('Saved loan not found:', savedLoanId);
+      return;
+    }
+
+    // Open the remove saved loan modal
+    const confirmed = await this.modalService.openRemoveSavedLoanModal(
+      savedLoan.loanData
+    );
+
+    if (confirmed) {
       try {
         const savedLoanDocRef = doc(
           this.firestore,
@@ -475,6 +489,7 @@ export class DashboardComponent implements OnInit {
           currentSavedLoans.filter((loan) => loan.id !== savedLoanId)
         );
 
+        // Show success message directly with alert
         alert('Loan removed from saved list');
       } catch (error) {
         console.error('Error removing saved loan:', error);

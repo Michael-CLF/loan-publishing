@@ -1,0 +1,119 @@
+.modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+.modal-container {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  max-width: 480px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.modal-header {
+  background-color: #0a2463;
+  color: white;
+  padding: 16px 24px;
+}
+
+.modal-header h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.modal-body {
+  padding: 24px;
+}
+
+.warning-text {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-bottom: 16px;
+}
+
+.loan-info {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.loan-property {
+  margin-bottom: 8px;
+}
+
+.loan-property:last-child {
+  margin-bottom: 0;
+}
+
+.property-label {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 500;
+  margin-right: 6px;
+}
+.property-value {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.2rem;
+  font-weight: 400;
+  margin-right: 6px;
+}
+
+.note-text {
+  color: #6c757d;
+  font-size: 0.9rem;
+  margin-top: 16px;
+  margin-bottom: 0;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding: 16px 24px;
+  background-color: #f5f5f5;
+  border-top: 1px solid #e0e0e0;
+}
+
+.cancel-btn {
+  padding: 8px 16px;
+  background-color: transparent;
+  border: 1px solid #bdbdbd;
+  border-radius: 4px;
+  margin-right: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cancel-btn:hover {
+  background-color: #008080;
+  color: #fff;
+}
+
+.delete-btn {
+  padding: 8px 16px;
+  background-color: #0a2463;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.delete-btn:hover {
+  background-color: #008080;
+}

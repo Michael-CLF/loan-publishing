@@ -14,7 +14,7 @@ import { UserRole } from '../role-selection-modal/role-selection-modal.component
 import { LenderRegSuccessModalComponent } from '../modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { DeleteAccountModalComponent } from '../modals/delete-account-modal/delete-account-modal.component';
-import { firstValueFrom } from 'rxjs';
+import { RemoveSavedLoanModalComponent } from '../modals/remove-saved-loan/remove-saved-loan.component';
 
 @Injectable({
   providedIn: 'root',
@@ -144,6 +144,42 @@ export class ModalService implements OnDestroy {
     // Set input properties
     componentRef.instance.userType = userType;
     componentRef.instance.isOpen = true;
+
+    // Attach to the view
+    this.appRef.attachView(componentRef.hostView);
+
+    // Add to the DOM
+    const domElement = (componentRef.hostView as any).rootNodes[0];
+    document.body.appendChild(domElement);
+
+    // Return a promise that resolves when the user makes a choice
+    return new Promise<boolean>((resolve) => {
+      // Handle confirm action
+      componentRef.instance.confirm.subscribe(() => {
+        this.closeModal();
+        resolve(true);
+      });
+
+      // Handle cancel action
+      componentRef.instance.cancel.subscribe(() => {
+        this.closeModal();
+        resolve(false);
+      });
+    });
+  }
+
+  openRemoveSavedLoanModal(loanData: any): Promise<boolean> {
+    // Create the component
+    const componentRef = createComponent(RemoveSavedLoanModalComponent, {
+      environmentInjector: this.injector,
+    });
+
+    // Store reference to component
+    this.modalComponentRef = componentRef;
+
+    // Set input properties
+    componentRef.instance.isOpen = true;
+    componentRef.instance.loanData = loanData;
 
     // Attach to the view
     this.appRef.attachView(componentRef.hostView);

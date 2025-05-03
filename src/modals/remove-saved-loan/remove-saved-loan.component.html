@@ -1,0 +1,33 @@
+<div class="modal-backdrop" *ngIf="isOpen" [@fadeInOut]>
+    <div class="modal-container" [@fadeInOut]>
+        <div class="modal-header">
+            <h2>Remove Saved Loan</h2>
+        </div>
+
+        <div class="modal-body">
+            <p class="warning-text">Are you sure you want to remove this loan from your saved list?</p>
+
+
+
+            <div *ngIf="loanData" class="loan-info">
+                <div class="loan-property">
+                    <span class="property-label">Type:</span>
+                    <span class="property-value">{{ loanData.propertyTypeCategory }}</span>
+                </div>
+                <div class="loan-property">
+                    <span class="property-label">Amount:</span>
+                    <span class="property-value">{{ loanData.loanAmount }}</span>
+                </div>
+                <div class="loan-property">
+                    <span class="property-label">Location:</span>
+                    <span class="property-value">{{ loanData.city }}, {{ loanData.state }}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="onCancel()">Cancel</button>
+            <button class="delete-btn" (click)="onConfirm()">Remove Loan</button>
+        </div>
+    </div>
+</div>
