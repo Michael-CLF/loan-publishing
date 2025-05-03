@@ -1,5 +1,12 @@
-// lender-details.component.ts - Add missing methods
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+// lender-details.component.ts
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+} from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { Lender, LenderService } from '../../services/lender.service';
@@ -16,6 +23,7 @@ import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-succ
   imports: [CommonModule, RouterModule, SavedLenderSuccessModalComponent],
   templateUrl: './lender-details.component.html',
   styleUrls: ['./lender-details.component.css'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LenderDetailsComponent implements OnInit, OnDestroy {
   lender: Lender | null = null;
@@ -32,6 +40,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private favoritesService = inject(FavoritesService);
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
+  private cdr = inject(ChangeDetectorRef);
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe((user) => {
@@ -42,6 +51,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
         this.isAuthenticated = false;
         this.userRole = null;
       }
+      this.cdr.markForCheck();
     });
 
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
@@ -55,6 +65,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       } else {
         this.error = true;
         this.loading = false;
+        this.cdr.markForCheck();
       }
     });
 
@@ -63,6 +74,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((showModal) => {
         this.showModal = showModal;
+        this.cdr.markForCheck();
       });
   }
 
@@ -77,6 +89,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 
   loadLenderDetails(id: string): void {
     this.loading = true;
+    this.cdr.markForCheck();
 
     this.lenderService
       .getLender(id)
@@ -91,21 +104,21 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
             console.log('LENDER DETAILS: Lender loaded:', this.lender);
           }
           this.loading = false;
+          this.cdr.markForCheck();
         },
         error: (err) => {
           console.error('Error loading lender details:', err);
           this.error = true;
           this.loading = false;
+          this.cdr.markForCheck();
         },
       });
   }
 
-  // Add missing goBack method
   goBack(): void {
     this.router.navigate(['/lender-list']);
   }
 
-  // Add missing getCategoryStyle method
   getCategoryStyle(category: string): { [key: string]: string } {
     return {
       'background-color': this.getCategoryColor(category),
@@ -115,7 +128,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     };
   }
 
-  // Add get color function needed by getCategoryStyle
   getCategoryColor(category: string): string {
     return propertyColorMap[category] || '#808080'; // fallback to gray
   }
@@ -132,10 +144,12 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       .isFavorite(lenderId)
       .then((isFavorited) => {
         this.isFavorited = isFavorited;
+        this.cdr.markForCheck();
       })
       .catch((error) => {
         console.error('Error checking favorite status:', error);
         this.isFavorited = false;
+        this.cdr.markForCheck();
       });
   }
 
@@ -176,6 +190,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       setTimeout(async () => {
         // Update the local state based on the current state in Firestore
         this.isFavorited = await this.favoritesService.isFavorite(lenderId);
+        this.cdr.markForCheck();
 
         // Re-enable button
         if (savedBtn) {
@@ -196,7 +211,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Keep all the existing methods...
+  // Contact Information Methods
   getContactName(): string {
     const firstName = this.lender?.contactInfo?.firstName || '';
     const lastName = this.lender?.contactInfo?.lastName || '';
@@ -221,7 +236,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return city && state ? `${city}, ${state}` : 'Not specified';
   }
 
-  // Product Info
+  // Product Info Methods
   getLenderTypes(): string {
     if (!this.lender?.productInfo?.lenderTypes?.length) return 'None specified';
     return this.lender.productInfo.lenderTypes
@@ -258,6 +273,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       private_lender: 'Private Lender',
       sba: 'SBA Lender',
       usda: 'USDA Lender',
+      general: 'General Lender',
     };
     return map[value] || value;
   }
@@ -309,7 +325,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   hasLoanTypes(): boolean {
-    return !!this.lender?.productInfo?.loanTypes?.length;
+    return true; // Always show loan types section
   }
 
   getLoanTypesArray(): string[] {
@@ -334,7 +350,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Lending Footprint
+  // Lending Footprint Methods
   getLendingStates(): string {
     return (
       this.lender?.footprintInfo?.lendingFootprint?.join(', ') ||
@@ -349,7 +365,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       .filter((s) => s.length > 0);
   }
 
-  // Subcategories
+  // Subcategories Methods
   getFormattedSubcategories(): string {
     return (
       this.lender?.productInfo?.subcategorySelections
@@ -363,7 +379,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   hasSubcategories(): boolean {
-    return !!this.lender?.productInfo?.subcategorySelections?.length;
+    return true; // Always show subcategories section
   }
 
   formatSubcategory(sub: string): string {
@@ -385,12 +401,30 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   getGroupedSubcategories(): { [category: string]: string[] } {
+    const subcategories = this.getSubcategories();
+
+    if (!subcategories.length) {
+      return { 'No Categories': [] };
+    }
+
     const grouped: { [key: string]: string[] } = {};
-    for (const sub of this.getSubcategories()) {
+    for (const sub of subcategories) {
       const cat = this.getCategoryFromSubcategory(sub);
       if (!grouped[cat]) grouped[cat] = [];
       grouped[cat].push(sub);
     }
     return grouped;
+  }
+
+  // Empty state handlers
+  getEmptyStateMessage(sectionType: 'subcategories' | 'loanTypes'): string {
+    switch (sectionType) {
+      case 'subcategories':
+        return 'No property categories have been specified for this lender.';
+      case 'loanTypes':
+        return 'No loan types have been specified for this lender.';
+      default:
+        return 'No data available.';
+    }
   }
 }

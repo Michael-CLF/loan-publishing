@@ -3,7 +3,8 @@
         <h3 class="section-title">Select Lending Footprint</h3>
         <p class="section-description">Please select the states and counties where you lend.</p>
 
-        <div *ngIf="lenderForm.get('states')" class="form-content">
+        <div *ngIf="lenderForm.get('footprintInfo')?.get('states')" class="form-content">
+
             <!-- States Section -->
             <div class="states-section">
                 <h4>States Selection</h4>

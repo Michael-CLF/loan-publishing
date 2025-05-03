@@ -87,25 +87,21 @@ export class LenderProductComponent implements OnInit {
       typeof numericValue
     );
   }
-  // Initialize form arrays if they don't exist
   private initializeFormArrays(): void {
-    // Initialize lenderTypes form array if it doesn't exist
+    // Only check if arrays exist, don't create them if they don't
     if (!this.lenderForm.get('lenderTypes')) {
-      this.lenderForm.addControl('lenderTypes', new FormArray([]));
+      console.error('LenderTypes FormArray is missing from parent form');
     }
-
-    // Initialize propertyCategories form array if it doesn't exist
     if (!this.lenderForm.get('propertyCategories')) {
-      this.lenderForm.addControl('propertyCategories', new FormArray([]));
+      console.error('PropertyCategories FormArray is missing from parent form');
     }
-
     if (!this.lenderForm.get('loanTypes')) {
-      this.lenderForm.addControl('loanTypes', new FormArray([]));
+      console.error('LoanTypes FormArray is missing from parent form');
     }
-
-    // Initialize subcategorySelections form array if it doesn't exist
     if (!this.lenderForm.get('subcategorySelections')) {
-      this.lenderForm.addControl('subcategorySelections', new FormArray([]));
+      console.error(
+        'SubcategorySelections FormArray is missing from parent form'
+      );
     }
   }
 
@@ -151,9 +147,16 @@ export class LenderProductComponent implements OnInit {
   // Check if an option is selected in a form array
   isOptionSelected(formArrayName: string, value: string): boolean {
     const formArray = this.lenderForm.get(formArrayName) as FormArray;
-    return (
-      formArray?.controls.some((control) => control.value === value) || false
-    );
+    if (!formArray) return false;
+
+    return formArray.controls.some((control) => {
+      const controlValue = control.value;
+      // Handle both object values and string values
+      if (typeof controlValue === 'object' && controlValue !== null) {
+        return controlValue.value === value;
+      }
+      return controlValue === value;
+    });
   }
 
   isLoanTypeSelected(loanTypeValue: string): boolean {
@@ -174,25 +177,27 @@ export class LenderProductComponent implements OnInit {
       ) || false
     );
   }
-  // Toggle lender type selection
   onLenderTypeChange(event: Event, value: string): void {
     event.stopPropagation(); // Prevent event bubbling
     const formArray = this.lenderTypesArray;
-    const isCurrentlySelected = this.isOptionSelected('lenderTypes', value);
 
-    while (formArray.length > 0) {
+    // First, clear the array to ensure only one selection
+    while (formArray.length) {
       formArray.removeAt(0);
     }
 
-    if (!isCurrentlySelected) {
-      formArray.push(new FormControl(value));
+    // Find the full lender type object
+    const lenderTypeObject = this.lenderTypes.find((t) => t.value === value);
+
+    // Add the new selection
+    if (lenderTypeObject) {
+      formArray.push(new FormControl(lenderTypeObject));
     }
 
     // Update validation
     formArray.updateValueAndValidity();
     this.lenderForm.updateValueAndValidity();
   }
-
   // Toggle category selection
   toggleCategory(categoryValue: string): void {
     // Check if category is already selected
@@ -255,13 +260,20 @@ export class LenderProductComponent implements OnInit {
 
     const isSelected = this.isLoanTypeSelected(loanTypeValue);
 
-    if (!isSelected) {
-      // Add the loan type
-      formArray.push(new FormControl(loanTypeValue));
+    // Find the full loan type object from the available types
+    const loanTypeObject = this.loanTypes.find(
+      (lt) => lt.value === loanTypeValue
+    );
+
+    if (!isSelected && loanTypeObject) {
+      // Add the full loan type object to match parent's expected format
+      formArray.push(new FormControl(loanTypeObject));
     } else {
       // Remove the loan type
-      const index = formArray.controls.findIndex(
-        (control) => control.value === loanTypeValue
+      const index = formArray.controls.findIndex((control) =>
+        typeof control.value === 'object'
+          ? control.value.value === loanTypeValue
+          : control.value === loanTypeValue
       );
       if (index !== -1) {
         formArray.removeAt(index);

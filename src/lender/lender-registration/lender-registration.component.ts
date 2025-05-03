@@ -1,9 +1,12 @@
+// src/app/lender-registration/lender-registration.component.ts
+
 import {
   Component,
   OnInit,
   inject,
   Injector,
   runInInjectionContext,
+  OnDestroy,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -14,11 +17,12 @@ import {
   AbstractControl,
   ValidatorFn,
   ReactiveFormsModule,
+  ValidationErrors,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { take, switchMap, catchError, finalize, map } from 'rxjs/operators';
-import { of, from, Observable } from 'rxjs';
+import { of, from, Observable, Subscription } from 'rxjs';
 
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
@@ -32,6 +36,10 @@ import { collection } from '@angular/fire/firestore';
 import { PasswordAuthService } from '../../services/password-auth.service';
 import { ModalService } from '../../services/modal.service';
 import { getUserId } from '../../utils/user-helpers';
+import { StepManagementService } from './step-management';
+import { FormCoordinationService } from './form-coordination';
+import { LocationService } from '../../services/location.service';
+import { FootprintLocation } from '../../models/footprint-location.model';
 
 export interface PropertyCategory {
   name: string;
@@ -84,17 +92,21 @@ export interface LoanTypes {
   templateUrl: './lender-registration.component.html',
   styleUrls: ['./lender-registration.component.css'],
 })
-export class LenderRegistrationComponent implements OnInit {
+export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // Injected services
   private emailExistsValidator = inject(EmailExistsValidator);
   private router = inject(Router);
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
   private firestore = inject(Firestore);
-  private fb = inject(FormBuilder);
   private passwordAuthService = inject(PasswordAuthService);
   private modalService = inject(ModalService);
   private injector = inject(Injector);
+  public stepService = inject(StepManagementService);
+  private formCoordination = inject(FormCoordinationService);
+  private locationService = inject(LocationService);
+
+  states: FootprintLocation[] = [];
 
   // Component state
   lenderForm!: FormGroup;
@@ -104,63 +116,12 @@ export class LenderRegistrationComponent implements OnInit {
   successMessage = '';
   errorMessage = '';
 
+  // Subscriptions
+  private subscriptions: Subscription[] = [];
+
   // User ID storage for linking documents
   private userId: string | null = null;
   private contactDataSaved = false;
-
-  states: StateOption[] = [
-    { value: 'AL', name: 'Alabama' },
-    { value: 'AK', name: 'Alaska' },
-    { value: 'AZ', name: 'Arizona' },
-    { value: 'AR', name: 'Arkansas' },
-    { value: 'CA', name: 'California' },
-    { value: 'CO', name: 'Colorado' },
-    { value: 'CT', name: 'Connecticut' },
-    { value: 'DE', name: 'Delaware' },
-    { value: 'FL', name: 'Florida' },
-    { value: 'GA', name: 'Georgia' },
-    { value: 'HI', name: 'Hawaii' },
-    { value: 'ID', name: 'Idaho' },
-    { value: 'IL', name: 'Illinois' },
-    { value: 'IN', name: 'Indiana' },
-    { value: 'IA', name: 'Iowa' },
-    { value: 'KS', name: 'Kansas' },
-    { value: 'KY', name: 'Kentucky' },
-    { value: 'LA', name: 'Louisiana' },
-    { value: 'ME', name: 'Maine' },
-    { value: 'MD', name: 'Maryland' },
-    { value: 'MA', name: 'Massachusetts' },
-    { value: 'MI', name: 'Michigan' },
-    { value: 'MN', name: 'Minnesota' },
-    { value: 'MS', name: 'Mississippi' },
-    { value: 'MO', name: 'Missouri' },
-    { value: 'MT', name: 'Montana' },
-    { value: 'NE', name: 'Nebraska' },
-    { value: 'NV', name: 'Nevada' },
-    { value: 'NH', name: 'New Hampshire' },
-    { value: 'NJ', name: 'New Jersey' },
-    { value: 'NM', name: 'New Mexico' },
-    { value: 'NY', name: 'New York' },
-    { value: 'NC', name: 'North Carolina' },
-    { value: 'ND', name: 'North Dakota' },
-    { value: 'OH', name: 'Ohio' },
-    { value: 'OK', name: 'Oklahoma' },
-    { value: 'OR', name: 'Oregon' },
-    { value: 'PA', name: 'Pennsylvania' },
-    { value: 'RI', name: 'Rhode Island' },
-    { value: 'SC', name: 'South Carolina' },
-    { value: 'SD', name: 'South Dakota' },
-    { value: 'TN', name: 'Tennessee' },
-    { value: 'TX', name: 'Texas' },
-    { value: 'UT', name: 'Utah' },
-    { value: 'VT', name: 'Vermont' },
-    { value: 'VA', name: 'Virginia' },
-    { value: 'WA', name: 'Washington' },
-    { value: 'WV', name: 'West Virginia' },
-    { value: 'WI', name: 'Wisconsin' },
-    { value: 'WY', name: 'Wyoming' },
-    { value: 'DC', name: 'District of Columbia' },
-  ];
 
   lenderTypes: LenderTypeOption[] = [
     { value: 'agency', name: 'Agency Lender' },
@@ -327,10 +288,12 @@ export class LenderRegistrationComponent implements OnInit {
     },
   ];
 
-  constructor() {}
+  constructor(private fb: FormBuilder) {}
 
   ngOnInit(): void {
     this.initializeForm();
+    this.states = this.locationService.getFootprintLocations();
+    this.initializeStateCountiesStructure();
 
     // Get current user ID if available
     this.authService
@@ -343,7 +306,21 @@ export class LenderRegistrationComponent implements OnInit {
         }
       });
 
+    // Subscribe to step changes to manage validation
+    this.subscriptions.push(
+      this.stepService.currentStep$.subscribe((step) => {
+        this.currentStep = step;
+        this.toggleStepValidation();
+        this.errorMessage = '';
+      })
+    );
+
     console.log('Registration form initialized:', this.lenderForm);
+  }
+
+  ngOnDestroy(): void {
+    // Clean up subscriptions
+    this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
   // Type-safe getters for form groups
@@ -420,6 +397,7 @@ export class LenderRegistrationComponent implements OnInit {
   }
 
   private initializeForm(): void {
+    // Create contact step form group
     const contactStep = this.fb.group({
       company: [
         '',
@@ -462,14 +440,29 @@ export class LenderRegistrationComponent implements OnInit {
       state: ['', Validators.required],
     });
 
-    // Create empty form arrays for lender types, property categories, and property types
-    const lenderTypesArray = this.fb.array([], [this.minSelectedCheckboxes(1)]);
-    const propertyCategoriesArray = this.fb.array(
-      [],
-      [this.minSelectedCheckboxes(1)]
-    );
+    // Create form arrays with explicit debug names
+    const lenderTypesArray = this.fb.array([], {
+      validators: [this.minSelectedCheckboxes(1)],
+      updateOn: 'change',
+    });
+
+    const propertyCategoriesArray = this.fb.array([], {
+      validators: [this.minSelectedCheckboxes(1)],
+      updateOn: 'change',
+    });
+
     const propertyTypesArray = this.fb.array([]);
 
+    // Explicitly create loan types array with validator
+    const loanTypesArray = this.fb.array([], {
+      validators: [this.minSelectedCheckboxes(1)],
+      updateOn: 'change',
+    });
+
+    // Create subcategory selections array
+    const subcategorySelectionsArray = this.fb.array([]);
+
+    // Create product step form group with all arrays
     const productStep = this.fb.group({
       lenderTypes: lenderTypesArray,
       minLoanAmount: [
@@ -482,10 +475,14 @@ export class LenderRegistrationComponent implements OnInit {
       ],
       propertyCategories: propertyCategoriesArray,
       propertyTypes: propertyTypesArray,
+      loanTypes: loanTypesArray,
+      subcategorySelections: subcategorySelectionsArray,
     });
 
+    // Create footprint step form group WITHOUT validators initially
     const footprintStep = this.fb.group({
-      lendingFootprint: [[], Validators.required],
+      lendingFootprint: [[]],
+      states: this.fb.group({}),
     });
 
     // Initialize the main form
@@ -493,70 +490,242 @@ export class LenderRegistrationComponent implements OnInit {
       contactInfo: contactStep,
       productInfo: productStep,
       footprintInfo: footprintStep,
-      termsAccepted: [false, Validators.requiredTrue],
+      termsAccepted: [false],
     });
 
-    // Log the initialized form arrays to check they're created correctly
-    console.log('Lender types array initialized:', lenderTypesArray);
-    console.log(
-      'Property categories array initialized:',
-      propertyCategoriesArray
-    );
-    console.log('Property types array initialized:', propertyTypesArray);
+    // Initialize counties structure
+    this.initializeStateCountiesStructure();
 
-    // Force form to evaluate all controls
+    // Apply validators based on current step
     setTimeout(() => {
-      // Trigger validation on the entire form
-      this.lenderForm.updateValueAndValidity({
-        onlySelf: false,
-        emitEvent: true,
-      });
+      this.toggleStepValidation();
 
-      // Trigger validation on each step form
-      this.contactForm.updateValueAndValidity({
-        onlySelf: false,
-        emitEvent: true,
-      });
-      this.productForm.updateValueAndValidity({
-        onlySelf: false,
-        emitEvent: true,
-      });
-      this.footprintForm.updateValueAndValidity({
-        onlySelf: false,
-        emitEvent: true,
-      });
-
-      console.log('Form initialized:', this.lenderForm.valid);
+      // Log form status after initialization
+      console.log('Form initialized with structure:');
+      this.debugFormStructure(this.lenderForm);
     });
   }
 
-  // Checkbox change handlers
+  // New method to toggle validators based on current step
+  private toggleStepValidation(): void {
+    console.log(`Toggling validation for step ${this.currentStep}`);
+
+    // First, disable all validators that should only be active in specific steps
+    this.disableAllValidators();
+
+    // Then enable only validators for the current step
+    switch (this.currentStep) {
+      case 0:
+        this.enableContactValidators();
+        break;
+      case 1:
+        this.enableProductValidators();
+        break;
+      case 2:
+        this.enableFootprintValidators();
+        break;
+      case 3:
+        // Enable all validators for review
+        this.enableContactValidators();
+        this.enableProductValidators();
+        this.enableFootprintValidators();
+        // Terms acceptance only required at final step
+        const termsControl = this.lenderForm.get('termsAccepted');
+        if (termsControl) {
+          termsControl.setValidators(Validators.requiredTrue);
+          termsControl.updateValueAndValidity({ emitEvent: false });
+        }
+        break;
+    }
+
+    // Force update validation status on all form groups
+    this.contactForm.updateValueAndValidity({ emitEvent: false });
+    this.productForm.updateValueAndValidity({ emitEvent: false });
+    this.footprintForm.updateValueAndValidity({ emitEvent: false });
+
+    // Update the entire form
+    this.lenderForm.updateValueAndValidity({ emitEvent: false });
+
+    // Add additional debug info for step 2 (footprint)
+    if (this.currentStep === 2) {
+      const statesGroup = this.footprintForm.get('states') as FormGroup;
+      if (statesGroup) {
+        const selectedStates = Object.keys(statesGroup.controls)
+          .filter((key) => !key.includes('_counties'))
+          .filter((key) => statesGroup.get(key)?.value === true);
+
+        console.log('Selected states:', selectedStates);
+        console.log('States group valid:', statesGroup.valid);
+        console.log('States group errors:', statesGroup.errors);
+      }
+    }
+
+    console.log(
+      `Validation applied for step ${this.currentStep}, form valid: ${this.lenderForm.valid}`
+    );
+  }
+
+  // Disable all validators
+  private disableAllValidators(): void {
+    // Remove validators from terms
+    const termsControl = this.lenderForm.get('termsAccepted');
+    if (termsControl) {
+      termsControl.clearValidators();
+      termsControl.updateValueAndValidity({ emitEvent: false });
+    }
+
+    // Remove validators from footprint
+    const lendingFootprint = this.footprintForm.get('lendingFootprint');
+    if (lendingFootprint) {
+      lendingFootprint.clearValidators();
+      lendingFootprint.updateValueAndValidity({ emitEvent: false });
+    }
+
+    // States validator is handled separately
+    const statesGroup = this.footprintForm.get('states') as FormGroup;
+    if (statesGroup) {
+      statesGroup.clearValidators();
+      statesGroup.updateValueAndValidity({ emitEvent: false });
+    }
+  }
+
+  // Enable contact step validators
+  private enableContactValidators(): void {
+    // Contact form validators are already set in initializeForm
+    this.contactForm.updateValueAndValidity({ emitEvent: false });
+  }
+
+  // Enable product step validators
+  private enableProductValidators(): void {
+    // Product form validators are already set in initializeForm
+    this.productForm.updateValueAndValidity({ emitEvent: false });
+  }
+
+  // Enable footprint step validators
+  private enableFootprintValidators(): void {
+    // Apply validation to lendingFootprint
+    const lendingFootprint = this.footprintForm.get('lendingFootprint');
+    if (lendingFootprint) {
+      lendingFootprint.setValidators(Validators.required);
+      lendingFootprint.updateValueAndValidity({ emitEvent: false });
+    }
+
+    // This is the key change - apply validator directly to the states FormGroup
+    const statesGroup = this.footprintForm.get('states') as FormGroup;
+    if (statesGroup) {
+      statesGroup.setValidators(this.atLeastOneStateValidator());
+      statesGroup.updateValueAndValidity({ emitEvent: false });
+
+      // Add debug output to check selected states
+      console.log(
+        'States selection status:',
+        Object.keys(statesGroup.controls)
+          .filter((key) => !key.includes('_counties'))
+          .map((key) => ({ state: key, selected: statesGroup.get(key)?.value }))
+          .filter((item) => item.selected)
+      );
+    }
+
+    this.footprintForm.updateValueAndValidity({ emitEvent: false });
+    console.log('Footprint form valid:', this.footprintForm.valid);
+    console.log('States group valid:', statesGroup?.valid);
+  }
+
+  private atLeastOneStateValidator(): ValidatorFn {
+    return (control: AbstractControl): ValidationErrors | null => {
+      // In the parent form, states is INSIDE footprintInfo
+      const statesGroup = control as FormGroup;
+
+      if (!statesGroup) {
+        console.error('States form group is null');
+        return { noStateSelected: true };
+      }
+
+      // Get all state controls (exclude counties)
+      const stateControls = Object.keys(statesGroup.controls).filter(
+        (key) => !key.includes('_counties')
+      );
+
+      // Check if any state is selected (has value true)
+      const selectedStates = stateControls.filter(
+        (key) => statesGroup.get(key)?.value === true
+      );
+
+      const anyStateSelected = selectedStates.length > 0;
+
+      console.log('State validator found selected states:', selectedStates);
+      console.log('Any state selected:', anyStateSelected);
+
+      return anyStateSelected ? null : { noStateSelected: true };
+    };
+  }
+  // Add this new method for counties initialization
+  private initializeStateCountiesStructure(): void {
+    const statesFormGroup = this.footprintForm.get('states') as FormGroup;
+
+    // Pre-initialize state entries for all states
+    this.states.forEach((state) => {
+      const stateValue = state.value;
+
+      // Add state selection control if it doesn't exist
+      if (!statesFormGroup.contains(stateValue)) {
+        statesFormGroup.addControl(stateValue, this.fb.control(false));
+      }
+
+      // Add a properly initialized counties FormGroup if it doesn't exist
+      const countiesKey = `${stateValue}_counties`;
+      if (!statesFormGroup.contains(countiesKey)) {
+        statesFormGroup.addControl(countiesKey, this.fb.group({}));
+      }
+    });
+  }
+
+  // Update the onLenderTypeChange method to enforce single selection
   onLenderTypeChange(event: any, typeValue: string): void {
-    const checked = event.target.checked || event.type === 'click';
+    event.stopPropagation(); // Prevent event bubbling
     const lenderTypesArray = this.lenderTypesArray;
 
-    // Find the full lender type object with both value and name
+    // Clear the array first (to ensure radio button behavior)
+    while (lenderTypesArray.length > 0) {
+      lenderTypesArray.removeAt(0);
+    }
+
+    // Find the full lender type object
     const lenderTypeObject = this.lenderTypes.find(
       (t) => t.value === typeValue
     );
 
-    if (checked) {
-      // Store the entire lender type object instead of just the value
+    // Add only the selected type
+    if (lenderTypeObject) {
       lenderTypesArray.push(this.fb.control(lenderTypeObject));
-      console.log(`Added lender type: ${typeValue}`);
-    } else {
-      const index = lenderTypesArray.controls.findIndex(
-        (control) => control.value.value === typeValue
-      );
-      if (index >= 0) {
-        lenderTypesArray.removeAt(index);
-        console.log(`Removed lender type: ${typeValue}`);
-      }
     }
 
     // Update validation
     lenderTypesArray.updateValueAndValidity();
     this.productForm.updateValueAndValidity();
+  }
+
+  // Add this helper method for deep form inspection
+  private debugFormStructure(form: FormGroup, prefix = ''): void {
+    Object.keys(form.controls).forEach((key) => {
+      const control = form.get(key);
+      const path = prefix ? `${prefix}.${key}` : key;
+
+      if (control instanceof FormGroup) {
+        console.log(`Group: ${path}, Valid: ${control.valid}`);
+        this.debugFormStructure(control, path);
+      } else if (control instanceof FormArray) {
+        console.log(
+          `Array: ${path}, Valid: ${control.valid}, Length: ${control.length}, Errors:`,
+          control.errors
+        );
+      } else if (control) {
+        console.log(
+          `Control: ${path}, Valid: ${control.valid}, Value: ${control.value}, Errors:`,
+          control.errors
+        );
+      }
+    });
   }
 
   onPropertyCategoryChange(event: any, value: string): void {
@@ -619,7 +788,6 @@ export class LenderRegistrationComponent implements OnInit {
         : control.value === value
     );
   }
-
   // Form validation methods
   isControlInvalid(controlName: string): boolean {
     const control = this.productForm.get(controlName);
@@ -655,6 +823,76 @@ export class LenderRegistrationComponent implements OnInit {
         control.markAsTouched();
       }
     });
+  }
+
+  // Next step handler - updated to use step service
+  nextStep(): void {
+    const currentForm = this.getStepFormGroup();
+    this.markAllAsTouched(currentForm);
+
+    // Clear any previous error messages
+    this.errorMessage = '';
+
+    console.log('Form valid:', currentForm.valid);
+    console.log('Form value:', currentForm.value);
+
+    // If form is valid, proceed
+    if (currentForm.valid) {
+      // If completing step 1 (contact info) and not already saved, save user data to Firebase
+      if (this.currentStep === 0 && !this.contactDataSaved) {
+        this.isLoading = true;
+
+        this.saveUserData()
+          .pipe(
+            finalize(() => {
+              this.isLoading = false;
+            })
+          )
+          .subscribe((success) => {
+            if (success) {
+              this.contactDataSaved = true;
+              this.stepService.moveToNextStep();
+              // Clear error message explicitly on success
+              this.errorMessage = '';
+            } else {
+              this.errorMessage =
+                'Failed to save contact information. Please try again.';
+            }
+          });
+      } else if (this.currentStep < 3) {
+        // For other steps, just proceed to next step using the service
+        this.stepService.moveToNextStep();
+      }
+    } else {
+      // Display appropriate error message based on the current step
+      this.errorMessage = this.getStepErrorMessage();
+    }
+  }
+
+  prevStep(): void {
+    if (this.currentStep > 0) {
+      this.stepService.moveToPreviousStep();
+    }
+  }
+
+  private getStepErrorMessage(): string {
+    switch (this.currentStep) {
+      case 0:
+        return 'Please complete all required fields in the contact section';
+      case 1:
+        return 'Please complete all required fields in the product section';
+      case 2:
+        return 'Please select at least one state for your lending footprint';
+      case 3:
+        return 'Please review all information and agree to the terms';
+      default:
+        return 'Please complete all required fields';
+    }
+  }
+
+  isCurrentStepValid(): boolean {
+    const currentForm = this.getStepFormGroup();
+    return currentForm.valid;
   }
 
   private saveUserData(): Observable<boolean> {
@@ -723,63 +961,6 @@ export class LenderRegistrationComponent implements OnInit {
     });
   }
 
-  nextStep(): void {
-    const currentForm = this.getStepFormGroup();
-    this.markAllAsTouched(currentForm);
-
-    // Clear any previous error messages when attempting to go to the next step
-    this.errorMessage = '';
-
-    console.log('Form valid:', currentForm.valid);
-    console.log('Form value:', currentForm.value);
-
-    // If form is valid, proceed
-    if (currentForm.valid) {
-      // If completing step 1 (contact info) and not already saved, save user data to Firebase
-      if (this.currentStep === 0 && !this.contactDataSaved) {
-        this.isLoading = true;
-
-        this.saveUserData()
-          .pipe(
-            finalize(() => {
-              this.isLoading = false;
-            })
-          )
-          .subscribe((success) => {
-            if (success) {
-              this.contactDataSaved = true;
-              this.currentStep++;
-              // Clear error message explicitly on success
-              this.errorMessage = '';
-            } else {
-              this.errorMessage =
-                'Failed to save contact information. Please try again.';
-            }
-          });
-      } else if (this.currentStep < 3) {
-        // For other steps, just proceed
-        this.currentStep++;
-      }
-    } else {
-      // Display more specific error information
-      Object.keys(currentForm.controls).forEach((key) => {
-        const control = currentForm.get(key);
-        if (control && control.invalid) {
-          console.log(`Control '${key}' is invalid:`, control.errors);
-        }
-      });
-    }
-  }
-
-  prevStep(): void {
-    if (this.currentStep > 0) this.currentStep--;
-  }
-
-  isCurrentStepValid(): boolean {
-    const currentForm = this.getStepFormGroup();
-    return currentForm.valid;
-  }
-
   submitForm(): void {
     this.submitted = true;
     this.errorMessage = '';
@@ -787,6 +968,9 @@ export class LenderRegistrationComponent implements OnInit {
     console.log('Submit button clicked!');
 
     this.markAllAsTouched(this.lenderForm);
+
+    // Force re-validation of states selection (Step 3)
+    this.footprintForm.get('states')?.updateValueAndValidity();
 
     console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
     console.log('Form valid:', this.lenderForm.valid);

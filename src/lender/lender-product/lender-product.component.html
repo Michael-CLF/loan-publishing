@@ -7,10 +7,9 @@
         <div class="form-content">
 
             <!-- Lender Types Section -->
-            <!-- Lender Types Section in lender-product.component.html -->
             <div class="property-section">
                 <h4>Lender Types</h4>
-                <p class="helper-text">Which best describes youy lender type?</p>
+                <p class="helper-text">Which best describes your lender type?</p>
 
                 <!-- Lender Types Grid -->
                 <div class="property-grid">
@@ -22,14 +21,15 @@
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [id]="'lenderType-' + type.value"
                                     [checked]="isOptionSelected('lenderTypes', type.value)"
-                                    [disabled]="isLenderTypeDisabled(type.value)" (click)="$event.stopPropagation()">
+                                    [disabled]="isLenderTypeDisabled(type.value)"
+                                    (change)="onLenderTypeChange($event, type.value)">
                                 <span class="state-name">{{ type.name }}</span>
                             </div>
                         </div>
                     </div>
                 </div>
-                <div *ngIf="loanTypesArray?.invalid && loanTypesArray?.touched" class="error-message">
-                    Please select at least one loan type.
+                <div *ngIf="lenderTypesArray?.invalid && lenderTypesArray?.touched" class="error-message">
+                    Please select at least one lender type.
                 </div>
             </div>
 
@@ -49,7 +49,7 @@
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [id]="'propertyCategory-' + category.value"
                                     [checked]="isOptionSelected('propertyCategories', category.value)"
-                                    (click)="$event.stopPropagation()">
+                                    (change)="toggleCategory(category.value)">
                                 <span class="state-name">{{ category.name }}</span>
                             </div>
                             <span
@@ -104,6 +104,7 @@
                     </div>
                 </div>
             </div>
+
             <!-- Loan Types Section -->
             <div class="property-section">
                 <h4>Loan Types</h4>
@@ -117,7 +118,8 @@
                         <div class="property-header" (click)="toggleLoanType($event, loanType.value)">
                             <div class="checkbox-wrapper">
                                 <input type="checkbox" [id]="'loanType-' + loanType.value"
-                                    [checked]="isLoanTypeSelected(loanType.value)" (click)="$event.stopPropagation()">
+                                    [checked]="isLoanTypeSelected(loanType.value)"
+                                    (change)="toggleLoanType($event, loanType.value)">
                                 <span class="state-name">{{ loanType.name }}</span>
                             </div>
                         </div>
