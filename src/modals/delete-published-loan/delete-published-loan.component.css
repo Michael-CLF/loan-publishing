@@ -28,9 +28,9 @@
 }
 
 .modal-header h2 {
-  font-family: "roboto" sans-serif;
   margin: 0;
   font-size: 1.5rem;
+  font-family: "roboto", sans-serif;
 }
 
 .modal-body {
@@ -38,27 +38,49 @@
 }
 
 .warning-text {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
   font-size: 1.1rem;
-  color: #000;
-  font-family: "roboto" sans-serif;
-  margin-bottom: 16px;
   font-weight: 500;
+  margin-bottom: 16px;
 }
 
-.user-type-message {
-  color: #000;
+.loan-info {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
   font-size: 1.1rem;
+  border-radius: 6px;
+  padding: 16px;
   margin-bottom: 16px;
-  font-family: "roboto" sans-serif;
+}
+
+.loan-property {
+  margin-bottom: 8px;
+}
+
+.loan-property:last-child {
+  margin-bottom: 0;
+}
+
+.property-label {
+  font-family: "roboto", sans-serif;
   font-weight: 500;
+  margin-right: 6px;
 }
 
 .permanent-warning {
   color: #c00000;
-  font-size: 1.3rem;
-  font-weight: 500;
   font-family: "roboto", sans-serif;
-  text-align: center;
+  font-weight: 500;
+  margin-bottom: 8px;
+}
+
+.note-text {
+  color: #c00000;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: 16px;
   margin-bottom: 0;
 }
 

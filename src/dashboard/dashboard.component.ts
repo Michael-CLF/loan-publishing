@@ -597,6 +597,39 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
+   * Get lender company name from all possible locations
+   */
+  /**
+   * Get lender company name from all possible locations
+   */
+  /**
+   * Get lender company name from all possible locations based on the Lender interface
+   */
+  getLenderCompanyName(lenderFavorite: any): string {
+    if (!lenderFavorite.lenderData) {
+      return 'Unknown Company';
+    }
+
+    // Get the company name from the contactInfo object
+    const companyFromContactInfo =
+      lenderFavorite.lenderData.contactInfo?.company;
+    const firstName = lenderFavorite.lenderData.contactInfo?.firstName || '';
+    const lastName = lenderFavorite.lenderData.contactInfo?.lastName || '';
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    // Return the company name if it exists and isn't empty
+    if (companyFromContactInfo && companyFromContactInfo !== '') {
+      return companyFromContactInfo;
+    }
+
+    // If we don't have a company name, use the person's name as a fallback
+    if (fullName) {
+      return `${fullName}'s Company`;
+    }
+
+    return 'Unknown Company';
+  }
+  /**
    * Get lender types as string
    */
   getLenderTypes(lenderFavorite: any): string {
@@ -661,8 +694,26 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/lender-details', lenderId]);
   }
 
+  /**
+   * Remove a saved lender
+   */
   async removeSavedLender(savedFavoriteId: string): Promise<void> {
-    if (confirm('Are you sure you want to remove this saved lender?')) {
+    // Find the saved lender in our list
+    const savedLender = this.savedLendersWithDetails().find(
+      (lender) => lender.id === savedFavoriteId
+    );
+
+    if (!savedLender) {
+      console.error('Saved lender not found:', savedFavoriteId);
+      return;
+    }
+
+    // Open the remove saved lender modal
+    const confirmed = await this.modalService.openRemoveSavedLenderModal(
+      savedLender.lenderData
+    );
+
+    if (confirmed) {
       try {
         const docRef = doc(
           this.firestore,
@@ -670,6 +721,7 @@ export class DashboardComponent implements OnInit {
         );
         await deleteDoc(docRef);
 
+        // Update the favorites lists
         const currentFavorites = this.savedLenders();
         this.savedLenders.set(
           currentFavorites.filter((fav) => fav.id !== savedFavoriteId)
@@ -681,10 +733,10 @@ export class DashboardComponent implements OnInit {
           currentDetails.filter((fav) => fav.id !== savedFavoriteId)
         );
 
-        alert('Lender removed from favorites.');
+        alert('Lender removed from saved list');
       } catch (error) {
         console.error('Error removing saved lender:', error);
-        alert('Failed to remove saved lender.');
+        alert('Failed to remove saved lender: ' + this.getErrorMessage(error));
       }
     }
   }
@@ -845,8 +897,24 @@ export class DashboardComponent implements OnInit {
   /**
    * Delete a loan
    */
+  /**
+   * Delete a loan
+   */
   async deleteLoan(loanId: string): Promise<void> {
-    if (confirm('Are you sure you want to delete this loan?')) {
+    // Find the loan in our loans array
+    const loanToDelete = this.loans().find((loan) => loan.id === loanId);
+
+    if (!loanToDelete) {
+      console.error('Loan not found:', loanId);
+      return;
+    }
+
+    // Open the delete published loan modal
+    const confirmed = await this.modalService.openDeletePublishedLoanModal(
+      loanToDelete
+    );
+
+    if (confirmed) {
       try {
         const loanDocRef = doc(this.firestore, `loans/${loanId}`);
         await deleteDoc(loanDocRef);

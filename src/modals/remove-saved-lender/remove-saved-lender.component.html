@@ -1,0 +1,35 @@
+<div class="modal-backdrop" *ngIf="isOpen" [@fadeInOut]>
+    <div class="modal-container" [@fadeInOut]>
+        <div class="modal-header">
+            <h2>Remove Saved Lender</h2>
+        </div>
+
+        <div class="modal-body">
+            <p class="question-text">Are you sure you want to remove this lender from your saved list?</p>
+
+            <div *ngIf="lenderData" class="lender-info">
+                <div class="lender-property">
+                    <span class="property-label">Company:</span>
+                    <span class="property-value">{{ lenderData?.contactInfo?.company || 'Unknown Company' }}</span>
+                </div>
+                <div class="lender-property"
+                    *ngIf="lenderData?.contactInfo?.firstName || lenderData?.contactInfo?.lastName">
+                    <span class="property-label">Contact:</span>
+                    <span class="property-value">{{ lenderData?.contactInfo?.firstName }} {{
+                        lenderData?.contactInfo?.lastName }}</span>
+                </div>
+                <div class="lender-property" *ngIf="lenderData?.productInfo?.lenderTypes?.length">
+                    <span class="property-label">Lender Type:</span>
+                    <span class="property-value">{{ lenderData?.productInfo?.lenderTypes[0] }}</span>
+                </div>
+            </div>
+
+            <p class="note-text">You can always add this lender back to your saved list later.</p>
+        </div>
+
+        <div class="modal-footer">
+            <button class="cancel-btn" (click)="onCancel()">Cancel</button>
+            <button class="confirm-btn" (click)="onConfirm()">Remove</button>
+        </div>
+    </div>
+</div>

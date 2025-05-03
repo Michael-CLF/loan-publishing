@@ -22,13 +22,12 @@
 }
 
 .modal-header {
-  background-color: #c00000;
+  background-color: #0a2463;
   color: white;
   padding: 16px 24px;
 }
 
 .modal-header h2 {
-  font-family: "roboto" sans-serif;
   margin: 0;
   font-size: 1.5rem;
 }
@@ -37,28 +36,52 @@
   padding: 24px;
 }
 
-.warning-text {
-  font-size: 1.1rem;
-  color: #000;
-  font-family: "roboto" sans-serif;
-  margin-bottom: 16px;
-  font-weight: 500;
-}
-
-.user-type-message {
-  color: #000;
-  font-size: 1.1rem;
-  margin-bottom: 16px;
-  font-family: "roboto" sans-serif;
-  font-weight: 500;
-}
-
-.permanent-warning {
-  color: #c00000;
-  font-size: 1.3rem;
-  font-weight: 500;
+.question-text {
+  color: #0a2463;
   font-family: "roboto", sans-serif;
-  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 500;
+  margin-right: 6px;
+  margin-bottom: 16px;
+}
+
+.lender-info {
+  background-color: #f8f9fa;
+  border-radius: 6px;
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.lender-property {
+  margin-bottom: 8px;
+}
+
+.lender-property:last-child {
+  margin-bottom: 0;
+}
+
+.property-label {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-right: 6px;
+}
+
+.property-value {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  margin-right: 6px;
+}
+
+.note-text {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  margin-top: 16px;
   margin-bottom: 0;
 }
 
@@ -85,9 +108,9 @@
   color: #fff;
 }
 
-.delete-btn {
+.confirm-btn {
   padding: 8px 16px;
-  background-color: #c00000;
+  background-color: #0a2463;
   color: white;
   border: none;
   border-radius: 4px;
@@ -95,6 +118,6 @@
   transition: all 0.2s;
 }
 
-.delete-btn:hover {
-  background-color: darkred;
+.confirm-btn:hover {
+  background-color: #008080;
 }

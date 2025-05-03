@@ -98,14 +98,13 @@ export class LenderService {
     );
   }
 
-  // Helper method to map lender data
   private mapLenderData(lender: any): Lender {
     return {
       id: lender.id,
       contactInfo: {
         firstName: lender.contactInfo?.firstName || '',
         lastName: lender.contactInfo?.lastName || '',
-        company: lender.contactInfo?.company || '',
+        company: lender.company || lender.contactInfo?.company || '', // Map root-level company to contactInfo
         contactEmail: lender.contactInfo?.contactEmail || '',
         contactPhone: lender.contactInfo?.contactPhone || '',
         city: lender.contactInfo?.city || '',

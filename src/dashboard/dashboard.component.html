@@ -122,8 +122,9 @@
         </div>
 
         <div *ngIf="!savedLendersLoading() && !savedLendersError() && savedLenders().length === 0" class="empty-state">
-            <p>You haven't saved any lenders yet.</p>
-            <p>Browse lenders to find and save ones you're interested in.</p>
+            <p class="no-saved-lenders">You haven't saved any lenders yet. Browse lenders to find and save ones you're
+                interested in.</p>
+
         </div>
 
         <div class="button-container">
@@ -145,7 +146,7 @@
                 <tbody>
                     <tr *ngFor="let lender of savedLendersWithDetails()" class="lender-row"
                         (click)="viewLenderDetails(lender.lenderId)">
-                        <td class="lender-info">{{ lender.lenderData?.contactInfo?.company || 'Unknown Company' }}</td>
+                        <td class="lender-info">{{ getLenderCompanyName(lender) }}</td>
                         <td class="lender-info">{{ getLenderContactName(lender) }}</td>
                         <td class="lender-info">{{ getLenderTypes(lender) }}</td>
                         <td class="lender-info">{{ getLenderLoanRange(lender) }}</td>

@@ -15,6 +15,8 @@ import { LenderRegSuccessModalComponent } from '../modals/lender-reg-success-mod
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { DeleteAccountModalComponent } from '../modals/delete-account-modal/delete-account-modal.component';
 import { RemoveSavedLoanModalComponent } from '../modals/remove-saved-loan/remove-saved-loan.component';
+import { DeletePublishedLoanModalComponent } from '../modals/delete-published-loan/delete-published-loan.component';
+import { RemoveSavedLenderComponent } from '../modals/remove-saved-lender/remove-saved-lender.component';
 
 @Injectable({
   providedIn: 'root',
@@ -82,6 +84,42 @@ export class ModalService implements OnDestroy {
     // Add to the DOM
     const domElement = (componentRef.hostView as any).rootNodes[0];
     document.body.appendChild(domElement);
+  }
+
+  openDeletePublishedLoanModal(loanData: any): Promise<boolean> {
+    // Create the component
+    const componentRef = createComponent(DeletePublishedLoanModalComponent, {
+      environmentInjector: this.injector,
+    });
+
+    // Store reference to component
+    this.modalComponentRef = componentRef;
+
+    // Set input properties
+    componentRef.instance.isOpen = true;
+    componentRef.instance.loanData = loanData;
+
+    // Attach to the view
+    this.appRef.attachView(componentRef.hostView);
+
+    // Add to the DOM
+    const domElement = (componentRef.hostView as any).rootNodes[0];
+    document.body.appendChild(domElement);
+
+    // Return a promise that resolves when the user makes a choice
+    return new Promise<boolean>((resolve) => {
+      // Handle confirm action
+      componentRef.instance.confirm.subscribe(() => {
+        this.closeModal();
+        resolve(true);
+      });
+
+      // Handle cancel action
+      componentRef.instance.cancel.subscribe(() => {
+        this.closeModal();
+        resolve(false);
+      });
+    });
   }
 
   openRoleSelectionModal(): void {
@@ -180,6 +218,43 @@ export class ModalService implements OnDestroy {
     // Set input properties
     componentRef.instance.isOpen = true;
     componentRef.instance.loanData = loanData;
+
+    // Attach to the view
+    this.appRef.attachView(componentRef.hostView);
+
+    // Add to the DOM
+    const domElement = (componentRef.hostView as any).rootNodes[0];
+    document.body.appendChild(domElement);
+
+    // Return a promise that resolves when the user makes a choice
+    return new Promise<boolean>((resolve) => {
+      // Handle confirm action
+      componentRef.instance.confirm.subscribe(() => {
+        this.closeModal();
+        resolve(true);
+      });
+
+      // Handle cancel action
+      componentRef.instance.cancel.subscribe(() => {
+        this.closeModal();
+        resolve(false);
+      });
+    });
+  }
+
+  // Add this method to your ModalService class
+  openRemoveSavedLenderModal(lenderData: any): Promise<boolean> {
+    // Create the component
+    const componentRef = createComponent(RemoveSavedLenderComponent, {
+      environmentInjector: this.injector,
+    });
+
+    // Store reference to component
+    this.modalComponentRef = componentRef;
+
+    // Set input properties
+    componentRef.instance.isOpen = true;
+    componentRef.instance.lenderData = lenderData;
 
     // Attach to the view
     this.appRef.attachView(componentRef.hostView);

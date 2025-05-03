@@ -319,6 +319,14 @@
   font-weight: 500;
 }
 
+.no-saved-lenders {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  padding-bottom: 20px;
+}
+
 /* Responsive adjustments */
 @media screen and (max-width: 768px) {
   .lender-table th,
