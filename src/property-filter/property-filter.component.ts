@@ -1,7 +1,8 @@
-import { Component, EventEmitter, Output, model } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, model } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { LoanTypeService, LoanType } from '../services/loan-type.service';
 
 export interface LoanFilters {
   propertyTypeCategory: string;
@@ -18,7 +19,7 @@ export interface LoanFilters {
   templateUrl: './property-filter.component.html',
   styleUrls: ['./property-filter.component.css'],
 })
-export class PropertyFilterComponent {
+export class PropertyFilterComponent implements OnInit {
   // Modern Angular 18 approach using the new model inputs
   filters = model<LoanFilters>({
     propertyTypeCategory: '',
@@ -104,30 +105,16 @@ export class PropertyFilterComponent {
     'Wyoming',
   ];
 
-  // Loan types based on your existing data
-  loanTypes = [
-    'Agency',
-    'Asset-Based Loans',
-    'Bank Statement Loans',
-    'Bridge Loans',
-    'CMBS',
-    'Construction Loans',
-    'Construction-to-Permanent Loans',
-    'Credit Tenant Lease (CTL) Financing',
-    'DSCR',
-    'Ground-Up Construction Loans',
-    'Hard Money Loans',
-    'ITIN Loans',
-    'Mezzanine Financing',
-    'Non-Qualified Mortgage (Non-QM) Loans',
-    'Opportunity Zone Financing',
-    'Permanent Loans (Stabilized properties)',
-    'SBA 504 Loans (For owner-occupied properties)',
-    'SBA 7(a) Loans (Flexible use, including working capital and real estate)',
-    'Syndicated Loans',
-  ];
+  loanTypes: LoanType[] = [];
 
-  constructor() {
+  constructor(private loanTypeService: LoanTypeService) {
+    // Initialize display values
+    this.updateDisplayValues();
+  }
+
+  ngOnInit(): void {
+    // Get loan types from the service
+    this.loanTypes = this.loanTypeService.getAllLoanTypes();
     // Initialize display values
     this.updateDisplayValues();
   }

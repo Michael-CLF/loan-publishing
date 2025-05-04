@@ -13,6 +13,7 @@ import { LoanService, Loan } from '../services/loan.service';
 import { AuthService } from '../services/auth.service';
 import { take } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
+import { LoanTypeService } from '../services/loan-type.service';
 import {
   Firestore,
   collection,
@@ -55,6 +56,7 @@ export class LoansComponent implements OnInit {
   private injector = inject(Injector);
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
+  private loanTypeService = inject(LoanTypeService);
 
   propertyColorMap: { [key: string]: string } = {
     Commercial: '#1E90FF',
@@ -74,11 +76,10 @@ export class LoansComponent implements OnInit {
   loanTypes = LOAN_TYPES;
 
   // Add this method to your component class
+
   getLoanTypeName(value: string): string {
     console.log('Dashboard - looking up loan type value:', value);
-    const loanType = this.loanTypes.find((type) => type.value === value);
-    console.log('Dashboard - found loan type:', loanType);
-    return loanType ? loanType.name : value;
+    return this.loanTypeService.getLoanTypeName(value);
   }
 
   // 👇 Accessor method
@@ -272,8 +273,10 @@ export class LoansComponent implements OnInit {
         return false;
       }
 
-      // Filter by loan type
-      if (filters.loanType && loan.loanType !== filters.loanType) {
+      if (
+        filters.loanType &&
+        loan.loanType?.toLowerCase() !== filters.loanType.toLowerCase()
+      ) {
         return false;
       }
 

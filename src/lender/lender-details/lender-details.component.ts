@@ -255,6 +255,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   getLenderTypeName(value: string): string {
     const map: { [key: string]: string } = {
       agency: 'Agency Lender',
+      balanceSheet: 'Balance Sheet',
       bank: 'Bank',
       bridge_lender: 'Bridge Lender',
       cdfi: 'CDFI Lender',

@@ -25,6 +25,7 @@ export class LenderFilterComponent {
   // Lender types
   lenderTypeOptions: FilterOption[] = [
     { value: 'agency', name: 'Agency Lender' },
+    { value: 'balance sheet', name: 'Balance Sheet' },
     { value: 'bank', name: 'Bank' },
     { value: 'bridge_lender', name: 'Bridge Lender' },
     { value: 'cdfi', name: 'CDFI Lender' },
@@ -192,6 +193,7 @@ export class LenderFilterComponent {
   getLenderTypeName(value: string): string {
     const lenderTypeMap: { [key: string]: string } = {
       agency: 'Agency Lender',
+      balanceSheet: 'Balance Sheet',
       bank: 'Bank',
       bridge_lender: 'Bridge Lender',
       cdfi: 'CDFI Lender',

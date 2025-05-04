@@ -61,9 +61,9 @@ export class LoanComponent implements OnInit {
   // Add this to your component class
   loanTypes = [
     { value: 'agency', name: 'Agency' },
-    { value: 'balanceSheet', name: 'Balance Sheet' },
+    { value: 'balance sheet', name: 'Balance Sheet' },
     { value: 'bridge', name: 'Bridge Loan' },
-    { value: 'DSCR', name: 'DSCR' },
+    { value: 'dscr', name: 'DSCR' },
     { value: 'fixFlip', name: 'Fix & Flip' },
     { value: 'hardMoney', name: 'Hard Money' },
     { value: 'construction', name: 'New Construction' },

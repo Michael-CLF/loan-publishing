@@ -22,9 +22,11 @@
 
             <div class="filter-group">
                 <label for="loanType">Loan Type</label>
-                <select id="loanType" [ngModel]="filters().loanType" (ngModelChange)="updateFilter('loanType', $event)">
+                <select [(ngModel)]="filters().loanType">
                     <option value="">All Loan Types</option>
-                    <option *ngFor="let type of loanTypes" [value]="type">{{ type }}</option>
+                    <option *ngFor="let type of loanTypes" [value]="type.value">
+                        {{ type.name }}
+                    </option>
                 </select>
             </div>
         </div>
