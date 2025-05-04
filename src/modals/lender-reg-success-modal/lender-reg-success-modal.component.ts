@@ -9,14 +9,15 @@ import { User } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-lender-reg-success-modal',
-  imports: [],
+  standalone: true,
+  imports: [CommonModule],
   templateUrl: './lender-reg-success-modal.component.html',
   styleUrl: './lender-reg-success-modal.component.css',
 })
-export class LenderRegSuccessModalComponent {
+export class LenderRegSuccessModalComponent implements OnDestroy {
   private authService = inject(AuthService);
   private router = inject(Router);
-  countdown = 7; // 7 seconds before auto-redirect
+  countdown = 5; // 5 seconds before auto-redirect
   private timer: any;
 
   @Output() modalClosed = new EventEmitter<void>();

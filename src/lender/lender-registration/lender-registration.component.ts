@@ -1060,7 +1060,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         )
         .subscribe((result: any) => {
           if (result !== null) {
-            this.successMessage = 'Registration successful!';
+            this.successMessage = '';
             this.isLoading = false;
 
             // Show success modal
