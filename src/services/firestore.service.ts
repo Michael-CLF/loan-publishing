@@ -27,6 +27,7 @@ import {
 import { Observable, from, of, BehaviorSubject, throwError } from 'rxjs';
 import { map, catchError, tap, switchMap, share } from 'rxjs/operators';
 import { Loan } from './loan.service';
+import { LocationService } from './location.service';
 
 export interface LenderFilter {
   lenderType?: string;
@@ -47,6 +48,7 @@ export class FirestoreService {
   private lenderFiltersSubject = new BehaviorSubject<LenderFilter>({});
   private validatedEmails = new Set<string>();
   private existingEmails = new Set<string>();
+  private locationService = inject(LocationService);
 
   /**
    * Helper method to safely run Firebase operations within the injection context
@@ -60,7 +62,11 @@ export class FirestoreService {
       });
     });
   }
-
+  /**
+   * Get saved loans for a user with proper state formatting
+   * @param userId User ID
+   * @returns Observable of saved loans with formatted states
+   */
   /**
    * Helper method to safely run async Firebase operations within the injection context
    * @param fn Function that returns a Promise
@@ -511,7 +517,34 @@ export class FirestoreService {
       return collectionData(q, { idField: 'id' }).pipe(
         tap((data) =>
           console.log('Raw result data from loanFavorites query:', data)
-        )
+        ),
+        map((favorites) => {
+          return favorites.map((favorite) => {
+            // Only process if there's loan data
+            if (favorite['loanData']) {
+              // Clone the loan data to avoid modifying the original reference
+              const formattedLoanData = { ...favorite['loanData'] };
+
+              // Format the state if it exists
+              if (formattedLoanData.state) {
+                // Format state using the LocationService
+                formattedLoanData.state =
+                  this.locationService.formatValueForDisplay(
+                    formattedLoanData.state
+                  );
+              }
+
+              // Return the favorite with formatted loan data
+              return {
+                ...favorite,
+                loanData: formattedLoanData,
+              };
+            }
+
+            // Return the original favorite if there's no loan data
+            return favorite;
+          });
+        })
       );
     });
   }

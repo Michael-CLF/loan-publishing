@@ -30,15 +30,9 @@ import { Loan as LoanModel } from '../models/loan-model.model';
 import { SavedLoan } from '../models/saved-loan.model';
 import { Loan } from '../models/loan-model.model';
 import { getUserId } from '../utils/user-helpers';
-import {
-  UserData,
-  Originator,
-  Lender,
-  isLender,
-  isOriginator,
-  userDataToUser,
-} from '../models';
+import { UserData } from '../models';
 import { ModalService } from '../services/modal.service';
+import { LocationService } from '../services/location.service';
 
 @Component({
   selector: 'app-dashboard',
@@ -56,6 +50,7 @@ export class DashboardComponent implements OnInit {
   private readonly lenderService = inject(LenderService);
   private readonly loanService = inject(LoanService);
   private readonly modalService = inject(ModalService);
+  public readonly locationService = inject(LocationService);
 
   // State properties
   isLoggedIn = false;
@@ -139,10 +134,24 @@ export class DashboardComponent implements OnInit {
    */
   getLoanTypeName(value: string): string {
     if (!value) return '';
+    let loanType = this.loanTypes.find((type) => type.value === value);
 
-    const loanType = this.loanTypes.find(
-      (type) => type.value.toLowerCase() === value.toLowerCase()
-    );
+    // If not found, try case-insensitive match
+    if (!loanType) {
+      loanType = this.loanTypes.find(
+        (type) => type.value.toLowerCase() === value.toLowerCase()
+      );
+    }
+
+    // If still not found, try to convert camelCase to a readable format
+    if (!loanType) {
+      // Convert camelCase to Title Case with spaces
+      const formatted = value
+        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+        .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
+
+      return formatted.trim();
+    }
 
     return loanType ? loanType.name : value;
   }
@@ -596,15 +605,9 @@ export class DashboardComponent implements OnInit {
       : 'Not specified';
   }
 
-  /**
-   * Get lender company name from all possible locations
-   */
-  /**
-   * Get lender company name from all possible locations
-   */
-  /**
-   * Get lender company name from all possible locations based on the Lender interface
-   */
+  /* Get lender company name from all possible locations*/
+  /*Get lender company name from all possible locations*/
+  /*Get lender company name from all possible locations based on the Lender interface*/
   getLenderCompanyName(lenderFavorite: any): string {
     if (!lenderFavorite.lenderData) {
       return 'Unknown Company';
@@ -818,6 +821,11 @@ export class DashboardComponent implements OnInit {
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(numValue);
+  }
+
+  getFormattedStateName(state?: string): string {
+    if (!state) return '';
+    return this.locationService.formatValueForDisplay(state);
   }
 
   /**
