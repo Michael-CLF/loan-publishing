@@ -77,6 +77,23 @@ button {
   background-color: #272727;
 }
 
+.dash-btn {
+  background-color: #008080;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-family: "Roboto", sans-serif;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.dash-btn:hover {
+  background-color: #0a2463;
+}
+
 @media (max-width: 768px) {
   .filter-group {
     min-width: 100%;

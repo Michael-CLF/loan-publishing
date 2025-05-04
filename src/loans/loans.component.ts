@@ -256,6 +256,8 @@ export class LoansComponent implements OnInit {
   }
 
   handleFilterApply(filters: LoanFilters): void {
+    console.log('Applying filters:', filters);
+
     const filteredResults = this.allLoans().filter((loan) => {
       // Filter by property type
       if (
@@ -275,24 +277,55 @@ export class LoansComponent implements OnInit {
         return false;
       }
 
+      // Parse loan amount - remove any formatting characters
+      const loanAmountString = String(loan.loanAmount || '0');
+      const loanAmount = Number(loanAmountString.replace(/[^0-9.-]/g, ''));
+
+      // Parse min amount - remove any formatting characters
+      let minAmount = 0;
+      if (filters.minAmount) {
+        const minAmountString = String(filters.minAmount);
+        minAmount = Number(minAmountString.replace(/[^0-9.-]/g, ''));
+      }
+
+      // Parse max amount - remove any formatting characters
+      let maxAmount = Number.MAX_VALUE; // Default to a very high number
+      if (filters.maxAmount) {
+        const maxAmountString = String(filters.maxAmount);
+        maxAmount = Number(maxAmountString.replace(/[^0-9.-]/g, ''));
+      }
+
+      // Debug values
+      console.log(
+        `Loan: ${loan.id}, Amount: ${loanAmount}, Min: ${minAmount}, Max: ${maxAmount}`
+      );
+
+      // Check for NaN values
+      if (isNaN(loanAmount)) {
+        console.warn(
+          `Invalid loan amount for loan ${loan.id}: ${loan.loanAmount}`
+        );
+        return false; // Filter out loans with invalid amounts
+      }
+
       // Filter by min amount
-      if (
-        filters.minAmount &&
-        Number(loan.loanAmount) < Number(filters.minAmount)
-      ) {
+      if (filters.minAmount && !isNaN(minAmount) && loanAmount < minAmount) {
         return false;
       }
 
       // Filter by max amount
-      if (
-        filters.maxAmount &&
-        Number(loan.loanAmount) > Number(filters.maxAmount)
-      ) {
+      if (filters.maxAmount && !isNaN(maxAmount) && loanAmount > maxAmount) {
         return false;
       }
 
       return true;
     });
+
+    console.log(
+      `Filtered from ${this.allLoans().length} to ${
+        filteredResults.length
+      } loans`
+    );
 
     // Update the displayed loans with the filtered results
     this.loans.set(filteredResults);

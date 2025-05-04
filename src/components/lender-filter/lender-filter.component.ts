@@ -3,7 +3,7 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LenderFilterService } from '../../services/lender-filter.service';
 import { LenderFilters, FilterOption } from '../../models/lender-filters.model';
-import { Router, RouterModule } from '@angular/router';
+import { RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-lender-filter',
