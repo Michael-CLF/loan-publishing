@@ -3,7 +3,6 @@ import { BaseUser, UserData } from './user-data.model';
 
 /**
  * Lender interface representing users in the 'lenders' collection
- * Previously considered part of 'UserData'
  */
 export interface Lender extends BaseUser {
   // Make role optional to match BaseUser

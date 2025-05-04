@@ -1,8 +1,17 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
 .content-wrapper {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
 }
-router-outlet + * {
+
+router-outlet,
+.content-outlet-container {
+  display: block;
   flex: 1;
 }

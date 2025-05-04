@@ -16,6 +16,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
 import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
+import { LocationService } from '../../services/location.service';
 
 @Component({
   selector: 'app-lender-details',
@@ -41,6 +42,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
+  private locationService = inject(LocationService);
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe((user) => {
@@ -233,7 +235,12 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   getLocation(): string {
     const city = this.lender?.contactInfo?.city || '';
     const state = this.lender?.contactInfo?.state || '';
-    return city && state ? `${city}, ${state}` : 'Not specified';
+
+    if (city && state) {
+      return `${city}, ${this.locationService.formatValueForDisplay(state)}`;
+    }
+
+    return 'Not specified';
   }
 
   // Product Info Methods
@@ -330,7 +337,12 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   getLoanTypesArray(): string[] {
-    return this.lender?.productInfo?.loanTypes?.map(this.getLoanTypeName) || [];
+    const loanTypes =
+      this.lender?.productInfo?.loanTypes?.map(
+        (lt: any) => lt.name || this.getLoanTypeName(lt.value)
+      ) || [];
+
+    return loanTypes.sort((a: string, b: string) => a.localeCompare(b));
   }
 
   getPropertyTypes(): string {
@@ -360,10 +372,11 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   getLendingStatesArray(): string[] {
-    return this.getLendingStates()
-      .split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    if (!this.lender?.footprintInfo?.lendingFootprint) return [];
+
+    return this.lender.footprintInfo.lendingFootprint
+      .map((state) => this.locationService.formatValueForDisplay(state))
+      .filter((state) => state.length > 0);
   }
 
   // Subcategories Methods

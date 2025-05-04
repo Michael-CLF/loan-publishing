@@ -8,7 +8,7 @@ import {
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { CommonModule } from '@angular/common';
-import { User } from '@angular/fire/auth';
+import { ModalService } from '../services/modal.service';
 
 @Component({
   selector: 'app-email-login',
@@ -22,6 +22,7 @@ export class EmailLoginComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
+  private modalService = inject(ModalService);
 
   loginForm: FormGroup;
   isLoading = false;
@@ -34,6 +35,10 @@ export class EmailLoginComponent implements OnInit {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
     });
+  }
+
+  openRoleSelectionModal(): void {
+    this.modalService.openRoleSelectionModal();
   }
 
   ngOnInit(): void {

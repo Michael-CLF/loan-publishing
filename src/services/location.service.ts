@@ -7,6 +7,19 @@ import { FootprintLocation } from '../models/footprint-location.model';
 })
 export class LocationService {
   /**
+   * Formats a value for display, capitalizing each word and replacing hyphens with spaces
+   * @param formattedValue The lowercase hyphenated value (e.g., "rhode-island")
+   * @returns The properly formatted display text (e.g., "Rhode Island")
+   */
+  formatValueForDisplay(formattedValue: string): string {
+    if (!formattedValue) return '';
+
+    return formattedValue
+      .split('-')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+  }
+  /**
    * Retrieves states and counties data formatted for footprint location
    */
   getFootprintLocations(): FootprintLocation[] {

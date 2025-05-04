@@ -98,14 +98,17 @@
 }
 
 .details-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
 }
 
 .detail-item {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: baseline;
+  min-width: 45%;
+  gap: 10px;
 }
 
 .full-width {
