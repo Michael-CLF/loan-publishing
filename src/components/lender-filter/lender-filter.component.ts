@@ -3,11 +3,12 @@ import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LenderFilterService } from '../../services/lender-filter.service';
 import { LenderFilters, FilterOption } from '../../models/lender-filters.model';
+import { Router, RouterModule } from '@angular/router';
 
 @Component({
   selector: 'app-lender-filter',
   standalone: true,
-  imports: [CommonModule, FormsModule, CurrencyPipe],
+  imports: [CommonModule, FormsModule, CurrencyPipe, RouterModule],
   templateUrl: './lender-filter.component.html',
   styleUrl: './lender-filter.component.css',
 })

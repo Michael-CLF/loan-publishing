@@ -63,6 +63,7 @@ button {
 .apply-btn {
   background-color: #0a2463;
   color: white;
+  font-family: "Roboto", sans-serif;
 }
 
 .apply-btn:hover {
@@ -72,10 +73,28 @@ button {
 .reset-btn {
   background-color: #6c757d;
   color: white;
+  font-family: "Roboto", sans-serif;
 }
 
 .reset-btn:hover {
   background-color: #272727;
+}
+
+.dash-btn {
+  background-color: #008080;
+  color: white;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  font-family: "Roboto", sans-serif;
+  text-decoration: none;
+  display: inline-block;
+  cursor: pointer;
+  margin-right: 8px;
+}
+
+.dash-btn:hover {
+  background-color: #0a2463;
 }
 
 @media (max-width: 768px) {
