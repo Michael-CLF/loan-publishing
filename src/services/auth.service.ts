@@ -637,9 +637,6 @@ export class AuthService implements OnDestroy {
     );
   }
 
-  /**
-   * Register a new user
-   */
   registerUser(
     email: string,
     password: string,
@@ -663,78 +660,100 @@ export class AuthService implements OnDestroy {
       switchMap((cred) => {
         const firebaseUser = cred.user;
 
-        // Create base user data for users collection
-        const userData = {
-          uid: firebaseUser.uid,
-          id: firebaseUser.uid,
-          email: normalizedEmail,
-          firstName: additionalData.firstName || '',
-          lastName: additionalData.lastName || '',
-          company: additionalData.company || '',
-          phone: additionalData.phone || '',
-          city: additionalData.city || '',
-          state: additionalData.state || '',
-          role: role,
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
+        if (role === 'lender') {
+          // For lenders, only create a document in the lenders collection
+          const lenderData = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            email: normalizedEmail,
+            firstName: additionalData.firstName || '',
+            lastName: additionalData.lastName || '',
+            company: additionalData.company || '',
+            phone: additionalData.phone || '',
+            city: additionalData.city || '',
+            state: additionalData.state || '',
+            role: role,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            contactInfo: {
+              firstName: additionalData.firstName || '',
+              lastName: additionalData.lastName || '',
+              contactEmail: normalizedEmail,
+              contactPhone: additionalData.phone || '',
+              company: additionalData.company || '',
+              city: additionalData.city || '',
+              state: additionalData.state || '',
+            },
+          };
 
-        // First save to the users collection (for all user types)
-        return from(
-          this.firestoreService.setDocument(
-            `users/${firebaseUser.uid}`,
-            userData
-          )
-        ).pipe(
-          switchMap(() => {
-            console.log('User document created in users collection');
+          // Save only to lenders collection
+          return from(
+            this.firestoreService.setDocument(
+              `lenders/${firebaseUser.uid}`,
+              lenderData
+            )
+          ).pipe(
+            map(() => {
+              console.log('Lender document created in lenders collection');
+              return firebaseUser;
+            }),
+            catchError((error) => {
+              console.error('Error creating lender document:', error);
+              // If document creation fails, attempt to delete the Firebase Auth user
+              if (firebaseUser) {
+                firebaseUser.delete().catch((deleteError) => {
+                  console.error(
+                    'Failed to delete Firebase Auth user after document creation error:',
+                    deleteError
+                  );
+                });
+              }
+              return throwError(() => error);
+            })
+          );
+        } else {
+          // For originators, only create a document in the users collection
+          const userData = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            email: normalizedEmail,
+            firstName: additionalData.firstName || '',
+            lastName: additionalData.lastName || '',
+            company: additionalData.company || '',
+            phone: additionalData.phone || '',
+            city: additionalData.city || '',
+            state: additionalData.state || '',
+            role: role,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
 
-            // Now create a standardized contact structure in the role-specific collection
-            const contactData = {
-              userId: firebaseUser.uid,
-              contactInfo: {
-                firstName: additionalData.firstName || '',
-                lastName: additionalData.lastName || '',
-                contactEmail: normalizedEmail, // Store email in contactEmail field
-                contactPhone: additionalData.phone || '',
-                company: additionalData.company || '',
-                city: additionalData.city || '',
-                state: additionalData.state || '',
-              },
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              role: role,
-            };
-
-            // Determine the collection based on role
-            const collection = role === 'lender' ? 'lenders' : 'originators';
-
-            // Create document in role-specific collection with standardized structure
-            return from(
-              this.firestoreService.setDocument(
-                `${collection}/${firebaseUser.uid}`,
-                contactData
-              )
-            );
-          }),
-          map(() => {
-            console.log('User registration completed successfully');
-            return firebaseUser;
-          }),
-          catchError((error) => {
-            console.error('Error creating user documents:', error);
-            // If document creation fails, attempt to delete the Firebase Auth user
-            if (firebaseUser) {
-              firebaseUser.delete().catch((deleteError) => {
-                console.error(
-                  'Failed to delete Firebase Auth user after document creation error:',
-                  deleteError
-                );
-              });
-            }
-            return throwError(() => error);
-          })
-        );
+          // Save only to users collection
+          return from(
+            this.firestoreService.setDocument(
+              `users/${firebaseUser.uid}`,
+              userData
+            )
+          ).pipe(
+            map(() => {
+              console.log('Originator document created in users collection');
+              return firebaseUser;
+            }),
+            catchError((error) => {
+              console.error('Error creating user document:', error);
+              // If document creation fails, attempt to delete the Firebase Auth user
+              if (firebaseUser) {
+                firebaseUser.delete().catch((deleteError) => {
+                  console.error(
+                    'Failed to delete Firebase Auth user after document creation error:',
+                    deleteError
+                  );
+                });
+              }
+              return throwError(() => error);
+            })
+          );
+        }
       }),
       catchError((err) => {
         console.error('Registration error:', err);

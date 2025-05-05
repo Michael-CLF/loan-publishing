@@ -1,11 +1,17 @@
-import { Component, OnInit, inject } from '@angular/core';
+import {
+  Component,
+  OnInit,
+  inject,
+  Injector,
+  runInInjectionContext,
+} from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
   ReactiveFormsModule,
   Validators,
 } from '@angular/forms';
-import { PasswordAuthService } from '../services/password-auth.service';
+import { AuthService } from '../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -14,6 +20,8 @@ import { of } from 'rxjs';
 import { VerificationCodeService } from '../services/verification-code.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
+import { usaStatesWithCounties } from 'typed-usa-states/dist/states-with-counties';
+import { LocationService } from 'src/services/location.service';
 
 export interface StateOption {
   value: string;
@@ -35,11 +43,13 @@ export interface UserTypeOption {
 })
 export class UserFormComponent implements OnInit {
   private fb = inject(FormBuilder);
-  private passwordAuthService = inject(PasswordAuthService);
+  private authService = inject(AuthService);
   private router = inject(Router);
   private emailService = inject(EmailService);
   private verificationService = inject(VerificationCodeService);
   private modalService = inject(ModalService); // Inject ModalService
+  private readonly locationService = inject(LocationService);
+  private injector = inject(Injector);
 
   userForm!: FormGroup;
   isLoading = false;
@@ -54,62 +64,17 @@ export class UserFormComponent implements OnInit {
     { value: 'mortgage-company', name: 'Mortgage Company' },
   ];
 
-  // Define all US states
-  states: StateOption[] = [
-    { value: 'AL', name: 'Alabama' },
-    { value: 'AK', name: 'Alaska' },
-    { value: 'AZ', name: 'Arizona' },
-    { value: 'AR', name: 'Arkansas' },
-    { value: 'CA', name: 'California' },
-    { value: 'CO', name: 'Colorado' },
-    { value: 'CT', name: 'Connecticut' },
-    { value: 'DE', name: 'Delaware' },
-    { value: 'FL', name: 'Florida' },
-    { value: 'GA', name: 'Georgia' },
-    { value: 'HI', name: 'Hawaii' },
-    { value: 'ID', name: 'Idaho' },
-    { value: 'IL', name: 'Illinois' },
-    { value: 'IN', name: 'Indiana' },
-    { value: 'IA', name: 'Iowa' },
-    { value: 'KS', name: 'Kansas' },
-    { value: 'KY', name: 'Kentucky' },
-    { value: 'LA', name: 'Louisiana' },
-    { value: 'ME', name: 'Maine' },
-    { value: 'MD', name: 'Maryland' },
-    { value: 'MA', name: 'Massachusetts' },
-    { value: 'MI', name: 'Michigan' },
-    { value: 'MN', name: 'Minnesota' },
-    { value: 'MS', name: 'Mississippi' },
-    { value: 'MO', name: 'Missouri' },
-    { value: 'MT', name: 'Montana' },
-    { value: 'NE', name: 'Nebraska' },
-    { value: 'NV', name: 'Nevada' },
-    { value: 'NH', name: 'New Hampshire' },
-    { value: 'NJ', name: 'New Jersey' },
-    { value: 'NM', name: 'New Mexico' },
-    { value: 'NY', name: 'New York' },
-    { value: 'NC', name: 'North Carolina' },
-    { value: 'ND', name: 'North Dakota' },
-    { value: 'OH', name: 'Ohio' },
-    { value: 'OK', name: 'Oklahoma' },
-    { value: 'OR', name: 'Oregon' },
-    { value: 'PA', name: 'Pennsylvania' },
-    { value: 'RI', name: 'Rhode Island' },
-    { value: 'SC', name: 'South Carolina' },
-    { value: 'SD', name: 'South Dakota' },
-    { value: 'TN', name: 'Tennessee' },
-    { value: 'TX', name: 'Texas' },
-    { value: 'UT', name: 'Utah' },
-    { value: 'VT', name: 'Vermont' },
-    { value: 'VA', name: 'Virginia' },
-    { value: 'WA', name: 'Washington' },
-    { value: 'WV', name: 'West Virginia' },
-    { value: 'WI', name: 'Wisconsin' },
-    { value: 'WY', name: 'Wyoming' },
-    { value: 'DC', name: 'District of Columbia' },
-  ];
+  // Define all US states - using the same approach as lender registration
+  states: StateOption[] = [];
 
   ngOnInit(): void {
+    // Use the LocationService to get states in the same format as lender registration
+    const footprintLocations = this.locationService.getFootprintLocations();
+    this.states = footprintLocations.map((location) => ({
+      value: location.value,
+      name: location.name,
+    }));
+
     this.userForm = this.fb.group({
       firstName: [
         '',
@@ -193,12 +158,11 @@ export class UserFormComponent implements OnInit {
 
     const formData = this.userForm.value;
 
-    // For direct registration without email verification
-    this.passwordAuthService
-      .registerUser(
-        formData.email,
-        'defaultPassword123', // You can generate a random password or use a default one
-        {
+    // Run Firebase operations inside injection context for consistency with LenderRegistrationComponent
+    runInInjectionContext(this.injector, () => {
+      // For direct registration without email verification
+      this.authService
+        .registerUser(formData.email, 'defaultPassword123', {
           firstName: formData.firstName,
           lastName: formData.lastName,
           company: formData.company,
@@ -207,32 +171,26 @@ export class UserFormComponent implements OnInit {
           city: formData.city,
           state: formData.state,
           role: 'originator',
-        }
-      )
-      .pipe(
-        tap(() => {
-          this.isLoading = false;
-
-          // Show success modal
-          this.modalService.openUserRegSuccessModal();
-
-          // Clear form
-          this.userForm.reset();
-        }),
-        catchError((error) => {
-          this.isLoading = false;
-          console.error('Registration error:', error);
-
-          if (error.code === 'auth/email-already-in-use') {
-            this.errorMessage =
-              'This email is already registered. Please use a different email or login with your existing account.';
-          } else {
-            this.errorMessage = 'Registration failed. Please try again.';
-          }
-
-          return of(null);
         })
-      )
-      .subscribe();
+        .pipe(
+          tap(() => {
+            this.isLoading = false;
+            this.modalService.openUserRegSuccessModal();
+            this.userForm.reset();
+          }),
+          catchError((error) => {
+            this.isLoading = false;
+            console.error('Registration error:', error);
+            if (error.code === 'auth/email-already-in-use') {
+              this.errorMessage =
+                'This email is already registered. Please use a different email or login with your existing account.';
+            } else {
+              this.errorMessage = 'Registration failed. Please try again.';
+            }
+            return of(null);
+          })
+        )
+        .subscribe();
+    });
   }
 }

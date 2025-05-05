@@ -122,6 +122,9 @@ export class NavbarComponent implements OnInit, OnDestroy {
   /**
    * Load user data from Firestore
    */
+  /**
+   * Load user data from Firestore
+   */
   loadUserData(): void {
     console.log('NavbarComponent - Loading user data...');
     this.loading = true;
@@ -152,38 +155,63 @@ export class NavbarComponent implements OnInit, OnDestroy {
           if (docSnap.exists()) {
             const data = docSnap.data();
 
+            // For lenders: extract state from contactInfo
+            let stateValue = '';
             if (role === 'lender') {
-              // For lenders, structure uses contactInfo nested object
-              this.userData = {
-                id: docSnap.id,
-                firstName: data['contactInfo']?.firstName || '',
-                lastName: data['contactInfo']?.lastName || '',
-                email: data['contactInfo']?.contactEmail || '',
-                phone: data['contactInfo']?.contactPhone || '',
-                city: data['contactInfo']?.city || '',
-                state: data['contactInfo']?.state || '',
-                company:
-                  data['company'] ||
-                  (data['contactInfo'] && data['contactInfo.company']) ||
-                  '',
-                role: data['role'] || '',
-                accountNumber: this.accountNumber,
-              };
+              stateValue = data['contactInfo']?.state || '';
             } else {
-              // For originators, structure has properties at top level
-              this.userData = {
-                id: docSnap.id,
-                firstName: data['firstName'] || '',
-                lastName: data['lastName'] || '',
-                email: data['email'] || '',
-                phone: data['phone'] || '',
-                city: data['city'] || '',
-                state: data['state'] || '',
-                company: data['company'] || '',
-                role: data['role'] || '',
-                accountNumber: this.accountNumber,
-              };
+              stateValue = data['state'] || '';
             }
+
+            const toTitleCase = (str: string): string => {
+              if (!str) return '';
+              return str
+                .split(' ')
+                .map(
+                  (word) =>
+                    word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+                )
+                .join(' ');
+            };
+
+            const titleCaseState = toTitleCase(stateValue);
+
+            this.userData = {
+              id: docSnap.id,
+              firstName:
+                role === 'lender'
+                  ? data['contactInfo']?.firstName || ''
+                  : data['firstName'] || '',
+              lastName:
+                role === 'lender'
+                  ? data['contactInfo']?.lastName || ''
+                  : data['lastName'] || '',
+              email:
+                role === 'lender'
+                  ? data['contactInfo']?.contactEmail ||
+                    data['contactInfo']?.email ||
+                    ''
+                  : data['email'] || '',
+              phone:
+                role === 'lender'
+                  ? data['contactInfo']?.contactPhone ||
+                    data['contactInfo']?.phone ||
+                    ''
+                  : data['phone'] || '',
+              city:
+                role === 'lender'
+                  ? data['contactInfo']?.city || ''
+                  : data['city'] || '',
+              state: titleCaseState,
+              company:
+                role === 'lender'
+                  ? data['company'] || data['contactInfo']?.company || ''
+                  : data['company'] || '',
+              role: data['role'] || role,
+              accountNumber: this.accountNumber,
+            };
+
+            console.log('Final userData with uppercase state:', this.userData);
 
             if (this.userData.email && this.userData.email !== user.email) {
               console.warn('NavbarComponent - Email mismatch!', {

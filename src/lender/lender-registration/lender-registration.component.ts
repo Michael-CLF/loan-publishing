@@ -33,7 +33,6 @@ import { AuthService } from '../../services/auth.service';
 import { FirestoreService } from '../../services/firestore.service';
 import { Firestore, doc } from '@angular/fire/firestore';
 import { collection } from '@angular/fire/firestore';
-import { PasswordAuthService } from '../../services/password-auth.service';
 import { ModalService } from '../../services/modal.service';
 import { getUserId } from '../../utils/user-helpers';
 import { StepManagementService } from './step-management';
@@ -99,7 +98,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private firestoreService = inject(FirestoreService);
   private firestore = inject(Firestore);
-  private passwordAuthService = inject(PasswordAuthService);
   private modalService = inject(ModalService);
   private injector = inject(Injector);
   public stepService = inject(StepManagementService);
@@ -999,7 +997,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     // Run all Firebase operations inside injection context
     runInInjectionContext(this.injector, () => {
       // Create Firebase Auth user
-      this.passwordAuthService
+      this.authService // Changed from passwordAuthService to authService
         .registerUser(email, 'defaultPassword', {
           company: formData.contactInfo?.company,
           firstName: formData.contactInfo?.firstName,
