@@ -1,7 +1,10 @@
 import { ApplicationConfig, importProvidersFrom } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
-import { provideAnimations } from '@angular/platform-browser/animations';
+import {
+  provideAnimations,
+  provideNoopAnimations,
+} from '@angular/platform-browser/animations';
 
 // Firebase imports
 import { initializeApp, provideFirebaseApp } from '@angular/fire/app';
@@ -23,5 +26,6 @@ export const appConfig: ApplicationConfig = {
     provideFunctions(() => getFunctions()),
     provideStorage(() => getStorage()),
     provideFunctions(() => getFunctions()),
+    provideNoopAnimations(),
   ],
 };
