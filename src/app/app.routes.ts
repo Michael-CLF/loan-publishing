@@ -20,8 +20,12 @@ import { EditAccountComponent } from 'src/edit-account/edit-account.component';
 import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
 import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { VerificationComponent } from 'src/components/verification/verification.component';
+import { AdminAuthGuard } from 'src/services/admin-auth.guard';
+import { AdminComponent } from 'src/components/admin/admin.component';
 
 export const routes: Routes = [
+  { path: 'admin', component: AdminComponent },
+
   {
     path: 'account/edit',
     component: EditAccountComponent,
