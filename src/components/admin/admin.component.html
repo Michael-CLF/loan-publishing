@@ -19,7 +19,7 @@
     <!-- Admin Dashboard (only shown after authentication) -->
     <div *ngIf="adminAuthenticated()" class="admin-dashboard">
         <div class="admin-header">
-            <h1>Admin Dashboard</h1>
+            <h1 class="admin-dash-title">Admin Dashboard</h1>
             <button class="exit-btn" (click)="exitAdminMode()">Exit Admin Mode</button>
         </div>
 
@@ -36,18 +36,18 @@
         <div *ngIf="!loading() && !error()" class="admin-content">
             <div class="stats-container">
                 <div class="stat-card">
-                    <h3>Total Originators</h3>
+                    <h3 class="sub-title">Total Originators</h3>
                     <span class="stat-value">{{ originators().length }}</span>
                 </div>
                 <div class="stat-card">
-                    <h3>Total Lenders</h3>
+                    <h3 class="sub-title">Total Lenders</h3>
                     <span class="stat-value">{{ lenders().length }}</span>
                 </div>
             </div>
 
             <!-- Originators Section -->
             <div class="section-container">
-                <h2>Originators</h2>
+                <h2 class="sub-title">Originators</h2>
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
@@ -77,7 +77,7 @@
 
             <!-- Lenders Section -->
             <div class="section-container">
-                <h2>Lenders</h2>
+                <h2 class="sub-title">Lenders</h2>
                 <div class="table-container">
                     <table class="data-table">
                         <thead>
