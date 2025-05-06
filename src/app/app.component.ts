@@ -15,6 +15,8 @@ import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
 
+declare let gtag: Function;
+
 @Component({
   selector: 'app-root',
   standalone: true,
@@ -30,8 +32,16 @@ import { filter, take, switchMap, tap } from 'rxjs/operators';
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
-  title = 'loanpost';
-  // No authInitialized property - it's causing errors
+  title = 'Daily Loan Post';
+  constructor() {
+    this.router.events
+      .pipe(filter((event) => event instanceof NavigationEnd))
+      .subscribe((event: NavigationEnd) => {
+        gtag('config', 'G-MPD1MG3MVJ', {
+          page_path: event.urlAfterRedirects,
+        });
+      });
+  }
 
   // Force injection of Auth service
   private auth = inject(Auth);
