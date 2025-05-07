@@ -31,6 +31,16 @@ export class AdminComponent implements OnInit {
   loading = signal(false);
   error = signal<string | null>(null);
 
+  // Table columns configuration for consistent display
+  tableColumns = [
+    { key: 'name', label: 'Name', width: '20%' },
+    { key: 'email', label: 'Email', width: '20%' },
+    { key: 'company', label: 'Company', width: '20%' },
+    { key: 'location', label: 'Location', width: '15%' },
+    { key: 'accountNumber', label: 'Account#', width: '10%' },
+    { key: 'created', label: 'Created', width: '15%' },
+  ];
+
   ngOnInit() {
     // Check if already authenticated from previous session
     const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
@@ -61,18 +71,46 @@ export class AdminComponent implements OnInit {
       // Load originators from 'users' collection
       const usersQuery = collection(this.firestore, 'users');
       const usersSnapshot = await getDocs(usersQuery);
-      const originatorsData = usersSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const originatorsData = usersSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          accountNumber: doc.id.substring(0, 8).toUpperCase(), // Add account number
+          firstName: data['firstName'] || '',
+          lastName: data['lastName'] || '',
+          email: data['email'] || '',
+          company: data['company'] || '',
+          city: data['city'] || '',
+          state: data['state'] || '',
+          createdAt: data['createdAt'],
+          role: 'originator',
+        };
+      });
 
       // Load lenders from 'lenders' collection
       const lendersQuery = collection(this.firestore, 'lenders');
       const lendersSnapshot = await getDocs(lendersQuery);
-      const lendersData = lendersSnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
+      const lendersData = lendersSnapshot.docs.map((doc) => {
+        const data = doc.data();
+        const contactInfo = data['contactInfo'] || {};
+
+        return {
+          id: doc.id,
+          accountNumber: doc.id.substring(0, 8).toUpperCase(), // Add account number
+          firstName: contactInfo['firstName'] || '',
+          lastName: contactInfo['lastName'] || '',
+          email: contactInfo['contactEmail'] || '',
+          company: data['company'] || contactInfo['company'] || '',
+          city: contactInfo['city'] || '',
+          state: contactInfo['state'] || '',
+          // Ensure createdAt exists - add fallback
+          createdAt: data['createdAt'] || new Date(),
+          role: 'lender',
+        };
+      });
+
+      console.log('Originators data:', originatorsData);
+      console.log('Lenders data:', lendersData);
 
       // Update signals
       this.lenders.set(lendersData);
@@ -107,5 +145,22 @@ export class AdminComponent implements OnInit {
     localStorage.removeItem('adminAccess');
     this.adminAuthenticated.set(false);
     this.router.navigate(['/dashboard']);
+  }
+
+  // Get full name from first and last name
+  getFullName(user: any): string {
+    return `${user.firstName || ''} ${user.lastName || ''}`.trim() || 'N/A';
+  }
+
+  // Get location from city and state
+  getLocation(user: any): string {
+    if (user.city && user.state) {
+      return `${user.city}, ${user.state}`;
+    } else if (user.city) {
+      return user.city;
+    } else if (user.state) {
+      return user.state;
+    }
+    return 'N/A';
   }
 }

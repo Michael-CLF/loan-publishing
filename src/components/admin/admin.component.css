@@ -157,3 +157,105 @@ input {
     border: none;
   }
 }
+.stats-two-column {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+}
+
+.tables-two-column {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 150px;
+  margin-top: 30px;
+}
+
+.tables-two-column .section-container {
+  flex: 1 1 48%;
+}
+
+.section-container {
+  width: 100%;
+  max-width: 100%;
+  flex: 1 1 100%;
+}
+.table-container {
+  overflow-x: auto;
+  width: 100%;
+  overflow-x: auto;
+  margin-top: 10px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+.tables-two-column .section-container {
+  flex: 1 1 100%;
+}
+/* Increased spacing between rows in the lender table */
+.data-table tbody tr {
+  height: 50px; /* Adds more height to each row */
+}
+
+/* Even more distinct alternating colors */
+.data-table tbody tr.row-even {
+  background-color: #f4f6f6; /* Light gray */
+}
+
+.data-table tbody tr.row-odd {
+  background-color: #e1eeff; /* Light blue */
+}
+
+/* Add a subtle separator between rows */
+.data-table tbody tr:not(:last-child) {
+  border-bottom: 3px solid #ffffff;
+}
+
+.data-table {
+  width: 100%;
+}
+
+.stats-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  justify-content: space-between;
+  margin-bottom: 40px;
+}
+
+.stat-card {
+  background-color: #ffffff;
+  border-radius: 8px;
+  padding: 30px 20px;
+  flex: 1 1 48%;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+.stat-card h3 {
+  margin: 0 0 10px;
+  font-size: 2rem;
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+}
+
+.stat-value {
+  color: #0a2463;
+  font-size: 2rem;
+  font-family: "roboto", sans-serif;
+}
+
+.user-label,
+.user-value {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+}
+
+.user-label {
+  font-size: 1.2rem;
+  font-weight: 500;
+}
+
+@media (max-width: 768px) {
+  .stats-two-column,
+  .tables-two-column {
+    flex-direction: column;
+  }
+}

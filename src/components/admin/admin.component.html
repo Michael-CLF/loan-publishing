@@ -16,35 +16,21 @@
         </div>
     </div>
 
-    <!-- Admin Dashboard (only shown after authentication) -->
-    <div *ngIf="adminAuthenticated()" class="admin-dashboard">
-        <div class="admin-header">
-            <h1 class="admin-dash-title">Admin Dashboard</h1>
-            <button class="exit-btn" (click)="exitAdminMode()">Exit Admin Mode</button>
-        </div>
-
-        <div *ngIf="loading()" class="loading-container">
-            <div class="spinner"></div>
-            <p>Loading user data...</p>
-        </div>
-
-        <div *ngIf="error()" class="error-container">
-            <p class="error-message">{{ error() }}</p>
-            <button class="retry-btn" (click)="loadAllUsers()">Try Again</button>
-        </div>
-
-        <div *ngIf="!loading() && !error()" class="admin-content">
-            <div class="stats-container">
-                <div class="stat-card">
-                    <h3 class="sub-title">Total Originators</h3>
-                    <span class="stat-value">{{ originators().length }}</span>
-                </div>
-                <div class="stat-card">
-                    <h3 class="sub-title">Total Lenders</h3>
-                    <span class="stat-value">{{ lenders().length }}</span>
-                </div>
+    <div *ngIf="!loading() && !error()" class="admin-content">
+        <!-- Stats: Total Originators & Lenders side by side -->
+        <div class="stats-container stats-two-column">
+            <div class="stat-card">
+                <h3 class="sub-title">Total Originators</h3>
+                <span class="stat-value">{{ originators().length }}</span>
             </div>
+            <div class="stat-card">
+                <h3 class="sub-title">Total Lenders</h3>
+                <span class="stat-value">{{ lenders().length }}</span>
+            </div>
+        </div>
 
+        <!-- Tables: Originators & Lenders side by side -->
+        <div class="tables-two-column">
             <!-- Originators Section -->
             <div class="section-container">
                 <h2 class="sub-title">Originators</h2>
@@ -52,23 +38,26 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Company</th>
-                                <th>Location</th>
-                                <th>Created</th>
+                                <th class="user-label">Name</th>
+                                <th class="user-label">Email</th>
+                                <th class="user-label">Company</th>
+                                <th class="user-label">Location</th>
+                                <th class="user-label">Account#</th>
+                                <th class="user-label">Created</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let user of originators()">
-                                <td>{{ user.firstName }} {{ user.lastName }}</td>
-                                <td>{{ user.email }}</td>
-                                <td>{{ user.company || 'N/A' }}</td>
-                                <td>{{ user.city }}, {{ user.state }}</td>
-                                <td>{{ formatDate(user.createdAt) }}</td>
+                            <tr *ngFor="let user of originators(); let i = index"
+                                [ngClass]="{'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0}">
+                                <td class="user-value">{{ user.firstName }} {{ user.lastName }}</td>
+                                <td class="user-value">{{ user.email }}</td>
+                                <td class="user-value">{{ user.company || 'N/A' }}</td>
+                                <td class="user-value">{{ user.city }}, {{ user.state }}</td>
+                                <th class="user-value">{{ user.accountNumber }}</th>
+                                <td class="user-value">{{ formatDate(user.createdAt) }}</td>
                             </tr>
                             <tr *ngIf="originators().length === 0">
-                                <td colspan="5" class="no-data">No originators found</td>
+                                <td colspan="6" class="no-data">No originators found</td>
                             </tr>
                         </tbody>
                     </table>
@@ -82,23 +71,26 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th>Name</th>
-                                <th>Email</th>
-                                <th>Company</th>
-                                <th>Location</th>
-                                <th>Created</th>
+                                <th class="user-label">Name</th>
+                                <th class="user-label">Email</th>
+                                <th class="user-label">Company</th>
+                                <th class="user-label">Location</th>
+                                <th class="user-label">Account#</th>
+                                <th class="user-label">Created</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let lender of lenders()">
-                                <td>{{ lender.firstName }} {{ lender.lastName }}</td>
-                                <td>{{ lender.email }}</td>
-                                <td>{{ lender.company || 'N/A' }}</td>
-                                <td>{{ lender.city }}, {{ lender.state }}</td>
-                                <td>{{ formatDate(lender.createdAt) }}</td>
+                            <tr *ngFor="let lender of lenders(); let i = index"
+                                [ngClass]="{'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0}">
+                                <td class="user-value">{{ lender.firstName }} {{ lender.lastName }}</td>
+                                <td class="user-value">{{ lender.email }}</td>
+                                <td class="user-value">{{ lender.company || 'N/A' }}</td>
+                                <td class="user-value">{{ lender.city }}, {{ lender.state }}</td>
+                                <th class="user-value">{{ lender.accountNumber }}</th>
+                                <td class="user-value">{{ formatDate(lender.createdAt) }}</td>
                             </tr>
                             <tr *ngIf="lenders().length === 0">
-                                <td colspan="5" class="no-data">No lenders found</td>
+                                <td colspan="6" class="no-data">No lenders found</td>
                             </tr>
                         </tbody>
                     </table>
