@@ -8,7 +8,9 @@ import { UserData } from '../models/user-data.model';
 
 export interface Lender {
   id: string;
+  lenderType?: string;
   contactInfo?: {
+    name?: string;
     firstName?: string;
     lastName?: string;
     company?: string;

@@ -106,8 +106,8 @@ export class LenderDashboardComponent implements OnInit {
     Hospitality: '#1b4f72',
     Industrial: '#2c3e50',
     Land: '#023020',
-    'Mixed Use': '#8A2BE2',
-    'Multi-family': '#6c3483',
+    MixedUse: '#8A2BE2',
+    Multifamily: '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#660000',
@@ -178,14 +178,16 @@ export class LenderDashboardComponent implements OnInit {
 
         // Create a minimal Lender object from document data ensuring id is always defined
         const lenderData: Lender = {
-          id: docSnap.id, // This will always be defined as it comes from the docSnap.id
-          name: data['name'] || '',
+          id: docSnap.id,
           lenderType: data['lenderType'] || '',
-          // Add other required properties with defaults
-          propertyCategories: data['propertyCategories'] || [],
-          states: data['states'] || [],
+          contactInfo: {
+            name: data['name'] || '',
+            contactEmail: data['contactEmail'] || '',
+            contactPhone: data['contactPhone'] || '',
+            city: data['city'] || '',
+            state: data['state'] || '',
+          },
           productInfo: data['productInfo'] || {},
-          contactInfo: data['contactInfo'] || {},
           footprintInfo: data['footprintInfo'] || { lendingFootprint: [] },
         };
 
@@ -218,14 +220,11 @@ export class LenderDashboardComponent implements OnInit {
           console.log('Found lender data in users collection:', userData);
 
           // Create a basic lender profile from user data ensuring id is non-optional
+
           const lenderData: Lender = {
-            id: userDocSnap.id, // This comes from the document ID so it's always defined
-            name: `${userData['firstName'] || ''} ${
-              userData['lastName'] || ''
-            }`.trim(),
+            id: userDocSnap.id,
             lenderType: userData['lenderType'] || '',
-            propertyCategories: userData['propertyCategories'] || [],
-            states: userData['states'] || [],
+
             productInfo: {
               minLoanAmount: userData['minLoanAmount'] || 0,
               maxLoanAmount: userData['maxLoanAmount'] || 0,
@@ -236,6 +235,9 @@ export class LenderDashboardComponent implements OnInit {
               propertyTypes: userData['propertyTypes'] || [],
             },
             contactInfo: {
+              name: `${userData['firstName'] || ''} ${
+                userData['lastName'] || ''
+              }`.trim(), // ✅ Moved here
               firstName: userData['firstName'] || '',
               lastName: userData['lastName'] || '',
               contactPhone: userData['phone'] || '',
@@ -244,12 +246,10 @@ export class LenderDashboardComponent implements OnInit {
               state: userData['state'] || '',
             },
             footprintInfo: {
-              lendingFootprint: userData['lendingFootprint'] || [],
+              lendingFootprint:
+                userData['lendingFootprint'] || userData['states'] || [],
             },
           };
-
-          this.lenderData.set(lenderData);
-          return;
         }
       }
 

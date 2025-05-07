@@ -86,8 +86,8 @@ export class DashboardComponent implements OnInit {
     Hospitality: '#1b4f72',
     Industrial: '#2c3e50',
     Land: '#023020',
-    'Mixed Use': '#8A2BE2',
-    'Multi-family': '#6c3483',
+    MixedUse: '#8A2BE2',
+    Multifamily: '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#660000',
@@ -229,8 +229,8 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    // If not found in lenders, try users collection
-    const userDocRef = doc(this.firestore, `users/${fbUser.uid}`);
+    // If not found in lenders, try originators collection
+    const userDocRef = doc(this.firestore, `originators/${fbUser.uid}`);
     const userSnap = await getDoc(userDocRef);
 
     if (userSnap.exists()) {
@@ -268,15 +268,17 @@ export class DashboardComponent implements OnInit {
         role: 'lender',
       };
     } else if (data.role === 'originator') {
-      // It's an originator - check both possible locations for company
       this.userData = {
         id: docSnap.id,
-        company:
-          data.company || (data.contactInfo && data.contactInfo.company) || '',
-        ...data,
-      } as UserData;
-    } else {
-      console.error('DashboardComponent - Unknown user role:', data.role);
+        email: data.contactInfo?.contactEmail || data.email || '',
+        firstName: data.contactInfo?.firstName || data.firstName || '',
+        lastName: data.contactInfo?.lastName || data.lastName || '',
+        phone: data.contactInfo?.contactPhone || data.phone || '',
+        company: data.contactInfo?.company || data.company || '',
+        city: data.contactInfo?.city || data.city || '',
+        state: data.contactInfo?.state || data.state || '',
+        role: 'originator',
+      };
     }
 
     this.userRole = this.userData.role;
@@ -297,6 +299,7 @@ export class DashboardComponent implements OnInit {
     // Final UI update
     this.loading = false;
   }
+
   /**
    * Handle missing user profile
    */
@@ -385,7 +388,7 @@ export class DashboardComponent implements OnInit {
     this.firestoreService.getSavedLoans(userId).subscribe({
       next: (userSavedLoans) => {
         console.log(
-          `Found ${userSavedLoans.length} saved loans for user ${userId}`
+          `Found ${userSavedLoans.length} saved loans for originators ${userId}`
         );
         this.savedLoans.set(userSavedLoans);
         this.savedLoansLoading.set(false);
@@ -967,7 +970,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // Determine the appropriate collection based on user role
-    const collection = this.userRole === 'lender' ? 'lenders' : 'users';
+    const collection = this.userRole === 'lender' ? 'lenders' : 'originators';
     const userDocRef = doc(this.firestore, `${collection}/${this.userData.id}`);
     await deleteDoc(userDocRef);
 

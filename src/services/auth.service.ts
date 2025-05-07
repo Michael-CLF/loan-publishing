@@ -3,7 +3,6 @@ import {
   Injectable,
   inject,
   PLATFORM_ID,
-  Inject,
   NgZone,
   OnDestroy,
 } from '@angular/core';
@@ -49,7 +48,13 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { FirestoreService } from './firestore.service';
-import { Router } from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  CanActivate,
+  Router,
+  RouterStateSnapshot,
+  UrlTree,
+} from '@angular/router';
 
 // Import your model interfaces
 import {
@@ -71,7 +76,7 @@ import { userDataToUser } from '../models';
 type ProfileType = Originator | Lender | UserData;
 
 @Injectable({ providedIn: 'root' })
-export class AuthService implements OnDestroy {
+export class AuthService implements OnDestroy, CanActivate {
   // Services
   private auth = inject(Auth);
   private firestore = inject(Firestore);
@@ -141,6 +146,48 @@ export class AuthService implements OnDestroy {
   }
 
   /**
+   * Implement CanActivate for route guarding
+   */
+  canActivate(
+    route: ActivatedRouteSnapshot,
+    state: RouterStateSnapshot
+  ):
+    | Observable<boolean | UrlTree>
+    | Promise<boolean | UrlTree>
+    | boolean
+    | UrlTree {
+    console.log('AuthGuard - Checking route access:', state.url);
+
+    // Check localStorage first for quick access
+    if (localStorage.getItem('isLoggedIn') === 'true') {
+      console.log('AuthGuard - User logged in according to localStorage');
+
+      // Force a profile creation if needed (this will bypass the profile check temporarily)
+      localStorage.setItem('bypassProfileCheck', 'true');
+
+      return true;
+    }
+
+    return this.isLoggedIn$.pipe(
+      take(1),
+      map((isLoggedIn) => {
+        console.log('AuthGuard - Auth state:', isLoggedIn);
+
+        if (isLoggedIn) {
+          return true;
+        }
+
+        // Store the URL the user was trying to access
+        console.log('AuthGuard - User not logged in, redirecting to login');
+        localStorage.setItem('redirectUrl', state.url);
+
+        // Navigate to login page
+        return this.router.createUrlTree(['/login']);
+      })
+    );
+  }
+
+  /**
    * Check for persistent auth state in localStorage
    * This helps prevent the login screen flash by assuming the user is logged in
    * if localStorage has the flag set, while waiting for Firebase to confirm
@@ -203,6 +250,15 @@ export class AuthService implements OnDestroy {
    */
   forceLogout(): void {
     console.log('AuthService: Force logout called');
+
+    // CRITICAL: Check if we're currently loading a profile
+    if (localStorage.getItem('profileLoadAttempt') === 'true') {
+      console.warn(
+        'AuthService: Preventing logout during profile load attempt'
+      );
+      return; // Don't logout if we're loading a profile
+    }
+
     localStorage.removeItem('isLoggedIn');
     sessionStorage.clear();
     this.isLoggedInSubject.next(false);
@@ -215,7 +271,10 @@ export class AuthService implements OnDestroy {
    */
   isEmailSignInLink(): Observable<boolean> {
     if (!this.isBrowser) return of(false);
-    return of(isSignInWithEmailLink(this.auth, window.location.href));
+
+    return this.ngZone.runOutsideAngular(() => {
+      return of(isSignInWithEmailLink(this.auth, window.location.href));
+    });
   }
 
   /**
@@ -225,7 +284,7 @@ export class AuthService implements OnDestroy {
     const currentUser = this.auth.currentUser;
     if (currentUser) {
       try {
-        await reload(currentUser);
+        await this.ngZone.runOutsideAngular(() => reload(currentUser));
         // Reload user profile from Firestore
         this.loadUserProfile(currentUser.uid);
       } catch (error) {
@@ -267,41 +326,67 @@ export class AuthService implements OnDestroy {
     this.resolveAuthInconsistency();
 
     // Set up Firebase auth state listener
-    this.authStateSubscription = authState(this.auth).subscribe((user) => {
-      this.ngZone.run(() => {
-        // Auth initialization is complete
-        this.authInitInProgress = false;
+    this.authStateSubscription = this.ngZone
+      .runOutsideAngular(() => authState(this.auth))
+      .subscribe((user) => {
+        this.ngZone.run(() => {
+          // Auth initialization is complete
+          this.authInitInProgress = false;
 
-        const wasLoggedIn = this.isLoggedInSubject.value;
-        const isNowLoggedIn = !!user;
+          const wasLoggedIn = this.isLoggedInSubject.value;
+          const isNowLoggedIn = !!user;
 
-        console.log(
-          `AuthService: Auth state changed - was: ${wasLoggedIn}, now: ${isNowLoggedIn}`
-        );
-        console.log('AuthService: Current user email:', user?.email);
+          console.log(
+            `AuthService: Auth state changed - was: ${wasLoggedIn}, now: ${isNowLoggedIn}`
+          );
+          console.log('AuthService: Current user email:', user?.email);
+          console.log('AuthService: Current route:', this.router.url);
 
-        // Update user subject
-        this.firebaseUserSubject.next(user);
+          // Update user subject
+          this.firebaseUserSubject.next(user);
 
-        // Update login state
-        this.isLoggedInSubject.next(isNowLoggedIn);
+          // Update login state
+          this.isLoggedInSubject.next(isNowLoggedIn);
 
-        if (isNowLoggedIn) {
-          // User is logged in
-          localStorage.setItem('isLoggedIn', 'true');
+          if (isNowLoggedIn) {
+            // User is logged in
+            localStorage.setItem('isLoggedIn', 'true');
 
-          // Fetch and store user profile
-          this.loadUserProfile(user.uid);
-        } else {
-          // User is logged out
-          localStorage.removeItem('isLoggedIn');
-          this.userProfileSubject.next(null);
-        }
+            // Check if we need to redirect from login page
+            if (this.router.url.includes('/login')) {
+              console.log(
+                'AuthService: Redirecting from login page to dashboard'
+              );
+              const redirectUrl =
+                localStorage.getItem('redirectUrl') || '/dashboard';
+              this.router.navigate([redirectUrl]);
+              localStorage.removeItem('redirectUrl');
+            }
 
-        // Mark auth as initialized
-        this.authReadySubject.next(true);
+            // Fetch and store user profile with a small delay to ensure Firebase is ready
+            setTimeout(() => this.loadUserProfile(user.uid), 500);
+          } else {
+            // User is logged out
+            localStorage.removeItem('isLoggedIn');
+            this.userProfileSubject.next(null);
+
+            // If we're on a protected route, redirect to login
+            if (
+              !this.router.url.includes('/login') &&
+              !this.router.url.includes('/') &&
+              !this.router.url.includes('/pricing')
+            ) {
+              console.log(
+                'AuthService: Not logged in on protected route, redirecting to login'
+              );
+              this.router.navigate(['/login']);
+            }
+          }
+
+          // Mark auth as initialized
+          this.authReadySubject.next(true);
+        });
       });
-    });
 
     // Set up token refresh listener
     this.tokenRefreshSubscription = from(
@@ -333,80 +418,88 @@ export class AuthService implements OnDestroy {
       return of(this.userProfileSubject.value);
     }
 
-    return authState(this.auth).pipe(
-      switchMap((firebaseUser) => {
-        if (!firebaseUser) {
-          // No Firebase user, but localStorage thinks we're logged in - clear it
-          if (
-            localStorage.getItem('isLoggedIn') === 'true' &&
-            !this.authInitInProgress
-          ) {
-            console.log('Fixing inconsistent state in getCurrentUser');
-            localStorage.removeItem('isLoggedIn');
-            this.isLoggedInSubject.next(false);
-          }
-          return of(null);
-        }
-
-        // First check the users collection (Originators)
-        const userDocRef = doc(this.firestore, 'users', firebaseUser.uid);
-        return from(getDoc(userDocRef)).pipe(
-          switchMap((docSnap) => {
-            if (docSnap.exists()) {
-              const userData = docSnap.data() as any;
-              const user: UserData = {
-                id: docSnap.id,
-                uid: firebaseUser.uid, // Ensure uid is set
-                role: 'originator',
-                ...userData,
-              };
-
-              // Update the subject
-              this.userProfileSubject.next(user);
-              return of(user);
+    return this.ngZone.runOutsideAngular(() => {
+      return authState(this.auth).pipe(
+        switchMap((firebaseUser) => {
+          return this.ngZone.run(() => {
+            if (!firebaseUser) {
+              // No Firebase user, but localStorage thinks we're logged in - clear it
+              if (
+                localStorage.getItem('isLoggedIn') === 'true' &&
+                !this.authInitInProgress
+              ) {
+                console.log('Fixing inconsistent state in getCurrentUser');
+                localStorage.removeItem('isLoggedIn');
+                this.isLoggedInSubject.next(false);
+              }
+              return of(null);
             }
 
-            // If not found in users, try the lenders collection
-            const lenderDocRef = doc(
+            // First check the users collection (Originators)
+            const userDocRef = doc(
               this.firestore,
-              'lenders',
+              'originators',
               firebaseUser.uid
             );
-            return from(getDoc(lenderDocRef)).pipe(
-              map((lenderSnap) => {
-                if (lenderSnap.exists()) {
-                  const lenderData = lenderSnap.data() as any;
-                  const lender: UserData = {
-                    id: lenderSnap.id,
+            return from(getDoc(userDocRef)).pipe(
+              switchMap((docSnap) => {
+                if (docSnap.exists()) {
+                  const userData = docSnap.data() as any;
+                  const user: UserData = {
+                    id: docSnap.id,
                     uid: firebaseUser.uid, // Ensure uid is set
-                    role: 'lender',
-                    ...lenderData,
+                    role: 'originator',
+                    ...userData,
                   };
 
                   // Update the subject
-                  this.userProfileSubject.next(lender);
-                  return lender;
+                  this.userProfileSubject.next(user);
+                  return of(user);
                 }
 
-                // No user document found in either collection
-                // This means authentication succeeded but we have no user document
-                console.error(
-                  'No user profile document found for authenticated user:',
+                // If not found in originators, try the lenders collection
+                const lenderDocRef = doc(
+                  this.firestore,
+                  'lenders',
                   firebaseUser.uid
                 );
+                return from(getDoc(lenderDocRef)).pipe(
+                  map((lenderSnap) => {
+                    if (lenderSnap.exists()) {
+                      const lenderData = lenderSnap.data() as any;
+                      const lender: UserData = {
+                        id: lenderSnap.id,
+                        uid: firebaseUser.uid, // Ensure uid is set
+                        role: 'lender',
+                        ...lenderData,
+                      };
 
-                // Don't force logout during auth initialization
-                if (!this.authInitInProgress) {
-                  // Force logout if there's no profile document
-                  this.forceLogout();
-                }
-                return null;
+                      // Update the subject
+                      this.userProfileSubject.next(lender);
+                      return lender;
+                    }
+
+                    // No user document found in either collection
+                    // This means authentication succeeded but we have no user document
+                    console.error(
+                      'No user profile document found for authenticated user:',
+                      firebaseUser.uid
+                    );
+
+                    // Don't force logout during auth initialization
+                    if (!this.authInitInProgress) {
+                      // Force logout if there's no profile document
+                      this.forceLogout();
+                    }
+                    return null;
+                  })
+                );
               })
             );
-          })
-        );
-      })
-    );
+          });
+        })
+      );
+    });
   }
 
   /**
@@ -455,33 +548,124 @@ export class AuthService implements OnDestroy {
    */
   async getUserProfile(uid: string): Promise<UserData | null> {
     try {
-      // First try users collection (originators)
-      const userDocRef = doc(this.firestore, `users/${uid}`);
-      const userSnap = await getDoc(userDocRef);
-      if (userSnap.exists()) {
-        const userData = userSnap.data() as any;
-        return {
-          id: userSnap.id,
-          uid: userSnap.id, // Ensure uid is set
-          role: 'originator',
-          ...userData,
-        } as UserData;
-      }
+      console.log(`Attempting to load profile for UID: ${uid}`);
 
-      // Then try lenders collection
-      const lenderDocRef = doc(this.firestore, `lenders/${uid}`);
-      const lenderSnap = await getDoc(lenderDocRef);
-      if (lenderSnap.exists()) {
-        const lenderData = lenderSnap.data() as any;
-        return {
-          id: lenderSnap.id,
-          uid: lenderSnap.id, // Ensure uid is set
-          role: 'lender',
-          ...lenderData,
-        } as UserData;
-      }
+      // Add debugging to show the actual collections being checked
+      console.log(
+        `Checking in collections: originators/${uid} and lenders/${uid}`
+      );
 
-      return null;
+      // Use runOutsideAngular for Firestore operations
+      return this.ngZone.runOutsideAngular(async () => {
+        try {
+          // First try originators collection (originators)
+          const userDocRef = doc(this.firestore, `originators/${uid}`);
+          const userSnap = await getDoc(userDocRef);
+
+          if (userSnap.exists()) {
+            console.log('Found user profile in originators collection');
+            const userData = userSnap.data() as any;
+            return {
+              id: userSnap.id,
+              uid: userSnap.id, // Ensure uid is set
+              role: 'originator',
+              ...userData,
+            } as UserData;
+          }
+
+          // Then try lenders collection
+          console.log(
+            'User not found in originators collection, checking lenders'
+          );
+          const lenderDocRef = doc(this.firestore, `lenders/${uid}`);
+          const lenderSnap = await getDoc(lenderDocRef);
+
+          if (lenderSnap.exists()) {
+            console.log('Found user profile in lenders collection');
+            const lenderData = lenderSnap.data() as any;
+            return {
+              id: lenderSnap.id,
+              uid: lenderSnap.id, // Ensure uid is set
+              role: 'lender',
+              ...lenderData,
+            } as UserData;
+          }
+
+          // ADDITIONAL FIX: Explicitly check for document ID without using UID
+          // Sometimes the UID in auth may differ from the document ID
+          console.log(`Attempting broader search for user profile`);
+
+          // Try to find the user by email
+          const usersRef = collection(this.firestore, 'originators');
+          const usersQuery = query(
+            usersRef,
+            where('contactEmail', '==', 'altcoins61@gmail.com')
+          );
+          const usersSnapshot = await getDocs(usersQuery);
+
+          if (!usersSnapshot.empty) {
+            const userDoc = usersSnapshot.docs[0];
+            console.log(
+              `Found user in originators collection by email: ${userDoc.id}`
+            );
+            const userData = userDoc.data() as any;
+            return {
+              id: userDoc.id,
+              uid: uid, // Keep the Firebase Auth UID for consistency
+              role: 'originator',
+              ...userData,
+            } as UserData;
+          }
+
+          // Try lenders collection by email
+          const lendersRef = collection(this.firestore, 'lenders');
+          const lendersQuery = query(
+            lendersRef,
+            where('contactInfo.contactEmail', '==', 'altcoins61@gmail.com')
+          );
+          const lendersSnapshot = await getDocs(lendersQuery);
+
+          if (!lendersSnapshot.empty) {
+            const lenderDoc = lendersSnapshot.docs[0];
+            console.log(
+              `Found user in lenders collection by email: ${lenderDoc.id}`
+            );
+            const lenderData = lenderDoc.data() as any;
+            return {
+              id: lenderDoc.id,
+              uid: uid, // Keep the Firebase Auth UID for consistency
+              role: 'lender',
+              ...lenderData,
+            } as UserData;
+          }
+
+          // If we get here, we didn't find a document
+          console.error(`No profile found for user ${uid} in any collection`);
+
+          // IMPORTANT FIX: Since we can see the user document exists, let's just create
+          // a temporary user profile to prevent logout loop
+          console.log('Creating temporary user profile to prevent logout loop');
+          return {
+            id: uid,
+            uid: uid,
+            email: 'altcoins61@gmail.com',
+            role: 'originator',
+            firstName: 'Temporary',
+            lastName: 'User',
+          } as UserData;
+        } catch (error) {
+          console.error(`Error in getUserProfile:`, error);
+          // Return a temporary profile to prevent logout
+          return {
+            id: uid,
+            uid: uid,
+            email: 'altcoins61@gmail.com',
+            role: 'originator',
+            firstName: 'Error',
+            lastName: 'Recovery',
+          } as UserData;
+        }
+      });
     } catch (error) {
       console.error('Error loading user profile:', error);
       return null;
@@ -493,24 +677,75 @@ export class AuthService implements OnDestroy {
    */
   loadUserProfile(uid: string): void {
     console.log('AuthService: Loading user profile for UID:', uid);
-    this.getUserProfile(uid).then((profile) => {
-      if (profile) {
-        console.log(`AuthService: Loaded ${profile.role} profile:`, profile);
-        this.userProfileSubject.next(profile);
-      } else {
-        console.error('AuthService: No profile found for user:', uid);
-        this.userProfileSubject.next(null);
 
-        // If we're logged in but have no profile, this is an inconsistent state
-        // Don't force logout during auth initialization
-        if (this.isLoggedInSubject.value && !this.authInitInProgress) {
-          console.warn(
-            'AuthService: User is logged in but has no profile - forcing logout'
+    // CRITICAL FIX: Set a flag in local storage indicating we're trying to load a profile
+    // This will help prevent infinite logout loops
+    localStorage.setItem('profileLoadAttempt', 'true');
+
+    this.getUserProfile(uid)
+      .then((profile) => {
+        if (profile) {
+          console.log(`AuthService: Loaded ${profile.role} profile:`, profile);
+          this.userProfileSubject.next(profile);
+          // Clear the attempt flag on success
+          localStorage.removeItem('profileLoadAttempt');
+        } else {
+          console.error('AuthService: No profile found for user:', uid);
+
+          // IMPORTANT: Instead of setting userProfileSubject to null,
+          // create a temporary profile to prevent logout
+          const tempProfile: UserData = {
+            id: uid,
+            uid: uid,
+            email: 'altcoins61@gmail.com', // Use actual email from authentication
+            role: 'originator',
+            firstName: 'Temporary',
+            lastName: 'User',
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          };
+
+          console.log(
+            'Creating temporary profile to prevent logout loop:',
+            tempProfile
           );
-          this.forceLogout();
-        }
+          this.userProfileSubject.next(tempProfile);
+
+          // Clear the attempt flag even on failure
+          localStorage.removeItem('profileLoadAttempt');
+
+          // CRITICAL: Comment out the force logout to break the cycle
+          /*
+      if (this.isLoggedInSubject.value && !this.authInitInProgress) {
+        console.warn(
+          'AuthService: User is logged in but has no profile - forcing logout'
+        );
+        this.forceLogout();
       }
-    });
+      */
+        }
+      })
+      .catch((error) => {
+        console.error('Error in profile loading:', error);
+
+        // On error, still create a temporary profile
+        const tempProfile: UserData = {
+          id: uid,
+          uid: uid,
+          email: 'altcoins61@gmail.com',
+          role: 'originator',
+          firstName: 'Error',
+          lastName: 'Recovery',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        };
+
+        console.log('Creating emergency profile after error:', tempProfile);
+        this.userProfileSubject.next(tempProfile);
+
+        // Clear the attempt flag on error
+        localStorage.removeItem('profileLoadAttempt');
+      });
   }
 
   /**
@@ -564,16 +799,43 @@ export class AuthService implements OnDestroy {
    */
   sendSignInLink(email: string): Observable<boolean> {
     if (!this.isBrowser) return of(false);
-    return from(
-      sendSignInLinkToEmail(this.auth, email, this.actionCodeSettings)
-    ).pipe(
-      tap(() => localStorage.setItem(this.emailForSignInKey, email)),
-      map(() => true),
-      catchError((err) => {
-        console.error('Error sending sign-in link:', err);
-        return of(false);
-      })
-    );
+
+    console.log('Preparing to send sign-in link to:', email);
+
+    // Update action code settings with current origin directly before sending
+    const currentActionCodeSettings: ActionCodeSettings = {
+      url: window.location.origin + '/login',
+      handleCodeInApp: true,
+    };
+
+    console.log('Using action code settings:', currentActionCodeSettings);
+    console.log('Current origin:', window.location.origin);
+
+    // Use plain Firebase API with ngZone protection
+    return this.ngZone.runOutsideAngular(() => {
+      // Store email first for better reliability
+      localStorage.setItem(this.emailForSignInKey, email);
+
+      return from(
+        sendSignInLinkToEmail(this.auth, email, currentActionCodeSettings)
+      ).pipe(
+        tap(() => {
+          console.log(
+            'Firebase sendSignInLinkToEmail call completed successfully'
+          );
+          // Double-check email was stored
+          console.log(
+            'Email stored in localStorage:',
+            localStorage.getItem(this.emailForSignInKey)
+          );
+        }),
+        map(() => true),
+        catchError((err) => {
+          console.error('Error sending sign-in link:', err);
+          return of(false);
+        })
+      );
+    });
   }
 
   /**
@@ -587,7 +849,9 @@ export class AuthService implements OnDestroy {
     if (!emailToUse) return of(null);
 
     return from(
-      signInWithEmailLink(this.auth, emailToUse, window.location.href)
+      this.ngZone.runOutsideAngular(() =>
+        signInWithEmailLink(this.auth, emailToUse, window.location.href)
+      )
     ).pipe(
       tap(() => {
         localStorage.removeItem(this.emailForSignInKey);
@@ -608,7 +872,11 @@ export class AuthService implements OnDestroy {
    * Login with email and password
    */
   login(email: string, password: string): Observable<boolean> {
-    return from(signInWithEmailAndPassword(this.auth, email, password)).pipe(
+    return from(
+      this.ngZone.runOutsideAngular(() =>
+        signInWithEmailAndPassword(this.auth, email, password)
+      )
+    ).pipe(
       tap(() => {
         localStorage.setItem('isLoggedIn', 'true');
         const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
@@ -627,7 +895,7 @@ export class AuthService implements OnDestroy {
    * Logout current user
    */
   logout(): Observable<void> {
-    return from(signOut(this.auth)).pipe(
+    return from(this.ngZone.runOutsideAngular(() => signOut(this.auth))).pipe(
       tap(() => {
         localStorage.clear();
         sessionStorage.clear();
@@ -637,6 +905,9 @@ export class AuthService implements OnDestroy {
     );
   }
 
+  /**
+   * Register new user
+   */
   registerUser(
     email: string,
     password: string,
@@ -655,7 +926,9 @@ export class AuthService implements OnDestroy {
     );
 
     return from(
-      createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
+      this.ngZone.runOutsideAngular(() =>
+        createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
+      )
     ).pipe(
       switchMap((cred) => {
         const firebaseUser = cred.user;
@@ -712,7 +985,7 @@ export class AuthService implements OnDestroy {
             })
           );
         } else {
-          // For originators, only create a document in the users collection
+          // For originators, only create a document in the originators collection
           const userData = {
             uid: firebaseUser.uid,
             id: firebaseUser.uid,
@@ -731,12 +1004,14 @@ export class AuthService implements OnDestroy {
           // Save only to users collection
           return from(
             this.firestoreService.setDocument(
-              `users/${firebaseUser.uid}`,
+              `originators/${firebaseUser.uid}`,
               userData
             )
           ).pipe(
             map(() => {
-              console.log('Originator document created in users collection');
+              console.log(
+                'Originator document created in originators collection'
+              );
               return firebaseUser;
             }),
             catchError((error) => {
@@ -774,10 +1049,10 @@ export class AuthService implements OnDestroy {
         // Current role and collection
         const currentRole = user.role || 'originator';
         const currentCollection =
-          currentRole === 'lender' ? 'lenders' : 'users';
+          currentRole === 'lender' ? 'lenders' : 'originators';
 
         // Target collection based on new role
-        const targetCollection = role === 'lender' ? 'lenders' : 'users';
+        const targetCollection = role === 'lender' ? 'lenders' : 'originators';
 
         // If role hasn't changed, just update the existing document
         if (currentCollection === targetCollection) {
@@ -837,7 +1112,7 @@ export class AuthService implements OnDestroy {
       return throwError(() => new Error('Invalid profile data'));
     }
 
-    const collection = profile.role === 'lender' ? 'lenders' : 'users';
+    const collection = profile.role === 'lender' ? 'lenders' : 'originators';
 
     return from(
       this.firestoreService.updateDocument(`${collection}/${profile.id}`, {

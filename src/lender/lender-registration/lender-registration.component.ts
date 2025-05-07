@@ -144,16 +144,17 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   ];
 
   loanTypes: LoanTypes[] = [
+    { value: 'agency', name: 'Agency Loans' },
+    { value: 'bridge', name: 'Bridge Loans' },
+    { value: 'cmbs', name: 'CMBS Loans' },
     { value: 'commercial', name: 'Commercial Loans' },
     { value: 'construction', name: 'Construction Loans' },
-    { value: 'bridge', name: 'Bridge Loans' },
+    { value: 'hard_money', name: 'Hard Money Loans' },
+    { value: 'mezzanine', name: 'Mezzanine Loan' },
     { value: 'rehab', name: 'Rehab Loans' },
     { value: 'non-qm', name: 'Non-QM Loans' },
     { value: 'sba', name: 'SBA Loans' },
-    { value: 'cmbs', name: 'CMBS Loans' },
-    { value: 'agency', name: 'Agency Loans' },
-    { value: 'hard_money', name: 'Hard Money Loans' },
-    { value: 'mezzanine', name: 'Mezzanine Loan' },
+    { value: 'usda', name: 'USDA Loans' },
   ];
 
   propertyCategories: PropertyCategory[] = [
@@ -230,6 +231,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       ],
     },
     {
+      value: 'multifamily',
+      name: 'Multifamily',
+      subcategories: [
+        { value: 'affordable-housing', name: 'Affordable housing' },
+        { value: 'market-rate', name: 'Market Rate' },
+        { value: 'independent-living', name: 'Independent living' },
+        { value: 'manufactured', name: 'Manufactured' },
+        { value: 'military-housing', name: 'Military Housing' },
+        { value: 'senior-housing', name: 'Senior housing' },
+        { value: 'student-housing', name: 'Student housing' },
+      ],
+    },
+    {
       value: 'office',
       name: 'Office',
       subcategories: [
@@ -266,7 +280,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      value: 'special-purpose',
+      value: 'specialPurpose',
       name: 'Special Purpose',
       subcategories: [
         { value: 'auto-dealership', name: 'Auto Dealership' },

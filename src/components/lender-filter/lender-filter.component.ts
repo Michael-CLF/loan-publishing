@@ -54,11 +54,11 @@ export class LenderFilterComponent {
     { value: 'industrial', name: 'Industrial' },
     { value: 'land', name: 'Land' },
     { value: 'mixed_use', name: 'Mixed Use' },
-    { value: 'multi-family', name: 'Multi-family' },
+    { value: 'multifamily', name: 'Multifamily' },
     { value: 'office', name: 'Office' },
     { value: 'residential', name: 'Residential' },
     { value: 'retail', name: 'Retail' },
-    { value: 'special_purpose', name: 'Special Purpose' },
+    { value: 'specialPurpose', name: 'Special Purpose' },
   ];
 
   // Loan Types with display names

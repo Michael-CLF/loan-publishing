@@ -71,7 +71,6 @@ export class EmailLoginComponent implements OnInit {
     return this.loginForm.get('email');
   }
 
-  // Send login link to the user's email
   sendLoginLink(): void {
     if (this.loginForm.invalid) {
       return;
@@ -79,7 +78,7 @@ export class EmailLoginComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = '';
-    const email = this.loginForm.value.email;
+    const email = this.loginForm.value.email.trim().toLowerCase();
     console.log('Sending login link to:', email);
 
     this.authService.sendSignInLink(email).subscribe({
@@ -87,6 +86,11 @@ export class EmailLoginComponent implements OnInit {
         this.isLoading = false;
         if (success) {
           console.log('Login link sent successfully');
+          // Double-check email was stored
+          console.log(
+            'Email stored in localStorage:',
+            localStorage.getItem('emailForSignIn')
+          );
           this.showLinkSent = true;
         } else {
           console.error('Failed to send login link');
@@ -95,23 +99,20 @@ export class EmailLoginComponent implements OnInit {
       },
       error: (error: Error) => {
         this.isLoading = false;
-        this.errorMessage = 'An error occurred. Please try again.';
+        this.errorMessage = `Error: ${error.message}`;
         console.error('Error sending login link:', error);
       },
     });
   }
 
-  // Handle email link verification
+  // Update the handleEmailLink method in email-login.component.ts
   private handleEmailLink(): void {
     this.isVerifying = true;
     this.errorMessage = '';
 
     // Get stored email or ask user for it
     const storedEmail = this.authService.getStoredEmail();
-    console.log(
-      'Stored email for verification:',
-      storedEmail ? 'Found' : 'Not found'
-    );
+    console.log('Stored email for verification:', storedEmail || 'Not found');
 
     if (!storedEmail) {
       // If no stored email, show form to enter it
@@ -122,40 +123,44 @@ export class EmailLoginComponent implements OnInit {
     }
 
     console.log('Proceeding with email link sign-in using:', storedEmail);
-    this.authService.signInWithEmailLink(storedEmail).subscribe({
-      next: (user) => {
-        console.log(
-          'Sign-in with email link result:',
-          user ? 'Success' : 'Failed'
-        );
-        this.isVerifying = false;
+    console.log('Current URL:', window.location.href);
 
-        if (user) {
-          // Successfully logged in, redirect to dashboard
-          console.log('Authentication successful, redirecting to dashboard');
-          this.ngZone.run(() => {
-            // Set login state explicitly
-            localStorage.setItem('isLoggedIn', 'true');
+    // Add a small delay to ensure Firebase is fully initialized
+    setTimeout(() => {
+      this.authService.signInWithEmailLink(storedEmail).subscribe({
+        next: (user) => {
+          console.log(
+            'Sign-in with email link result:',
+            user ? 'Success' : 'Failed'
+          );
+          this.isVerifying = false;
 
-            // Redirect to dashboard or stored URL
-            const redirectUrl =
-              localStorage.getItem('redirectUrl') || '/dashboard';
-            console.log('Redirecting to:', redirectUrl);
-            this.router.navigate([redirectUrl]);
-            localStorage.removeItem('redirectUrl');
-          });
-        } else {
-          this.errorMessage =
-            'Invalid or expired login link. Please request a new one.';
-        }
-      },
-      error: (error: Error) => {
-        this.isVerifying = false;
-        this.errorMessage =
-          'An error occurred during verification. Please try again.';
-        console.error('Error verifying email link:', error);
-      },
-    });
+          if (user) {
+            // Successfully logged in, redirect to dashboard
+            console.log('Authentication successful, redirecting to dashboard');
+            this.ngZone.run(() => {
+              // Set login state explicitly
+              localStorage.setItem('isLoggedIn', 'true');
+
+              // Redirect to dashboard or stored URL
+              const redirectUrl =
+                localStorage.getItem('redirectUrl') || '/dashboard';
+              console.log('Redirecting to:', redirectUrl);
+              this.router.navigate([redirectUrl]);
+              localStorage.removeItem('redirectUrl');
+            });
+          } else {
+            this.errorMessage =
+              'Invalid or expired login link. Please request a new one.';
+          }
+        },
+        error: (error: Error) => {
+          this.isVerifying = false;
+          this.errorMessage = `Error: ${error.message}`;
+          console.error('Error verifying email link:', error);
+        },
+      });
+    }, 500);
   }
 
   // Reset the form to request another link

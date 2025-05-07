@@ -26,7 +26,7 @@ type PropertyCategory =
   | 'Healthcare'
   | 'Hospitality'
   | 'Industrial'
-  | 'Multi-family'
+  | 'Multifamily'
   | 'Office'
   | 'Residential'
   | 'Retail'
@@ -58,7 +58,6 @@ export class LoanComponent implements OnInit {
   submissionError = signal<string | null>(null);
   submissionSuccess = signal(false);
 
-  // Add this to your component class
   loanTypes = [
     { value: 'agency', name: 'Agency' },
     { value: 'acquisition', name: 'Acquisition Loan' },
@@ -78,7 +77,6 @@ export class LoanComponent implements OnInit {
     { value: 'usda', name: 'USDA' },
   ];
 
-  // Using signals for reactive state management
   propertyCategories = signal<Record<PropertyCategory, string[]>>({
     Healthcare: [
       'Assisted Living',
@@ -102,7 +100,7 @@ export class LoanComponent implements OnInit {
       'Self Storage',
       'Warehouse',
     ],
-    'Multi-family': [
+    Multifamily: [
       'Affordable Housing',
       'Apartment Building',
       'Assisted Living',

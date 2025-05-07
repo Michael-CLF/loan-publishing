@@ -294,10 +294,11 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       industrial: 'Industrial',
       land: 'Land',
       mixed_use: 'Mixed Use',
+      multifamily: 'Multifamily',
       office: 'Office',
       residential: 'Residential',
       retail: 'Retail',
-      special_purpose: 'Special Purpose',
+      specialPurpose: 'Special Purpose',
     };
     return propertyCategoryMap[value] || value;
   }

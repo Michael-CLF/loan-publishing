@@ -65,11 +65,11 @@ export class LoansComponent implements OnInit {
     Industrial: '#2c3e50',
     Land: '#023020',
     MixedUse: '#8A2BE2',
-    'Multi-family': '#6c3483',
+    Multifamily: '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
     Retail: '#660000',
-    'Special Purpose': '#6e2c00',
+    specialPurpose: '#6e2c00',
   };
 
   // Add this to your LoansComponent class
