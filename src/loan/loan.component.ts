@@ -61,13 +61,18 @@ export class LoanComponent implements OnInit {
   // Add this to your component class
   loanTypes = [
     { value: 'agency', name: 'Agency' },
+    { value: 'acquisition', name: 'Acquisition Loan' },
     { value: 'balance sheet', name: 'Balance Sheet' },
     { value: 'bridge', name: 'Bridge Loan' },
+    { value: 'bridge-perm', name: 'Bridge to Permanent' },
     { value: 'dscr', name: 'DSCR' },
     { value: 'fixFlip', name: 'Fix & Flip' },
     { value: 'hardMoney', name: 'Hard Money' },
     { value: 'construction', name: 'New Construction' },
+    { value: 'portfolio', name: 'Portfolio Loan' },
+    { value: 'purchase-money', name: 'Purchase Money Loan' },
     { value: 'rehab', name: 'Rehab/Renovation' },
+    { value: 'sbaxpress', name: 'SBA Express' },
     { value: 'sba7a', name: 'SBA 7(a)' },
     { value: 'sba504', name: 'SBA 504' },
     { value: 'usda', name: 'USDA' },
@@ -80,6 +85,7 @@ export class LoanComponent implements OnInit {
       'Hospital',
       'Independent Living',
       'Rehab Facility',
+      'Urgent Care',
     ],
     Hospitality: [
       'Hospitality Land',
@@ -98,6 +104,7 @@ export class LoanComponent implements OnInit {
     ],
     'Multi-family': [
       'Affordable Housing',
+      'Apartment',
       'Assisted Living',
       'Independent Living',
       'Manufactured',
