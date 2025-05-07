@@ -46,15 +46,17 @@ export class LenderReviewComponent implements OnInit {
   currentStep = 1;
   emailValidated = false;
 
+  @Input() selectedPropertyTypes: { category: string; subcategory: string }[] =
+    [];
+  groupedCategories: Array<{ categoryName: string; subcategories: string[] }> =
+    [];
   @Input() lenderForm!: FormGroup;
   @Input() states: StateOption[] = [];
   @Input() lenderTypes: LenderTypeOption[] = [];
   @Input() propertyCategories: PropertyCategory[] = [];
   @Input() propertySubCategories: SubCategory[] = [];
   @Input() loanTypes: LoanTypes[] = [];
-
   selectedCounties: CountyInfo[] = [];
-  selectedPropertyTypes: PropertyTypeInfo[] = [];
 
   ngOnInit() {
     // Extract selected counties
@@ -71,6 +73,20 @@ export class LenderReviewComponent implements OnInit {
         new FormControl(false, Validators.requiredTrue)
       );
     }
+
+    const grouped = this.selectedPropertyTypes.reduce((acc, item) => {
+      const { category, subcategory } = item;
+      if (!acc[category]) acc[category] = [];
+      acc[category].push(subcategory);
+      return acc;
+    }, {} as Record<string, string[]>);
+
+    this.groupedCategories = Object.entries(grouped).map(
+      ([category, subcategories]) => ({
+        categoryName: this.getPropertyCategoryName(category),
+        subcategories,
+      })
+    );
 
     // Log initial terms state
     console.log(

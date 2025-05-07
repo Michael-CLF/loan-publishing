@@ -1,5 +1,5 @@
 <div class="review-container">
-    <h2>Review Your Information</h2>
+    <h2 class="title">Review Your Information</h2>
 
     <div class="section">
         <h3>Contact Information</h3>
@@ -28,62 +28,70 @@
     <div class="section">
         <h3>Product Information</h3>
         <div class="review-grid">
+
             <div class="review-item">
                 <div class="review-label">Lender Types:</div>
                 <div class="review-value">
                     <ul *ngIf="lenderForm.get('productInfo.lenderTypes')?.value?.length > 0">
                         <li *ngFor="let type of lenderForm.get('productInfo.lenderTypes')?.value">
-                            {{getLenderTypeName(type)}}
+                            {{ getLenderTypeName(type?.value || type) }}
                         </li>
                     </ul>
                     <span *ngIf="!lenderForm.get('productInfo.lenderTypes')?.value?.length">None selected</span>
                 </div>
             </div>
+
             <div class="review-item">
                 <div class="review-label">Min Loan Amount:</div>
-                <div class="review-value">{{formatCurrency(lenderForm.get('productInfo.minLoanAmount')?.value) |
-                    currency:'USD':'symbol':'1.0-0'}}</div>
+                <div class="review-value">
+                    {{ formatCurrency(lenderForm.get('productInfo.minLoanAmount')?.value) |
+                    currency:'USD':'symbol':'1.0-0' }}
+                </div>
             </div>
+
             <div class="review-item">
                 <div class="review-label">Max Loan Amount:</div>
-                <div class="review-value">{{formatCurrency(lenderForm.get('productInfo.maxLoanAmount')?.value) |
-                    currency:'USD':'symbol':'1.0-0'}}</div>
-            </div>
-            <div class="review-item">
-                <div class="review-label">Property Categories:</div>
                 <div class="review-value">
-                    <ul *ngIf="lenderForm.get('productInfo.propertyCategories')?.value?.length > 0">
-                        <li *ngFor="let category of lenderForm.get('productInfo.propertyCategories')?.value">
-                            {{getPropertyCategoryName(category)}}
-                        </li>
-                    </ul>
-                    <span *ngIf="!lenderForm.get('productInfo.propertyCategories')?.value?.length">None selected</span>
+                    {{ formatCurrency(lenderForm.get('productInfo.maxLoanAmount')?.value) |
+                    currency:'USD':'symbol':'1.0-0' }}
                 </div>
             </div>
+
+            <!-- ✅ Replaces old Property Categories/Subcategories with grouped version -->
             <div class="review-item">
-                <div class="review-label">Property Subcategories:</div>
+                <div class="review-label">Property Categories & Subcategories:</div>
                 <div class="review-value">
-                    <ul *ngIf="hasPropertySubcategories()">
-                        <li *ngFor="let item of selectedPropertyTypes">
-                            {{item.category}} > {{item.subcategory}}
-                        </li>
-                    </ul>
-                    <span *ngIf="!hasPropertySubcategories()">None selected</span>
+                    <ng-container *ngIf="groupedCategories.length > 0; else noneSelected">
+                        <div class="property-grid">
+                            <div class="category-box" *ngFor="let cat of groupedCategories">
+                                <h4>{{ cat.categoryName }}</h4>
+                                <ul>
+                                    <li *ngFor="let sub of cat.subcategories">{{ sub }}</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </ng-container>
+                    <ng-template #noneSelected>
+                        <span>None selected</span>
+                    </ng-template>
                 </div>
             </div>
+
             <div class="review-item">
                 <div class="review-label">Loan Types:</div>
                 <div class="review-value">
                     <ul *ngIf="lenderForm.get('productInfo.loanTypes')?.value?.length > 0">
                         <li *ngFor="let type of lenderForm.get('productInfo.loanTypes')?.value">
-                            {{getLoanTypeName(type)}}
+                            {{ getLoanTypeName(type?.value || type) }}
                         </li>
                     </ul>
                     <span *ngIf="!lenderForm.get('productInfo.loanTypes')?.value?.length">None selected</span>
                 </div>
             </div>
+
         </div>
     </div>
+
 
     <div class="section">
         <h3>Lending Footprint</h3>
