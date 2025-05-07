@@ -104,7 +104,7 @@ export class LoanComponent implements OnInit {
     ],
     'Multi-family': [
       'Affordable Housing',
-      'Apartment',
+      'Apartment Building',
       'Assisted Living',
       'Independent Living',
       'Manufactured',
