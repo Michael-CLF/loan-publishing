@@ -41,14 +41,14 @@ export class PropertyFilterComponent implements OnInit {
     'Commercial',
     'Healthcare',
     'Hospitality',
-    'Industrial Property',
+    'Industrial',
     'Land',
-    'MixedUse',
+    'Mixed Use',
     'Multifamily',
     'Office',
     'Residential',
     'Retail',
-    'SpecialPurpose',
+    'Special Purpose',
   ];
 
   // Most common US states

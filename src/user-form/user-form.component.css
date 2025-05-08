@@ -5,6 +5,9 @@
   padding: 20px;
   margin-bottom: 100px;
 }
+.full-width {
+  grid-column: 1 / -1;
+}
 
 .grid-form {
   display: grid;
@@ -47,6 +50,10 @@
 }
 input[type="checkbox"]:checked {
   background-color: #0a2463;
+}
+
+.tos-link {
+  margin-left: 4px; /* or use padding-left */
 }
 
 /* Add bottom spacing to the form */

@@ -2,6 +2,26 @@
     <h2 class="headline">Register</h2>
     <div class="form-section">
         <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="grid-form">
+
+            <!-- Company field -->
+            <div class="form-group full-width">
+                <label for="company">Company Name</label>
+                <input type="text" id="company" formControlName="company" [ngClass]="{
+                    invalid: userForm.get('company')?.invalid && userForm.get('company')?.touched
+                  }" />
+                <div *ngIf="userForm.get('company')?.invalid && userForm.get('company')?.touched" class="error">
+                    <div *ngIf="userForm.get('company')?.errors?.['required']">
+                        *Company name is required.
+                    </div>
+                    <div *ngIf="userForm.get('company')?.errors?.['minlength']">
+                        *Company name must be at least 2 characters.
+                    </div>
+                    <div *ngIf="userForm.get('company')?.errors?.['pattern']">
+                        *Company name must contain letters only.
+                    </div>
+                </div>
+            </div>
+
             <!-- First name field -->
             <div class="form-group">
                 <label for="firstName">First Name</label>
@@ -40,40 +60,9 @@
                 </div>
             </div>
 
-            <!-- Company field -->
-            <div class="form-group">
-                <label for="company">Company Name</label>
-                <input type="text" id="company" formControlName="company" [ngClass]="{
-                    invalid: userForm.get('company')?.invalid && userForm.get('company')?.touched
-                  }" />
-                <div *ngIf="userForm.get('company')?.invalid && userForm.get('company')?.touched" class="error">
-                    <div *ngIf="userForm.get('company')?.errors?.['required']">
-                        *Company name is required.
-                    </div>
-                    <div *ngIf="userForm.get('company')?.errors?.['minlength']">
-                        *Company name must be at least 2 characters.
-                    </div>
-                    <div *ngIf="userForm.get('company')?.errors?.['pattern']">
-                        *Company name must contain letters only.
-                    </div>
-                </div>
-            </div>
 
-            <!-- User Type field -->
-            <div class="form-group">
-                <label for="userType">User Type</label>
-                <select id="userType" formControlName="userType" [ngClass]="{
-        invalid: userForm.get('userType')?.invalid && userForm.get('userType')?.touched
-      }">
-                    <option value="">Select User Type</option>
-                    <option *ngFor="let type of userTypes" [value]="type.value">{{ type.name }}</option>
-                </select>
-                <div *ngIf="userForm.get('userType')?.invalid && userForm.get('userType')?.touched" class="error">
-                    <div *ngIf="userForm.get('userType')?.errors?.['required']">
-                        *User type is required.
-                    </div>
-                </div>
-            </div>
+
+
 
             <!-- Email field -->
             <div class="form-group">
@@ -97,7 +86,7 @@
             <!-- Phone field -->
             <div class="form-group">
                 <label for="phone">Phone</label>
-                <input id="phone" formControlName="phone" (blur)="formatPhoneNumber()"
+                <input id="phone" formControlName="phone" (input)="formatPhoneNumber()"
                     [ngClass]="{ invalid: userForm.get('phone')?.invalid && userForm.get('phone')?.touched }" />
                 <div *ngIf="userForm.get('phone')?.invalid && userForm.get('phone')?.touched" class="error">
                     <div *ngIf="userForm.get('phone')?.errors?.['required']">
@@ -150,7 +139,8 @@
             <div class="form-group full-width tos-container">
                 <label class="checkbox-label">
                     <input type="checkbox" formControlName="tos" class="form-check-input">
-                    I have read, acknowledge and agree to the<a href="/terms" target="_blank"> Terms of Service</a>
+                    I have read, acknowledge and agree to the<a href="/terms" target="_blank" class="tos-link">Terms of
+                        Service</a>
                 </label>
             </div>
 

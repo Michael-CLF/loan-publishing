@@ -57,13 +57,6 @@ export class UserFormComponent implements OnInit {
   errorMessage = '';
   phone: any;
 
-  // Define user types options
-  userTypes: UserTypeOption[] = [
-    { value: 'lender', name: 'Lender' },
-    { value: 'loan-officer', name: 'Loan Officer' },
-    { value: 'mortgage-company', name: 'Mortgage Company' },
-  ];
-
   // Define all US states - using the same approach as lender registration
   states: StateOption[] = [];
 
@@ -100,7 +93,6 @@ export class UserFormComponent implements OnInit {
           Validators.pattern(/^[A-Za-z0-9 ]+$/),
         ],
       ],
-      userType: ['', [Validators.required]],
       email: ['', [Validators.required, Validators.email]],
       phone: [
         '',
@@ -129,15 +121,24 @@ export class UserFormComponent implements OnInit {
     });
   }
 
-  // This method formats the phone number
   formatPhoneNumber(): void {
     let phone = this.userForm.get('phone')?.value;
     if (phone) {
-      phone = phone.replace(/\D/g, ''); // Remove non-numeric characters
-      if (phone.length === 10) {
-        phone = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-        this.userForm.get('phone')?.setValue(phone);
+      phone = phone.replace(/\D/g, ''); // digits only
+      if (phone.length > 10) phone = phone.slice(0, 10);
+
+      let formatted = phone;
+      if (phone.length >= 6) {
+        formatted = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(
+          6
+        )}`;
+      } else if (phone.length >= 3) {
+        formatted = `(${phone.slice(0, 3)}) ${phone.slice(3)}`;
+      } else {
+        formatted = phone;
       }
+
+      this.userForm.get('phone')?.setValue(formatted, { emitEvent: false });
     }
   }
 

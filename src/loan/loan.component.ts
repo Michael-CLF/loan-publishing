@@ -27,6 +27,7 @@ type PropertyCategory =
   | 'Hospitality'
   | 'Industrial'
   | 'Multifamily'
+  | 'Mixed Use'
   | 'Office'
   | 'Residential'
   | 'Retail'
@@ -113,7 +114,14 @@ export class LoanComponent implements OnInit {
       'Single Family Portfolio',
       'Student Housing',
     ],
+    'Mixed Use': [
+      'Live/Work Units',
+      'Residential + Office',
+      'Residential over Retail',
+      'Retail + Office',
+    ],
     Office: ['Medical Office', 'Office Condo', 'Professional Office Building'],
+
     Residential: [
       '1-4 Units',
       'Condo',

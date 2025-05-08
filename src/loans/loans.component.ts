@@ -64,7 +64,7 @@ export class LoansComponent implements OnInit {
     Hospitality: '#1b4f72',
     Industrial: '#2c3e50',
     Land: '#023020',
-    MixedUse: '#8A2BE2',
+    'Mixed Use': '#8A2BE2',
     Multifamily: '#6c3483',
     Office: '#4682B4',
     Residential: '#DC143C',
