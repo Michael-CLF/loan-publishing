@@ -36,11 +36,7 @@ export class AppComponent implements OnInit {
   constructor() {
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe((event: NavigationEnd) => {
-        gtag('config', 'G-5E7KPQ3VLS', {
-          page_path: event.urlAfterRedirects,
-        });
-      });
+      .subscribe((event: NavigationEnd) => {});
   }
 
   // Force injection of Auth service
