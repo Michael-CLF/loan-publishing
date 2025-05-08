@@ -10,15 +10,20 @@
 
         <div class="code-form">
             <input type="password" [(ngModel)]="enteredCode" placeholder="Enter admin code" class="code-input" />
-            <button (click)="verifyAdminCode()" class="submit-btn">
-                Continue
-            </button>
+            <button (click)="verifyAdminCode()" class="submit-btn">Continue</button>
         </div>
     </div>
 
-    <div *ngIf="!loading() && !error()" class="admin-content">
-        <!-- Stats: Total Originators & Lenders side by side -->
-        <div class="stats-container stats-two-column">
+    <!-- Admin Content -->
+    <div *ngIf="adminAuthenticated()" class="admin-content">
+        <!-- Header -->
+        <div class="admin-header">
+            <h1 class="title">Admin Dashboard</h1>
+            <button (click)="exitAdminMode()" class="exit-btn">Exit Admin</button>
+        </div>
+
+        <!-- Stats -->
+        <div class="stats-container stats-three-column">
             <div class="stat-card">
                 <h3 class="sub-title">Total Originators</h3>
                 <span class="stat-value">{{ originators().length }}</span>
@@ -27,11 +32,15 @@
                 <h3 class="sub-title">Total Lenders</h3>
                 <span class="stat-value">{{ lenders().length }}</span>
             </div>
+            <div class="stat-card">
+                <h3 class="sub-title">Total Loans</h3>
+                <span class="stat-value">{{ loans().length }}</span>
+            </div>
         </div>
 
-        <!-- Tables: Originators & Lenders side by side -->
+        <!-- Originators & Lenders -->
         <div class="tables-two-column">
-            <!-- Originators Section -->
+            <!-- Originators -->
             <div class="section-container">
                 <h2 class="sub-title">Originators</h2>
                 <div class="table-container">
@@ -41,19 +50,17 @@
                                 <th class="user-label">Name</th>
                                 <th class="user-label">Email</th>
                                 <th class="user-label">Company</th>
-                                <th class="user-label">Location</th>
                                 <th class="user-label">Account#</th>
                                 <th class="user-label">Created</th>
                             </tr>
                         </thead>
                         <tbody>
                             <tr *ngFor="let user of originators(); let i = index"
-                                [ngClass]="{'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0}">
-                                <td class="user-value">{{ user.firstName }} {{ user.lastName }}</td>
-                                <td class="user-value">{{ user.email }}</td>
+                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
+                                <td class="user-value">{{ getFullName(user) }}</td>
+                                <td class="user-value">{{ user.email || 'N/A' }}</td>
                                 <td class="user-value">{{ user.company || 'N/A' }}</td>
-                                <td class="user-value">{{ user.city }}, {{ user.state }}</td>
-                                <th class="user-value">{{ user.accountNumber }}</th>
+                                <td class="user-value">{{ user.accountNumber || 'N/A' }}</td>
                                 <td class="user-value">{{ formatDate(user.createdAt) }}</td>
                             </tr>
                             <tr *ngIf="originators().length === 0">
@@ -64,7 +71,7 @@
                 </div>
             </div>
 
-            <!-- Lenders Section -->
+            <!-- Lenders -->
             <div class="section-container">
                 <h2 class="sub-title">Lenders</h2>
                 <div class="table-container">
@@ -81,12 +88,12 @@
                         </thead>
                         <tbody>
                             <tr *ngFor="let lender of lenders(); let i = index"
-                                [ngClass]="{'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0}">
-                                <td class="user-value">{{ lender.firstName }} {{ lender.lastName }}</td>
-                                <td class="user-value">{{ lender.email }}</td>
+                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
+                                <td class="user-value">{{ getFullName(lender) }}</td>
+                                <td class="user-value">{{ lender.email || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.company || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.city }}, {{ lender.state }}</td>
-                                <th class="user-value">{{ lender.accountNumber }}</th>
+                                <td class="user-value">{{ lender.accountNumber }}</td>
                                 <td class="user-value">{{ formatDate(lender.createdAt) }}</td>
                             </tr>
                             <tr *ngIf="lenders().length === 0">
@@ -97,5 +104,50 @@
                 </div>
             </div>
         </div>
+
+        <!-- Loans -->
+        <div class="section-container">
+            <h2 class="sub-title">Loans</h2>
+            <div class="table-container">
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th class="loan-label">Loan ID</th>
+                            <th class="loan-label">Amount</th>
+                            <th class="loan-label">Property Type</th>
+                            <th class="loan-label">Location</th>
+                            <th class="loan-label">Contact</th>
+                            <th class="loan-label">Created</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr *ngFor="let loan of loans(); let i = index"
+                            [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
+                            <td class="loan-value">{{ loan.id?.substring(0, 8).toUpperCase() }}</td>
+                            <td class="loan-value">{{ formatCurrency(loan.loanAmount) }}</td>
+                            <td class="loan-value">{{ loan.propertyTypeCategory || 'N/A' }}</td>
+                            <td class="loan-value">{{ loan.city }}, {{ loan.state }}</td>
+                            <td class="loan-value">{{ loan.originatorName }}</td>
+                            <td class="loan-value">{{ formatDate(loan.createdAt) }}</td>
+                        </tr>
+                        <tr *ngIf="loans().length === 0">
+                            <td colspan="6" class="no-data">No loans found</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="loading()" class="loading-container">
+        <div class="loading-spinner"></div>
+        <p>Loading data...</p>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="error()" class="error-container">
+        <p class="error-message">{{ error() }}</p>
+        <button (click)="loadAllData()" class="retry-btn">Retry</button>
     </div>
 </div>

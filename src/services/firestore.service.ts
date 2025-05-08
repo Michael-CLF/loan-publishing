@@ -28,6 +28,7 @@ import { Observable, from, of, BehaviorSubject, throwError } from 'rxjs';
 import { map, catchError, tap, switchMap, share } from 'rxjs/operators';
 import { Loan } from './loan.service';
 import { LocationService } from './location.service';
+import { Originator } from 'src/models';
 
 export interface LenderFilter {
   lenderType?: string;
@@ -49,6 +50,47 @@ export class FirestoreService {
   private validatedEmails = new Set<string>();
   private existingEmails = new Set<string>();
   private locationService = inject(LocationService);
+
+  /**
+   * Create a complete, validated, and sanitized Originator
+   * @param partial Partial originator data from a form or external source
+   * @returns Sanitized Originator with default values applied
+   */
+  createOriginatorData(partial: Partial<Originator>): Originator {
+    const id = partial.id || partial.uid || crypto.randomUUID();
+    const now = new Date();
+
+    const originator: Originator = {
+      id,
+      uid: id,
+      role: 'originator',
+      firstName: partial.firstName?.trim() || 'First',
+      lastName: partial.lastName?.trim() || 'Last',
+      email: partial.email?.toLowerCase() || 'unknown@example.com',
+      company: partial.company?.trim() || 'N/A',
+      phone: partial.phone || '',
+      city: partial.city || '',
+      state: partial.state || '',
+      createdAt: partial.createdAt || now,
+      updatedAt: partial.updatedAt || now,
+      ...partial,
+    };
+
+    return originator;
+  }
+
+  /**
+   * Add originator document with enforced defaults and sanitization
+   * @param originatorData Partial originator input
+   * @returns Observable of document reference
+   */
+  addOriginator(
+    originatorData: Partial<Originator>
+  ): Observable<DocumentReference> {
+    const validated = this.createOriginatorData(originatorData);
+    const sanitized = this.sanitizeData(validated);
+    return this.addDocument('originators', sanitized);
+  }
 
   /**
    * Helper method to safely run Firebase operations within the injection context
