@@ -1036,11 +1036,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
                 lenderTypes: this.extractLenderTypes(
                   formData.productInfo.lenderTypes
                 ),
-                propertyCategories:
-                  formData.productInfo.propertyCategories || [],
+                propertyCategories: this.extractStringValues(
+                  formData.productInfo.propertyCategories
+                ),
+
                 subcategorySelections:
                   formData.productInfo.subcategorySelections || [],
-                loanTypes: formData.productInfo.loanTypes || [],
+                loanTypes: this.extractStringValues(
+                  formData.productInfo.loanTypes
+                ),
+
                 minLoanAmount: this.parseNumericValue(
                   formData.productInfo.minLoanAmount
                 ),
@@ -1085,6 +1090,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           }
         });
     });
+  }
+
+  private extractStringValues(input: any[]): string[] {
+    if (!input || !Array.isArray(input)) return [];
+
+    return input.map((item) =>
+      typeof item === 'object' && item?.value ? item.value : item
+    );
   }
 
   private handleRegistrationSuccess(): void {

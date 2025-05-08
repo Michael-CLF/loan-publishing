@@ -1,4 +1,11 @@
-import { Component, EventEmitter, Output, inject } from '@angular/core';
+import {
+  Component,
+  EventEmitter,
+  OnInit,
+  Output,
+  inject,
+  model,
+} from '@angular/core';
 import { CommonModule, CurrencyPipe } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { LenderFilterService } from '../../services/lender-filter.service';
@@ -12,14 +19,19 @@ import { RouterModule } from '@angular/router';
   templateUrl: './lender-filter.component.html',
   styleUrl: './lender-filter.component.css',
 })
-export class LenderFilterComponent {
+export class LenderFilterComponent implements OnInit {
   // Output event to emit when filters are applied
-  @Output() applyFilters = new EventEmitter<LenderFilters>();
   private filterService = inject(LenderFilterService);
 
   // Use the filters from the service
   get filters() {
     return this.filterService.filters;
+  }
+
+  // ADDED: Define loanTypes for template compatibility
+  // This is an alias for loanTypeOptions to match what your template is expecting
+  get loanTypes(): FilterOption[] {
+    return this.loanTypeOptions;
   }
 
   // Lender types
@@ -53,12 +65,12 @@ export class LenderFilterComponent {
     { value: 'hospitality', name: 'Hospitality' },
     { value: 'industrial', name: 'Industrial' },
     { value: 'land', name: 'Land' },
-    { value: 'mixed_use', name: 'Mixed Use' },
+    { value: 'mixed-use', name: 'Mixed Use' },
     { value: 'multifamily', name: 'Multifamily' },
     { value: 'office', name: 'Office' },
     { value: 'residential', name: 'Residential' },
     { value: 'retail', name: 'Retail' },
-    { value: 'specialPurpose', name: 'Special Purpose' },
+    { value: 'special-purpose', name: 'Special Purpose' },
   ];
 
   // Loan Types with display names
@@ -130,6 +142,10 @@ export class LenderFilterComponent {
     'Wyoming',
   ];
 
+  ngOnInit(): void {
+    // Nothing needed here since we're using the filter service
+  }
+
   validateLoanAmount(amount: string): boolean {
     if (!amount) return true;
     const numericValue = parseFloat(amount.replace(/[^0-9.]/g, ''));
@@ -147,6 +163,9 @@ export class LenderFilterComponent {
       [field]: updatedValue,
     } as Partial<LenderFilters>);
   }
+  onResetFilters(): void {
+    this.filterService.resetFilters();
+  }
 
   formatLoanAmount(value: string): string {
     if (!value) return '';
@@ -160,64 +179,4 @@ export class LenderFilterComponent {
       maximumFractionDigits: 0,
     });
   }
-
-  onApplyFilters(): void {
-    const currentFilters = this.filterService.getFilters();
-
-    // Clean up loan amount before emitting
-    if (currentFilters.loanAmount) {
-      currentFilters.loanAmount = currentFilters.loanAmount.replace(
-        /[^0-9.]/g,
-        ''
-      );
-    }
-
-    console.log('Emitting filters:', currentFilters);
-    this.applyFilters.emit(currentFilters);
-  }
-
-  cleanLoanAmount(value: string): string {
-    // Remove multiple decimal points
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      return parts[0] + '.' + parts.slice(1).join('');
-    }
-    return value;
-  }
-
-  onResetFilters(): void {
-    this.filterService.resetFilters();
-    this.applyFilters.emit(this.filterService.getFilters());
-  }
-
-  getLenderTypeName(value: string): string {
-    const lenderTypeMap: { [key: string]: string } = {
-      agency: 'Agency Lender',
-      balanceSheet: 'Balance Sheet',
-      bank: 'Bank',
-      bridge_lender: 'Bridge Lender',
-      cdfi: 'CDFI Lender',
-      conduit_lender: 'Conduit Lender (CMBS)',
-      construction_lender: 'Construction Lender',
-      correspondent_lender: 'Correspondent Lender',
-      credit_union: 'Credit Union',
-      crowdfunding: 'Crowdfunding Platform',
-      direct_lender: 'Direct Lender',
-      family_office: 'Family Office',
-      general: 'General',
-      hard_money: 'Hard Money Lender',
-      life_insurance: 'Life Insurance Lender',
-      mezzanine_lender: 'Mezzanine Lender',
-      non_qm_lender: 'Non-QM Lender',
-      portfolio_lender: 'Portfolio Lender',
-      private_lender: 'Private Lender',
-      sba: 'SBA Lender',
-      usda: 'USDA Lender',
-    };
-
-    return lenderTypeMap[value] || value;
-  }
-}
-function getLenderTypeName(value: any, string: any) {
-  throw new Error('Function not implemented.');
 }

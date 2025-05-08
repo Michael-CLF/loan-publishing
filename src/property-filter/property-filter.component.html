@@ -22,33 +22,32 @@
 
             <div class="filter-group">
                 <label for="loanType">Loan Type</label>
-                <select [(ngModel)]="filters().loanType">
+                <select [ngModel]="filters().loanType" (ngModelChange)="updateFilter('loanType', $event)">
                     <option value="">All Loan Types</option>
                     <option *ngFor="let type of loanTypes" [value]="type.value">
                         {{ type.name }}
                     </option>
                 </select>
             </div>
-        </div>
 
-        <div class="filter-row">
-            <div class="filter-group">
-                <label for="minAmount">Min Loan Amount</label>
-                <input type="text" id="minAmount" [ngModel]="displayMinAmount"
-                    (input)="onCurrencyInput('minAmount', $event)" placeholder="Min amount">
+            <div class="filter-row">
+                <div class="filter-group">
+                    <label for="minAmount">Min Loan Amount</label>
+                    <input type="text" id="minAmount" [ngModel]="displayMinAmount"
+                        (input)="onCurrencyInput('minAmount', $event)" placeholder="Min amount">
+                </div>
+
+                <div class="filter-group">
+                    <label for="maxAmount">Max Loan Amount</label>
+                    <input type="text" id="maxAmount" [ngModel]="displayMaxAmount"
+                        (input)="onCurrencyInput('maxAmount', $event)" placeholder="Max amount">
+                </div>
             </div>
 
-            <div class="filter-group">
-                <label for="maxAmount">Max Loan Amount</label>
-                <input type="text" id="maxAmount" [ngModel]="displayMaxAmount"
-                    (input)="onCurrencyInput('maxAmount', $event)" placeholder="Max amount">
+            <div class="filter-actions">
+                <button class="filter-btn apply-btn" (click)="onApplyFilters()">Apply Filters</button>
+                <button class="filter-btn reset-btn" (click)="onResetFilters()">Reset</button>
+                <a routerLink="/dashboard" class="dash-btn">Return to dashboard</a>
             </div>
-        </div>
-
-        <div class="filter-actions">
-            <button class="filter-btn apply-btn" (click)="onApplyFilters()">Apply Filters</button>
-            <button class="filter-btn reset-btn" (click)="onResetFilters()">Reset</button>
-            <a routerLink="/dashboard" class="dash-btn">Return to dashboard</a>
         </div>
     </div>
-</div>

@@ -1,14 +1,13 @@
 // src/app/services/lender-filter.service.ts
-import { Injectable, signal } from '@angular/core';
-import { Observable } from 'rxjs';
-import { Lender } from '../models/lender.model';
+import { Injectable, signal, effect, inject, computed } from '@angular/core';
 import { LenderFilters } from '../models/lender-filters.model';
+import { FirestoreService } from './firestore.service';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LenderFilterService {
-  // Use signals for reactive state management (Angular 18 approach)
+  // Signals for filters and data
   private filtersSignal = signal<LenderFilters>({
     lenderType: '',
     propertyCategory: '',
@@ -17,7 +16,50 @@ export class LenderFilterService {
     loanType: '',
   });
 
-  // Methods to update filters
+  private firestoreService = inject(FirestoreService);
+
+  private lendersSignal = signal<any[]>([]);
+  private loadingSignal = signal<boolean>(false);
+
+  // Auto-fetch data when filters change
+  private fetchEffect = effect(() => {
+    const filters = this.filtersSignal();
+
+    this.loadingSignal.set(true);
+    this.firestoreService
+      .filterLenders(
+        filters.lenderType,
+        filters.propertyCategory,
+        filters.state,
+        filters.loanAmount,
+        filters.loanType
+      )
+      .subscribe({
+        next: (lenders) => {
+          this.lendersSignal.set(lenders);
+          this.loadingSignal.set(false);
+        },
+        error: (err) => {
+          console.error('Error loading lenders:', err);
+          this.lendersSignal.set([]);
+          this.loadingSignal.set(false);
+        },
+      });
+  });
+
+  // Public accessors
+  get filters() {
+    return this.filtersSignal.asReadonly();
+  }
+
+  get lenders() {
+    return this.lendersSignal.asReadonly();
+  }
+
+  get loading() {
+    return this.loadingSignal.asReadonly();
+  }
+
   updateFilters(filters: Partial<LenderFilters>): void {
     this.filtersSignal.update((current) => ({
       ...current,
@@ -25,7 +67,6 @@ export class LenderFilterService {
     }));
   }
 
-  // Method to reset filters
   resetFilters(): void {
     this.filtersSignal.set({
       lenderType: '',
@@ -36,22 +77,10 @@ export class LenderFilterService {
     });
   }
 
-  // Get current filter values
-  getFilters() {
-    return this.filtersSignal();
-  }
-
-  // Get filters as a read-only signal
-  get filters() {
-    return this.filtersSignal.asReadonly();
-  }
-
-  // Format loan amount for display
+  // Optional utilities
   formatLoanAmount(value: string): string {
     if (!value) return '';
-    // Remove non-numeric characters except decimal point
     const numericValue = value.replace(/[^0-9.]/g, '');
-    // Convert to number and format
     const amount = parseFloat(numericValue);
     if (isNaN(amount)) return '';
     return amount.toLocaleString('en-US', {
@@ -60,7 +89,6 @@ export class LenderFilterService {
     });
   }
 
-  // Clean loan amount value (remove multiple decimal points)
   cleanLoanAmount(value: string): string {
     const parts = value.split('.');
     if (parts.length > 2) {

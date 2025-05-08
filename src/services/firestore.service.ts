@@ -197,6 +197,7 @@ export class FirestoreService {
    * @param loantype
    * @returns Observable of filtered lenders
    */
+
   filterLenders(
     lenderType: string = '',
     propertyCategory: string = '',
@@ -205,85 +206,92 @@ export class FirestoreService {
     loanType: string = ''
   ): Observable<any[]> {
     return this.runSafely(() => {
-      console.log('Filtering lenders with criteria:', {
-        lenderType,
-        propertyCategory,
-        state,
-        loanAmount,
-      });
-
       const collectionRef = collection(this.firestore, 'lenders');
       let q = query(collectionRef);
       const queryConstraints: QueryConstraint[] = [];
 
-      // Add constraints for server-side filtering
-      // Use advanced Firestore query capabilities where possible
+      // Only apply query constraints if filters are provided
       if (lenderType && lenderType.trim() !== '') {
-        // For lender type, we need to query for objects in array that match this value
         queryConstraints.push(
           where('productInfo.lenderTypes', 'array-contains', lenderType)
         );
       }
 
-      // Apply any constraints to our query
+      // Apply constraints if any
       if (queryConstraints.length > 0) {
         q = query(q, ...queryConstraints);
       }
 
-      // Execute the base query
       return collectionData(q, { idField: 'id' }).pipe(
         map((lenders) => {
           console.log('Initial lenders found:', lenders.length);
 
-          // Apply client-side filtering for more complex criteria
+          // ✅ Always show lenders even if no filters are applied
           return lenders.filter((lender) => {
-            // Log the structure for debugging
-            if (lenders.length > 0 && lender === lenders[0]) {
-              console.log(
-                'Sample lender structure:',
-                JSON.stringify(lender, null, 2)
-              );
-            }
-
             // Filter by property category
             if (propertyCategory && propertyCategory.trim() !== '') {
-              const categories = lender['productInfo'].propertyCategories || [];
-              const hasCategory = categories.includes(propertyCategory);
-              if (!hasCategory) return false;
+              const selectedCategory = propertyCategory
+                .trim()
+                .toLowerCase()
+                .replace(/ /g, '-');
+              const categories = (
+                lender['productInfo']?.propertyCategories || []
+              ).map((c: string) => c.toLowerCase().replace(/ /g, '-'));
+              if (!categories.includes(selectedCategory)) return false;
             }
 
-            // Filter by state
+            // Filter by state (case-insensitive, supports spaces and hyphens)
             if (state && state.trim() !== '') {
-              // Check if state is in the states object
-              const states = lender['footprintInfo'].states || {};
-              const hasState = states[state] === true;
-              if (!hasState) return false;
+              const selectedStateKey = state
+                .trim()
+                .toLowerCase()
+                .replace(/ /g, '-');
+
+              const lenderStates: Record<string, boolean> =
+                lender['footprintInfo']?.states || {};
+
+              const lenderStateKeys = Object.keys(lenderStates).map((key) =>
+                key.toLowerCase().replace(/ /g, '-')
+              );
+
+              if (!lenderStateKeys.includes(selectedStateKey)) {
+                return false;
+              }
             }
 
             // Filter by loan amount
             if (loanAmount && loanAmount.trim() !== '') {
               const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
-              if (!isNaN(amount) && amount > 0) {
-                const minAmount =
-                  Number(lender['productInfo'].minLoanAmount) || 0;
-                const maxAmount =
-                  Number(lender['productInfo'].maxLoanAmount) || 0;
+              const min = Number(lender['productInfo']?.minLoanAmount) || 0;
+              const max =
+                Number(lender['productInfo']?.maxLoanAmount) || Infinity;
+              if (amount < min || amount > max) return false;
+            }
+            console.log('Loan type selected:', loanType);
 
-                // Check if amount is in range
-                if (
-                  amount < minAmount ||
-                  (maxAmount > 0 && amount > maxAmount)
-                ) {
-                  return false;
-                }
-              }
+            if (loanType && loanType.trim() !== '') {
+              const selectedLoanType = loanType.trim().toLowerCase();
+              const lenderLoanTypes = (
+                lender['productInfo']?.loanTypes || []
+              ).map((t: any) =>
+                typeof t === 'string'
+                  ? t.toLowerCase()
+                  : (t?.value || '').toLowerCase()
+              );
+
+              if (!lenderLoanTypes.includes(selectedLoanType)) return false;
             }
 
             return true;
           });
         }),
-        tap((filteredLenders) => {
-          console.log('Filtered lenders count:', filteredLenders.length);
+        tap((filtered) =>
+          console.log('Filtered lenders count:', filtered.length)
+        ),
+        catchError((error) => {
+          console.error('Error filtering lenders:', error);
+
+          return of([]);
         })
       );
     });

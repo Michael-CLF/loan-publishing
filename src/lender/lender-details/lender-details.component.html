@@ -17,7 +17,6 @@
         <button class="dashboard-button" [routerLink]="['/dashboard']">
             <span>Back to Dashboard</span>
         </button>
-
     </div>
 
     <div class="company">
@@ -114,7 +113,7 @@
                             <div class="subcategory-list">
                                 <ng-container *ngFor="let loanType of getLoanTypesArray()">
                                     <div class="subcategory-item">
-                                        <span class="detail-value">{{ loanType }}</span>
+                                        <span class="detail-value">{{ getLoanTypeName(loanType) }}</span>
                                     </div>
                                 </ng-container>
                             </div>

@@ -1,12 +1,9 @@
-import { Component, OnInit, OnDestroy, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
-import { FirestoreService } from '../../services/firestore.service';
+
 import { LenderFilterComponent } from '../../components/lender-filter/lender-filter.component';
 import { LenderFilterService } from '../../services/lender-filter.service';
-import { LenderService, Lender } from '../../services/lender.service';
-import { Subscription } from 'rxjs';
-import { LenderFilters } from '../../models/lender-filters.model';
 
 @Component({
   selector: 'app-lender-list',
@@ -15,96 +12,17 @@ import { LenderFilters } from '../../models/lender-filters.model';
   templateUrl: './lender-list.component.html',
   styleUrl: './lender-list.component.css',
 })
-export class LenderListComponent implements OnInit, OnDestroy {
-  lenders: Lender[] = [];
-  filteredLenders: Lender[] = [];
-  loading = true;
-  error = false;
-
-  private firestoreService = inject(FirestoreService);
-  private lenderService = inject(LenderService);
-  private router = inject(Router);
-  private lendersSubscription: Subscription | null = null;
+export class LenderListComponent {
   private filterService = inject(LenderFilterService);
+  private router = inject(Router);
 
-  ngOnInit(): void {
-    this.loadLenders();
-  }
-
-  ngOnDestroy(): void {
-    // Unsubscribe from all subscriptions
-    if (this.lendersSubscription) {
-      this.lendersSubscription.unsubscribe();
-    }
-  }
-
-  loadLenders(): void {
-    this.loading = true;
-
-    if (this.lendersSubscription) {
-      this.lendersSubscription.unsubscribe();
-    }
-
-    // Use the getAllLenders method from LenderService
-    this.lendersSubscription = this.lenderService.getAllLenders().subscribe({
-      next: (lenders: Lender[]) => {
-        this.lenders = lenders;
-        this.loading = false;
-        console.log('Loaded lenders:', this.lenders.length);
-      },
-      error: (err: Error) => {
-        console.error('Error loading lenders:', err);
-        this.error = true;
-        this.loading = false;
-      },
-    });
-  }
-
-  // This method matches the (applyFilters) output from LenderFilterComponent
-  applyFilters(filters: LenderFilters): void {
-    this.loading = true;
-    console.log('Applying filters:', filters);
-
-    if (this.lendersSubscription) {
-      this.lendersSubscription.unsubscribe();
-    }
-
-    // Use the searchLenders method from LenderService
-    this.lendersSubscription = this.lenderService
-      .searchLenders(
-        filters.lenderType,
-        filters.propertyCategory,
-        filters.state,
-        filters.loanAmount,
-        filters.loanType
-      )
-      .subscribe({
-        next: (filteredLenders: Lender[]) => {
-          this.lenders = filteredLenders; // Update the lenders array directly
-          this.loading = false;
-          console.log('Filtered lenders:', filteredLenders.length);
-        },
-        error: (err: Error) => {
-          console.error('Error filtering lenders:', err);
-          this.error = true;
-          this.loading = false;
-        },
-      });
-  }
-
-  // This method matches the (resetFilters) output from LenderFilterComponent
-  resetFilters(): void {
-    this.loading = true;
-    console.log('Resetting filters...');
-
-    // Reset to original lenders list
-    this.loadLenders();
-  }
+  lenders = this.filterService.lenders;
+  loading = this.filterService.loading;
 
   getLenderTypeName(value: string): string {
     const lenderTypeMap: { [key: string]: string } = {
       agency: 'Agency Lender',
-      balanceSheet: 'Balance Sheet',
+      'balance sheet': 'Balance Sheet',
       bank: 'Bank',
       bridge_lender: 'Bridge Lender',
       cdfi: 'CDFI Lender',
@@ -129,7 +47,6 @@ export class LenderListComponent implements OnInit, OnDestroy {
     return lenderTypeMap[value] || value;
   }
 
-  // This is for the template click handler
   navigateTo(lenderId: string): void {
     this.router.navigate(['/lender-details', lenderId]);
   }

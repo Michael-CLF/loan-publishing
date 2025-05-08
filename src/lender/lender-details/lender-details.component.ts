@@ -310,11 +310,13 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       cmbs: 'CMBS Loans',
       commercial: 'Commercial Loans',
       construction: 'Construction Loans',
+      general: 'General',
       hard_money: 'Hard Money Loans',
       mezzanine: 'Mezzanine Loan',
       'non-qm': 'Non-QM Loans',
       rehab: 'Rehab Loans',
       sba: 'SBA Loans',
+      usda: 'USDA',
     };
     return loanTypeMap[value] || value;
   }
