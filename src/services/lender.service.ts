@@ -106,7 +106,8 @@ export class LenderService {
       contactInfo: {
         firstName: lender.contactInfo?.firstName || '',
         lastName: lender.contactInfo?.lastName || '',
-        company: lender.company || lender.contactInfo?.company || '', // Map root-level company to contactInfo
+        company:
+          lender.contactInfo?.company || lender.contactInfo?.company || '', // Map root-level company to contactInfo
         contactEmail: lender.contactInfo?.contactEmail || '',
         contactPhone: lender.contactInfo?.contactPhone || '',
         city: lender.contactInfo?.city || '',

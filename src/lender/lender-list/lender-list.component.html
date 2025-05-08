@@ -32,7 +32,7 @@
                     <td class="lender-detail">
                         {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
                     </td>
-                    <td class="lender-detail">{{ lender.company || 'N/A' }}</td>
+                    <td class="lender-detail">{{ lender.contactInfo?.company || 'N/A' }}</td>
                     <td class="lender-detail">
                         <div *ngIf="lender.productInfo?.lenderTypes">
                             <div *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">

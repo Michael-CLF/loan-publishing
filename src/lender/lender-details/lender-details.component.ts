@@ -340,12 +340,19 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   getLoanTypesArray(): string[] {
-    const loanTypes =
-      this.lender?.productInfo?.loanTypes?.map(
-        (lt: any) => lt.name || this.getLoanTypeName(lt.value)
-      ) || [];
+    const rawTypes = this.lender?.productInfo?.loanTypes || [];
 
-    return loanTypes.sort((a: string, b: string) => a.localeCompare(b));
+    return rawTypes
+      .map((lt: any) => {
+        if (typeof lt === 'string') return this.getLoanTypeName(lt);
+        if (typeof lt === 'object') {
+          // Prefer the custom name if provided
+          return lt.name || this.getLoanTypeName(lt.value || '');
+        }
+        return '';
+      })
+      .filter((val) => val)
+      .sort((a, b) => a.localeCompare(b));
   }
 
   getPropertyTypes(): string {
