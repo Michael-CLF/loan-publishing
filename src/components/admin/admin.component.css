@@ -138,25 +138,29 @@ input {
   }
 }
 
-.action-btn {
-  padding: 6px 12px;
+.view-btn {
+  color: #fff;
+  background-color: #0a2463;
+  padding: 6px 15px 6px 15px;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 1rem;
+  font-family: "roboto", sans-serif;
+  cursor: pointer;
+  margin-right: 15px;
+  margin-left: 15px;
+  margin-top: 5px;
+}
+.delete-btn {
+  color: #fff;
+  background-color: #c00000;
+  padding: 6px 15px 6px 15px;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: "roboto", sans-serif;
   cursor: pointer;
   margin-right: 8px;
-
-  &.view-btn {
-    background-color: #4caf50;
-    color: white;
-    border: none;
-  }
-
-  &.delete-btn {
-    background-color: #f44336;
-    color: white;
-    border: none;
-  }
 }
+
 .stats-two-column {
   display: flex;
   flex-wrap: wrap;

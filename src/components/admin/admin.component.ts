@@ -6,6 +6,8 @@ import { Router } from '@angular/router';
 import { LoanService, Loan } from '../../services/loan.service';
 import { DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { FirestoreService } from '../../services/firestore.service';
+import { ModalService } from 'src/services/modal.service';
 
 @Component({
   selector: 'app-admin',
@@ -19,6 +21,8 @@ export class AdminComponent implements OnInit {
   private router = inject(Router);
   private loanService = inject(LoanService);
   private destroyRef = inject(DestroyRef);
+  private firestoreService = inject(FirestoreService);
+  private modalService = inject(ModalService);
 
   // Secret admin code
   private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
@@ -262,6 +266,43 @@ export class AdminComponent implements OnInit {
     }
 
     return 0;
+  }
+
+  viewUser(user: any): void {
+    if (user.role === 'lender') {
+      this.router.navigate(['/lender-details', user.id]);
+    } else if (user.role === 'originator') {
+      this.router.navigate(['/originator-details', user.id]); // if this route exists
+    } else {
+      console.warn('Unknown user role:', user);
+    }
+  }
+
+  confirmDelete(user: any): void {
+    this.modalService.openDeleteAccountModal(user.role).then((confirmed) => {
+      if (!confirmed) return;
+
+      const collection = user.role === 'lender' ? 'lenders' : 'originators';
+
+      this.firestoreService
+        .deleteDocument(`${collection}/${user.id}`)
+        .then(() => {
+          console.log(`Deleted ${user.role}: ${user.id}`);
+
+          // Update signal
+          if (user.role === 'lender') {
+            this.lenders.set(this.lenders().filter((u) => u.id !== user.id));
+          } else {
+            this.originators.set(
+              this.originators().filter((u) => u.id !== user.id)
+            );
+          }
+        })
+        .catch((err: any) => {
+          console.error('Error deleting user:', err);
+          alert('Failed to delete user.');
+        });
+    });
   }
 
   // Format date for display
