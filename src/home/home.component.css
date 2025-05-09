@@ -240,10 +240,13 @@
   font-weight: 500;
 }
 .property-columns {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 2rem;
-  padding-left: 0;
+  column-count: 3;
+  column-gap: 3rem;
+}
+
+.property-columns > div {
+  break-inside: avoid;
+  margin-bottom: 2rem;
 }
 
 .property-columns ul {
@@ -255,10 +258,7 @@
 .property-columns li {
   font-weight: 500;
 }
-.property-columns strong {
-  display: block;
-  font-size: 1.1em;
-}
+
 body,
 html {
   height: 100%;
@@ -318,9 +318,9 @@ html {
 }
 
 .label {
-  font-size: 1rem;
+  font-size: 1.2rem;
   font-family: "roboto", sans-serif;
-  font-weight: 500;
+  font-weight: 600;
 }
 .value {
   font-size: 1rem;
@@ -359,4 +359,17 @@ html {
 
 .highlight-row {
   background-color: #fffacd;
+}
+
+.lender-columns,
+.property-columns ul {
+  list-style: none;
+  padding-left: 0;
+}
+
+.lender-columns li,
+.property-columns li {
+  padding: 5px 0;
+  font-size: 1.1rem;
+  border-bottom: 1px solid #cdcdcd;
 }
