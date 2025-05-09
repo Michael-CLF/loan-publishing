@@ -11,12 +11,14 @@
             <p class="content">Please select how you will use our platform:</p>
 
             <div class="role-options">
-                <div class="role-card" (click)="selectRole('originator')">
+                <div class="role-card" (click)="selectRole('originator')" id="select-originator" data-role="originator"
+                    data-gtm-label="Originator">
                     <h3 class="role">Originator</h3>
                     <p class="box-content">I want to list properties and find lenders</p>
                 </div>
 
-                <div class="role-card" (click)="selectRole('lender')">
+                <div class="role-card" (click)="selectRole('lender')" id="select-lender" data-role="lender"
+                    data-gtm-label="Lender">
                     <h3 class="role">Lender</h3>
                     <p class="box-content">I want to fund properties and find opportunities</p>
                 </div>
