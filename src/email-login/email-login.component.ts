@@ -105,6 +105,29 @@ export class EmailLoginComponent implements OnInit {
     });
   }
 
+  loginWithGoogle(): void {
+    this.authService.signInWithGoogle().subscribe({
+      next: (user) => {
+        if (user) {
+          console.log('Signed in with Google:', user);
+          this.ngZone.run(() => {
+            localStorage.setItem('isLoggedIn', 'true');
+            const redirectUrl =
+              localStorage.getItem('redirectUrl') || '/dashboard';
+            this.router.navigate([redirectUrl]);
+            localStorage.removeItem('redirectUrl');
+          });
+        } else {
+          this.errorMessage = 'Google sign-in failed. Please try again.';
+        }
+      },
+      error: (err: Error) => {
+        console.error('Google sign-in error:', err);
+        this.errorMessage = 'An error occurred during Google sign-in.';
+      },
+    });
+  }
+
   // Update the handleEmailLink method in email-login.component.ts
   private handleEmailLink(): void {
     this.isVerifying = true;

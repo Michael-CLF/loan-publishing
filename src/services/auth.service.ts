@@ -71,6 +71,7 @@ import {
 } from '../models/originator.model';
 import { Lender, isLender, userDataToLender } from '../models/lender.model';
 import { userDataToUser } from '../models';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 
 // Type for ProfileType to represent either Originator or Lender
 type ProfileType = Originator | Lender | UserData;
@@ -790,6 +791,29 @@ export class AuthService implements OnDestroy, CanActivate {
         } else if (loggedIn && onLoginPage) {
           this.router.navigate(['/dashboard']);
         }
+      })
+    );
+  }
+
+  /**
+   * Sign in using Google
+   */
+  signInWithGoogle(): Observable<FirebaseUser | null> {
+    return from(
+      this.ngZone.runOutsideAngular(() => {
+        const provider = new GoogleAuthProvider();
+        return signInWithPopup(this.auth, provider);
+      })
+    ).pipe(
+      tap((result) => {
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.removeItem('redirectUrl');
+        console.log('Google Sign-in successful:', result.user);
+      }),
+      map((result) => result.user),
+      catchError((err) => {
+        console.error('Google Sign-in error:', err);
+        return of(null);
       })
     );
   }

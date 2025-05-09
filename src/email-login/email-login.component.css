@@ -152,6 +152,36 @@ h2 {
   animation: spin 1s linear infinite;
   margin: 1.5rem auto;
 }
+.google-signin-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  background-color: #fff;
+  color: #444;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s ease-in-out;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.google-signin-button:hover {
+  background-color: #ebf5fb;
+}
+
+.google-signin-button img {
+  width: 20px;
+  height: 20px;
+  border: none;
+  box-shadow: none;
+  margin: 0;
+  padding: 0;
+}
 
 @keyframes spin {
   0% {
