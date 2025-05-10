@@ -5,23 +5,22 @@
             <button class="close-button" (click)="close()">×</button>
         </div>
 
-
-
         <div class="modal-body">
             <p class="content">Please select how you will use our platform:</p>
-
             <div class="role-options">
-                <div class="role-card" (click)="selectRole('originator')" id="select-originator" data-role="originator"
-                    data-gtm-label="Originator">
+                <div class="role-card" id="select-originator" data-role="originator" data-gtm-label="Originator"
+                    (click)="selectRole('originator')">
                     <h3 class="role">Originator</h3>
                     <p class="box-content">I want to list properties and find lenders</p>
                 </div>
 
-                <div class="role-card" (click)="selectRole('lender')" id="select-lender" data-role="lender"
-                    data-gtm-label="Lender">
+
+                <div class="role-card" id="select-lender" data-role="lender" data-gtm-label="Lender"
+                    (click)="selectRole('lender')">
                     <h3 class="role">Lender</h3>
                     <p class="box-content">I want to fund properties and find opportunities</p>
                 </div>
+
             </div>
         </div>
     </div>
