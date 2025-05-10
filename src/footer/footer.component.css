@@ -1,33 +1,43 @@
-/* Footer CSS */
-
-.content {
-  flex: 1;
-}
-
 .footer-container {
   display: flex;
   justify-content: space-between;
-  margin: auto;
-  padding: 20px 20px;
+  padding: 20px 250px;
   background-color: #272727;
 }
 
 .footer-column {
   flex: 1;
-  text-align: center;
-}
-
-.footer-column.center {
   display: flex;
+  flex-direction: column;
   justify-content: center;
-  align-items: center; /* this is the vertical centering */
-  text-align: center;
-  text-align: center;
-  color: white;
 }
 
-.footer-column a {
+/* LEFT COLUMN */
+.footer-column.left {
+  align-items: flex-start;
+}
+
+/* CENTER COLUMN */
+.footer-column.center {
+  align-items: center;
+  text-align: center;
+}
+
+/* RIGHT COLUMN (can be left empty) */
+.footer-column.right {
+  align-items: flex-end;
+}
+
+/* LINKS */
+.footer-column a.email {
   color: #cdcdcd;
   text-decoration: none;
-  margin: 0 auto;
+  margin-bottom: 10px;
+  text-align: left;
+}
+
+/* CENTER TEXT */
+.footer-column.center p {
+  color: #cdcdcd;
+  margin: 0;
 }

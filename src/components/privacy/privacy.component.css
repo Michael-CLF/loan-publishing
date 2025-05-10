@@ -1,0 +1,76 @@
+.privacy-container {
+  width: 1000px;
+  margin: 80px auto;
+  padding: 20px 40px 40px 40px;
+  border-radius: 8px;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px,
+    rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px,
+    rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
+.title {
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  text-align: center;
+  padding-top: 30px;
+}
+.content {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+}
+.subtitle {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+}
+.professional-privacy-policy {
+  padding: 40px 20px;
+  background-color: #fff;
+}
+
+.progress-tracker ol {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  margin: 0 0 20px 0;
+}
+
+.step {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  text-align: center;
+  line-height: 30px;
+  font-weight: bold;
+  margin-bottom: 10px;
+}
+
+.step.completed {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.step.active {
+  background-color: #333;
+  color: #fff;
+}
+
+.step.upcoming {
+  background-color: #ccc;
+  color: #fff;
+}
+
+.compliance-laws {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 30px;
+  margin-top: 20px;
+}
+
+.compliance-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 300px;
+}

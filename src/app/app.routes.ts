@@ -22,6 +22,7 @@ import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-mo
 import { VerificationComponent } from 'src/components/verification/verification.component';
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 import { AdminComponent } from 'src/components/admin/admin.component';
+import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -71,6 +72,7 @@ export const routes: Routes = [
     canActivate: [AuthGuard],
   },
   { path: 'pricing', component: PricingComponent },
+  { path: 'privacy', component: PrivacyComponent },
   { path: 'terms', component: TermsComponent },
   {
     path: 'verify',
