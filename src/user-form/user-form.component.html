@@ -138,7 +138,7 @@
             <!-- Terms of service - full width -->
             <div class="form-group full-width tos-container">
                 <label class="checkbox-label">
-                    <input type="checkbox" formControlName="tos" class="form-check-input">
+                    <input type="checkbox" formControlName="tos" class="form-check-input" id="tos-originator">
                     I have read, acknowledge and agree to the<a href="/terms" target="_blank" class="tos-link">Terms of
                         Service</a>
                 </label>
@@ -147,7 +147,7 @@
             <!-- Button - moved inside form but full width -->
             <div class="button-container full-width">
                 <button type="submit" [disabled]="userForm.invalid || isLoading">
-                    <span *ngIf="!isLoading">Register</span>
+                    <span *ngIf="!isLoading" id="originator" class="originator-btn">Register</span>
                     <span *ngIf="isLoading">Registering...</span>
                 </button>
             </div>

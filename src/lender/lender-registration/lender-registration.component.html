@@ -51,14 +51,15 @@
                 </button>
                 }
 
-                @if (currentStep < 3) { <button type="button" class="btn btn-primary" (click)="nextStep()"
+                @if (currentStep < 3) { <button type="button" class="btn btn-primary" id="next-btn" (click)="nextStep()"
                     [disabled]="!getStepFormGroup().valid">
                     Next
                     </button>
                     }
 
                     @if (currentStep === 3) {
-                    <button type="button" class="btn btn-success" [disabled]="!lenderForm.valid" (click)="submitForm()">
+                    <button type="button" class="btn btn-success" id="lender-submit-btn" [disabled]="!lenderForm.valid"
+                        (click)="submitForm()">
                         Submit
                     </button>
                     }
