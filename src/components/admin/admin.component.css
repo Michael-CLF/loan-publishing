@@ -1,6 +1,6 @@
 .admin-container {
   padding: 20px;
-  max-width: 1200px;
+  width: 80%;
   margin: 0 auto;
 }
 
@@ -263,4 +263,46 @@ input {
   .tables-two-column {
     flex-direction: column;
   }
+}
+.user-filter-container {
+  padding: 15px;
+  margin-bottom: 20px;
+  background-color: #f8f9fa;
+  border-radius: 4px;
+}
+
+.filter-input-wrapper {
+  position: relative;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.filter-input {
+  width: 100%;
+  padding: 10px 15px 10px 35px;
+  font-size: 16px;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.filter-input:focus {
+  border-color: #007bff;
+  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.filter-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #6c757d;
+}
+
+.no-data {
+  text-align: center;
+  padding: 20px;
+  color: #6c757d;
+  font-style: italic;
 }

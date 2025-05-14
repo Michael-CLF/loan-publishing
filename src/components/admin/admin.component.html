@@ -37,6 +37,14 @@
                 <span class="stat-value">{{ loans().length }}</span>
             </div>
         </div>
+        <!-- Add this right after the admin-header -->
+        <div class="user-filter-container">
+            <div class="filter-input-wrapper">
+                <input type="text" [(ngModel)]="userFilter" placeholder="Filter by account #, company or last name"
+                    (input)="applyUserFilter()" class="filter-input" />
+                <span class="filter-icon">🔍</span>
+            </div>
+        </div>
 
         <!-- Originators & Lenders -->
         <div class="tables-two-column">
@@ -52,10 +60,11 @@
                                 <th class="user-label">Company</th>
                                 <th class="user-label">Account#</th>
                                 <th class="user-label">Created</th>
+                                <th class="user-label">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let user of originators(); let i = index"
+                            <tr *ngFor="let user of filteredOriginators(); let i = index"
                                 [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
                                 <td class="user-value">{{ getFullName(user) }}</td>
                                 <td class="user-value">{{ user.email || 'N/A' }}</td>
@@ -67,8 +76,10 @@
                                     <button class="delete-btn" (click)="confirmDelete(user)">Delete</button>
                                 </td>
                             </tr>
-                            <tr *ngIf="originators().length === 0">
-                                <td colspan="6" class="no-data">No originators found</td>
+                            <tr *ngIf="filteredOriginators().length === 0">
+                                <td colspan="6" class="no-data">
+                                    {{ originators().length === 0 ? 'No originators found' : 'No originators match your filter' }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>
@@ -88,22 +99,28 @@
                                 <th class="user-label">Location</th>
                                 <th class="user-label">Account#</th>
                                 <th class="user-label">Created</th>
+                                <th class="user-label">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
-                            <tr *ngFor="let lender of lenders(); let i = index"
+                            <tr *ngFor="let lender of filteredLenders(); let i = index"
                                 [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
                                 <td class="user-value">{{ getFullName(lender) }}</td>
                                 <td class="user-value">{{ lender.email || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.company || 'N/A' }}</td>
-                                <td class="user-value">{{ lender.city }}, {{ lender.state }}</td>
+                                <td class="user-value">{{ lender.city }}{{ lender.city ? ', ' : '' }}{{
+                                    getFormattedStateName(lender.state) }}</td>
                                 <td class="user-value">{{ lender.accountNumber }}</td>
                                 <td class="user-value">{{ formatDate(lender.createdAt) }}</td>
-                                <button class="view-btn" (click)="viewUser(lender)">View</button>
-                                <button class="delete-btn" (click)="confirmDelete(lender)">Delete</button>
+                                <td class="user-value">
+                                    <button class="view-btn" (click)="viewUser(lender)">View</button>
+                                    <button class="delete-btn" (click)="confirmDelete(lender)">Delete</button>
+                                </td>
                             </tr>
-                            <tr *ngIf="lenders().length === 0">
-                                <td colspan="6" class="no-data">No lenders found</td>
+                            <tr *ngIf="filteredLenders().length === 0">
+                                <td colspan="7" class="no-data">
+                                    {{ lenders().length === 0 ? 'No lenders found' : 'No lenders match your filter' }}
+                                </td>
                             </tr>
                         </tbody>
                     </table>

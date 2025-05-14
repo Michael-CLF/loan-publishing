@@ -23,6 +23,7 @@ import { VerificationComponent } from 'src/components/verification/verification.
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 import { AdminComponent } from 'src/components/admin/admin.component';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
+import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -70,6 +71,10 @@ export const routes: Routes = [
     path: 'dashboard',
     component: DashboardComponent,
     canActivate: [AuthGuard],
+  },
+   {
+    path: 'originator-details/:id',
+    component: OriginatorDetailsComponent,
   },
   { path: 'pricing', component: PricingComponent },
   { path: 'privacy', component: PrivacyComponent },

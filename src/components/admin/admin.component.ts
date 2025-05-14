@@ -8,6 +8,8 @@ import { DestroyRef } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
+import { LocationService } from '../../services/location.service';
+// No need to add rxjs imports for this simpler implementation
 
 @Component({
   selector: 'app-admin',
@@ -23,6 +25,12 @@ export class AdminComponent implements OnInit {
   private destroyRef = inject(DestroyRef);
   private firestoreService = inject(FirestoreService);
   private modalService = inject(ModalService);
+  private locationService = inject(LocationService);
+
+  // Add user filter
+  userFilter = '';
+  filteredLenders = signal<any[]>([]);
+  filteredOriginators = signal<any[]>([]);
 
   // Secret admin code
   private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
@@ -60,6 +68,38 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  // Add this method to filter users
+  applyUserFilter(): void {
+    const filter = this.userFilter.toLowerCase();
+
+    // If no filter, show all
+    if (!filter) {
+      this.filteredLenders.set(this.lenders());
+      this.filteredOriginators.set(this.originators());
+      return;
+    }
+
+    // Filter lenders
+    this.filteredLenders.set(
+      this.lenders().filter(
+        (lender) =>
+          lender.accountNumber?.toLowerCase().includes(filter) ||
+          lender.company?.toLowerCase().includes(filter) ||
+          lender.lastName?.toLowerCase().includes(filter)
+      )
+    );
+
+    // Filter originators
+    this.filteredOriginators.set(
+      this.originators().filter(
+        (originator) =>
+          originator.accountNumber?.toLowerCase().includes(filter) ||
+          originator.company?.toLowerCase().includes(filter) ||
+          originator.lastName?.toLowerCase().includes(filter)
+      )
+    );
+  }
+
   verifyAdminCode() {
     if (this.enteredCode === this.adminCode) {
       localStorage.setItem('adminAccess', 'true');
@@ -79,12 +119,21 @@ export class AdminComponent implements OnInit {
       // Load data
       await this.loadOriginatorsAndLenders();
       await this.loadLoansDirectly();
+
+      // Initialize filtered data
+      this.filteredLenders.set(this.lenders());
+      this.filteredOriginators.set(this.originators());
     } catch (err) {
       console.error('Error loading data:', err);
       this.error.set('Failed to load data. Please try again.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  getFormattedStateName(state?: string): string {
+    if (!state) return '';
+    return this.locationService.formatValueForDisplay(state);
   }
 
   async loadOriginatorsAndLenders() {
@@ -292,9 +341,17 @@ export class AdminComponent implements OnInit {
           // Update signal
           if (user.role === 'lender') {
             this.lenders.set(this.lenders().filter((u) => u.id !== user.id));
+            // Also update filtered signal
+            this.filteredLenders.set(
+              this.filteredLenders().filter((u) => u.id !== user.id)
+            );
           } else {
             this.originators.set(
               this.originators().filter((u) => u.id !== user.id)
+            );
+            // Also update filtered signal
+            this.filteredOriginators.set(
+              this.filteredOriginators().filter((u) => u.id !== user.id)
             );
           }
         })
@@ -366,11 +423,11 @@ export class AdminComponent implements OnInit {
   // Get location from city and state
   getLocation(user: any): string {
     if (user.city && user.state) {
-      return `${user.city}, ${user.state}`;
+      return `${user.city}, ${this.getFormattedStateName(user.state)}`;
     } else if (user.city) {
       return user.city;
     } else if (user.state) {
-      return user.state;
+      return this.getFormattedStateName(user.state);
     }
     return 'N/A';
   }
