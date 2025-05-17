@@ -196,7 +196,7 @@ export class LenderDashboardComponent implements OnInit {
       }
 
       console.error('Lender document not found in lenders collection');
-      // Try one more fallback - check if this user is in the users collection with role='lender'
+      // Try one more fallback - check if this user is in the lenders collection with role='lender'
       await this.checkUserAsLender(lenderId);
     } catch (err) {
       console.error('Error loading lender document directly:', err);
@@ -205,7 +205,7 @@ export class LenderDashboardComponent implements OnInit {
   }
 
   /**
-   * Check if user exists in users collection with role='lender'
+   * Check if user exists in lenders collection with role='lender'
    */
   private async checkUserAsLender(userId: string): Promise<void> {
     try {
@@ -217,7 +217,7 @@ export class LenderDashboardComponent implements OnInit {
       if (userDocSnap.exists()) {
         const userData = userDocSnap.data();
         if (userData && userData['role'] === 'lender') {
-          console.log('Found lender data in users collection:', userData);
+          console.log('Found lender data in lender collection:', userData);
 
           // Create a basic lender profile from user data ensuring id is non-optional
 

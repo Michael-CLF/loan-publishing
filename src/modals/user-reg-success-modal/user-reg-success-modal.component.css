@@ -36,7 +36,7 @@
 }
 
 .model-title {
-  color: #2c3e50;
+  color: #0a2463;
 }
 
 .modal-content {
@@ -45,7 +45,7 @@
 
 h2 {
   margin-top: 0;
-  color: #2c3e50;
+  color: #0a2463;
 }
 
 .modal-actions {
@@ -55,7 +55,7 @@ h2 {
 }
 
 .primary-button {
-  background-color: #3498db;
+  background-color: #0a2463;
   color: white;
   border: none;
   border-radius: 4px;
@@ -66,5 +66,5 @@ h2 {
 }
 
 .primary-button:hover {
-  background-color: #2980b9;
+  background-color: #008080;
 }

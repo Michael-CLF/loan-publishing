@@ -44,8 +44,11 @@ import {
   doc,
   getDoc,
   getDocs,
+  setDoc,
   query,
   where,
+  serverTimestamp,
+  DocumentData,
 } from '@angular/fire/firestore';
 import { FirestoreService } from './firestore.service';
 import {
@@ -152,11 +155,7 @@ export class AuthService implements OnDestroy, CanActivate {
   canActivate(
     route: ActivatedRouteSnapshot,
     state: RouterStateSnapshot
-  ):
-    | Observable<boolean | UrlTree>
-    | Promise<boolean | UrlTree>
-    | boolean
-    | UrlTree {
+  ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
     console.log('AuthGuard - Checking route access:', state.url);
 
     // Check localStorage first for quick access
@@ -445,12 +444,12 @@ export class AuthService implements OnDestroy, CanActivate {
             return from(getDoc(userDocRef)).pipe(
               switchMap((docSnap) => {
                 if (docSnap.exists()) {
-                  const userData = docSnap.data() as any;
+                  const userData = docSnap.data() as DocumentData;
                   const user: UserData = {
                     id: docSnap.id,
                     uid: firebaseUser.uid, // Ensure uid is set
                     role: 'originator',
-                    ...userData,
+                    ...userData as any,
                   };
 
                   // Update the subject
@@ -467,12 +466,12 @@ export class AuthService implements OnDestroy, CanActivate {
                 return from(getDoc(lenderDocRef)).pipe(
                   map((lenderSnap) => {
                     if (lenderSnap.exists()) {
-                      const lenderData = lenderSnap.data() as any;
+                      const lenderData = lenderSnap.data() as DocumentData;
                       const lender: UserData = {
                         id: lenderSnap.id,
                         uid: firebaseUser.uid, // Ensure uid is set
                         role: 'lender',
-                        ...lenderData,
+                        ...lenderData as any,
                       };
 
                       // Update the subject
@@ -565,12 +564,12 @@ export class AuthService implements OnDestroy, CanActivate {
 
           if (userSnap.exists()) {
             console.log('Found user profile in originators collection');
-            const userData = userSnap.data() as any;
+            const userData = userSnap.data() as DocumentData;
             return {
               id: userSnap.id,
               uid: userSnap.id, // Ensure uid is set
               role: 'originator',
-              ...userData,
+              ...userData as any,
             } as UserData;
           }
 
@@ -583,12 +582,12 @@ export class AuthService implements OnDestroy, CanActivate {
 
           if (lenderSnap.exists()) {
             console.log('Found user profile in lenders collection');
-            const lenderData = lenderSnap.data() as any;
+            const lenderData = lenderSnap.data() as DocumentData;
             return {
               id: lenderSnap.id,
               uid: lenderSnap.id, // Ensure uid is set
               role: 'lender',
-              ...lenderData,
+              ...lenderData as any,
             } as UserData;
           }
 
@@ -600,7 +599,7 @@ export class AuthService implements OnDestroy, CanActivate {
           const usersRef = collection(this.firestore, 'originators');
           const usersQuery = query(
             usersRef,
-            where('contactEmail', '==', 'altcoins61@gmail.com')
+            where('email', '==', 'altcoins61@gmail.com')
           );
           const usersSnapshot = await getDocs(usersQuery);
 
@@ -609,12 +608,12 @@ export class AuthService implements OnDestroy, CanActivate {
             console.log(
               `Found user in originators collection by email: ${userDoc.id}`
             );
-            const userData = userDoc.data() as any;
+            const userData = userDoc.data() as DocumentData;
             return {
               id: userDoc.id,
               uid: uid, // Keep the Firebase Auth UID for consistency
               role: 'originator',
-              ...userData,
+              ...userData as any,
             } as UserData;
           }
 
@@ -631,12 +630,12 @@ export class AuthService implements OnDestroy, CanActivate {
             console.log(
               `Found user in lenders collection by email: ${lenderDoc.id}`
             );
-            const lenderData = lenderDoc.data() as any;
+            const lenderData = lenderDoc.data() as DocumentData;
             return {
               id: lenderDoc.id,
               uid: uid, // Keep the Firebase Auth UID for consistency
               role: 'lender',
-              ...lenderData,
+              ...lenderData as any,
             } as UserData;
           }
 
@@ -714,16 +713,6 @@ export class AuthService implements OnDestroy, CanActivate {
 
           // Clear the attempt flag even on failure
           localStorage.removeItem('profileLoadAttempt');
-
-          // CRITICAL: Comment out the force logout to break the cycle
-          /*
-      if (this.isLoggedInSubject.value && !this.authInitInProgress) {
-        console.warn(
-          'AuthService: User is logged in but has no profile - forcing logout'
-        );
-        this.forceLogout();
-      }
-      */
         }
       })
       .catch((error) => {
@@ -929,137 +918,131 @@ export class AuthService implements OnDestroy, CanActivate {
     );
   }
 
-  /**
-   * Register new user
-   */
-  registerUser(
-    email: string,
-    password: string,
-    additionalData: any = {}
-  ): Observable<any> {
-    // Always use lowercase email for consistency
-    const normalizedEmail = email.toLowerCase();
-    const role = additionalData.role || 'originator';
+ /**
+ * Register new user
+ */
+registerUser(
+  email: string,
+  password: string,
+  additionalData: any = {}
+): Observable<any> {
+  const normalizedEmail = email.toLowerCase();
+  const role = additionalData.role || 'originator';
 
-    // Log the registration attempt
-    console.log(
-      'Registering user with email:',
-      normalizedEmail,
-      'and role:',
-      role
-    );
+  console.log('Registering user with email:', normalizedEmail, 'and role:', role);
 
-    return from(
-      this.ngZone.runOutsideAngular(() =>
-        createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
-      )
-    ).pipe(
-      switchMap((cred) => {
-        const firebaseUser = cred.user;
+  return from(
+    this.ngZone.runOutsideAngular(() =>
+      createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
+    )
+  ).pipe(
+    switchMap((cred) => {
+      const firebaseUser = cred.user;
 
-        if (role === 'lender') {
-          // For lenders, only create a document in the lenders collection
-          const lenderData = {
-            uid: firebaseUser.uid,
-            id: firebaseUser.uid,
-            email: normalizedEmail,
+      if (role === 'lender') {
+        const lenderData = {
+          uid: firebaseUser.uid,
+          id: firebaseUser.uid,
+          email: normalizedEmail,
+          firstName: additionalData.firstName || '',
+          lastName: additionalData.lastName || '',
+          company: additionalData.company || '',
+          phone: additionalData.phone || '',
+          city: additionalData.city || '',
+          state: additionalData.state || '',
+          role: role,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          contactInfo: {
             firstName: additionalData.firstName || '',
             lastName: additionalData.lastName || '',
+            contactEmail: normalizedEmail,
+            contactPhone: additionalData.phone || '',
             company: additionalData.company || '',
-            phone: additionalData.phone || '',
             city: additionalData.city || '',
             state: additionalData.state || '',
-            role: role,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            contactInfo: {
-              firstName: additionalData.firstName || '',
-              lastName: additionalData.lastName || '',
-              contactEmail: normalizedEmail,
-              contactPhone: additionalData.phone || '',
-              company: additionalData.company || '',
-              city: additionalData.city || '',
-              state: additionalData.state || '',
-            },
-          };
+          },
+        };
 
-          // Save only to lenders collection
-          return from(
-            this.firestoreService.setDocument(
-              `lenders/${firebaseUser.uid}`,
-              lenderData
-            )
-          ).pipe(
-            map(() => {
-              console.log('Lender document created in lenders collection');
-              return firebaseUser;
-            }),
-            catchError((error) => {
-              console.error('Error creating lender document:', error);
-              // If document creation fails, attempt to delete the Firebase Auth user
-              if (firebaseUser) {
-                firebaseUser.delete().catch((deleteError) => {
-                  console.error(
-                    'Failed to delete Firebase Auth user after document creation error:',
-                    deleteError
-                  );
-                });
-              }
-              return throwError(() => error);
-            })
-          );
-        } else {
-          // For originators, only create a document in the originators collection
-          const userData = {
-            uid: firebaseUser.uid,
-            id: firebaseUser.uid,
-            email: normalizedEmail,
+        return from(
+          this.firestoreService.setDocument(
+            `lenders/${firebaseUser.uid}`,
+            lenderData
+          )
+        ).pipe(
+          map(() => {
+            console.log('Lender document created in lenders collection');
+            return firebaseUser;
+          }),
+          catchError((error) => {
+            console.error('Error creating lender document:', error);
+            if (firebaseUser) {
+              firebaseUser.delete().catch((deleteError) => {
+                console.error(
+                  'Failed to delete Firebase Auth user after document creation error:',
+                  deleteError
+                );
+              });
+            }
+            return throwError(() => error);
+          })
+        );
+      }
+
+      if (role === 'originator') {
+        const userData = {
+          uid: firebaseUser.uid,
+          id: firebaseUser.uid,
+          email: normalizedEmail,
+          firstName: additionalData.firstName || '',
+          lastName: additionalData.lastName || '',
+          company: additionalData.company || '',
+          phone: additionalData.phone || '',
+          city: additionalData.city || '',
+          state: additionalData.state || '',
+          role: role,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+          contactInfo: {
             firstName: additionalData.firstName || '',
             lastName: additionalData.lastName || '',
+            contactEmail: normalizedEmail,
+            contactPhone: additionalData.phone || '',
             company: additionalData.company || '',
-            phone: additionalData.phone || '',
             city: additionalData.city || '',
             state: additionalData.state || '',
-            role: role,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          };
+          },
+        };
 
-          // Save only to users collection
-          return from(
-            this.firestoreService.setDocument(
-              `originators/${firebaseUser.uid}`,
-              userData
-            )
-          ).pipe(
-            map(() => {
-              console.log(
-                'Originator document created in originators collection'
-              );
-              return firebaseUser;
-            }),
-            catchError((error) => {
-              console.error('Error creating user document:', error);
-              // If document creation fails, attempt to delete the Firebase Auth user
-              if (firebaseUser) {
-                firebaseUser.delete().catch((deleteError) => {
-                  console.error(
-                    'Failed to delete Firebase Auth user after document creation error:',
-                    deleteError
-                  );
-                });
-              }
-              return throwError(() => error);
-            })
-          );
-        }
-      }),
-      catchError((err) => {
-        console.error('Registration error:', err);
-        return throwError(() => err);
-      })
-    );
-  }
+        return this.firestoreService.setDocument(
+          `originators/${firebaseUser.uid}`,
+          userData
+        ).pipe(
+          map(() => {
+            console.log('✅ Originator document created via FirestoreService');
+            return firebaseUser;
+          }),
+          catchError((error) => {
+            console.error('❌ Error creating originator document:', error);
+            if (firebaseUser) {
+              firebaseUser.delete().catch((deleteError) => {
+                console.error('❌ Failed to delete Firebase Auth user after document creation error:', deleteError);
+              });
+            }
+            return throwError(() => error);
+          })
+        );
+      }
+
+      // Fallback for unknown role
+      return of(firebaseUser);
+    }),
+    catchError((err) => {
+      console.error('Registration error:', err);
+      return throwError(() => err);
+    })
+  );
+}
 
   /**
    * Update user role
@@ -1085,7 +1068,7 @@ export class AuthService implements OnDestroy, CanActivate {
               `${currentCollection}/${user.id}`,
               {
                 role,
-                updatedAt: new Date(),
+                updatedAt: serverTimestamp(),
               }
             )
           );
@@ -1100,7 +1083,7 @@ export class AuthService implements OnDestroy, CanActivate {
             const updatedProfile: UserData = {
               ...userProfile,
               role,
-              updatedAt: new Date(),
+              updatedAt: serverTimestamp(),
             };
 
             // Create in new collection, then delete from old
@@ -1124,33 +1107,6 @@ export class AuthService implements OnDestroy, CanActivate {
             );
           })
         );
-      })
-    );
-  }
-
-  /**
-   * Update user profile
-   */
-  updateUserProfile(profile: UserData): Observable<void> {
-    if (!profile || !profile.id) {
-      return throwError(() => new Error('Invalid profile data'));
-    }
-
-    const collection = profile.role === 'lender' ? 'lenders' : 'originators';
-
-    return from(
-      this.firestoreService.updateDocument(`${collection}/${profile.id}`, {
-        ...profile,
-        updatedAt: new Date(),
-      })
-    ).pipe(
-      tap(() => {
-        // Update the profile subject
-        this.userProfileSubject.next(profile);
-      }),
-      catchError((err) => {
-        console.error('Error updating user profile:', err);
-        return throwError(() => err);
       })
     );
   }

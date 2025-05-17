@@ -1,6 +1,6 @@
 // user.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Firestore, doc, updateDoc, deleteDoc } from '@angular/fire/firestore';
+import { Firestore, doc, updateDoc, deleteDoc, serverTimestamp } from '@angular/fire/firestore';
 import {
   Auth,
   EmailAuthProvider,
@@ -20,32 +20,34 @@ export class UserService {
   private auth = inject(Auth);
 
   updateUser(
-    userId: string,
-    userData: any,
-    userRole: 'lender' | 'originator' | null
-  ): Observable<void> {
-    console.log('UserService: Updating user', userId, 'with role', userRole);
-    const collection = userRole === 'lender' ? 'lenders' : 'users';
-    console.log('UserService: Using collection', collection);
-    const userDocRef = doc(this.firestore, `${collection}/${userId}`);
+  userId: string,
+  userData: any,
+  userRole: 'lender' | 'originator' | null
+): Observable<void> {
+  console.log('UserService: Updating user', userId, 'with role', userRole);
+  // CHANGE THIS LINE:
+  const collection = userRole === 'lender' ? 'lenders' : 'originators'; // Changed 'users' to 'originators'
+  console.log('UserService: Using collection', collection);
+  const userDocRef = doc(this.firestore, `${collection}/${userId}`);
 
-    return from(
-      updateDoc(userDocRef, {
-        ...userData,
-        updatedAt: new Date(),
-      })
-    ).pipe(
-      catchError((error) => {
-        console.error('UserService: Error updating user:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+  return from(
+    updateDoc(userDocRef, {
+      ...userData,
+      updatedAt: serverTimestamp(), // Use serverTimestamp() instead of new Date()
+    })
+  ).pipe(
+    catchError((error) => {
+      console.error('UserService: Error updating user:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
-  deleteUser(userId: string): Observable<void> {
-    const userDocRef = doc(this.firestore, `users/${userId}`);
-    return from(deleteDoc(userDocRef));
-  }
+ deleteUserWithRole(userId: string, userRole: 'lender' | 'originator' | null): Observable<void> {
+  const collection = userRole === 'lender' ? 'lenders' : 'originators';
+  const userDocRef = doc(this.firestore, `${collection}/${userId}`);
+  return from(deleteDoc(userDocRef));
+}
 
   // Initiate the email change flow
   initiateEmailChange(
@@ -116,40 +118,33 @@ export class UserService {
     );
   }
 
-  // Complete the email change (called from the verification page)
-  completeEmailChange(
-    userId: string,
-    newEmail: string,
-    verificationCode: string
-  ): Observable<void> {
-    const user = this.auth.currentUser;
+ completeEmailChange(
+  userId: string,
+  newEmail: string,
+  verificationCode: string
+): Observable<void> {
+  const user = this.auth.currentUser;
 
-    if (!user) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    // In a real implementation, you would:
-    // 1. Verify the token/code is valid
-    // 2. Check if it hasn't expired
-    // 3. Update the Firebase auth email
-    // 4. Update the Firestore document
-
-    // This is a simplified version
-    return from(updateEmail(user, newEmail)).pipe(
-      switchMap(() => {
-        const userDocRef = doc(this.firestore, `users/${userId}`);
-        return from(
-          updateDoc(userDocRef, {
-            email: newEmail,
-            pendingEmail: null,
-            emailChangeVerifiedAt: new Date(),
-          })
-        );
-      }),
-      catchError((error) => {
-        console.error('Email change completion error:', error);
-        return throwError(() => error);
-      })
-    );
+  if (!user) {
+    return throwError(() => new Error('User not authenticated'));
   }
+
+  return from(updateEmail(user, newEmail)).pipe(
+    switchMap(() => {
+      // Change this line:
+      const userDocRef = doc(this.firestore, `originators/${userId}`); // Changed from 'users' to 'originators'
+      return from(
+        updateDoc(userDocRef, {
+          email: newEmail,
+          pendingEmail: null,
+          emailChangeVerifiedAt: serverTimestamp(), // Use serverTimestamp instead of new Date
+        })
+      );
+    }),
+    catchError((error) => {
+      console.error('Email change completion error:', error);
+      return throwError(() => error);
+    })
+  );
+}
 }

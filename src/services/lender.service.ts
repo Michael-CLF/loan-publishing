@@ -1,7 +1,7 @@
 // lender.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Firestore } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
+import { Firestore, serverTimestamp } from '@angular/fire/firestore';
+import { Observable, of } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { FirestoreService } from './firestore.service';
 import { UserData } from '../models/user-data.model';
@@ -140,21 +140,19 @@ export class LenderService {
     return parseFloat(numericString) || 0;
   }
 
-  // Update an existing lender
-  updateLender(id: string, data: Partial<Lender>): Observable<void> {
-    // Convert Lender partial to UserData partial as needed
-    const userData: Partial<UserData> = {
-      // Map the relevant fields from Lender to UserData
-      // This is simplified - you'll need to adapt it to your specific needs
-      updatedAt: new Date(),
-    };
+// Update an existing lender
+updateLender(id: string, data: Partial<Lender>): Observable<void> {
+  // Convert Lender partial to UserData partial as needed
+  const userData: Partial<UserData> = {
+    // Map the relevant fields from Lender to UserData
+    // This is simplified - you'll need to adapt it to your specific needs
+    updatedAt: serverTimestamp() // Use serverTimestamp
+  };
 
-    return this.firestoreService.updateDocument(`users/${id}`, userData);
-  }
+  // Change the collection from users to lenders
+  return this.firestoreService.updateDocument(`lenders/${id}`, userData);
+}
 
-  // Search lenders with filters
-  // src/app/services/lender.service.ts (partial update)
-  // Add loanType parameter to searchLenders method
   searchLenders(
     lenderType: string,
     propertyCategory: string,

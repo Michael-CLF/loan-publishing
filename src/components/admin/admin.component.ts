@@ -1,15 +1,14 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Firestore, collection, getDocs } from '@angular/fire/firestore';
+import { Firestore, collection, getDocs, doc, setDoc, serverTimestamp, updateDoc } from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { LoanService, Loan } from '../../services/loan.service';
 import { DestroyRef } from '@angular/core';
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../services/location.service';
-// No need to add rxjs imports for this simpler implementation
+import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-admin',
@@ -27,36 +26,34 @@ export class AdminComponent implements OnInit {
   private modalService = inject(ModalService);
   private locationService = inject(LocationService);
 
-  // Add user filter
   userFilter = '';
   filteredLenders = signal<any[]>([]);
   filteredOriginators = signal<any[]>([]);
 
-  // Secret admin code
   private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
 
-  // Authentication state
   adminAuthenticated = signal(false);
   enteredCode = '';
   codeError = signal(false);
 
-  // Data signals
   lenders = signal<any[]>([]);
   originators = signal<any[]>([]);
   loans = signal<any[]>([]);
 
-  // UI state signals
   loading = signal(false);
   error = signal<string | null>(null);
 
-  // Cached originator and lender data for loan association
   private originatorsMap = new Map<string, any>();
   private lendersMap = new Map<string, any>();
   private originatorNames = new Map<string, string>();
 
   ngOnInit() {
-    // Check if already authenticated from previous session
     const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
+    this.adminAuthenticated.set(isAuthenticated);
+    if (isAuthenticated) {
+      this.loadAllData();
+    }
+  
 
     // Initialize the signal
     this.adminAuthenticated.set(isAuthenticated);
@@ -136,6 +133,34 @@ export class AdminComponent implements OnInit {
     return this.locationService.formatValueForDisplay(state);
   }
 
+  // Helper method to standardize timestamp handling
+  private normalizeTimestamp(timestamp: any): Date {
+    if (!timestamp) return new Date();
+    
+    // Handle Firestore Timestamp objects
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+      return timestamp.toDate();
+    }
+    
+    // Handle timestamp objects with seconds/nanoseconds
+    if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+      return new Date(timestamp.seconds * 1000);
+    }
+    
+    // Handle raw serverTimestamp objects
+    if (timestamp && typeof timestamp === 'object' && timestamp._methodName === 'serverTimestamp') {
+      return new Date(); // Current date for display purposes
+    }
+    
+    // Handle JavaScript Date objects
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
+    
+    // Default fallback
+    return new Date();
+  }
+
   async loadOriginatorsAndLenders() {
     try {
       // Clear existing maps
@@ -143,22 +168,10 @@ export class AdminComponent implements OnInit {
       this.lendersMap.clear();
       this.originatorNames.clear();
 
-      // Load originators from 'originators' collection
-      console.log('Loading originators from originators collection...');
+      // Load originators
       const originatorsRef = collection(this.firestore, 'originators');
       const originatorsSnapshot = await getDocs(originatorsRef);
-      console.log(
-        'Originators snapshot received:',
-        originatorsSnapshot.docs.length,
-        'documents'
-      );
-
-      // Log the structure of the first originator document if available
-      if (originatorsSnapshot.docs.length > 0) {
-        const firstOriginator = originatorsSnapshot.docs[0].data();
-        console.log('First originator document structure:', firstOriginator);
-      }
-
+      
       const originatorsData = originatorsSnapshot.docs.map((doc) => {
         const data = doc.data();
         const contactInfo = data['contactInfo'] || {};
@@ -172,36 +185,24 @@ export class AdminComponent implements OnInit {
           company: contactInfo['company'] || data['company'] || '',
           city: contactInfo['city'] || data['city'] || '',
           state: contactInfo['state'] || data['state'] || '',
-          createdAt: data['createdAt'],
+          createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
           role: 'originator',
         };
 
+        // Store in maps for reference
         const userId = data['userId'] || doc.id;
         this.originatorsMap.set(userId, originator);
-
-        const fullName =
-          `${originator.firstName} ${originator.lastName}`.trim();
-        this.originatorNames.set(userId, fullName || originator.email || 'N/A');
+        this.originatorNames.set(userId, 
+          `${originator.firstName} ${originator.lastName}`.trim() || 
+          originator.email || 'N/A');
 
         return originator;
       });
 
-      // Load lenders from 'lenders' collection
-      console.log('Loading lenders from lenders collection...');
+      // Load lenders
       const lendersRef = collection(this.firestore, 'lenders');
       const lendersSnapshot = await getDocs(lendersRef);
-      console.log(
-        'Lenders snapshot received:',
-        lendersSnapshot.docs.length,
-        'documents'
-      );
-
-      // Log the structure of the first lender document if available
-      if (lendersSnapshot.docs.length > 0) {
-        const firstLender = lendersSnapshot.docs[0].data();
-        console.log('First lender document structure:', firstLender);
-      }
-
+      
       const lendersData = lendersSnapshot.docs.map((doc) => {
         const data = doc.data();
         const contactInfo = data['contactInfo'] || {};
@@ -215,22 +216,18 @@ export class AdminComponent implements OnInit {
           company: data['company'] || contactInfo['company'] || '',
           city: contactInfo['city'] || '',
           state: contactInfo['state'] || '',
-          createdAt: data['createdAt'] || new Date(),
+          createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
           role: 'lender',
         };
 
         // Store in map for quick lookup
         this.lendersMap.set(doc.id, lender);
-
         return lender;
       });
 
       // Update signals
       this.lenders.set(lendersData);
       this.originators.set(originatorsData);
-
-      console.log('Originators loaded:', originatorsData.length);
-      console.log('Lenders loaded:', lendersData.length);
     } catch (err) {
       console.error('Error loading originators and lenders:', err);
       throw err;
@@ -266,7 +263,7 @@ export class AdminComponent implements OnInit {
           contact: data['contact'] || data['email'] || '',
           email: data['email'] || '',
           phone: data['phone'] || '',
-          createdAt: data['createdAt'] || new Date(),
+          createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
           createdBy: data['createdBy'] || '',
           originatorId,
           status: data['status'] || 'Pending',
@@ -362,22 +359,137 @@ export class AdminComponent implements OnInit {
     });
   }
 
-  // Format date for display
-  formatDate(timestamp: any): string {
-    if (!timestamp) return 'N/A';
-
-    try {
-      // Handle Firestore Timestamp
-      if (timestamp.toDate) {
-        return timestamp.toDate().toLocaleDateString();
+  // Add this to your admin component
+  compareLenderAndOriginatorTimestamps() {
+    // Get one lender with working timestamp
+    const lendersRef = collection(this.firestore, 'lenders');
+    getDocs(lendersRef).then(snapshot => {
+      if (snapshot.docs.length > 0) {
+        const lenderDoc = snapshot.docs[0];
+        console.log('WORKING LENDER TIMESTAMP:');
+        console.log('- Lender ID:', lenderDoc.id);
+        console.log('- createdAt:', lenderDoc.data()['createdAt']);
+        console.log('- Type:', typeof lenderDoc.data()['createdAt']);
+        if (lenderDoc.data()['createdAt']) {
+          console.log('- JSON:', JSON.stringify(lenderDoc.data()['createdAt']));
+          console.log('- Has toDate:', 'toDate' in lenderDoc.data()['createdAt']);
+          console.log('- Properties:', Object.getOwnPropertyNames(lenderDoc.data()['createdAt']));
+          console.log('- Prototype:', Object.getPrototypeOf(lenderDoc.data()['createdAt']));
+        }
       }
-
-      // Handle regular date
-      return new Date(timestamp).toLocaleDateString();
-    } catch (err) {
-      return 'Invalid date';
-    }
+    });
+    
+    // Get one originator with non-working timestamp
+    const originatorsRef = collection(this.firestore, 'originators');
+    getDocs(originatorsRef).then(snapshot => {
+      if (snapshot.docs.length > 0) {
+        const originatorDoc = snapshot.docs[0];
+        console.log('NON-WORKING ORIGINATOR TIMESTAMP:');
+        console.log('- Originator ID:', originatorDoc.id);
+        console.log('- createdAt:', originatorDoc.data()['createdAt']);
+        console.log('- Type:', typeof originatorDoc.data()['createdAt']);
+        if (originatorDoc.data()['createdAt']) {
+          console.log('- JSON:', JSON.stringify(originatorDoc.data()['createdAt']));
+          console.log('- Has toDate:', 'toDate' in originatorDoc.data()['createdAt']);
+          console.log('- Properties:', Object.getOwnPropertyNames(originatorDoc.data()['createdAt']));
+          console.log('- Prototype:', Object.getPrototypeOf(originatorDoc.data()['createdAt']));
+        }
+      }
+    });
   }
+
+  // Simple test function to create an originator with lender-style structure
+  async createTestOriginator() {
+    // Get current time
+    const serverTime = serverTimestamp();
+    
+    // Create data exactly like a lender
+    const testData = {
+      uid: 'test-' + new Date().getTime(),
+      id: 'test-' + new Date().getTime(),
+      email: 'test@example.com',
+      firstName: 'Test',
+      lastName: 'User',
+      company: 'Test Company',
+      role: 'originator',
+      createdAt: serverTime,
+      updatedAt: serverTime,
+      // Add nested structure like lenders have
+      contactInfo: {
+        firstName: 'Test',
+        lastName: 'User',
+        contactEmail: 'test@example.com',
+        company: 'Test Company'
+      }
+    };
+    
+    // Add directly to originators collection
+    const docRef = doc(this.firestore, `originators/${testData.id}`);
+    await setDoc(docRef, testData);
+    console.log('Test originator created with ID:', testData.id);
+    
+    // Reload data to see if it worked
+    this.loadAllData();
+  }
+
+  formatDate(timestamp: any): string {
+  if (!timestamp) return 'N/A';
+  
+  try {
+    // Handle unresolved serverTimestamp placeholder
+    if (timestamp && 
+        typeof timestamp === 'object' && 
+        '_methodName' in timestamp && 
+        timestamp._methodName === 'serverTimestamp') {
+      return 'Pending'; // Or any other message you prefer
+    }
+    
+    // Handle Firestore Timestamp
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+      return timestamp.toDate().toLocaleDateString();
+    }
+    
+    // Handle JavaScript Date objects
+    if (timestamp instanceof Date) {
+      return timestamp.toLocaleDateString();
+    }
+    
+    // Handle timestamp objects with seconds/nanoseconds
+    if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+      return new Date(timestamp.seconds * 1000).toLocaleDateString();
+    }
+    
+    // Handle string dates
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString();
+      }
+    }
+    
+    // Return the string value for anything else
+    return String(timestamp);
+  } catch (err) {
+    console.error('Error formatting date:', err);
+    return 'Invalid date';
+  }
+}
+
+async fixAllTimestamps() {
+  try {
+    // Call the fix method from your firestore service
+    const result = await this.firestoreService.fixOriginatorTimestamps();
+    
+    alert(`Fixed ${result.fixed} out of ${result.total} documents with timestamp issues.`);
+    
+    // Reload data to show the fixed timestamps
+    this.loadAllData();
+  } catch (error) {
+    console.error('Error fixing timestamps:', error);
+    alert('Failed to fix timestamps. Please try again.');
+  }
+}
+
 
   // Format currency
   formatCurrency(amount: any): string {
