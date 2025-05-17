@@ -1,9 +1,9 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, serverTimestamp, Timestamp } from '@angular/fire/firestore';
 import { FirestoreService } from './firestore.service';
 import { UserData } from '../models/user-data.model';
 import { Originator } from '../models/originator.model';
-import { Observable } from 'rxjs';
+import { Observable, timestamp } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class OriginatorService {
@@ -11,7 +11,7 @@ export class OriginatorService {
 
   // Map user data to Originator document
  private mapUserToOriginator(user: UserData): Originator {
-  const timestamp = serverTimestamp();
+  const timestamp = Timestamp.now()
 
   return {
     id: user.id,
