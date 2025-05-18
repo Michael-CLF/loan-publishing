@@ -306,3 +306,24 @@ input {
   color: #6c757d;
   font-style: italic;
 }
+/* Sorting styles */
+th {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+th:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+.loan-label{
+   color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+  font-size: 1.1rem;
+}
+.loan-value{
+   color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+}

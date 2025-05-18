@@ -46,6 +46,16 @@ export class AdminComponent implements OnInit {
   private originatorsMap = new Map<string, any>();
   private lendersMap = new Map<string, any>();
   private originatorNames = new Map<string, string>();
+  
+  // Sorting properties
+  sortColumn = '';
+  sortDirection: 'asc' | 'desc' = 'asc';
+  lenderSortColumn = '';
+  lenderSortDirection: 'asc' | 'desc' = 'asc';
+  originatorSortColumn = '';
+  originatorSortDirection: 'asc' | 'desc' = 'asc';
+  loanSortColumn = '';
+  loanSortDirection: 'asc' | 'desc' = 'asc';
 
   ngOnInit() {
     const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
@@ -65,6 +75,39 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  // Helper method to get and format lender types
+getLenderTypes(lender: any): string {
+  // Check both possible locations for lender types
+  const types = lender.lenderTypes || lender.productInfo?.lenderTypes || lender.types;
+  
+  // If we have an array of types, format each one and join them with commas
+  if (types && Array.isArray(types) && types.length > 0) {
+    return types.map(type => this.formatLenderType(type)).join(', ');
+  }
+  
+  // If we have a single string type
+  if (types && typeof types === 'string') {
+    return this.formatLenderType(types);
+  }
+  
+  // Default fallback
+  return 'N/A';
+}
+
+// Helper method to format a single lender type value
+private formatLenderType(type: string): string {
+  if (!type) return 'N/A';
+  
+  // Replace underscores with spaces
+  let formatted = type.replace(/_/g, ' ');
+  
+  // Capitalize each word
+  formatted = formatted.split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+    
+  return formatted;
+}
   // Add this method to filter users
   applyUserFilter(): void {
     const filter = this.userFilter.toLowerCase();
@@ -206,6 +249,7 @@ export class AdminComponent implements OnInit {
       const lendersData = lendersSnapshot.docs.map((doc) => {
         const data = doc.data();
         const contactInfo = data['contactInfo'] || {};
+        const productInfo = data['productInfo'] || {};
 
         const lender = {
           id: doc.id,
@@ -218,6 +262,9 @@ export class AdminComponent implements OnInit {
           state: contactInfo['state'] || '',
           createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
           role: 'lender',
+          // Include lender types for display
+          lenderTypes: data['lenderTypes'] || productInfo['lenderTypes'] || [],
+          productInfo: productInfo
         };
 
         // Store in map for quick lookup
@@ -548,5 +595,100 @@ async fixAllTimestamps() {
   getStatusClass(loan: any): string {
     const status = (loan.status || 'pending').toLowerCase();
     return `status-${status}`;
+  }
+
+  // Sorting methods
+  sortLenders(column: string): void {
+    if (this.lenderSortColumn === column) {
+      this.lenderSortDirection = this.lenderSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.lenderSortColumn = column;
+      this.lenderSortDirection = 'asc';
+    }
+    
+    this.filteredLenders.update(lenders => {
+      return [...lenders].sort((a, b) => {
+        let valueA = this.getSortValue(a, column);
+        let valueB = this.getSortValue(b, column);
+        
+        return this.compareValues(valueA, valueB, this.lenderSortDirection);
+      });
+    });
+  }
+
+  sortOriginators(column: string): void {
+    if (this.originatorSortColumn === column) {
+      this.originatorSortDirection = this.originatorSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.originatorSortColumn = column;
+      this.originatorSortDirection = 'asc';
+    }
+    
+    this.filteredOriginators.update(originators => {
+      return [...originators].sort((a, b) => {
+        let valueA = this.getSortValue(a, column);
+        let valueB = this.getSortValue(b, column);
+        
+        return this.compareValues(valueA, valueB, this.originatorSortDirection);
+      });
+    });
+  }
+
+  sortLoans(column: string): void {
+    if (this.loanSortColumn === column) {
+      this.loanSortDirection = this.loanSortDirection === 'asc' ? 'desc' : 'asc';
+    } else {
+      this.loanSortColumn = column;
+      this.loanSortDirection = 'asc';
+    }
+    
+    this.loans.update(loans => {
+      return [...loans].sort((a, b) => {
+        let valueA = this.getSortValue(a, column);
+        let valueB = this.getSortValue(b, column);
+        
+        return this.compareValues(valueA, valueB, this.loanSortDirection);
+      });
+    });
+  }
+
+  private getSortValue(item: any, column: string): any {
+    // Handle special case columns
+    if (column === 'name') {
+      return `${item.firstName || ''} ${item.lastName || ''}`.trim().toLowerCase();
+    } else if (column === 'location') {
+      return `${item.city || ''} ${this.getFormattedStateName(item.state) || ''}`.trim().toLowerCase();
+    } else if (column === 'type') {
+      return this.getLenderTypes(item).toLowerCase();
+    } else if (column === 'createdAt') {
+      return this.normalizeTimestamp(item.createdAt).getTime();
+    }
+    
+    // Default case - direct property access
+    return (item[column] || '').toString().toLowerCase();
+  }
+
+  private compareValues(valueA: any, valueB: any, direction: 'asc' | 'desc'): number {
+    // Handle date comparison (timestamp)
+    if (typeof valueA === 'number' && typeof valueB === 'number') {
+      return direction === 'asc' ? valueA - valueB : valueB - valueA;
+    }
+    
+    // Handle string comparison
+    if (typeof valueA === 'string' && typeof valueB === 'string') {
+      return direction === 'asc' 
+        ? valueA.localeCompare(valueB) 
+        : valueB.localeCompare(valueA);
+    }
+    
+    // Fallback comparison
+    if (valueA < valueB) return direction === 'asc' ? -1 : 1;
+    if (valueA > valueB) return direction === 'asc' ? 1 : -1;
+    return 0;
+  }
+
+  getSortIcon(column: string, currentSortColumn: string, direction: 'asc' | 'desc'): string {
+    if (column !== currentSortColumn) return '';
+    return direction === 'asc' ? '↑' : '↓';
   }
 }

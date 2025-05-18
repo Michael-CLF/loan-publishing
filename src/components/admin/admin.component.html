@@ -55,11 +55,21 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th class="user-label">Name</th>
-                                <th class="user-label">Email</th>
-                                <th class="user-label">Company</th>
-                                <th class="user-label">Account#</th>
-                                <th class="user-label">Created</th>
+                                <th class="user-label" (click)="sortOriginators('name')">
+                                    Name {{ getSortIcon('name', originatorSortColumn, originatorSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortOriginators('email')">
+                                    Email {{ getSortIcon('email', originatorSortColumn, originatorSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortOriginators('company')">
+                                    Company {{ getSortIcon('company', originatorSortColumn, originatorSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortOriginators('accountNumber')">
+                                    Account# {{ getSortIcon('accountNumber', originatorSortColumn, originatorSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortOriginators('createdAt')">
+                                    Created {{ getSortIcon('createdAt', originatorSortColumn, originatorSortDirection) }}
+                                </th>
                                 <th class="user-label">Actions</th>
                             </tr>
                         </thead>
@@ -93,12 +103,27 @@
                     <table class="data-table">
                         <thead>
                             <tr>
-                                <th class="user-label">Name</th>
-                                <th class="user-label">Email</th>
-                                <th class="user-label">Company</th>
-                                <th class="user-label">Location</th>
-                                <th class="user-label">Account#</th>
-                                <th class="user-label">Created</th>
+                                <th class="user-label" (click)="sortLenders('name')">
+                                    Name {{ getSortIcon('name', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('email')">
+                                    Email {{ getSortIcon('email', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('company')">
+                                    Company {{ getSortIcon('company', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('type')">
+                                    Type {{ getSortIcon('type', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('location')">
+                                    Location {{ getSortIcon('location', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('accountNumber')">
+                                    Account# {{ getSortIcon('accountNumber', lenderSortColumn, lenderSortDirection) }}
+                                </th>
+                                <th class="user-label" (click)="sortLenders('createdAt')">
+                                    Created {{ getSortIcon('createdAt', lenderSortColumn, lenderSortDirection) }}
+                                </th>
                                 <th class="user-label">Actions</th>
                             </tr>
                         </thead>
@@ -108,6 +133,7 @@
                                 <td class="user-value">{{ getFullName(lender) }}</td>
                                 <td class="user-value">{{ lender.email || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.company || 'N/A' }}</td>
+                                <td class="user-value">{{ getLenderTypes(lender) }}</td>
                                 <td class="user-value">{{ lender.city }}{{ lender.city ? ', ' : '' }}{{
                                     getFormattedStateName(lender.state) }}</td>
                                 <td class="user-value">{{ lender.accountNumber }}</td>
@@ -135,12 +161,24 @@
                 <table class="data-table">
                     <thead>
                         <tr>
-                            <th class="loan-label">Loan ID</th>
-                            <th class="loan-label">Amount</th>
-                            <th class="loan-label">Property Type</th>
-                            <th class="loan-label">Location</th>
-                            <th class="loan-label">Contact</th>
-                            <th class="loan-label">Created</th>
+                            <th class="loan-label" (click)="sortLoans('id')">
+                                Loan ID {{ getSortIcon('id', loanSortColumn, loanSortDirection) }}
+                            </th>
+                            <th class="loan-label" (click)="sortLoans('loanAmount')">
+                                Amount {{ getSortIcon('loanAmount', loanSortColumn, loanSortDirection) }}
+                            </th>
+                            <th class="loan-label" (click)="sortLoans('propertyTypeCategory')">
+                                Property Type {{ getSortIcon('propertyTypeCategory', loanSortColumn, loanSortDirection) }}
+                            </th>
+                            <th class="loan-label" (click)="sortLoans('city')">
+                                Location {{ getSortIcon('city', loanSortColumn, loanSortDirection) }}
+                            </th>
+                            <th class="loan-label" (click)="sortLoans('originatorName')">
+                                Contact {{ getSortIcon('originatorName', loanSortColumn, loanSortDirection) }}
+                            </th>
+                            <th class="loan-label" (click)="sortLoans('createdAt')">
+                                Created {{ getSortIcon('createdAt', loanSortColumn, loanSortDirection) }}
+                            </th>
                         </tr>
                     </thead>
                     <tbody>
