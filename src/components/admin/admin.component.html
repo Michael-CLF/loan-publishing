@@ -134,8 +134,7 @@
                                 <td class="user-value">{{ lender.email || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.company || 'N/A' }}</td>
                                 <td class="user-value">{{ getLenderTypes(lender) }}</td>
-                                <td class="user-value">{{ lender.city }}{{ lender.city ? ', ' : '' }}{{
-                                    getFormattedStateName(lender.state) }}</td>
+                                <td class="user-value">{{getFormattedStateName(lender.state) }}</td>
                                 <td class="user-value">{{ lender.accountNumber }}</td>
                                 <td class="user-value">{{ formatDate(lender.createdAt) }}</td>
                                 <td class="user-value">
