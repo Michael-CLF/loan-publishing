@@ -204,6 +204,22 @@ private formatLenderType(type: string): string {
     return new Date();
   }
 
+  getFormattedDate(date: any): string {
+  if (!date) return 'N/A';
+
+  try {
+    const timestamp = date.toDate ? date.toDate() : new Date(date);
+    return timestamp.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+    });
+  } catch (error) {
+    console.error('Error formatting date:', error);
+    return 'N/A';
+  }
+}
+
   async loadOriginatorsAndLenders() {
     try {
       // Clear existing maps

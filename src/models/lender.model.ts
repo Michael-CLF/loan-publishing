@@ -1,5 +1,6 @@
 // src/app/models/lender.model.ts
 import { BaseUser, UserData } from './user-data.model';
+import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
 
 /**
  * Lender interface representing users in the 'lenders' collection
@@ -72,8 +73,8 @@ export function createLender(partial: Partial<Lender>): Lender {
     accountNumber: partial.accountNumber || '',
     lenderTypes: partial.lenderTypes || [],
     propertyCategories: partial.propertyCategories || [],
-    createdAt: partial.createdAt || new Date(),
-    updatedAt: partial.updatedAt || new Date(),
+    createdAt: partial.createdAt || createTimestamp(),
+    updatedAt: partial.updatedAt || createTimestamp(),
 
     // Initialize nested objects with defaults
     productInfo: partial.productInfo || {

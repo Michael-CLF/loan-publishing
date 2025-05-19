@@ -33,6 +33,9 @@ import { getUserId } from '../utils/user-helpers';
 import { UserData } from '../models';
 import { ModalService } from '../services/modal.service';
 import { LocationService } from '../services/location.service';
+import { Timestamp } from '@angular/fire/firestore';
+import { createTimestamp, createServerTimestamp, toFirestoreTimestamp } from '../utils/firebase.utils';
+
 
 @Component({
   selector: 'app-dashboard',
@@ -340,7 +343,7 @@ export class DashboardComponent implements OnInit {
         firstName: '',
         lastName: '',
         company: '',
-        createdAt: new Date(),
+        createdAt: createTimestamp(), // Using utility function instead of Timestamp.fromDate(new Date())
         role: undefined,
       };
 
@@ -455,7 +458,7 @@ export class DashboardComponent implements OnInit {
       loanId: loan.id,
       loanData: loan,
       userId: this.user.uid,
-      createdAt: new Date(),
+      createdAt: createTimestamp(), // Using utility function instead of new Date()
     };
 
     await addDoc(savedLoansCollectionRef, savedLoanData);
@@ -466,9 +469,6 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  /**
-   * Remove a saved loan
-   */
   /**
    * Remove a saved loan
    */
@@ -609,8 +609,6 @@ export class DashboardComponent implements OnInit {
   }
 
   /* Get lender company name from all possible locations*/
-  /*Get lender company name from all possible locations*/
-  /*Get lender company name from all possible locations based on the Lender interface*/
   getLenderCompanyName(lenderFavorite: any): string {
     if (!lenderFavorite.lenderData) {
       return 'Unknown Company';
@@ -909,9 +907,6 @@ export class DashboardComponent implements OnInit {
   /**
    * Delete a loan
    */
-  /**
-   * Delete a loan
-   */
   async deleteLoan(loanId: string): Promise<void> {
     // Find the loan in our loans array
     const loanToDelete = this.loans().find((loan) => loan.id === loanId);
@@ -943,7 +938,7 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  /**
+/**
    * Delete user account
    */
   async deleteAccount(): Promise<void> {

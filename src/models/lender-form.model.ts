@@ -1,7 +1,9 @@
 // src/app/models/lender-form.model.ts
 
+import { Time } from '@angular/common';
 import { Lender } from './lender.model';
-import { FootprintLocation } from './footprint-location.model';
+import { Timestamp, serverTimestamp } from '@angular/fire/firestore';
+
 
 // Form state tracking interface
 export interface LenderFormState {
@@ -29,8 +31,8 @@ export interface LenderFormData
 export interface LenderProfileDocument {
   contactInfo: Lender['contactInfo'];
   userId: string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface LenderProductDocument {
@@ -41,16 +43,16 @@ export interface LenderProductDocument {
   loanTypes: string[];
   minLoanAmount: number | string;
   maxLoanAmount: number | string;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 export interface LenderLocationDocument {
   lenderProfileId: string;
   lendingFootprint: string[];
   states: Record<string, boolean | Record<string, boolean>>;
-  createdAt: Date;
-  updatedAt: Date;
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
 }
 
 // Helper type for form value extraction

@@ -75,6 +75,7 @@ import {
 import { Lender, isLender, userDataToLender } from '../models/lender.model';
 import { userDataToUser } from '../models';
 import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
 // Type for ProfileType to represent either Originator or Lender
 type ProfileType = Originator | Lender | UserData;
@@ -701,8 +702,8 @@ export class AuthService implements OnDestroy, CanActivate {
             role: 'originator',
             firstName: 'Temporary',
             lastName: 'User',
-            createdAt: new Date(),
-            updatedAt: new Date(),
+            createdAt: Timestamp.fromDate(new Date()),
+            updatedAt: Timestamp.fromDate(new Date()),
           };
 
           console.log(
@@ -726,8 +727,8 @@ export class AuthService implements OnDestroy, CanActivate {
           role: 'originator',
           firstName: 'Error',
           lastName: 'Recovery',
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: Timestamp.fromDate(new Date()),
+          updatedAt: Timestamp.fromDate(new Date()),
         };
 
         console.log('Creating emergency profile after error:', tempProfile);

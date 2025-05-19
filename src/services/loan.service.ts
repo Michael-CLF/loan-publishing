@@ -33,6 +33,8 @@ import {
 } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Loan as LoanModel } from '../models/loan-model.model';
+import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
+import { Timestamp, FieldValue } from '@angular/fire/firestore';
 
 // Loan interface based on your form structure
 export interface Loan {
@@ -56,8 +58,8 @@ export interface Loan {
   email: string;
   notes?: string;
   createdBy?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Timestamp | FieldValue;
+  updatedAt?: Timestamp | FieldValue;
   isFavorite?: boolean;
   originatorId?: string;
 }
@@ -80,36 +82,35 @@ export class LoanService {
    * @returns Observable with the created document reference ID
    */
   createLoan(loanData: Loan): Observable<string> {
-    return this.authService.getCurrentUser().pipe(
-      takeUntilDestroyed(this.destroyRef),
-      switchMap((user) => {
-        if (!user) {
-          // Return an error Observable instead of null
-          return throwError(() => new Error('User not authenticated'));
-        }
+  return this.authService.getCurrentUser().pipe(
+    takeUntilDestroyed(this.destroyRef),
+    switchMap((user) => {
+      if (!user) {
+        // Return an error Observable instead of null
+        return throwError(() => new Error('User not authenticated'));
+      }
 
-        const timestamp = new Date();
-        const newLoan: Loan = {
-          ...loanData,
-          createdBy: user['uid'],
-          createdAt: timestamp,
-          updatedAt: timestamp,
-        };
+      const newLoan: Loan = {
+        ...loanData,
+        createdBy: user['uid'],
+        createdAt: createTimestamp(),  // Use utility function instead of new Date()
+        updatedAt: createTimestamp(),  // Use utility function instead of new Date()
+      };
 
-        return from(
-          runInInjectionContext(this.injector, () =>
-            addDoc(this.loansCollection, newLoan)
-          )
-        ).pipe(
-          map((docRef) => docRef.id),
-          catchError((error) => {
-            console.error('Error creating loan:', error);
-            return throwError(() => error);
-          })
-        );
-      })
-    );
-  }
+      return from(
+        runInInjectionContext(this.injector, () =>
+          addDoc(this.loansCollection, newLoan)
+        )
+      ).pipe(
+        map((docRef) => docRef.id),
+        catchError((error) => {
+          console.error('Error creating loan:', error);
+          return throwError(() => error);
+        })
+      );
+    })
+  );
+}
 
   updateLoanFavorite(loanId: string, isFavorite: boolean) {
     // Fix the collection name from 'loan' to 'loans'
@@ -128,21 +129,21 @@ export class LoanService {
    * @returns Observable of void
    */
   updateLoan(id: string, loanData: Partial<Loan>): Observable<void> {
-    const loanDoc = doc(this.firestore, `loans/${id}`);
-    const updateData = {
-      ...loanData,
-      updatedAt: new Date(),
-    };
+  const loanDoc = doc(this.firestore, `loans/${id}`);
+  const updateData = {
+    ...loanData,
+    updatedAt: createTimestamp(),  // Use utility function instead of new Date()
+  };
 
-    return from(
-      runInInjectionContext(this.injector, () => updateDoc(loanDoc, updateData))
-    ).pipe(
-      catchError((error) => {
-        console.error(`Error updating loan ${id}:`, error);
-        return throwError(() => error);
-      })
-    );
-  }
+  return from(
+    runInInjectionContext(this.injector, () => updateDoc(loanDoc, updateData))
+  ).pipe(
+    catchError((error) => {
+      console.error(`Error updating loan ${id}:`, error);
+      return throwError(() => error);
+    })
+  );
+}
 
   /**
    * Get a single loan by ID

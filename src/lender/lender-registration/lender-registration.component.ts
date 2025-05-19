@@ -39,6 +39,7 @@ import { StepManagementService } from './step-management';
 import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
+import { createTimestamp, createServerTimestamp } from '../../utils/firebase.utils';
 
 export interface PropertyCategory {
   name: string;
@@ -953,8 +954,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
                 city: contactData.city,
                 state: contactData.state,
               },
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              createdAt: createTimestamp(),  
+              updatedAt: createServerTimestamp(),
             };
 
             // Store in lenders collection
@@ -1058,8 +1059,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
                 states: this.extractStatesData(formData.footprintInfo.states),
               },
               role: 'lender',
-              createdAt: new Date(),
-              updatedAt: new Date(),
+              createdAt: createTimestamp(),  
+              updatedAt: createServerTimestamp(),
             };
 
             // Save to lenders collection
@@ -1232,8 +1233,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       loanTypes: formData.productInfo.loanTypes || [],
       minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
       maxLoanAmount: this.parseNumericValue(formData.productInfo.maxLoanAmount),
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      createdAt: createTimestamp(),  
+      updatedAt: createServerTimestamp(),
     };
 
     console.log('Saving product data:', productData);
@@ -1253,8 +1254,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           lenderProfileId: userId,
           lendingFootprint: formData.footprintInfo.lendingFootprint || [],
           states: filteredStates, // Use the filtered states data
-          createdAt: new Date(),
-          updatedAt: new Date(),
+          createdAt: createTimestamp(),  
+          updatedAt: createServerTimestamp(),
         };
 
         console.log('Saving location data:', locationData);

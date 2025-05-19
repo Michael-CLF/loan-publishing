@@ -1,5 +1,6 @@
 // src/app/models/user-data.model.ts
 import { User as FirebaseUser } from '@angular/fire/auth';
+import { FieldValue, Timestamp } from '@angular/fire/firestore';
 
 // Export Firebase User type for convenience
 export type FirebaseAuthUser = FirebaseUser;
@@ -25,8 +26,8 @@ export interface BaseUser {
   role?: 'originator' | 'lender';
 
   // Timestamps
-  createdAt?: Date | any;
-  updatedAt?: Date | any;
+  createdAt?: Timestamp | FieldValue | null;
+  updatedAt?: Timestamp | FieldValue | null;
 
   // Allow additional properties for flexibility
   [key: string]: any;

@@ -1,5 +1,7 @@
 // src/app/models/originator.model.ts
 import { BaseUser, UserData } from './user-data.model';
+import { Timestamp } from '@angular/fire/firestore';
+import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
 
 /**
  * Originator interface representing users in the 'users' collection
@@ -8,21 +10,18 @@ import { BaseUser, UserData } from './user-data.model';
 export interface Originator extends BaseUser {
   // Make role optional to match BaseUser
   role?: 'originator';
-   company?: string;
-
-contactInfo?: {
-  firstName?: string;
-  lastName?: string;
   company?: string;
-  contactEmail?: string;
-   contactPhone?: string
-  city?: string; 
-  state?: string;
-  createdAt?: any;
-  updatedAt?: any;
-};
 
+  contactInfo?: {
+    firstName?: string;
+    lastName?: string;
+    company?: string;
+    contactEmail?: string;
+    contactPhone?: string;
+    city?: string; 
+    state?: string;
   };
+}
 
 /**
  * Type guard for Originator
@@ -38,25 +37,6 @@ export function isOriginator(user: any): user is Originator {
 /**
  * Create a complete Originator with default values
  */
-export interface Originator extends BaseUser {
-  // Make role optional to match BaseUser
-  role?: 'originator';
-  company?: string;
-
-  contactInfo?: {
-    firstName?: string;
-    lastName?: string;
-    company?: string;
-    contactEmail?: string;
-    contactPhone?: string;
-    city?: string; 
-    state?: string;
-    createdAt?: any;  // Add these consistent timestamp fields
-    updatedAt?: any;  // matching the lender structure
-  };
-}
-
-// Update createOriginator function to ensure timestamps are properly handled
 export function createOriginator(partial: Partial<Originator>): Originator {
   // Ensure id is set
   const id = partial.id || partial.uid || '';
@@ -73,9 +53,8 @@ export function createOriginator(partial: Partial<Originator>): Originator {
     phone: partial.phone || '',
     city: partial.city || '',
     state: partial.state || '',
-    createdAt: partial.createdAt || new Date(), // Ensure timestamp field
-    updatedAt: partial.updatedAt || new Date(), // Ensure timestamp field
-    
+    createdAt: partial.createdAt || createTimestamp(),
+    updatedAt: partial.updatedAt || createTimestamp(),
     // Add contactInfo structure to ensure compatibility with lender structure
     contactInfo: partial.contactInfo || {
       firstName: partial.firstName || '',

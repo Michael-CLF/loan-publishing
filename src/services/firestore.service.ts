@@ -30,6 +30,7 @@ import { map, catchError, tap, switchMap, share } from 'rxjs/operators';
 import { Originator } from 'src/models';
 import { Loan } from './loan.service';
 import { LocationService } from './location.service';
+import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
 
 @Injectable({ providedIn: 'root' })
 export class FirestoreService {
@@ -149,52 +150,50 @@ export class FirestoreService {
   }
 
   /**
-   * Creates or replaces a document with proper timestamps
-   */
-  setDocument(path: string, data: any): Observable<void> {
-    return this.runSafely(() => {
-      // Add standard timestamps if not present
-      const dataWithTimestamps = {
-        ...data,
-        createdAt: data.createdAt || serverTimestamp(),
-        updatedAt: serverTimestamp()
-      };
-      
-      const sanitizedData = this.sanitizeData(dataWithTimestamps);
-      console.log('🔥 Sanitized Data Being Saved:', sanitizedData);
-      
-      const docRef = doc(this.firestore, path);
-      return from(setDoc(docRef, sanitizedData)).pipe(
-        catchError(error => {
-          console.error(`Error setting document at ${path}:`, error);
-          return throwError(() => error);
-        })
-      );
-    });
-  }
+ * Creates or replaces a document with proper timestamps
+ */
+setDocument(path: string, data: any): Observable<void> {
+  return this.runSafely(() => {
+    // Add standard timestamps if not present
+    const dataWithTimestamps = {
+      ...data,
+      createdAt: data.createdAt || createServerTimestamp(),
+      updatedAt: createServerTimestamp()
+    };
+    
+    console.log('🔥 Data Being Saved:', dataWithTimestamps);
+    
+    const docRef = doc(this.firestore, path);
+    return from(setDoc(docRef, dataWithTimestamps)).pipe(
+      catchError(error => {
+        console.error(`Error setting document at ${path}:`, error);
+        return throwError(() => error);
+      })
+    );
+  });
+}
 
-  /**
-   * Updates a document with a proper updatedAt timestamp
-   */
-  updateDocument(path: string, data: any): Observable<void> {
-    return this.runSafely(() => {
-      // Always update the timestamp
-      const dataWithTimestamp = {
-        ...data,
-        updatedAt: serverTimestamp()
-      };
-      
-      const sanitizedData = this.sanitizeData(dataWithTimestamp);
-      const docRef = doc(this.firestore, path);
-      
-      return from(updateDoc(docRef, sanitizedData)).pipe(
-        catchError(error => {
-          console.error(`Error updating document at ${path}:`, error);
-          return throwError(() => error);
-        })
-      );
-    });
-  }
+/**
+ * Updates a document with a proper updatedAt timestamp
+ */
+updateDocument(path: string, data: any): Observable<void> {
+  return this.runSafely(() => {
+    // Always update the timestamp
+    const dataWithTimestamp = {
+      ...data,
+      updatedAt: createServerTimestamp()
+    };
+    
+    const docRef = doc(this.firestore, path);
+    
+    return from(updateDoc(docRef, dataWithTimestamp)).pipe(
+      catchError(error => {
+        console.error(`Error updating document at ${path}:`, error);
+        return throwError(() => error);
+      })
+    );
+  });
+}
 
  /**
  * Deletes a document 
