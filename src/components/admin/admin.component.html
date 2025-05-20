@@ -106,9 +106,6 @@
                                 <th class="user-label" (click)="sortLenders('name')">
                                     Name {{ getSortIcon('name', lenderSortColumn, lenderSortDirection) }}
                                 </th>
-                                <th class="user-label" (click)="sortLenders('email')">
-                                    Email {{ getSortIcon('email', lenderSortColumn, lenderSortDirection) }}
-                                </th>
                                 <th class="user-label" (click)="sortLenders('company')">
                                     Company {{ getSortIcon('company', lenderSortColumn, lenderSortDirection) }}
                                 </th>
@@ -131,7 +128,6 @@
                             <tr *ngFor="let lender of filteredLenders(); let i = index"
                                 [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
                                 <td class="user-value">{{ getFullName(lender) }}</td>
-                                <td class="user-value">{{ lender.email || 'N/A' }}</td>
                                 <td class="user-value">{{ lender.company || 'N/A' }}</td>
                                 <td class="user-value">{{ getLenderTypes(lender) }}</td>
                                 <td class="user-value">{{getFormattedStateName(lender.state) }}</td>

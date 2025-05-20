@@ -8,7 +8,6 @@ import { DestroyRef } from '@angular/core';
 import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../services/location.service';
-import { firstValueFrom } from 'rxjs';
 
 @Component({
   selector: 'app-admin',
@@ -272,7 +271,6 @@ private formatLenderType(type: string): string {
           accountNumber: doc.id.substring(0, 8).toUpperCase(),
           firstName: contactInfo['firstName'] || '',
           lastName: contactInfo['lastName'] || '',
-          email: contactInfo['contactEmail'] || '',
           company: data['company'] || contactInfo['company'] || '',
           city: contactInfo['city'] || '',
           state: contactInfo['state'] || '',
