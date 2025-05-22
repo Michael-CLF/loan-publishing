@@ -1,6 +1,7 @@
 // Import what we need
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { FormsModule } from '@angular/forms'; // Added for ngModel support
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 
@@ -42,7 +43,7 @@ import { createTimestamp, createServerTimestamp, toFirestoreTimestamp } from '..
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterLink],
+  imports: [CommonModule, RouterLink, FormsModule], // Added FormsModule
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
@@ -67,6 +68,16 @@ export class DashboardComponent implements OnInit {
 
   // Lender-specific data
   lenderData: any | null = null;
+
+  // Notification preferences - UPDATED STRUCTURE
+  notificationPrefs = {
+    wantsEmailNotifications: false,
+    preferredPropertyCategories: [] as string[],
+    preferredPropertyTypes: [] as string[], // Added for template compatibility
+    preferredLoanTypes: [] as string[],
+    minLoanAmount: 0,
+    footprint: [] as string[],
+  };
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -98,6 +109,44 @@ export class DashboardComponent implements OnInit {
   };
 
   loanTypes = LOAN_TYPES;
+
+  // Property types for notification preferences - NEW ADDITION
+  allPropertyTypes: string[] = [
+    'Commercial',
+    'Healthcare', 
+    'Hospitality',
+    'Industrial',
+    'Land',
+    'Mixed Use',
+    'Multifamily',
+    'Office',
+    'Residential',
+    'Retail',
+    'Special Purpose'
+  ];
+
+  // Available loan types for notification preferences - NEW ADDITION
+  allLoanTypes: string[] = [
+    'Purchase',
+    'Refinance', 
+    'Construction',
+    'Bridge',
+    'SBA',
+    'USDA',
+    'Conventional',
+    'Hard Money',
+    'Mezzanine',
+    'Equity'
+  ];
+
+  // Available states for footprint selection - NEW ADDITION
+  allStates: string[] = [
+    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
+    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
+    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
+    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
+    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+  ];
 
   /**
    * Initialize the dashboard component
@@ -246,7 +295,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Handle existing user profile
+   * Handle existing user profile - ENHANCED with notification preferences
    */
   async handleExistingUserProfile(
     docSnap: any,
@@ -269,6 +318,16 @@ export class DashboardComponent implements OnInit {
         city: data.contactInfo?.city || '',
         state: data.contactInfo?.state || '',
         role: 'lender',
+      };
+
+      // Load notification preferences for lenders - NEW ADDITION
+      this.notificationPrefs = {
+        wantsEmailNotifications: data.wantsEmailNotifications ?? false,
+        preferredPropertyCategories: data.productInfo?.propertyCategories ?? [],
+        preferredPropertyTypes: data.productInfo?.propertyCategories ?? [], // Sync with preferredPropertyCategories
+        preferredLoanTypes: data.productInfo?.loanTypes ?? [],
+        minLoanAmount: data.productInfo?.minLoanAmount ?? 0,
+        footprint: Object.keys(data.footprintInfo?.states || {}),
       };
     } else if (data.role === 'originator') {
       this.userData = {
@@ -507,6 +566,149 @@ export class DashboardComponent implements OnInit {
         console.error('Error removing saved loan:', error);
         alert('Failed to remove loan: ' + this.getErrorMessage(error));
       }
+    }
+  }
+
+  /**
+   * Toggle property type preference for notifications - NEW METHOD
+   */
+  togglePropertyType(propertyType: string): void {
+    const index = this.notificationPrefs.preferredPropertyTypes.indexOf(propertyType);
+    
+    if (index > -1) {
+      // Remove if already selected
+      this.notificationPrefs.preferredPropertyTypes.splice(index, 1);
+    } else {
+      // Add if not selected
+      this.notificationPrefs.preferredPropertyTypes.push(propertyType);
+    }
+
+    // Keep preferredPropertyCategories in sync
+    this.notificationPrefs.preferredPropertyCategories = [...this.notificationPrefs.preferredPropertyTypes];
+  }
+
+  /**
+   * Toggle loan type preference for notifications - NEW METHOD
+   */
+  toggleLoanType(loanType: string): void {
+    const index = this.notificationPrefs.preferredLoanTypes.indexOf(loanType);
+    
+    if (index > -1) {
+      // Remove if already selected
+      this.notificationPrefs.preferredLoanTypes.splice(index, 1);
+    } else {
+      // Add if not selected
+      this.notificationPrefs.preferredLoanTypes.push(loanType);
+    }
+  }
+
+  /**
+   * Toggle state in footprint for notifications - NEW METHOD
+   */
+  toggleFootprintState(state: string): void {
+    const index = this.notificationPrefs.footprint.indexOf(state);
+    
+    if (index > -1) {
+      // Remove if already selected
+      this.notificationPrefs.footprint.splice(index, 1);
+    } else {
+      // Add if not selected
+      this.notificationPrefs.footprint.push(state);
+    }
+  }
+
+  /**
+   * Check if a loan type is selected - HELPER METHOD
+   */
+  isLoanTypeSelected(loanType: string): boolean {
+    return this.notificationPrefs.preferredLoanTypes.includes(loanType);
+  }
+
+  /**
+   * Check if a state is selected in footprint - HELPER METHOD
+   */
+  isStateSelected(state: string): boolean {
+    return this.notificationPrefs.footprint.includes(state);
+  }
+
+  /**
+   * Format minimum loan amount input - HELPER METHOD
+   */
+  onMinLoanAmountChange(event: any): void {
+    const value = event.target.value;
+    // Remove any non-numeric characters except decimal points
+    const numericValue = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
+    this.notificationPrefs.minLoanAmount = isNaN(numericValue) ? 0 : numericValue;
+  }
+
+  /**
+   * Reset notification preferences to defaults - NEW METHOD
+   */
+  resetNotificationPreferences(): void {
+    if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
+      this.notificationPrefs = {
+        wantsEmailNotifications: false,
+        preferredPropertyCategories: [],
+        preferredPropertyTypes: [],
+        preferredLoanTypes: [],
+        minLoanAmount: 0,
+        footprint: [],
+      };
+      
+      console.log('Notification preferences reset to defaults');
+    }
+  }
+
+  /**
+   * Save notification preferences - ENHANCED METHOD
+   */
+  async saveNotificationPreferences(): Promise<void> {
+    if (!this.userData?.id || this.userRole !== 'lender') return;
+
+    try {
+      const updateData = {
+        wantsEmailNotifications: this.notificationPrefs.wantsEmailNotifications,
+        productInfo: {
+          propertyCategories: this.notificationPrefs.preferredPropertyTypes, // Use preferredPropertyTypes for consistency
+          loanTypes: this.notificationPrefs.preferredLoanTypes,
+          minLoanAmount: this.notificationPrefs.minLoanAmount,
+        },
+        footprintInfo: {
+          states: this.notificationPrefs.footprint.reduce((acc, cur) => {
+            acc[cur] = true;
+            return acc;
+          }, {} as Record<string, boolean>),
+        },
+      };
+
+      await this.firestoreService.updateDocument(`lenders/${this.userData.id}`, updateData);
+      
+      console.log('Notification preferences saved:', updateData);
+      alert('Notification preferences saved successfully.');
+    } catch (error) {
+      console.error('Failed to save notification preferences:', error);
+      alert('Error saving preferences.');
+    }
+  }
+
+  /**
+   * Toggle email notifications - ENHANCED METHOD
+   */
+  async toggleEmailNotifications(enabled: boolean): Promise<void> {
+    if (!this.userData?.id || this.userRole !== 'lender') return;
+
+    try {
+      // Update the local state
+      this.notificationPrefs.wantsEmailNotifications = enabled;
+      
+      // Update in Firestore
+      await this.firestoreService.updateDocument(`lenders/${this.userData.id}`, {
+        wantsEmailNotifications: enabled,
+      });
+      alert('Notification preference updated.');
+    } catch (error) {
+      console.error('Error updating notification preference:', error);
+      alert('Failed to update preference.');
     }
   }
 
@@ -903,6 +1105,7 @@ export class DashboardComponent implements OnInit {
   editLenderProfile(): void {
     this.router.navigate(['/lender-profile/edit']);
   }
+  
 
   /**
    * Delete a loan

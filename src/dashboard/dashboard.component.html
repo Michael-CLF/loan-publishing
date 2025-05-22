@@ -221,3 +221,135 @@
         </div>
     </div>
 </div>
+
+<!-- Enhanced Email Notification Preferences Section -->
+<div *ngIf="isLender()" class="notification-preferences">
+  <h3>Email Notification Preferences</h3>
+  <p class="preferences-description">Configure when you want to receive email notifications about new loan opportunities.</p>
+
+  <form (ngSubmit)="saveNotificationPreferences()" #notificationForm="ngForm" class="notification-form">
+    
+    <!-- Main Email Toggle -->
+    <div class="form-section">
+      <label class="main-toggle">
+        <input 
+          type="checkbox" 
+          [(ngModel)]="notificationPrefs.wantsEmailNotifications" 
+          name="wantsEmailNotifications" 
+        />
+        <span class="toggle-text">Notify me when new loans are posted</span>
+      </label>
+    </div>
+
+    <!-- Additional preferences (shown when main toggle is enabled) -->
+    <div *ngIf="notificationPrefs.wantsEmailNotifications" class="additional-preferences">
+      
+      <!-- Property Categories Section -->
+      <div class="form-section">
+        <h4 class="section-title">Property Categories</h4>
+        <p class="section-description">Select property types you're interested in:</p>
+        <div class="checkbox-grid">
+          <label *ngFor="let type of allPropertyTypes" class="checkbox-item">
+            <input
+              type="checkbox"
+              [value]="type"
+              (change)="togglePropertyType(type)"
+              [checked]="notificationPrefs.preferredPropertyTypes.includes(type)"
+              name="propertyTypes"
+            />
+            <span class="checkbox-label">{{ type }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Loan Types Section -->
+      <div class="form-section">
+        <h4 class="section-title">Loan Types</h4>
+        <p class="section-description">Select loan types you're interested in:</p>
+        <div class="checkbox-grid">
+          <label *ngFor="let loanType of allLoanTypes" class="checkbox-item">
+            <input
+              type="checkbox"
+              [value]="loanType"
+              (change)="toggleLoanType(loanType)"
+              [checked]="isLoanTypeSelected(loanType)"
+              name="loanTypes"
+            />
+            <span class="checkbox-label">{{ loanType }}</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Minimum Loan Amount Section -->
+      <div class="form-section">
+        <h4 class="section-title">Minimum Loan Amount</h4>
+        <p class="section-description">Only notify me about loans above this amount:</p>
+        <div class="amount-input-container">
+          <span class="currency-symbol">$</span>
+          <input
+            type="number"
+            [(ngModel)]="notificationPrefs.minLoanAmount"
+            (input)="onMinLoanAmountChange($event)"
+            name="minLoanAmount"
+            placeholder="0"
+            min="0"
+            step="10000"
+            class="amount-input"
+          />
+        </div>
+        <div class="formatted-amount">
+          {{ formatCurrency(notificationPrefs.minLoanAmount) }}
+        </div>
+      </div>
+
+      <!-- Geographic Footprint Section -->
+      <div class="form-section">
+        <h4 class="section-title">Geographic Footprint (States)</h4>
+        <p class="section-description">Select states where you lend:</p>
+        <div class="states-grid">
+          <label *ngFor="let state of allStates" class="state-checkbox">
+            <input
+              type="checkbox"
+              [value]="state"
+              (change)="toggleFootprintState(state)"
+              [checked]="isStateSelected(state)"
+              name="footprintStates"
+            />
+            <span class="state-label">{{ getFormattedStateName(state) || state }}</span>
+          </label>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Action Buttons -->
+    <div class="form-actions">
+      <button type="submit" class="save-btn" [disabled]="!notificationForm.valid">
+        Save Preferences
+      </button>
+      <button type="button" class="reset-btn" (click)="resetNotificationPreferences()">
+        Reset to Defaults
+      </button>
+    </div>
+
+  </form>
+
+  <!-- Current Settings Summary -->
+  <div *ngIf="notificationPrefs.wantsEmailNotifications" class="preferences-summary">
+    <h4>Current Notification Settings:</h4>
+    <ul>
+      <li *ngIf="notificationPrefs.preferredPropertyTypes.length > 0">
+        <strong>Property Types:</strong> {{ notificationPrefs.preferredPropertyTypes.join(', ') }}
+      </li>
+      <li *ngIf="notificationPrefs.preferredLoanTypes.length > 0">
+        <strong>Loan Types:</strong> {{ notificationPrefs.preferredLoanTypes.join(', ') }}
+      </li>
+      <li *ngIf="notificationPrefs.minLoanAmount > 0">
+        <strong>Minimum Amount:</strong> {{ formatCurrency(notificationPrefs.minLoanAmount) }}
+      </li>
+      <li *ngIf="notificationPrefs.footprint.length > 0">
+        <strong>States:</strong> {{ notificationPrefs.footprint.join(', ') }}
+      </li>
+    </ul>
+  </div>
+</div>
