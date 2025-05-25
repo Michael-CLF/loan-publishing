@@ -1,5 +1,6 @@
 export const environment = {
   production: true,
+  apiUrl: 'https://us-central1-loanpub.cloudfunctions.net',
   firebase: {
     apiKey: 'AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas',
     authDomain: 'loanpub.firebaseapp.com',

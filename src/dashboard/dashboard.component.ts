@@ -4,7 +4,10 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms'; // Added for ngModel support
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
-
+import { 
+  NotificationPreferencesService, 
+} from '../services/notification-preferences.service';
+import { NotificationPreferences } from '../services/email-notification.service';
 import {
   Firestore,
   collection,
@@ -22,6 +25,7 @@ import { AuthService } from '../services/auth.service';
 import { FirestoreService } from '../services/firestore.service';
 import { LenderService } from '../services/lender.service';
 import { LoanService } from '../services/loan.service';
+import { EmailNotificationService } from '../services/email-notification.service';
 
 // Constants
 import { LOAN_TYPES } from '../shared/loan-constants';
@@ -55,6 +59,9 @@ export class DashboardComponent implements OnInit {
   private readonly loanService = inject(LoanService);
   private readonly modalService = inject(ModalService);
   public readonly locationService = inject(LocationService);
+  private readonly notificationPreferencesService = inject(NotificationPreferencesService);
+  private readonly emailNotificationService = inject(EmailNotificationService);
+
 
   // State properties
   isLoggedIn = false;
@@ -147,6 +154,7 @@ export class DashboardComponent implements OnInit {
     'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
   ];
+  
 
   /**
    * Initialize the dashboard component
@@ -310,7 +318,7 @@ export class DashboardComponent implements OnInit {
       this.userData = {
         id: docSnap.id,
         company:
-          data.company || (data.contactInfo && data.contactInfo.company) || '',
+        data.company || (data.contactInfo && data.contactInfo.company) || '',
         firstName: data.contactInfo?.firstName || '',
         lastName: data.contactInfo?.lastName || '',
         phone: data.contactInfo?.contactPhone || '',
@@ -321,14 +329,8 @@ export class DashboardComponent implements OnInit {
       };
 
       // Load notification preferences for lenders - NEW ADDITION
-      this.notificationPrefs = {
-        wantsEmailNotifications: data.wantsEmailNotifications ?? false,
-        preferredPropertyCategories: data.productInfo?.propertyCategories ?? [],
-        preferredPropertyTypes: data.productInfo?.propertyCategories ?? [], // Sync with preferredPropertyCategories
-        preferredLoanTypes: data.productInfo?.loanTypes ?? [],
-        minLoanAmount: data.productInfo?.minLoanAmount ?? 0,
-        footprint: Object.keys(data.footprintInfo?.states || {}),
-      };
+     // Load notification preferences via service
+this.loadNotificationPreferencesFromService(); 
     } else if (data.role === 'originator') {
       this.userData = {
         id: docSnap.id,
@@ -362,6 +364,49 @@ export class DashboardComponent implements OnInit {
     this.loading = false;
   }
 
+private loadNotificationPreferencesFromService(): void {
+  // No need to pass lenderId anymore
+  this.notificationPreferencesService.getNotificationPreferences().subscribe({
+    next: (preferences) => {
+      console.log('Loaded notification preferences from service:', preferences);
+      this.notificationPrefs = {
+        wantsEmailNotifications: preferences.wantsEmailNotifications,
+        preferredPropertyCategories: preferences.preferredPropertyTypes,
+        preferredPropertyTypes: preferences.preferredPropertyTypes,
+        preferredLoanTypes: preferences.preferredLoanTypes,
+        minLoanAmount: preferences.minLoanAmount,
+        footprint: preferences.footprint,
+      };
+    },
+    error: (error) => {
+      console.error('Error loading notification preferences:', error);
+      // Set default preferences on error
+      this.notificationPrefs = {
+        wantsEmailNotifications: false,
+        preferredPropertyCategories: [],
+        preferredPropertyTypes: [],
+        preferredLoanTypes: [],
+        minLoanAmount: 0,
+        footprint: [],
+      };
+    },
+  });
+}
+
+
+testEmailSystem() {
+  const testEmail = this.userData?.email || 'hello@dailyloanpost.com';
+  this.emailNotificationService.sendTestEmail(testEmail).subscribe({
+    next: (response) => {
+      console.log('✅ Email sent successfully!', response);
+      alert('Email sent! Check your inbox.');
+    },
+    error: (error) => {
+      console.error('❌ Email failed:', error);
+      alert('Email failed: ' + error.message);
+    }
+  });
+}
   /**
    * Handle missing user profile
    */
@@ -467,6 +512,7 @@ export class DashboardComponent implements OnInit {
       },
     });
   }
+
 
   /**
    * Save a loan for a lender
@@ -659,58 +705,65 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  /**
-   * Save notification preferences - ENHANCED METHOD
-   */
-  async saveNotificationPreferences(): Promise<void> {
-    if (!this.userData?.id || this.userRole !== 'lender') return;
-
-    try {
-      const updateData = {
-        wantsEmailNotifications: this.notificationPrefs.wantsEmailNotifications,
-        productInfo: {
-          propertyCategories: this.notificationPrefs.preferredPropertyTypes, // Use preferredPropertyTypes for consistency
-          loanTypes: this.notificationPrefs.preferredLoanTypes,
-          minLoanAmount: this.notificationPrefs.minLoanAmount,
-        },
-        footprintInfo: {
-          states: this.notificationPrefs.footprint.reduce((acc, cur) => {
-            acc[cur] = true;
-            return acc;
-          }, {} as Record<string, boolean>),
-        },
-      };
-
-      await this.firestoreService.updateDocument(`lenders/${this.userData.id}`, updateData);
-      
-      console.log('Notification preferences saved:', updateData);
-      alert('Notification preferences saved successfully.');
-    } catch (error) {
-      console.error('Failed to save notification preferences:', error);
-      alert('Error saving preferences.');
-    }
+// UPDATED: saveNotificationPreferences method
+async saveNotificationPreferences(): Promise<void> {
+  if (this.userRole !== 'lender') {
+    alert('Only lenders can set notification preferences');
+    return;
   }
 
-  /**
-   * Toggle email notifications - ENHANCED METHOD
-   */
-  async toggleEmailNotifications(enabled: boolean): Promise<void> {
-    if (!this.userData?.id || this.userRole !== 'lender') return;
+  try {
+    const servicePreferences: NotificationPreferences = {
+      wantsEmailNotifications: this.notificationPrefs.wantsEmailNotifications,
+      preferredPropertyTypes: this.notificationPrefs.preferredPropertyTypes,
+      preferredLoanTypes: this.notificationPrefs.preferredLoanTypes,
+      minLoanAmount: this.notificationPrefs.minLoanAmount,
+      footprint: this.notificationPrefs.footprint,
+    };
 
-    try {
-      // Update the local state
-      this.notificationPrefs.wantsEmailNotifications = enabled;
-      
-      // Update in Firestore
-      await this.firestoreService.updateDocument(`lenders/${this.userData.id}`, {
-        wantsEmailNotifications: enabled,
-      });
-      alert('Notification preference updated.');
-    } catch (error) {
-      console.error('Error updating notification preference:', error);
-      alert('Failed to update preference.');
-    }
+    // No need to pass userId anymore
+    this.notificationPreferencesService.saveNotificationPreferences(servicePreferences).subscribe({
+      next: (response) => {
+        console.log('Notification preferences saved via service:', response);
+        alert('Notification preferences saved successfully.');
+      },
+      error: (error) => {
+        console.error('Failed to save notification preferences via service:', error);
+        alert('Error saving preferences: ' + error.message);
+      }
+    });
+  } catch (error) {
+    console.error('Error in saveNotificationPreferences:', error);
+    alert('Error saving preferences.');
   }
+}
+
+
+async toggleEmailNotifications(enabled: boolean): Promise<void> {
+  if (this.userRole !== 'lender') {
+    alert('Only lenders can toggle email notifications');
+    return;
+  }
+
+  try {
+    this.notificationPrefs.wantsEmailNotifications = enabled;
+
+    // No need to pass userId anymore
+    this.notificationPreferencesService.toggleEmailNotifications(enabled).subscribe({
+      next: (response) => {
+        console.log('Email notifications toggled via service:', response);
+        alert(`Email notifications ${enabled ? 'enabled' : 'disabled'}.`);
+      },
+      error: (error) => {
+        console.error('Error toggling email notifications via service:', error);
+        alert('Failed to update preference: ' + error.message);
+      }
+    });
+  } catch (error) {
+    console.error('Error in toggleEmailNotifications:', error);
+    alert('Failed to update preference.');
+  }
+}
 
   /**
    * Load saved lenders for originators
