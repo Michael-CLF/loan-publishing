@@ -7,7 +7,7 @@ import { User as FirebaseUser } from '@angular/fire/auth';
 import { 
   NotificationPreferencesService, 
 } from '../services/notification-preferences.service';
-import { NotificationPreferences } from '../services/email-notification.service';
+import { NotificationPreferences } from '../types/notification.types';
 import {
   Firestore,
   collection,
@@ -19,6 +19,10 @@ import {
   deleteDoc,
   addDoc,
 } from '@angular/fire/firestore';
+import { switchMap, filter, take } from 'rxjs/operators';
+import { httpsCallable } from '@angular/fire/functions';
+import { Functions } from '@angular/fire/functions';
+
 
 // Services
 import { AuthService } from '../services/auth.service';
@@ -61,6 +65,9 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
+  private readonly functions = inject(Functions);
+
+
 
 
   // State properties
@@ -302,6 +309,25 @@ export class DashboardComponent implements OnInit {
     await this.handleMissingUserProfile(fbUser);
   }
 
+ async testEmail(): Promise<void> {
+  try {
+    // Use your service instead of direct httpsCallable
+    // This ensures proper auth token handling
+    const testEmailAddress = this.userData?.email || 'test@example.com';
+    
+    console.log('Sending test email to:', testEmailAddress);
+    
+    const result = await this.emailNotificationService.sendTestEmail(testEmailAddress).toPromise();
+    
+    console.log('✅ sendTestEmail response:', result);
+    alert('Test email sent successfully!');
+    
+  } catch (err) {
+    console.error('❌ sendTestEmail error:', err);
+    alert('Failed to send test email: ' + (err as any)?.message || 'Unknown error');
+  }
+}
+
   /**
    * Handle existing user profile - ENHANCED with notification preferences
    */
@@ -328,8 +354,7 @@ export class DashboardComponent implements OnInit {
         role: 'lender',
       };
 
-      // Load notification preferences for lenders - NEW ADDITION
-     // Load notification preferences via service
+      
 this.loadNotificationPreferencesFromService(); 
     } else if (data.role === 'originator') {
       this.userData = {
@@ -365,8 +390,13 @@ this.loadNotificationPreferencesFromService();
   }
 
 private loadNotificationPreferencesFromService(): void {
-  // No need to pass lenderId anymore
-  this.notificationPreferencesService.getNotificationPreferences().subscribe({
+  // Wait for authentication to be fully ready before loading preferences
+  this.authService.waitForAuthInit().pipe(
+    switchMap(() => this.authService.isLoggedIn$),
+    filter(isLoggedIn => isLoggedIn),
+    take(1),
+    switchMap(() => this.notificationPreferencesService.getNotificationPreferences())
+  ).subscribe({
     next: (preferences) => {
       console.log('Loaded notification preferences from service:', preferences);
       this.notificationPrefs = {
@@ -393,17 +423,50 @@ private loadNotificationPreferencesFromService(): void {
   });
 }
 
-
 testEmailSystem() {
-  const testEmail = this.userData?.email || 'hello@dailyloanpost.com';
-  this.emailNotificationService.sendTestEmail(testEmail).subscribe({
-    next: (response) => {
-      console.log('✅ Email sent successfully!', response);
-      alert('Email sent! Check your inbox.');
+  console.log('=== EMAIL TEST DEBUG ===');
+  console.log('User data:', this.user);
+  console.log('Is logged in:', this.isLoggedIn);
+  console.log('User role:', this.userRole);
+  
+  // Try to get current user directly
+  this.authService.getCurrentUser().subscribe({
+    next: (user) => {
+      console.log('Auth service user:', user);
+      if (user) {
+        console.log('User UID:', user.uid);
+        console.log('User email:', user.email);
+        
+        // EXPLICIT FUNCTION CALL DEBUGGING
+        console.log('About to call sendTestEmail function...');
+        const testEmail = this.userData?.email || 'hello@dailyloanpost.com';
+        console.log('Sending test email to:', testEmail);
+        
+        // Check if the service method exists
+        console.log('Email service exists:', !!this.emailNotificationService);
+        console.log('sendTestEmail method exists:', typeof this.emailNotificationService.sendTestEmail);
+        
+        this.emailNotificationService.sendTestEmail(testEmail).subscribe({
+          next: (response) => {
+            console.log('✅ Email sent successfully!', response);
+            alert('Email sent! Check your inbox.');
+          },
+          error: (error) => {
+            console.error('❌ Full error object:', error);
+            console.error('❌ Error message:', error.message);
+            console.error('❌ Error code:', error.code);
+            console.error('❌ Error details:', error.details);
+            alert('Email failed: ' + (error.message || 'Unknown error'));
+          }
+        });
+      } else {
+        console.error('No user from auth service');
+        alert('Please log out and log back in');
+      }
     },
     error: (error) => {
-      console.error('❌ Email failed:', error);
-      alert('Email failed: ' + error.message);
+      console.error('Auth service error:', error);
+      alert('Authentication error');
     }
   });
 }

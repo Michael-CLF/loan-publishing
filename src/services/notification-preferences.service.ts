@@ -22,7 +22,7 @@ export class NotificationPreferencesService {
    * Note: No need to pass lenderId - Firebase gets it from auth context
    */
   getNotificationPreferences(): Observable<NotificationPreferences> {
-    return this.emailNotificationService.getNotificationPreferences();
+    return this.emailNotificationService.getNotificationPreferencesCallable();
   }
 
   /**
@@ -30,7 +30,7 @@ export class NotificationPreferencesService {
    * Note: No need to pass lenderId - Firebase gets it from auth context
    */
   saveNotificationPreferences(preferences: NotificationPreferences): Observable<SavePreferencesResponse> {
-    return this.emailNotificationService.saveNotificationPreferences(preferences);
+    return this.emailNotificationService.saveNotificationPreferencesCallable(preferences);
   }
 
   /**
@@ -38,6 +38,6 @@ export class NotificationPreferencesService {
    * Note: No need to pass lenderId - Firebase gets it from auth context
    */
   toggleEmailNotifications(enabled: boolean): Observable<SavePreferencesResponse> {
-    return this.emailNotificationService.toggleEmailNotifications(enabled);
+    return this.emailNotificationService.toggleEmailNotificationsCallable(enabled);
   }
 }

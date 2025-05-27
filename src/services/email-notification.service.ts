@@ -66,7 +66,7 @@ export class EmailNotificationService {
    * Save notification preferences
    * Note: We don't pass userId anymore - Firebase Functions v2 gets it from auth context
    */
-  saveNotificationPreferences(preferences: NotificationPreferences): Observable<SavePreferencesResponse> {
+  saveNotificationPreferencesCallable(preferences: NotificationPreferences): Observable<SavePreferencesResponse> {
     const savePreferencesFn = httpsCallable<{ preferences: NotificationPreferences }, SavePreferencesResponse>(
       this.functions,
       'saveNotificationPreferences'
@@ -81,7 +81,7 @@ export class EmailNotificationService {
    * Get notification preferences
    * Note: We don't pass userId anymore - Firebase Functions v2 gets it from auth context
    */
-  getNotificationPreferences(): Observable<NotificationPreferences> {
+  getNotificationPreferencesCallable(): Observable<NotificationPreferences> {
     const getPreferencesFn = httpsCallable<any, GetPreferencesResponse>(
       this.functions,
       'getNotificationPreferences'
@@ -96,7 +96,7 @@ export class EmailNotificationService {
    * Toggle email notifications
    * Note: We don't pass userId anymore - Firebase Functions v2 gets it from auth context
    */
-  toggleEmailNotifications(enabled: boolean): Observable<SavePreferencesResponse> {
+  toggleEmailNotificationsCallable(enabled: boolean): Observable<SavePreferencesResponse> {
     const toggleNotificationsFn = httpsCallable<{ enabled: boolean }, SavePreferencesResponse>(
       this.functions,
       'toggleEmailNotifications'

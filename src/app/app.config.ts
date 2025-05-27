@@ -1,4 +1,4 @@
-import { ApplicationConfig, importProvidersFrom } from '@angular/core';
+import { ApplicationConfig } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { routes } from './app.routes';
 import {
@@ -21,11 +21,17 @@ export const appConfig: ApplicationConfig = {
     provideRouter(routes),
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    provideFirestore(() => getFirestore()),
+    
+    // Auth - production only
     provideAuth(() => getAuth()),
-    provideFunctions(() => getFunctions()),
+    
+    // Firestore - production only
+    provideFirestore(() => getFirestore()),
+    
+    // Functions - production only
+    provideFunctions(() => getFunctions(undefined, 'us-central1')),
+    
     provideStorage(() => getStorage()),
-    provideFunctions(() => getFunctions()),
     provideNoopAnimations(),
   ],
 };

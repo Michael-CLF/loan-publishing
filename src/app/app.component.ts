@@ -15,6 +15,7 @@ import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
 
+
 declare let gtag: Function;
 
 @Component({

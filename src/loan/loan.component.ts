@@ -23,6 +23,7 @@ import { ModalService } from '../services/modal.service';
 
 // Type definitions
 type PropertyCategory =
+  | 'Commercial'
   | 'Healthcare'
   | 'Hospitality'
   | 'Industrial'
@@ -64,21 +65,36 @@ export class LoanComponent implements OnInit {
     { value: 'acquisition', name: 'Acquisition Loan' },
     { value: 'balance sheet', name: 'Balance Sheet' },
     { value: 'bridge', name: 'Bridge Loan' },
-    { value: 'bridge-perm', name: 'Bridge to Permanent' },
+    { value: 'bridge_perm', name: 'Bridge to Permanent' },
     { value: 'dscr', name: 'DSCR' },
-    { value: 'fixFlip', name: 'Fix & Flip' },
-    { value: 'hardMoney', name: 'Hard Money' },
+    { value: 'fix_Flip', name: 'Fix & Flip' },
+    { value: 'hard_money', name: 'Hard Money' },
     { value: 'construction', name: 'New Construction' },
     { value: 'portfolio', name: 'Portfolio Loan' },
-    { value: 'purchase-money', name: 'Purchase Money Loan' },
+    { value: 'purchase_money', name: 'Purchase Money Loan' },
     { value: 'rehab', name: 'Rehab/Renovation' },
-    { value: 'sbaxpress', name: 'SBA Express' },
-    { value: 'sba7a', name: 'SBA 7(a)' },
-    { value: 'sba504', name: 'SBA 504' },
+    { value: 'sba_express', name: 'SBA Express' },
+    { value: 'sba_7a', name: 'SBA 7(a)' },
+    { value: 'sba_504', name: 'SBA 504' },
     { value: 'usda', name: 'USDA' },
   ];
 
   propertyCategories = signal<Record<PropertyCategory, string[]>>({
+    Commercial: [
+       	'Auto Repair Shop',
+         'Bank Branch',
+         'Business Center',
+         'Call Center',
+         'Car Wash',
+         'Dry Cleaner',
+         'Funeral Home',
+         'General Commercial',
+         'Printing Facility',
+         'Sales Office',
+         'Showroom',
+         'Truck Terminal',
+    ],
+    
     Healthcare: [
       'Assisted Living',
       'Hospital',
