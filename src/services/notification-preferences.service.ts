@@ -1,15 +1,8 @@
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
-import { EmailNotificationService, NotificationPreferences, SavePreferencesResponse } from './email-notification.service';
-
-// Default preferences
-export const DEFAULT_NOTIFICATION_PREFERENCES: NotificationPreferences = {
-  wantsEmailNotifications: false,
-  preferredPropertyTypes: [],
-  preferredLoanTypes: [],
-  minLoanAmount: 0,
-  footprint: []
-};
+import { EmailNotificationService, SavePreferencesResponse } from './email-notification.service';
+import { httpsCallable, Functions } from '@angular/fire/functions';
+import { NotificationPreferences } from '../types/notification.types';
 
 @Injectable({
   providedIn: 'root'
@@ -21,7 +14,7 @@ export class NotificationPreferencesService {
    * Get notification preferences for the current user
    * Note: No need to pass lenderId - Firebase gets it from auth context
    */
-  getNotificationPreferences(): Observable<NotificationPreferences> {
+  getNotificationPreferences(): Observable<any> {
     return this.emailNotificationService.getNotificationPreferencesCallable();
   }
 

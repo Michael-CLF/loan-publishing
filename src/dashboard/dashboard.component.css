@@ -355,7 +355,7 @@
   margin: 20px auto;
   padding: 32px;
   border: 1px solid #e5e7eb;
-  max-width: 1000px;
+  width: 1000px;
 }
 
 .notification-preferences h3 {
@@ -369,9 +369,11 @@
 
 .preferences-description {
   color: #0a2463;
-  font-size: 1ren;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
   margin: 0 0 24px 0;
   line-height: 1.5;
+  font-weight: 500;
 }
 
 /* Form Styling */
@@ -466,7 +468,7 @@
 .checkbox-label {
   color: #0a2463;
   font-family: "roboto", sans-serif;
-  font-size: .90rem;
+  font-size: 1rem;
   font-weight: 500;
   user-select: none;
   line-height: 1.4;
@@ -483,6 +485,20 @@
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background-color: #f9fafb;
+}
+.select-all-label {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 3px;
+}
+
+.all-states {
+ width: 18px;
+ height: 18px;
+ accent-color: #1e3a8a;
+ cursor: pointer;
 }
 
 .state-checkbox {

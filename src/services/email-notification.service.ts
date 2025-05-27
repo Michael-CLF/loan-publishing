@@ -2,15 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-
-// Interfaces matching your Firebase functions
-export interface NotificationPreferences {
-  wantsEmailNotifications: boolean;
-  preferredPropertyTypes: string[];
-  preferredLoanTypes: string[];
-  minLoanAmount: number;
-  footprint: string[];
-}
+import { NotificationPreferences } from '../types/notification.types';
 
 export interface EmailNotificationResponse {
   success: boolean;

@@ -23,7 +23,6 @@ import { switchMap, filter, take } from 'rxjs/operators';
 import { httpsCallable } from '@angular/fire/functions';
 import { Functions } from '@angular/fire/functions';
 
-
 // Services
 import { AuthService } from '../services/auth.service';
 import { FirestoreService } from '../services/firestore.service';
@@ -44,6 +43,17 @@ import { ModalService } from '../services/modal.service';
 import { LocationService } from '../services/location.service';
 import { Timestamp } from '@angular/fire/firestore';
 import { createTimestamp, createServerTimestamp, toFirestoreTimestamp } from '../utils/firebase.utils';
+
+// Property category interface for better type safety
+interface PropertyCategoryOption {
+  value: string;        // Snake_case for storage/matching
+  displayName: string;  // User-friendly display name
+}
+
+interface LoanTypeOption {
+  value: string;        // Snake_case for storage/matching  
+  displayName: string;  // User-friendly display name
+}
 
 
 @Component({
@@ -67,9 +77,6 @@ export class DashboardComponent implements OnInit {
   private readonly emailNotificationService = inject(EmailNotificationService);
   private readonly functions = inject(Functions);
 
-
-
-
   // State properties
   isLoggedIn = false;
   role: string | undefined;
@@ -83,12 +90,12 @@ export class DashboardComponent implements OnInit {
   // Lender-specific data
   lenderData: any | null = null;
 
-  // Notification preferences - UPDATED STRUCTURE
+  // ✅ CORRECTED: Notification preferences matching registration exactly
   notificationPrefs = {
     wantsEmailNotifications: false,
-    preferredPropertyCategories: [] as string[],
-    preferredPropertyTypes: [] as string[], // Added for template compatibility
-    preferredLoanTypes: [] as string[],
+    propertyCategories: [] as string[],        // ✅ Matches registration exactly
+    subcategorySelections: [] as string[],    // ✅ Matches registration exactly
+    loanTypes: [] as string[],                 // ✅ Matches registration exactly
     minLoanAmount: 0,
     footprint: [] as string[],
   };
@@ -124,36 +131,37 @@ export class DashboardComponent implements OnInit {
 
   loanTypes = LOAN_TYPES;
 
-  // Property types for notification preferences - NEW ADDITION
-  allPropertyTypes: string[] = [
-    'Commercial',
-    'Healthcare', 
-    'Hospitality',
-    'Industrial',
-    'Land',
-    'Mixed Use',
-    'Multifamily',
-    'Office',
-    'Residential',
-    'Retail',
-    'Special Purpose'
+  // ✅ CORRECTED: Property categories matching registration exactly
+  allPropertyCategoryOptions: PropertyCategoryOption[] = [
+    { value: 'commercial', displayName: 'Commercial' },
+    { value: 'healthcare', displayName: 'Healthcare' },
+    { value: 'hospitality', displayName: 'Hospitality' },
+    { value: 'industrial', displayName: 'Industrial' },
+    { value: 'land', displayName: 'Land' },
+    { value: 'mixed_use', displayName: 'Mixed Use' },
+    { value: 'multifamily', displayName: 'Multifamily' },
+    { value: 'office', displayName: 'Office' },
+    { value: 'residential', displayName: 'Residential' },
+    { value: 'retail', displayName: 'Retail' },
+    { value: 'special_purpose', displayName: 'Special Purpose' },
   ];
 
-  // Available loan types for notification preferences - NEW ADDITION
-  allLoanTypes: string[] = [
-    'Purchase',
-    'Refinance', 
-    'Construction',
-    'Bridge',
-    'SBA',
-    'USDA',
-    'Conventional',
-    'Hard Money',
-    'Mezzanine',
-    'Equity'
+  // ✅ CORRECTED: Loan types matching registration exactly
+  allLoanTypeOptions: LoanTypeOption[] = [
+    { value: 'agency', displayName: 'Agency Loans' },
+    { value: 'bridge', displayName: 'Bridge Loans' },
+    { value: 'cmbs', displayName: 'CMBS Loans' },
+    { value: 'commercial', displayName: 'Commercial Loans' },
+    { value: 'construction', displayName: 'Construction Loans' },
+    { value: 'hard_money', displayName: 'Hard Money Loans' },
+    { value: 'mezzanine', displayName: 'Mezzanine Loan' },
+    { value: 'rehab', displayName: 'Rehab Loans' },
+    { value: 'non_qm', displayName: 'Non-QM Loans' },
+    { value: 'sba', displayName: 'SBA Loans' },
+    { value: 'usda', displayName: 'USDA Loans' },
   ];
 
-  // Available states for footprint selection - NEW ADDITION
+  // Available states for footprint selection
   allStates: string[] = [
     'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
     'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
@@ -161,7 +169,6 @@ export class DashboardComponent implements OnInit {
     'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
   ];
-  
 
   /**
    * Initialize the dashboard component
@@ -309,24 +316,24 @@ export class DashboardComponent implements OnInit {
     await this.handleMissingUserProfile(fbUser);
   }
 
- async testEmail(): Promise<void> {
-  try {
-    // Use your service instead of direct httpsCallable
-    // This ensures proper auth token handling
-    const testEmailAddress = this.userData?.email || 'test@example.com';
-    
-    console.log('Sending test email to:', testEmailAddress);
-    
-    const result = await this.emailNotificationService.sendTestEmail(testEmailAddress).toPromise();
-    
-    console.log('✅ sendTestEmail response:', result);
-    alert('Test email sent successfully!');
-    
-  } catch (err) {
-    console.error('❌ sendTestEmail error:', err);
-    alert('Failed to send test email: ' + (err as any)?.message || 'Unknown error');
+  async testEmail(): Promise<void> {
+    try {
+      // Use your service instead of direct httpsCallable
+      // This ensures proper auth token handling
+      const testEmailAddress = this.userData?.email || 'test@example.com';
+      
+      console.log('Sending test email to:', testEmailAddress);
+      
+      const result = await this.emailNotificationService.sendTestEmail(testEmailAddress).toPromise();
+      
+      console.log('✅ sendTestEmail response:', result);
+      alert('Test email sent successfully!');
+      
+    } catch (err) {
+      console.error('❌ sendTestEmail error:', err);
+      alert('Failed to send test email: ' + (err as any)?.message || 'Unknown error');
+    }
   }
-}
 
   /**
    * Handle existing user profile - ENHANCED with notification preferences
@@ -354,8 +361,7 @@ export class DashboardComponent implements OnInit {
         role: 'lender',
       };
 
-      
-this.loadNotificationPreferencesFromService(); 
+      this.loadNotificationPreferencesFromService(); 
     } else if (data.role === 'originator') {
       this.userData = {
         id: docSnap.id,
@@ -389,33 +395,31 @@ this.loadNotificationPreferencesFromService();
     this.loading = false;
   }
 
-private loadNotificationPreferencesFromService(): void {
-  // Wait for authentication to be fully ready before loading preferences
+ private loadNotificationPreferencesFromService(): void {
   this.authService.waitForAuthInit().pipe(
     switchMap(() => this.authService.isLoggedIn$),
     filter(isLoggedIn => isLoggedIn),
     take(1),
     switchMap(() => this.notificationPreferencesService.getNotificationPreferences())
   ).subscribe({
-    next: (preferences) => {
-      console.log('Loaded notification preferences from service:', preferences);
+    next: (preferences: any) => {
+      console.log('✅ Loaded notification preferences:', preferences);
       this.notificationPrefs = {
         wantsEmailNotifications: preferences.wantsEmailNotifications,
-        preferredPropertyCategories: preferences.preferredPropertyTypes,
-        preferredPropertyTypes: preferences.preferredPropertyTypes,
-        preferredLoanTypes: preferences.preferredLoanTypes,
+        propertyCategories: preferences.propertyCategories || [],
+        subcategorySelections: preferences.subcategorySelections || [],
+        loanTypes: preferences.loanTypes || [],
         minLoanAmount: preferences.minLoanAmount,
-        footprint: preferences.footprint,
+        footprint: preferences.footprint || [],
       };
     },
     error: (error) => {
-      console.error('Error loading notification preferences:', error);
-      // Set default preferences on error
+      console.error('❌ Error loading notification preferences:', error);
       this.notificationPrefs = {
         wantsEmailNotifications: false,
-        preferredPropertyCategories: [],
-        preferredPropertyTypes: [],
-        preferredLoanTypes: [],
+        propertyCategories: [],
+        subcategorySelections: [],
+        loanTypes: [],
         minLoanAmount: 0,
         footprint: [],
       };
@@ -423,53 +427,61 @@ private loadNotificationPreferencesFromService(): void {
   });
 }
 
-testEmailSystem() {
-  console.log('=== EMAIL TEST DEBUG ===');
-  console.log('User data:', this.user);
-  console.log('Is logged in:', this.isLoggedIn);
-  console.log('User role:', this.userRole);
-  
-  // Try to get current user directly
-  this.authService.getCurrentUser().subscribe({
-    next: (user) => {
-      console.log('Auth service user:', user);
-      if (user) {
-        console.log('User UID:', user.uid);
-        console.log('User email:', user.email);
-        
-        // EXPLICIT FUNCTION CALL DEBUGGING
-        console.log('About to call sendTestEmail function...');
-        const testEmail = this.userData?.email || 'hello@dailyloanpost.com';
-        console.log('Sending test email to:', testEmail);
-        
-        // Check if the service method exists
-        console.log('Email service exists:', !!this.emailNotificationService);
-        console.log('sendTestEmail method exists:', typeof this.emailNotificationService.sendTestEmail);
-        
-        this.emailNotificationService.sendTestEmail(testEmail).subscribe({
-          next: (response) => {
-            console.log('✅ Email sent successfully!', response);
-            alert('Email sent! Check your inbox.');
-          },
-          error: (error) => {
-            console.error('❌ Full error object:', error);
-            console.error('❌ Error message:', error.message);
-            console.error('❌ Error code:', error.code);
-            console.error('❌ Error details:', error.details);
-            alert('Email failed: ' + (error.message || 'Unknown error'));
-          }
-        });
-      } else {
-        console.error('No user from auth service');
-        alert('Please log out and log back in');
-      }
-    },
-    error: (error) => {
-      console.error('Auth service error:', error);
-      alert('Authentication error');
-    }
-  });
+  testEmailSystem() {
+    console.log('=== EMAIL TEST DEBUG ===');
+    console.log('User data:', this.user);
+    console.log('Is logged in:', this.isLoggedIn);
+    console.log('User role:', this.userRole);
+
+    next: (preferences: any) => {
+  console.log('🔍 RAW backend response:', preferences);
+  console.log('🔍 Has propertyCategories?', 'propertyCategories' in preferences);
+  console.log('🔍 Has preferredPropertyTypes?', 'preferredPropertyTypes' in preferences);
+  // ... rest of your code
 }
+    
+    // Try to get current user directly
+    this.authService.getCurrentUser().subscribe({
+      next: (user) => {
+        console.log('Auth service user:', user);
+        if (user) {
+          console.log('User UID:', user.uid);
+          console.log('User email:', user.email);
+          
+          // EXPLICIT FUNCTION CALL DEBUGGING
+          console.log('About to call sendTestEmail function...');
+          const testEmail = this.userData?.email || 'hello@dailyloanpost.com';
+          console.log('Sending test email to:', testEmail);
+          
+          // Check if the service method exists
+          console.log('Email service exists:', !!this.emailNotificationService);
+          console.log('sendTestEmail method exists:', typeof this.emailNotificationService.sendTestEmail);
+          
+          this.emailNotificationService.sendTestEmail(testEmail).subscribe({
+            next: (response) => {
+              console.log('✅ Email sent successfully!', response);
+              alert('Email sent! Check your inbox.');
+            },
+            error: (error) => {
+              console.error('❌ Full error object:', error);
+              console.error('❌ Error message:', error.message);
+              console.error('❌ Error code:', error.code);
+              console.error('❌ Error details:', error.details);
+              alert('Email failed: ' + (error.message || 'Unknown error'));
+            }
+          });
+        } else {
+          console.error('No user from auth service');
+          alert('Please log out and log back in');
+        }
+      },
+      error: (error) => {
+        console.error('Auth service error:', error);
+        alert('Authentication error');
+      }
+    });
+  }
+
   /**
    * Handle missing user profile
    */
@@ -576,7 +588,6 @@ testEmailSystem() {
     });
   }
 
-
   /**
    * Save a loan for a lender
    */
@@ -678,71 +689,75 @@ testEmailSystem() {
     }
   }
 
-  /**
-   * Toggle property type preference for notifications - NEW METHOD
-   */
-  togglePropertyType(propertyType: string): void {
-    const index = this.notificationPrefs.preferredPropertyTypes.indexOf(propertyType);
+  // ✅ CORRECTED: Toggle methods using correct field names
+  togglePropertyCategory(categoryValue: string): void {
+    const index = this.notificationPrefs.propertyCategories.indexOf(categoryValue);
     
     if (index > -1) {
-      // Remove if already selected
-      this.notificationPrefs.preferredPropertyTypes.splice(index, 1);
+      this.notificationPrefs.propertyCategories.splice(index, 1);
     } else {
-      // Add if not selected
-      this.notificationPrefs.preferredPropertyTypes.push(propertyType);
-    }
-
-    // Keep preferredPropertyCategories in sync
-    this.notificationPrefs.preferredPropertyCategories = [...this.notificationPrefs.preferredPropertyTypes];
-  }
-
-  /**
-   * Toggle loan type preference for notifications - NEW METHOD
-   */
-  toggleLoanType(loanType: string): void {
-    const index = this.notificationPrefs.preferredLoanTypes.indexOf(loanType);
-    
-    if (index > -1) {
-      // Remove if already selected
-      this.notificationPrefs.preferredLoanTypes.splice(index, 1);
-    } else {
-      // Add if not selected
-      this.notificationPrefs.preferredLoanTypes.push(loanType);
+      this.notificationPrefs.propertyCategories.push(categoryValue);
     }
   }
 
-  /**
-   * Toggle state in footprint for notifications - NEW METHOD
-   */
+  toggleSubcategorySelection(subcategoryValue: string): void {
+    const index = this.notificationPrefs.subcategorySelections.indexOf(subcategoryValue);
+    
+    if (index > -1) {
+      this.notificationPrefs.subcategorySelections.splice(index, 1);
+    } else {
+      this.notificationPrefs.subcategorySelections.push(subcategoryValue);
+    }
+  }
+
+  toggleLoanType(loanTypeValue: string): void {
+    const index = this.notificationPrefs.loanTypes.indexOf(loanTypeValue);
+    
+    if (index > -1) {
+      this.notificationPrefs.loanTypes.splice(index, 1);
+    } else {
+      this.notificationPrefs.loanTypes.push(loanTypeValue);
+    }
+  }
+
   toggleFootprintState(state: string): void {
     const index = this.notificationPrefs.footprint.indexOf(state);
     
     if (index > -1) {
-      // Remove if already selected
       this.notificationPrefs.footprint.splice(index, 1);
     } else {
-      // Add if not selected
       this.notificationPrefs.footprint.push(state);
     }
   }
 
-  /**
-   * Check if a loan type is selected - HELPER METHOD
-   */
-  isLoanTypeSelected(loanType: string): boolean {
-    return this.notificationPrefs.preferredLoanTypes.includes(loanType);
+  // ✅ CORRECTED: Helper methods using correct field names
+  isCategorySelected(categoryValue: string): boolean {
+    return this.notificationPrefs.propertyCategories.includes(categoryValue);
   }
 
-  /**
-   * Check if a state is selected in footprint - HELPER METHOD
-   */
+  isSubcategorySelected(subcategoryValue: string): boolean {
+    return this.notificationPrefs.subcategorySelections.includes(subcategoryValue);
+  }
+
+  isLoanTypeSelected(loanTypeValue: string): boolean {
+    return this.notificationPrefs.loanTypes.includes(loanTypeValue);
+  }
+
   isStateSelected(state: string): boolean {
     return this.notificationPrefs.footprint.includes(state);
   }
 
-  /**
-   * Format minimum loan amount input - HELPER METHOD
-   */
+  // ✅ NEW: Helper methods for display names
+  getCategoryDisplayName(categoryValue: string): string {
+    const category = this.allPropertyCategoryOptions.find(cat => cat.value === categoryValue);
+    return category ? category.displayName : categoryValue;
+  }
+
+  getLoanTypeDisplayName(loanTypeValue: string): string {
+    const loanType = this.allLoanTypeOptions.find(type => type.value === loanTypeValue);
+    return loanType ? loanType.displayName : loanTypeValue;
+  }
+
   onMinLoanAmountChange(event: any): void {
     const value = event.target.value;
     // Remove any non-numeric characters except decimal points
@@ -750,16 +765,14 @@ testEmailSystem() {
     this.notificationPrefs.minLoanAmount = isNaN(numericValue) ? 0 : numericValue;
   }
 
-  /**
-   * Reset notification preferences to defaults - NEW METHOD
-   */
+  // ✅ CORRECTED: Reset method using correct field names
   resetNotificationPreferences(): void {
     if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
       this.notificationPrefs = {
         wantsEmailNotifications: false,
-        preferredPropertyCategories: [],
-        preferredPropertyTypes: [],
-        preferredLoanTypes: [],
+        propertyCategories: [],        // ✅ Correct field name
+        subcategorySelections: [],     // ✅ Correct field name
+        loanTypes: [],                 // ✅ Correct field name
         minLoanAmount: 0,
         footprint: [],
       };
@@ -768,65 +781,107 @@ testEmailSystem() {
     }
   }
 
-// UPDATED: saveNotificationPreferences method
-async saveNotificationPreferences(): Promise<void> {
-  if (this.userRole !== 'lender') {
-    alert('Only lenders can set notification preferences');
-    return;
+  // ✅ CORRECTED: Debug method
+  async debugNotificationPreferences(): Promise<void> {
+    console.log('=== NOTIFICATION PREFERENCES DEBUG ===');
+    console.log('Current component preferences:', this.notificationPrefs);
+    console.log('User role:', this.userRole);
+    console.log('Is lender:', this.isLender());
+    
+    if (this.userRole === 'lender') {
+      this.notificationPreferencesService.getNotificationPreferences().subscribe({
+        next: (serverPrefs) => {
+          console.log('✅ Server preferences:', serverPrefs);
+          console.log('📧 Email notifications enabled:', serverPrefs.wantsEmailNotifications);
+          console.log('🏢 Property categories:', serverPrefs.propertyCategories);
+          console.log('🏗️ Subcategory selections:', serverPrefs.subcategorySelections);
+          console.log('💰 Loan types:', serverPrefs.loanTypes);
+          console.log('💵 Min loan amount:', serverPrefs.minLoanAmount);
+          console.log('📍 Footprint states:', serverPrefs.footprint);
+          
+          // Check if any preferences are set
+          if (!serverPrefs.wantsEmailNotifications) {
+            console.warn('⚠️ Email notifications are DISABLED');
+          }
+          if (!serverPrefs.propertyCategories || serverPrefs.propertyCategories.length === 0) {
+            console.warn('⚠️ No property categories selected');
+          }
+          if (!serverPrefs.loanTypes || serverPrefs.loanTypes.length === 0) {
+            console.warn('⚠️ No loan types selected');
+          }
+          if (!serverPrefs.footprint || serverPrefs.footprint.length === 0) {
+            console.warn('⚠️ No footprint states selected');
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error loading server preferences:', error);
+        }
+      });
+    } else {
+      console.warn('⚠️ User is not a lender, cannot access notification preferences');
+    }
   }
 
-  try {
-    const servicePreferences: NotificationPreferences = {
-      wantsEmailNotifications: this.notificationPrefs.wantsEmailNotifications,
-      preferredPropertyTypes: this.notificationPrefs.preferredPropertyTypes,
-      preferredLoanTypes: this.notificationPrefs.preferredLoanTypes,
-      minLoanAmount: this.notificationPrefs.minLoanAmount,
-      footprint: this.notificationPrefs.footprint,
-    };
+  // ✅ CORRECTED: Save method using correct field names
+  async saveNotificationPreferences(): Promise<void> {
+    if (this.userRole !== 'lender') {
+      alert('Only lenders can set notification preferences');
+      return;
+    }
+    
 
-    // No need to pass userId anymore
-    this.notificationPreferencesService.saveNotificationPreferences(servicePreferences).subscribe({
-      next: (response) => {
-        console.log('Notification preferences saved via service:', response);
-        alert('Notification preferences saved successfully.');
-      },
-      error: (error) => {
-        console.error('Failed to save notification preferences via service:', error);
-        alert('Error saving preferences: ' + error.message);
-      }
-    });
-  } catch (error) {
-    console.error('Error in saveNotificationPreferences:', error);
-    alert('Error saving preferences.');
+    try {
+      const servicePreferences: any = {
+        wantsEmailNotifications: this.notificationPrefs.wantsEmailNotifications,
+        propertyCategories: this.notificationPrefs.propertyCategories,        // ✅ Correct field name
+        subcategorySelections: this.notificationPrefs.subcategorySelections,  // ✅ Correct field name
+        loanTypes: this.notificationPrefs.loanTypes,                          // ✅ Correct field name
+        minLoanAmount: this.notificationPrefs.minLoanAmount,
+        footprint: this.notificationPrefs.footprint,
+      };
+
+      console.log('💾 Saving notification preferences (aligned with registration):', servicePreferences);
+
+      this.notificationPreferencesService.saveNotificationPreferences(servicePreferences).subscribe({
+        next: (response) => {
+          console.log('✅ Notification preferences saved successfully');
+          alert('Notification preferences saved successfully.');
+        },
+        error: (error) => {
+          console.error('❌ Failed to save notification preferences:', error);
+          alert('Error saving preferences: ' + error.message);
+        }
+      });
+    } catch (error) {
+      console.error('Error in saveNotificationPreferences:', error);
+      alert('Error saving preferences.');
+    }
   }
-}
 
+  async toggleEmailNotifications(enabled: boolean): Promise<void> {
+    if (this.userRole !== 'lender') {
+      alert('Only lenders can toggle email notifications');
+      return;
+    }
 
-async toggleEmailNotifications(enabled: boolean): Promise<void> {
-  if (this.userRole !== 'lender') {
-    alert('Only lenders can toggle email notifications');
-    return;
+    try {
+      this.notificationPrefs.wantsEmailNotifications = enabled;
+
+      this.notificationPreferencesService.toggleEmailNotifications(enabled).subscribe({
+        next: (response) => {
+          console.log('Email notifications toggled via service:', response);
+          alert(`Email notifications ${enabled ? 'enabled' : 'disabled'}.`);
+        },
+        error: (error) => {
+          console.error('Error toggling email notifications via service:', error);
+          alert('Failed to update preference: ' + error.message);
+        }
+      });
+    } catch (error) {
+      console.error('Error in toggleEmailNotifications:', error);
+      alert('Failed to update preference.');
+    }
   }
-
-  try {
-    this.notificationPrefs.wantsEmailNotifications = enabled;
-
-    // No need to pass userId anymore
-    this.notificationPreferencesService.toggleEmailNotifications(enabled).subscribe({
-      next: (response) => {
-        console.log('Email notifications toggled via service:', response);
-        alert(`Email notifications ${enabled ? 'enabled' : 'disabled'}.`);
-      },
-      error: (error) => {
-        console.error('Error toggling email notifications via service:', error);
-        alert('Failed to update preference: ' + error.message);
-      }
-    });
-  } catch (error) {
-    console.error('Error in toggleEmailNotifications:', error);
-    alert('Failed to update preference.');
-  }
-}
 
   /**
    * Load saved lenders for originators
@@ -951,6 +1006,7 @@ async toggleEmailNotifications(enabled: boolean): Promise<void> {
 
     return 'Unknown Company';
   }
+
   /**
    * Get lender types as string
    */
@@ -1125,7 +1181,7 @@ async toggleEmailNotifications(enabled: boolean): Promise<void> {
   formatCurrency(value: string | number): string {
     if (!value) return '$0';
 
-    if (typeof value === 'string' && value.includes('$')) {
+    if (typeof value === 'string' && value.includes('$' )) {
       return value;
     }
 
@@ -1221,7 +1277,6 @@ async toggleEmailNotifications(enabled: boolean): Promise<void> {
   editLenderProfile(): void {
     this.router.navigate(['/lender-profile/edit']);
   }
-  
 
   /**
    * Delete a loan
@@ -1256,8 +1311,29 @@ async toggleEmailNotifications(enabled: boolean): Promise<void> {
       }
     }
   }
+  // Add this method to your component
+toggleAllStates(): void {
+  if (this.areAllStatesSelected()) {
+    // Deselect all states
+    this.notificationPrefs.footprint = [];
+  } else {
+    // Select all states
+    this.notificationPrefs.footprint = [...this.allStates];
+  }
+}
 
-/**
+// Add this helper method
+areAllStatesSelected(): boolean {
+  return this.notificationPrefs.footprint.length === this.allStates.length;
+}
+
+// Optional: Add a method to check if some (but not all) states are selected
+areSomeStatesSelected(): boolean {
+  return this.notificationPrefs.footprint.length > 0 && 
+         this.notificationPrefs.footprint.length < this.allStates.length;
+}
+
+  /**
    * Delete user account
    */
   async deleteAccount(): Promise<void> {
