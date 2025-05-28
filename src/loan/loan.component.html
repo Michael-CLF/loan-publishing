@@ -120,9 +120,10 @@
             <label for="state">Property State</label>
             <select id="state" formControlName="state" [ngClass]="{'invalid': isInvalid('state')}">
                 <option value="">-- Select State --</option>
-                <option *ngFor="let state of states()" [value]="state">
-                    {{ state }}
+                <option *ngFor="let state of states()" [ngValue]="state.value">
+                {{ state.name }}
                 </option>
+
             </select>
             <div *ngIf="isInvalid('state')" class="error-message">
                 *Please select a state
