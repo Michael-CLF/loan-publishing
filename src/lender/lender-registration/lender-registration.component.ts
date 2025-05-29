@@ -416,7 +416,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         [
           Validators.required,
           Validators.minLength(2),
-          Validators.pattern(/^[A-Za-z ]+$/),
+          Validators.pattern(/^[A-Za-z0-9 ]+$/),
         ],
       ],
       firstName: [
