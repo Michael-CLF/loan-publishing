@@ -19,6 +19,32 @@ export class LenderListComponent {
   lenders = this.filterService.lenders;
   loading = this.filterService.loading;
 
+  // Pagination setup
+  pageSize = 15;
+  currentPage = 1;
+
+  get paginatedLenders() {
+    const allLenders = this.lenders();
+    const startIndex = (this.currentPage - 1) * this.pageSize;
+    return allLenders.slice(startIndex, startIndex + this.pageSize);
+  }
+
+  get totalPages() {
+    return Math.ceil(this.lenders().length / this.pageSize);
+  }
+
+  nextPage() {
+    if (this.currentPage < this.totalPages) {
+      this.currentPage++;
+    }
+  }
+
+  prevPage() {
+    if (this.currentPage > 1) {
+      this.currentPage--;
+    }
+  }
+
   getLenderTypeName(value: string): string {
     const lenderTypeMap: { [key: string]: string } = {
       agency: 'Agency Lender',

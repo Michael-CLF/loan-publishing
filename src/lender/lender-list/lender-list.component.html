@@ -1,52 +1,72 @@
 <div class="lender-container">
-    <div class="">
-        <h2 class="headline">Lender Database</h2>
-    </div>
+  <div>
+    <h2 class="headline">Lender Database</h2>
+  </div>
 
-    <!-- Include the filter component -->
-    <app-lender-filter></app-lender-filter>
+  <!-- Filter Component -->
+  <app-lender-filter></app-lender-filter>
 
-    <!-- Loading indicator -->
-    <div *ngIf="loading()" class="text-center my-8">
-        <p>Loading lenders...</p>
-    </div>
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="text-center my-8">
+    <p>Loading lenders...</p>
+  </div>
 
-    <!-- Empty state -->
-    <div *ngIf="!loading() && lenders().length === 0" class="text-center">
-        <p class="text-lg">Oops, No lenders match your filter criteria.</p>
-    </div>
+  <!-- Empty State -->
+  <div *ngIf="!loading() && lenders().length === 0" class="text-center">
+    <p class="text-lg">Oops, no lenders match your filter criteria.</p>
+  </div>
 
-    <!-- Lender table -->
-    <div *ngIf="!loading() && lenders().length > 0" class="lender-table">
-        <table class="lender-header">
-            <thead class="lender-title">
-                <tr class="lender-content">
-                    <th class="lender-info left">Contact Name</th>
-                    <th class="lender-info">Company Name</th>
-                    <th class="lender-info">Lender Type</th>
-                    <th class="lender-info right">Min/Max Loan</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr *ngFor="let lender of lenders()" (click)="navigateTo(lender.id)">
-                    <td class="lender-detail">
-                        {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
-                    </td>
-                    <td class="lender-detail">{{ lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A' }}
-</td>
-                    <td class="lender-detail">
-                        <div *ngIf="lender.productInfo?.lenderTypes">
-                            <div *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
-                                {{ getLenderTypeName(type) }}{{ !last ? ', ' : '' }}
-                            </div>
-                        </div>
-                    </td>
-                    <td class="lender-detail">
-                        ${{ lender.productInfo?.minLoanAmount | number }} -
-                        ${{ lender.productInfo?.maxLoanAmount | number }}
-                    </td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+  <!-- Lender Table -->
+  <div *ngIf="!loading() && lenders().length > 0" class="lender-table">
+    <table class="lender-header">
+      <thead class="lender-title">
+        <tr class="lender-content">
+          <th class="lender-info left">Contact Name</th>
+          <th class="lender-info">Company Name</th>
+          <th class="lender-info">Lender Type</th>
+          <th class="lender-info right">Min/Max Loan</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let lender of paginatedLenders" (click)="navigateTo(lender.id)">
+          <td class="lender-detail">
+            {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
+          </td>
+          <td class="lender-detail">
+            {{ lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A' }}
+          </td>
+          <td class="lender-detail">
+            <div *ngIf="lender.productInfo?.lenderTypes">
+              <ng-container *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
+                {{ getLenderTypeName(type) }}{{ !last ? ', ' : '' }}
+              </ng-container>
+            </div>
+          </td>
+          <td class="lender-detail">
+            ${{ lender.productInfo?.minLoanAmount | number }} -
+            ${{ lender.productInfo?.maxLoanAmount | number }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="pagination-controls">
+  <!-- Prev button -->
+ <!-- Previous -->
+<button class="page-arrow" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Previous page">
+  <i class="fas fa-chevron-left"></i>
+</button>
+
+<!-- Page Info -->
+<span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+
+<!-- Next -->
+<button class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Next page">
+  <i class="fas fa-chevron-right"></i>
+</button>
+
+</div>
+
+
+  </div>
 </div>

@@ -72,3 +72,55 @@
   font-size: 1.5rem;
   font-weight: 500;
 }
+.pagination-controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  font-size: 1rem;
+}
+
+.page-arrow {
+  background-color: white;
+  border: 1px solid #ccc;
+  color: #0a2463;
+  font-size: 2rem; /* Your preferred size */
+  border-radius: 6px;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  box-sizing: border-box;
+  line-height: 1;
+  vertical-align: middle;
+  position: relative;
+  top: -2px;
+}
+
+
+.page-arrow:hover:not(:disabled) {
+  border-color: #0a2463;
+  color: #fff;
+  background-color: #0a2463;
+}
+
+.page-arrow:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.page-info {
+  color: #0a2463;
+  font-size: 1rem;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+}
+
