@@ -8,6 +8,8 @@ import { DestroyRef } from '@angular/core';
 import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../services/location.service';
+import { CsvExportService } from '../../utils/csv-export.service';
+
 
 @Component({
   selector: 'app-admin',
@@ -24,6 +26,8 @@ export class AdminComponent implements OnInit {
   private firestoreService = inject(FirestoreService);
   private modalService = inject(ModalService);
   private locationService = inject(LocationService);
+  private csvExportService = inject(CsvExportService);
+
 
   userFilter = '';
   filteredLenders = signal<any[]>([]);
@@ -73,6 +77,31 @@ export class AdminComponent implements OnInit {
       this.loadAllData();
     }
   }
+
+  downloadUsersAsCSV(): void {
+  const originators = this.originators().map(o => ({
+    firstName: o.firstName || '',
+    lastName: o.lastName || '',
+    email: o.email || '',
+    role: 'originator',
+    
+  }));
+
+  console.log('Lenders:', this.lenders());
+  const lenders = this.lenders().map(l => ({
+    
+    firstName: l.firstName || '',
+    lastName: l.lastName || '',
+    email: l.email || '',
+    role: 'lender',
+  }));
+
+  const combined = [...originators, ...lenders].filter(u => u.email);
+  const filename = `users-${new Date().toISOString().split('T')[0]}`;
+  this.csvExportService.downloadCSV(combined, filename);
+}
+
+
 
   // Helper method to get and format lender types
 getLenderTypes(lender: any): string {
@@ -278,7 +307,9 @@ private formatLenderType(type: string): string {
           role: 'lender',
           // Include lender types for display
           lenderTypes: data['lenderTypes'] || productInfo['lenderTypes'] || [],
-          productInfo: productInfo
+          productInfo: productInfo,
+          email: contactInfo['contactEmail'] || data['email'] || '',
+
         };
 
         // Store in map for quick lookup
