@@ -1,0 +1,72 @@
+<div class="match-container">
+
+  <!-- Loading state -->
+  <div *ngIf="loading()" class="text-center my-6">
+    <p>Loading loan and lender matches...</p>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error()" class="text-center my-4" style="color: red;">
+    {{ error() }}
+  </div>
+
+  <!-- Loan Summary -->
+  <div *ngIf="matchedLoan() && !loading()" class="loan-summary matched-card">
+    <h2 class="section-header">Loan Summary</h2>
+    <p><strong>Loan Amount:</strong> {{ matchedLoan()?.loanAmount }}</p>
+    <p><strong>Loan Type:</strong> {{ matchedLoan()?.loanType }}</p>
+    <p><strong>Property Type:</strong> {{ matchedLoan()?.propertyTypeCategory }}</p>
+    <p><strong>Subcategory:</strong> {{ matchedLoan()?.propertySubCategory }}</p>
+    <p><strong>Location:</strong> {{ matchedLoan()?.city }}, {{ matchedLoan()?.state }}</p>
+    <p><strong>Sponsor FICO:</strong> {{ matchedLoan()?.sponsorFico }}</p>
+  </div>
+
+  <!-- Lender Matches -->
+  <div *ngIf="matchedLenders().length > 0">
+    <h2 class="section-header">Matched Lenders ({{ matchedLenders().length }})</h2>
+
+    <div *ngFor="let match of matchedLenders()" class="matched-card">
+      <div class="match-header">
+        <h3 class="match-name">
+          {{
+            match.lender.contactInfo?.firstName || match.lender.contactInfo?.lastName
+              ? (match.lender.contactInfo?.firstName || '') + ' ' + (match.lender.contactInfo?.lastName || '')
+              : 'Unnamed Lender'
+          }}
+        </h3>
+        <span class="match-score">{{ match.matchScore.toFixed(2) }}%</span>
+      </div>
+
+      <p><strong>Email:</strong> {{ match.lender.contactInfo?.contactEmail }}</p>
+      <p><strong>Company:</strong> {{ match.lender.contactInfo?.company }}</p>
+
+      <p><strong>Match Breakdown:</strong></p>
+      <ul class="breakdown">
+        <li [class.text-green-600]="match.matchBreakdown.loanType" [class.text-red-600]="!match.matchBreakdown.loanType">
+          Loan Type Match
+        </li>
+        <li [class.text-green-600]="match.matchBreakdown.loanAmount" [class.text-red-600]="!match.matchBreakdown.loanAmount">
+          Loan Amount Match
+        </li>
+        <li [class.text-green-600]="match.matchBreakdown.propertyType" [class.text-red-600]="!match.matchBreakdown.propertyType">
+          Property Type Match
+        </li>
+        <li [class.text-green-600]="match.matchBreakdown.propertySubCategory" [class.text-red-600]="!match.matchBreakdown.propertySubCategory">
+          Property Subcategory Match
+        </li>
+        <li [class.text-green-600]="match.matchBreakdown.state" [class.text-red-600]="!match.matchBreakdown.state">
+          State Match
+        </li>
+        <li [class.text-green-600]="match.matchBreakdown.ficoScore" [class.text-red-600]="!match.matchBreakdown.ficoScore">
+          FICO Score Match
+        </li>
+      </ul>
+    </div>
+  </div>
+
+<button (click)="runMigration()">Run State Migration</button>
+  <!-- No Matches -->
+  <div *ngIf="matchedLenders().length === 0 && !loading()" class="text-center mt-10">
+    <p>No matching lenders found for this loan.</p>
+  </div>
+</div>

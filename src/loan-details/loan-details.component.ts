@@ -1,10 +1,11 @@
 import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { LoanService, Loan } from '../services/loan.service';
+import { LoanService } from '../services/loan.service';
 import { AuthService } from '../services/auth.service';
 import { switchMap, catchError, tap, map } from 'rxjs/operators';
 import { Observable, of, Subscription } from 'rxjs';
+import { Loan } from '../models/loan-model.model';
 import {
   Firestore,
   collection,

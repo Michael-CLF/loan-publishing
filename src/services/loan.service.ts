@@ -36,33 +36,7 @@ import { Loan as LoanModel } from '../models/loan-model.model';
 import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
 import { Timestamp, FieldValue } from '@angular/fire/firestore';
 
-// Loan interface based on your form structure
-export interface Loan {
-  id?: string;
-  propertyTypeCategory: string;
-  propertySubCategory: string;
-  transactionType: string;
-  loanAmount: string;
-  loanType: string;
-  propertyValue: string;
-  ltv: number;
-  noi?: string;
-  city: string;
-  state: string;
-  numberOfSponsors: number;
-  sponsorsLiquidity: string;
-  sponsorFico: number;
-  experienceInYears: number;
-  contact: string;
-  phone: string;
-  email: string;
-  notes?: string;
-  createdBy?: string;
-  createdAt?: Timestamp | FieldValue;
-  updatedAt?: Timestamp | FieldValue;
-  isFavorite?: boolean;
-  originatorId?: string;
-}
+
 
 @Injectable({
   providedIn: 'root',
@@ -81,7 +55,7 @@ export class LoanService {
    * @param loanData The loan data to create
    * @returns Observable with the created document reference ID
    */
-  createLoan(loanData: Loan): Observable<string> {
+  createLoan(loanData: LoanModel): Observable<string> {
   return this.authService.getCurrentUser().pipe(
     takeUntilDestroyed(this.destroyRef),
     switchMap((user) => {
@@ -90,7 +64,7 @@ export class LoanService {
         return throwError(() => new Error('User not authenticated'));
       }
 
-      const newLoan: Loan = {
+      const newLoan: LoanModel = {
         ...loanData,
         createdBy: user['uid'],
         createdAt: createTimestamp(),  // Use utility function instead of new Date()
@@ -128,7 +102,7 @@ export class LoanService {
    * @param loanData The updated loan data
    * @returns Observable of void
    */
-  updateLoan(id: string, loanData: Partial<Loan>): Observable<void> {
+  updateLoan(id: string, loanData: Partial<LoanModel>): Observable<void> {
   const loanDoc = doc(this.firestore, `loans/${id}`);
   const updateData = {
     ...loanData,
@@ -148,30 +122,35 @@ export class LoanService {
   /**
    * Get a single loan by ID
    */
-  getLoanById(id: string): Observable<Loan | null> {
-    if (!id) {
-      return of(null);
-    }
-
-    const loanDoc = doc(this.firestore, `loans/${id}`);
-    return from(getDoc(loanDoc)).pipe(
-      map((docSnap) => {
-        if (docSnap.exists()) {
-          return {
-            id: docSnap.id,
-            ...docSnap.data(),
-          } as Loan;
-        } else {
-          console.log(`Loan with ID ${id} not found`);
-          return null;
-        }
-      }),
-      catchError((error) => {
-        console.error('Error fetching loan:', error);
-        return of(null);
-      })
-    );
+ getLoanById(id: string): Observable<LoanModel | null> {
+  if (!id) {
+    return of(null);
   }
+
+  const loanDoc = doc(this.firestore, `loans/${id}`);
+  return from(getDoc(loanDoc)).pipe(
+    map((docSnap) => {
+      if (docSnap.exists()) {
+        const data = docSnap.data();
+
+        return {
+          id: docSnap.id,
+          ...data,
+          createdAt: data['createdAt'].toDate?.() || undefined,
+          updatedAt: data['updatedAt'].toDate?.() || undefined,
+        } as LoanModel;
+      } else {
+        console.log(`Loan with ID ${id} not found`);
+        return null;
+      }
+    }),
+    catchError((error) => {
+      console.error('Error fetching loan:', error);
+      return of(null);
+    })
+  );
+}
+
   /**
    * Deletes a loan document
    * @param id The document ID to delete
@@ -194,7 +173,7 @@ export class LoanService {
    * @param id The document ID
    * @returns Observable of the Loan
    */
-  getLoan(id: string): Observable<Loan> {
+  getLoan(id: string): Observable<LoanModel> {
     const loanDoc = doc(this.firestore, `loans/${id}`);
     return docData(loanDoc).pipe(
       takeUntilDestroyed(this.destroyRef),
@@ -202,7 +181,7 @@ export class LoanService {
         if (!data) {
           throw new Error(`Loan with ID ${id} not found`);
         }
-        return { id, ...data } as Loan;
+        return { id, ...data } as LoanModel;
       }),
       catchError((error) => {
         console.error(`Error fetching loan ${id}:`, error);
@@ -215,7 +194,7 @@ export class LoanService {
    * Gets all loans created by the current user
    * @returns Observable of Loan array
    */
-  getMyLoans(): Observable<Loan[]> {
+  getMyLoans(): Observable<LoanModel[]> {
     return this.authService.getCurrentUser().pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap((user) => {
@@ -230,7 +209,7 @@ export class LoanService {
         );
 
         return collectionData(myLoansQuery, { idField: 'id' }).pipe(
-          map((loans) => loans as Loan[]),
+          map((loans) => loans as LoanModel[]),
           catchError((error) => {
             console.error('Error fetching my loans:', error);
             return throwError(() => error);
@@ -244,7 +223,7 @@ export class LoanService {
    * Gets all loans in the system
    * @returns Observable of Loan array
    */
-  getAllLoans(): Observable<Loan[]> {
+  getAllLoans(): Observable<LoanModel[]> {
     return from(
       runInInjectionContext(this.injector, () => {
         const loansQuery = query(
@@ -258,7 +237,7 @@ export class LoanService {
       // Flatten the nested observable
       switchMap((observable) => observable),
       // Ensure we're returning an array of Loans
-      map((loans) => loans as Loan[]),
+      map((loans) => loans as LoanModel[]),
       catchError((error) => {
         console.error('Error fetching all loans:', error);
         return throwError(() => error);
@@ -272,7 +251,7 @@ export class LoanService {
    * @param state Optional state filter
    * @returns Observable of filtered Loan array
    */
-  searchLoans(propertyCategory?: string, state?: string): Observable<Loan[]> {
+  searchLoans(propertyCategory?: string, state?: string): Observable<LoanModel[]> {
     let loansQuery: any = this.loansCollection;
 
     // Build query dynamically based on provided filters
@@ -295,7 +274,7 @@ export class LoanService {
     }
 
     return collectionData(loansQuery, { idField: 'id' }).pipe(
-      map((loans) => loans as Loan[]),
+      map((loans) => loans as LoanModel[]),
       catchError((error) => {
         console.error('Error searching loans:', error);
         return throwError(() => error);

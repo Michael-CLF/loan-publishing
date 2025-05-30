@@ -27,6 +27,7 @@ export interface Lender {
     minLoanAmount?: string | number;
     maxLoanAmount?: string | number;
     subcategorySelections?: string[];
+    ficoScore?: number;
   };
   footprintInfo?: {
     lendingFootprint?: string[];

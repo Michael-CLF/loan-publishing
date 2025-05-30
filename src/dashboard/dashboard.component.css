@@ -220,6 +220,16 @@
 .delete-btn:hover {
   background-color: #fce8e6;
 }
+.match-btn {
+  color: #fff;
+  background-color: #0a2463;
+  width: 100%;
+}
+
+.match-btn:hover {
+  color: #fff;
+  background-color: #008080;
+}
 /* Loading and Error States */
 .loading {
   font-family: "roboto", sans-serif;

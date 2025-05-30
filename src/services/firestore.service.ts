@@ -28,7 +28,9 @@ import {
 import { Observable, from, of, throwError } from 'rxjs';
 import { map, catchError, tap, switchMap, share } from 'rxjs/operators';
 import { Originator } from 'src/models';
-import { Loan } from './loan.service';
+import { LoanService } from '../services/loan.service';
+import { Loan } from '../models/loan-model.model';
+
 import { LocationService } from './location.service';
 import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils';
 

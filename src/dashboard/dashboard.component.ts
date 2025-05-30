@@ -1243,6 +1243,11 @@ this.authService.getCurrentUser().subscribe({
     this.router.navigate(['/lender-profile/edit']);
   }
 
+  goToMatches(loanId: string): void {
+  this.router.navigate(['/loan', loanId, 'matches']);
+}
+
+
   /**
    * Delete a loan
    */

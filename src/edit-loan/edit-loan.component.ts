@@ -15,9 +15,11 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LoanService, Loan } from '../services/loan.service';
+import { LoanService } from '../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, tap, catchError, of } from 'rxjs';
+import { Loan } from '../models/loan-model.model';
+
 
 @Component({
   selector: 'app-edit-loan',

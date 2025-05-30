@@ -24,6 +24,7 @@ import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 import { AdminComponent } from 'src/components/admin/admin.component';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
+import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -52,6 +53,8 @@ export const routes: Routes = [
   { path: 'lender-footprint', component: LenderFootprintComponent },
   { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
+  { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
+
   {
     path: 'loan-details',
     component: LoanDetailsComponent,

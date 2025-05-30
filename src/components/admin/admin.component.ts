@@ -3,12 +3,13 @@ import { Firestore, collection, getDocs, doc, setDoc, serverTimestamp, updateDoc
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoanService, Loan } from '../../services/loan.service';
+import { LoanService } from '../../services/loan.service';
 import { DestroyRef } from '@angular/core';
 import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../services/location.service';
 import { CsvExportService } from '../../utils/csv-export.service';
+
 
 
 @Component({

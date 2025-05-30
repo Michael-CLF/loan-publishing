@@ -9,7 +9,8 @@ import {
 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { LoanService, Loan } from '../services/loan.service';
+import { LoanService } from '../services/loan.service';
+import { Loan } from '../models/loan-model.model';
 import { AuthService } from '../services/auth.service';
 import { take } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';

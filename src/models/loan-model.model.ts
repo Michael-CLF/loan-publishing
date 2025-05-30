@@ -1,3 +1,5 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface Loan {
   id?: string;
   propertyTypeCategory: string;
@@ -19,8 +21,9 @@ export interface Loan {
   phone: string;
   email: string;
   notes?: string;
+  originatorId?: string;
   createdBy?: string;
-  createdAt?: Date;
-  updatedAt?: Date;
+  createdAt?: Date | Timestamp;
+  updatedAt?: Date | Timestamp;
   isFavorite?: boolean;
 }

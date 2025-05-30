@@ -1,0 +1,66 @@
+/* Container styling */
+.match-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 2rem;
+  font-family: 'Roboto', sans-serif;
+  color: #0a2463;
+}
+
+/* Section header */
+.section-header {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  border-bottom: 2px solid #ccc;
+  padding-bottom: 0.5rem;
+}
+
+/* Lender match card */
+.matched-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  background-color: #f9f9f9;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+/* Name + score */
+.match-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.match-name {
+  font-size: 1.25rem;
+  font-weight: bold;
+}
+
+.match-score {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #0a2463;
+}
+
+/* Match breakdown list */
+.breakdown {
+  margin-top: 0.5rem;
+  padding-left: 1.2rem;
+  list-style-type: disc;
+}
+
+/* Responsive font */
+p {
+  margin: 0.25rem 0;
+  line-height: 1.5;
+}
+.text-green-600 {
+  color: #16a34a;
+}
+
+.text-red-600 {
+  color: #dc2626;
+}

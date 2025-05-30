@@ -435,7 +435,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           Validators.pattern(/^[A-Za-z ]+$/),
         ],
       ],
-      contactPhone: ['', [Validators.required]],
+      contactPhone: ['', [Validators.required, ]],
       contactEmail: [
         '',
         [Validators.required, Validators.email],
@@ -450,6 +450,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         ],
       ],
       state: ['', Validators.required],
+
+      
     });
 
     // Create form arrays with explicit debug names
@@ -474,27 +476,36 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     // Create subcategory selections array
     const subcategorySelectionsArray = this.fb.array([]);
 
-    // Create product step form group with all arrays
     const productStep = this.fb.group({
-      lenderTypes: lenderTypesArray,
-      minLoanAmount: [
-        null,
-        [Validators.required, Validators.pattern(/^\d{6,}$/)],
-      ],
-      maxLoanAmount: [
-        null,
-        [Validators.required, Validators.pattern(/^\d{6,}$/)],
-      ],
-      propertyCategories: propertyCategoriesArray,
-      propertyTypes: propertyTypesArray,
-      loanTypes: loanTypesArray,
-      subcategorySelections: subcategorySelectionsArray,
-    });
+  lenderTypes: lenderTypesArray,
+  minLoanAmount: [
+    null,
+    [Validators.required, Validators.pattern(/^\d{6,}$/)],
+  ],
+  maxLoanAmount: [
+    null,
+    [Validators.required, Validators.pattern(/^\d{6,}$/)],
+  ],
+  ficoScore: [
+    '',
+    [
+      Validators.required,
+      Validators.min(300),
+      Validators.max(850),
+      Validators.pattern(/^\d+$/),
+    ],
+  ],
+  propertyCategories: propertyCategoriesArray,
+  propertyTypes: propertyTypesArray,
+  loanTypes: loanTypesArray,
+  subcategorySelections: subcategorySelectionsArray,
+});
+
 
     // Create footprint step form group WITHOUT validators initially
     const footprintStep = this.fb.group({
       lendingFootprint: [[]],
-      states: this.fb.group({}),
+       states: this.fb.group({}),
     });
 
     // Initialize the main form
@@ -645,7 +656,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   private atLeastOneStateValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
-      // In the parent form, states is INSIDE footprintInfo
+     
       const statesGroup = control as FormGroup;
 
       if (!statesGroup) {
@@ -847,6 +858,20 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     console.log('Form valid:', currentForm.valid);
     console.log('Form value:', currentForm.value);
+    if (this.productForm.valid) {
+  // allow next
+} else {
+  console.log(this.productForm.value);
+  console.log(this.productForm.valid);
+}
+
+Object.keys(this.productForm.controls).forEach(controlName => {
+  const control = this.productForm.get(controlName);
+  if (control?.invalid) {
+    console.log(`❌ Invalid control: ${controlName}`, control.errors);
+  }
+});
+
 
     // If form is valid, proceed
     if (currentForm.valid) {
@@ -1054,9 +1079,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
                 ),
               },
               footprintInfo: {
-                lendingFootprint: formData.footprintInfo.lendingFootprint || [],
-                states: this.extractStatesData(formData.footprintInfo.states),
-              },
+              lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
+},
               role: 'lender',
               createdAt: createTimestamp(),  
               updatedAt: createServerTimestamp(),
@@ -1167,6 +1191,13 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
+  private extractSelectedStatesArray(statesData: any): string[] {
+  if (!statesData) return [];
+  
+  return Object.keys(statesData)
+    .filter(key => !key.includes('_counties') && statesData[key] === true);
+}
+
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
     if (!value) return 0;
@@ -1252,7 +1283,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         const locationData = {
           lenderProfileId: userId,
           lendingFootprint: formData.footprintInfo.lendingFootprint || [],
-          states: filteredStates, // Use the filtered states data
           createdAt: createTimestamp(),  
           updatedAt: createServerTimestamp(),
         };

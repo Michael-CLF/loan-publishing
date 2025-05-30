@@ -348,3 +348,15 @@ input[type="checkbox"] {
   color: #c00000;
   font-weight: 500;
 }
+.fico{
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+}
+.fico-error{
+  color: #c00000;
+  font-family: "roboto", sans-serif;
+  font-weight: 500;
+  font-size: 1rem;
+}

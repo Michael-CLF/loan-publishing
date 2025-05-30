@@ -182,15 +182,15 @@ export class LenderFootprintComponent implements OnInit {
       }
     });
 
-    // Create the selectedStateNames array here, before using it
-    const selectedStateNames = this.selectedStates.map(
-      (state) => state.stateName
+    // Create the selectedStateAbbreviations array here, before using it
+    const selectedStateAbbreviations = this.selectedStates.map(
+      (state) => state.stateValue
     );
 
     // Now set the lendingFootprint value using the created array
     this.lenderForm
       .get('footprintInfo.lendingFootprint')
-      ?.setValue(selectedStateNames);
+      ?.setValue(selectedStateAbbreviations);
 
     // Mark form as touched and dirty
     this.lenderForm.markAsDirty();
@@ -211,7 +211,7 @@ export class LenderFootprintComponent implements OnInit {
       'Form values updated with states:',
       this.selectedStates.map((s) => s.stateValue)
     );
-    console.log('Lending footprint updated:', selectedStateNames);
+    console.log('Lending footprint updated:', selectedStateAbbreviations);
   }
   toggleAllStates(): void {
     const shouldSelectAll =
