@@ -40,7 +40,7 @@
                         <div *ngIf="userData && !loading" class="user-info">
                             <p class="user-name">{{ userData.firstName }} {{ userData.lastName }}</p>
                             <p class="user-email">{{ userData.email }}</p>
-                            <p><strong>Account #:</strong> {{ accountNumber }}</p>
+                            <p><strong>Account #:</strong> {{ accountNumber | uppercase }}</p>
                             <p><strong>Phone:</strong> {{ formatPhoneNumber(userData.phone) }}</p>
                             <p><strong>Company:</strong> {{ userData.company }}</p>
                             <p><strong>Location:</strong> {{ userData.city }}, {{ userData.state }}</p>

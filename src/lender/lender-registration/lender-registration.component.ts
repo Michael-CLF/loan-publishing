@@ -998,123 +998,129 @@ Object.keys(this.productForm.controls).forEach(controlName => {
     });
   }
 
-  submitForm(): void {
-    this.submitted = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-    console.log('Submit button clicked!');
+ submitForm(): void {
+  this.submitted = true;
+  this.errorMessage = '';
+  this.successMessage = '';
+  console.log('Submit button clicked!');
 
-    this.markAllAsTouched(this.lenderForm);
+  this.markAllAsTouched(this.lenderForm);
 
-    // Force re-validation of states selection (Step 3)
-    this.footprintForm.get('states')?.updateValueAndValidity();
+  // Force re-validation of states selection (Step 3)
+  this.footprintForm.get('states')?.updateValueAndValidity();
 
-    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
-    console.log('Form valid:', this.lenderForm.valid);
+  console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
+  console.log('Form valid:', this.lenderForm.valid);
 
-    if (!this.lenderForm.valid) {
-      this.isLoading = false;
-      if (this.lenderForm.get('termsAccepted')?.invalid) {
-        this.errorMessage = 'You must agree to the Terms of Service to proceed';
-      } else {
-        this.errorMessage = 'Please complete all required fields';
-      }
-      return;
+  if (!this.lenderForm.valid) {
+    this.isLoading = false;
+    if (this.lenderForm.get('termsAccepted')?.invalid) {
+      this.errorMessage = 'You must agree to the Terms of Service to proceed';
+    } else {
+      this.errorMessage = 'Please complete all required fields';
     }
-
-    this.isLoading = true;
-
-    const formData = this.lenderForm.value;
-    const email = formData.contactInfo?.contactEmail;
-
-    if (!email) {
-      this.errorMessage = 'Email is required';
-      this.isLoading = false;
-      return;
-    }
-
-    // Run all Firebase operations inside injection context
-    runInInjectionContext(this.injector, () => {
-      // Create Firebase Auth user
-      this.authService // Changed from passwordAuthService to authService
-        .registerUser(email, 'defaultPassword', {
-          company: formData.contactInfo?.company,
-          firstName: formData.contactInfo?.firstName,
-          lastName: formData.contactInfo?.lastName,
-          email: email,
-          phone: formData.contactInfo?.contactPhone,
-          city: formData.contactInfo?.city,
-          state: formData.contactInfo?.state,
-          role: 'lender',
-        })
-        .pipe(
-          switchMap((user: any) => {
-            if (!user) {
-              throw new Error('User registration failed');
-            }
-
-            // Create a clean lender data object
-            const lenderData = {
-              userId: user.uid,
-              contactInfo: formData.contactInfo,
-              productInfo: {
-                lenderTypes: this.extractLenderTypes(
-                  formData.productInfo.lenderTypes
-                ),
-                propertyCategories: this.extractStringValues(
-                  formData.productInfo.propertyCategories
-                ),
-
-                subcategorySelections:
-                  formData.productInfo.subcategorySelections || [],
-                loanTypes: this.extractStringValues(
-                  formData.productInfo.loanTypes
-                ),
-
-                minLoanAmount: this.parseNumericValue(
-                  formData.productInfo.minLoanAmount
-                ),
-                maxLoanAmount: this.parseNumericValue(
-                  formData.productInfo.maxLoanAmount
-                ),
-              },
-              footprintInfo: {
-              lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
-},
-              role: 'lender',
-              createdAt: createTimestamp(),  
-              updatedAt: createServerTimestamp(),
-            };
-
-            // Save to lenders collection
-            return this.firestoreService.setDocument(
-              `lenders/${user.uid}`,
-              lenderData
-            );
-          }),
-          catchError((error) => {
-            console.error('Registration error:', error);
-            this.errorMessage = 'Registration failed. Please try again.';
-            this.isLoading = false;
-            return of(null);
-          })
-        )
-        .subscribe((result: any) => {
-          if (result !== null) {
-            this.successMessage = '';
-            this.isLoading = false;
-
-            // Show success modal
-            this.modalService.openLenderRegistrationSuccessModal();
-
-            // Redirect to dashboard after a short delay
-            setTimeout(() => {
-              this.router.navigate(['/dashboard']);
-            }, 3000);
-          }
-        });
-    });
+    return;
   }
+
+  this.isLoading = true;
+
+  const formData = this.lenderForm.value;
+  const email = formData.contactInfo?.contactEmail;
+
+  if (!email) {
+    this.errorMessage = 'Email is required';
+    this.isLoading = false;
+    return;
+  }
+
+  // ✅ Extract selected states properly
+  const selectedStates = this.extractSelectedStatesArray(formData.footprintInfo.states);
+
+  // Run all Firebase operations inside injection context
+  runInInjectionContext(this.injector, () => {
+    this.authService
+      .registerUser(email, 'defaultPassword', {
+        company: formData.contactInfo?.company,
+        firstName: formData.contactInfo?.firstName,
+        lastName: formData.contactInfo?.lastName,
+        email: email,
+        phone: formData.contactInfo?.contactPhone,
+        city: formData.contactInfo?.city,
+        state: formData.contactInfo?.state,
+        role: 'lender',
+      })
+      .pipe(
+        switchMap((user: any) => {
+          if (!user) {
+            throw new Error('User registration failed');
+          }
+
+          // Build lenderData
+          const lenderData = {
+            userId: user.uid,
+            contactInfo: formData.contactInfo,
+            productInfo: {
+              lenderTypes: this.extractLenderTypes(formData.productInfo.lenderTypes),
+              propertyCategories: this.extractStringValues(formData.productInfo.propertyCategories),
+              subcategorySelections: formData.productInfo.subcategorySelections || [],
+              loanTypes: this.extractStringValues(formData.productInfo.loanTypes),
+              minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
+              maxLoanAmount: this.parseNumericValue(formData.productInfo.maxLoanAmount),
+              ficoScore: parseInt(formData.productInfo.ficoScore, 10) || null,
+            },
+            footprintInfo: {
+              lendingFootprint: selectedStates,
+            },
+            role: 'lender',
+            createdAt: createTimestamp(),
+            updatedAt: createServerTimestamp(),
+          };
+
+          // Save lender data
+          return this.firestoreService.setDocument(`lenders/${user.uid}`, lenderData).pipe(
+            switchMap(() => {
+              // ✅ Now save notification preferences properly
+              const notificationPreferencesData = {
+                wantsEmailNotifications: true,
+                minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
+                footprint: selectedStates,
+                preferredLoanTypes: this.extractStringValues(formData.productInfo.loanTypes),
+                preferredPropertyTypes: this.extractStringValues(formData.productInfo.propertyCategories),
+                ficoScore: parseInt(formData.productInfo.ficoScore, 10) || null,
+              };
+
+              return this.firestoreService.setDocument(
+                `lenderNotificationPreferences/${user.uid}`,
+                notificationPreferencesData
+              );
+            })
+          );
+        }),
+        catchError((error) => {
+          console.error('Registration error:', error);
+          this.errorMessage = 'Registration failed. Please try again.';
+          this.isLoading = false;
+          return of(null);
+        })
+      )
+      .subscribe((result: any) => {
+        if (result !== null) {
+          this.successMessage = '';
+          this.isLoading = false;
+
+          this.modalService.openLenderRegistrationSuccessModal();
+
+          setTimeout(() => {
+            this.router.navigate(['/dashboard']);
+          }, 3000);
+        }
+      });
+  });
+}
+
+
+
+  
 
   private extractStringValues(input: any[]): string[] {
     if (!input || !Array.isArray(input)) return [];

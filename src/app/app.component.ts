@@ -1,3 +1,4 @@
+
 import { Component, OnInit, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -14,6 +15,17 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
+
+declare global {
+  interface Window {
+    FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean;
+  }
+}
+
+if (!environment.production) {
+  // 👇 Only set this in local dev mode
+  window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+}
 
 
 declare let gtag: Function;

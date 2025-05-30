@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { Functions, httpsCallable } from '@angular/fire/functions';
 import { Observable, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import { NotificationPreferences } from '../types/notification.types';
+import { LenderNotificationPreferences } from '../types/notification.types';
 
 export interface EmailNotificationResponse {
   success: boolean;
@@ -13,11 +13,11 @@ export interface EmailNotificationResponse {
 export interface SavePreferencesResponse {
   success: boolean;
   message: string;
-  preferences: NotificationPreferences;
+  preferences: LenderNotificationPreferences;
 }
 
 export interface GetPreferencesResponse {
-  preferences: NotificationPreferences;
+  preferences: LenderNotificationPreferences;
 }
 
 @Injectable({
@@ -58,8 +58,8 @@ export class EmailNotificationService {
    * Save notification preferences
    * Note: We don't pass userId anymore - Firebase Functions v2 gets it from auth context
    */
-  saveNotificationPreferencesCallable(preferences: NotificationPreferences): Observable<SavePreferencesResponse> {
-    const savePreferencesFn = httpsCallable<{ preferences: NotificationPreferences }, SavePreferencesResponse>(
+  saveNotificationPreferencesCallable(preferences: LenderNotificationPreferences): Observable<SavePreferencesResponse> {
+    const savePreferencesFn = httpsCallable<{ preferences: LenderNotificationPreferences }, SavePreferencesResponse>(
       this.functions,
       'saveNotificationPreferences'
     );
@@ -73,7 +73,7 @@ export class EmailNotificationService {
    * Get notification preferences
    * Note: We don't pass userId anymore - Firebase Functions v2 gets it from auth context
    */
-  getNotificationPreferencesCallable(): Observable<NotificationPreferences> {
+  getNotificationPreferencesCallable(): Observable<LenderNotificationPreferences> {
     const getPreferencesFn = httpsCallable<any, GetPreferencesResponse>(
       this.functions,
       'getNotificationPreferences'

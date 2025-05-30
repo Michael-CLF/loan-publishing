@@ -710,3 +710,89 @@
   border: 1px solid #fecaca;
   border-radius: 6px;
 }
+.notification-opt-in-container {
+  background-color: #fff;
+  width: 1000px;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  padding: 2rem;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.notification-opt-in-container h3 {
+  font-size: 1.75rem;
+  font-family: 'roboto', sans-serif;
+  color: #0a2463; /* Same color as other section titles */
+  margin-bottom: 1rem;
+}
+
+.notification-opt-in-container p {
+  margin-bottom: 1.5rem;
+  font-family: 'roboto', sans-serif;
+  color: #0a2463; /* Same color as other section titles */
+  font-size: 1.2rem;
+}
+.opt-in-checkbox{
+  height: 18px;
+  width: 18px;
+  accent-color: #0a2463;
+  border: 2px solid #0a2463;
+}
+.toggleContainer {
+   position: relative;
+   display: grid;
+   grid-template-columns: repeat(2, 1fr);
+   width: fit-content;
+   border: 4px solid #0a2463;
+   border-radius: 30px;
+   background: #cdcdcd;
+   font-weight: 700;
+   color: #272727;
+   cursor: pointer;
+ }
+ .toggleContainer::before {
+   content: '';
+   position: absolute;
+   width: 50%;
+   height: 100%;
+   left: 0%;
+   border-radius:30px;
+   background: #008080;
+   transition: all 0.3s;
+ }
+ .toggleCheckbox:checked + .toggleContainer::before {
+    left: 50%;
+ }
+ .toggleContainer div {
+   padding: 12px;
+   text-align: center;
+   z-index: 1;
+ }
+ .toggleCheckbox {
+   display: none;
+ }
+ .toggleCheckbox:checked + .toggleContainer div:first-child{
+   color: #727272;
+   transition: color 0.3s;
+   font-family: 'roboto', sans serif;
+   font-weight: 400;
+ }
+ .toggleCheckbox:checked + .toggleContainer div:last-child{
+   color: #000;
+   transition: color 0.3s;
+   font-family: 'roboto', sans serif;
+   font-weight: 500;
+ }
+ .toggleCheckbox + .toggleContainer div:first-child{
+   color: #000;
+   transition: color 0.3s;
+   font-family: 'roboto', sans serif;
+   font-weight: 500;
+ }
+ .toggleCheckbox + .toggleContainer div:last-child{
+   color: #727272;
+   transition: color 0.3s;
+   font-family: 'roboto', sans serif;
+   font-weight: 400;
+ }
