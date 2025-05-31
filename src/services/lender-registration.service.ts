@@ -20,6 +20,7 @@ export interface ProductInfo {
   propertyTypes: string[];
   subcategorySelections: string[];
   loanTypes: string[];
+  ficoScore: number;
 }
 
 export interface FootprintInfo {

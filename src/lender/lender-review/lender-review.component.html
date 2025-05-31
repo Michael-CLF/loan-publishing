@@ -80,11 +80,12 @@
             <div class="review-item">
                 <div class="review-label">Loan Types:</div>
                 <div class="review-value">
-                    <ul *ngIf="lenderForm.get('productInfo.loanTypes')?.value?.length > 0">
-                        <li *ngFor="let type of lenderForm.get('productInfo.loanTypes')?.value">
+                    <div class="loan-type-grid">
+                        <div class="loan-type-box" *ngFor="let type of lenderForm.get('productInfo.loanTypes')?.value">
                             {{ getLoanTypeName(type?.value || type) }}
-                        </li>
-                    </ul>
+                        </div>
+                    </div>
+
                     <span *ngIf="!lenderForm.get('productInfo.loanTypes')?.value?.length">None selected</span>
                 </div>
             </div>

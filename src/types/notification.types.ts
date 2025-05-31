@@ -1,19 +1,20 @@
 ﻿// src/services/notification.types.ts
-
 export interface LenderNotificationPreferences {
   wantsEmailNotifications: boolean;
-  preferredPropertyTypes: string[];   // ✅ Correct name
-  preferredLoanTypes: string[];       // ✅ Correct name
-  subcategorySelections: string[];    // ✅ Correct new field
+  propertyCategories: string[];        // ✅ FIXED
+  loanTypes: string[];                 // ✅ FIXED
+  subcategorySelections: string[];     // ✅ Already correct
   minLoanAmount: number;
-  footprint: string[];                // ✅ Correct name
+  ficoScore: number;                   // ✅ New field added
+  footprint: string[];
 }
 
 export const DEFAULT_LENDER_NOTIFICATION_PREFERENCES: LenderNotificationPreferences = {
   wantsEmailNotifications: false,
-  preferredPropertyTypes: [],
-  preferredLoanTypes: [],
+  propertyCategories: [],      // ✅ FIXED
+  loanTypes: [],               // ✅ FIXED
   subcategorySelections: [],
   minLoanAmount: 0,
+  ficoScore: 0,                // ✅ New field added
   footprint: []
 };

@@ -61,6 +61,7 @@ export class LenderService {
         propertyCategories: user['propertyCategories'] || [],
         propertyTypes: user['propertyTypes'] || [],
         loanTypes: [],
+        ficoScore: user['ficoScore'] || 0,
       },
       footprintInfo: {
         lendingFootprint: user['lendingFootprint'] || user['states'] || [],
@@ -126,6 +127,7 @@ export class LenderService {
         propertyTypes: lender.productInfo?.propertyTypes || [],
         subcategorySelections: lender.productInfo?.subcategorySelections || [],
         loanTypes: lender.productInfo?.loanTypes || [],
+        ficoScore: lender.productInfo?.ficoScore || 0,
       },
       footprintInfo: {
         lendingFootprint: lender.footprintInfo?.lendingFootprint || [],

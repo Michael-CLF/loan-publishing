@@ -40,6 +40,7 @@ import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { createTimestamp, createServerTimestamp } from '../../utils/firebase.utils';
+import { LenderNotificationPreferences } from '../../types/notification.types';
 
 export interface PropertyCategory {
   name: string;
@@ -194,7 +195,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         { value: 'hotel', name: 'Hotel' },
         { value: 'long_term_rentals', name: 'Long-Term Rentals' },
         { value: 'motel', name: 'Motel' },
-        { value: 'short_term_rentals', name: 'Short-Term Rentals' },      ],
+        { value: 'short_term_rentals', name: 'Short-Term Rentals' },],
     },
     {
       value: 'industrial',
@@ -300,7 +301,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     },
   ];
 
-  constructor(private fb: FormBuilder) {}
+  constructor(private fb: FormBuilder) { }
 
   ngOnInit(): void {
     this.initializeForm();
@@ -435,7 +436,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           Validators.pattern(/^[A-Za-z ]+$/),
         ],
       ],
-      contactPhone: ['', [Validators.required, ]],
+      contactPhone: ['', [Validators.required,]],
       contactEmail: [
         '',
         [Validators.required, Validators.email],
@@ -451,7 +452,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       ],
       state: ['', Validators.required],
 
-      
+
     });
 
     // Create form arrays with explicit debug names
@@ -477,35 +478,35 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const subcategorySelectionsArray = this.fb.array([]);
 
     const productStep = this.fb.group({
-  lenderTypes: lenderTypesArray,
-  minLoanAmount: [
-    null,
-    [Validators.required, Validators.pattern(/^\d{6,}$/)],
-  ],
-  maxLoanAmount: [
-    null,
-    [Validators.required, Validators.pattern(/^\d{6,}$/)],
-  ],
-  ficoScore: [
-    '',
-    [
-      Validators.required,
-      Validators.min(300),
-      Validators.max(850),
-      Validators.pattern(/^\d+$/),
-    ],
-  ],
-  propertyCategories: propertyCategoriesArray,
-  propertyTypes: propertyTypesArray,
-  loanTypes: loanTypesArray,
-  subcategorySelections: subcategorySelectionsArray,
-});
+      lenderTypes: lenderTypesArray,
+      minLoanAmount: [
+        null,
+        [Validators.required, Validators.pattern(/^\d{6,}$/)],
+      ],
+      maxLoanAmount: [
+        null,
+        [Validators.required, Validators.pattern(/^\d{6,}$/)],
+      ],
+      ficoScore: [
+        '',
+        [
+          Validators.required,
+          Validators.min(300),
+          Validators.max(850),
+          Validators.pattern(/^\d+$/),
+        ],
+      ],
+      propertyCategories: propertyCategoriesArray,
+      propertyTypes: propertyTypesArray,
+      loanTypes: loanTypesArray,
+      subcategorySelections: subcategorySelectionsArray,
+    });
 
 
     // Create footprint step form group WITHOUT validators initially
     const footprintStep = this.fb.group({
       lendingFootprint: [[]],
-       states: this.fb.group({}),
+      states: this.fb.group({}),
     });
 
     // Initialize the main form
@@ -656,7 +657,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   private atLeastOneStateValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
-     
+
       const statesGroup = control as FormGroup;
 
       if (!statesGroup) {
@@ -859,18 +860,18 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     console.log('Form valid:', currentForm.valid);
     console.log('Form value:', currentForm.value);
     if (this.productForm.valid) {
-  // allow next
-} else {
-  console.log(this.productForm.value);
-  console.log(this.productForm.valid);
-}
+      // allow next
+    } else {
+      console.log(this.productForm.value);
+      console.log(this.productForm.valid);
+    }
 
-Object.keys(this.productForm.controls).forEach(controlName => {
-  const control = this.productForm.get(controlName);
-  if (control?.invalid) {
-    console.log(`❌ Invalid control: ${controlName}`, control.errors);
-  }
-});
+    Object.keys(this.productForm.controls).forEach(controlName => {
+      const control = this.productForm.get(controlName);
+      if (control?.invalid) {
+        console.log(`❌ Invalid control: ${controlName}`, control.errors);
+      }
+    });
 
 
     // If form is valid, proceed
@@ -978,7 +979,7 @@ Object.keys(this.productForm.controls).forEach(controlName => {
                 city: contactData.city,
                 state: contactData.state,
               },
-              createdAt: createTimestamp(),  
+              createdAt: createTimestamp(),
               updatedAt: createServerTimestamp(),
             };
 
@@ -998,129 +999,134 @@ Object.keys(this.productForm.controls).forEach(controlName => {
     });
   }
 
- submitForm(): void {
-  this.submitted = true;
-  this.errorMessage = '';
-  this.successMessage = '';
-  console.log('Submit button clicked!');
+  submitForm(): void {
+    this.submitted = true;
+    this.errorMessage = '';
+    this.successMessage = '';
+    console.log('Submit button clicked!');
 
-  this.markAllAsTouched(this.lenderForm);
+    this.markAllAsTouched(this.lenderForm);
 
-  // Force re-validation of states selection (Step 3)
-  this.footprintForm.get('states')?.updateValueAndValidity();
+    // Force re-validation of states selection (Step 3)
+    this.footprintForm.get('states')?.updateValueAndValidity();
 
-  console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
-  console.log('Form valid:', this.lenderForm.valid);
+    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
+    console.log('Form valid:', this.lenderForm.valid);
 
-  if (!this.lenderForm.valid) {
-    this.isLoading = false;
-    if (this.lenderForm.get('termsAccepted')?.invalid) {
-      this.errorMessage = 'You must agree to the Terms of Service to proceed';
-    } else {
-      this.errorMessage = 'Please complete all required fields';
+    if (!this.lenderForm.valid) {
+      this.isLoading = false;
+      if (this.lenderForm.get('termsAccepted')?.invalid) {
+        this.errorMessage = 'You must agree to the Terms of Service to proceed';
+      } else {
+        this.errorMessage = 'Please complete all required fields';
+      }
+      return;
     }
-    return;
-  }
 
-  this.isLoading = true;
+    this.isLoading = true;
 
-  const formData = this.lenderForm.value;
-  const email = formData.contactInfo?.contactEmail;
+    const formData = this.lenderForm.value;
+    const email = formData.contactInfo?.contactEmail;
 
-  if (!email) {
-    this.errorMessage = 'Email is required';
-    this.isLoading = false;
-    return;
-  }
+    if (!email) {
+      this.errorMessage = 'Email is required';
+      this.isLoading = false;
+      return;
+    }
 
-  // ✅ Extract selected states properly
-  const selectedStates = this.extractSelectedStatesArray(formData.footprintInfo.states);
+    // ✅ Extract selected states properly
+    const selectedStates = this.extractSelectedStatesArray(formData.footprintInfo.states);
 
-  // Run all Firebase operations inside injection context
-  runInInjectionContext(this.injector, () => {
-    this.authService
-      .registerUser(email, 'defaultPassword', {
-        company: formData.contactInfo?.company,
-        firstName: formData.contactInfo?.firstName,
-        lastName: formData.contactInfo?.lastName,
-        email: email,
-        phone: formData.contactInfo?.contactPhone,
-        city: formData.contactInfo?.city,
-        state: formData.contactInfo?.state,
-        role: 'lender',
-      })
-      .pipe(
-        switchMap((user: any) => {
-          if (!user) {
-            throw new Error('User registration failed');
-          }
-
-          // Build lenderData
-          const lenderData = {
-            userId: user.uid,
-            contactInfo: formData.contactInfo,
-            productInfo: {
-              lenderTypes: this.extractLenderTypes(formData.productInfo.lenderTypes),
-              propertyCategories: this.extractStringValues(formData.productInfo.propertyCategories),
-              subcategorySelections: formData.productInfo.subcategorySelections || [],
-              loanTypes: this.extractStringValues(formData.productInfo.loanTypes),
-              minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
-              maxLoanAmount: this.parseNumericValue(formData.productInfo.maxLoanAmount),
-              ficoScore: parseInt(formData.productInfo.ficoScore, 10) || null,
-            },
-            footprintInfo: {
-              lendingFootprint: selectedStates,
-            },
-            role: 'lender',
-            createdAt: createTimestamp(),
-            updatedAt: createServerTimestamp(),
-          };
-
-          // Save lender data
-          return this.firestoreService.setDocument(`lenders/${user.uid}`, lenderData).pipe(
-            switchMap(() => {
-              // ✅ Now save notification preferences properly
-              const notificationPreferencesData = {
-                wantsEmailNotifications: true,
-                minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
-                footprint: selectedStates,
-                preferredLoanTypes: this.extractStringValues(formData.productInfo.loanTypes),
-                preferredPropertyTypes: this.extractStringValues(formData.productInfo.propertyCategories),
-                ficoScore: parseInt(formData.productInfo.ficoScore, 10) || null,
-              };
-
-              return this.firestoreService.setDocument(
-                `lenderNotificationPreferences/${user.uid}`,
-                notificationPreferencesData
-              );
-            })
-          );
-        }),
-        catchError((error) => {
-          console.error('Registration error:', error);
-          this.errorMessage = 'Registration failed. Please try again.';
-          this.isLoading = false;
-          return of(null);
+    // Run all Firebase operations inside injection context
+    runInInjectionContext(this.injector, () => {
+      this.authService
+        .registerUser(email, 'defaultPassword', {
+          company: formData.contactInfo?.company,
+          firstName: formData.contactInfo?.firstName,
+          lastName: formData.contactInfo?.lastName,
+          email: email,
+          phone: formData.contactInfo?.contactPhone,
+          city: formData.contactInfo?.city,
+          state: formData.contactInfo?.state,
+          role: 'lender',
         })
-      )
-      .subscribe((result: any) => {
-        if (result !== null) {
-          this.successMessage = '';
-          this.isLoading = false;
+        .pipe(
+          switchMap((user: any) => {
+            if (!user) {
+              throw new Error('User registration failed');
+            }
 
-          this.modalService.openLenderRegistrationSuccessModal();
+            // Build lenderData
+            const lenderData = {
+              userId: user.uid,
+              contactInfo: formData.contactInfo,
+              productInfo: {
+                lenderTypes: this.extractLenderTypes(formData.productInfo.lenderTypes),
+                propertyCategories: this.extractStringValues(formData.productInfo.propertyCategories),
+                subcategorySelections: formData.productInfo.subcategorySelections || [],
+                loanTypes: this.extractStringValues(formData.productInfo.loanTypes),
+                minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
+                maxLoanAmount: this.parseNumericValue(formData.productInfo.maxLoanAmount),
+                ficoScore: parseInt(formData.productInfo.ficoScore, 10) || null,
+              },
+              footprintInfo: {
+                lendingFootprint: selectedStates,
+              },
+              role: 'lender',
+              createdAt: createTimestamp(),
+              updatedAt: createServerTimestamp(),
+            };
 
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 3000);
-        }
-      });
-  });
-}
+            // Save lender data
+            return this.firestoreService.setDocument(`lenders/${user.uid}`, lenderData).pipe(
+              switchMap(() => {
+                // ✅ Now save notification preferences properly
+                // Inside submitForm()
+
+                // ✅ NEW block in lender-registration.component.ts inside submitForm()
+
+                const notificationPreferencesData: LenderNotificationPreferences = {   // ✅ strongly type here
+                  wantsEmailNotifications: true,
+                  propertyCategories: this.extractStringValues(formData.productInfo.propertyCategories),
+                  subcategorySelections: formData.productInfo.subcategorySelections || [],
+                  loanTypes: this.extractStringValues(formData.productInfo.loanTypes),
+                  minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
+                  ficoScore: parseInt(formData.productInfo.ficoScore, 10) || 0,
+                  footprint: selectedStates,
+                };
+
+                return this.firestoreService.setDocument(
+                  `lenderNotificationPreferences/${user.uid}`,
+                  notificationPreferencesData
+                );
+              })
+            );
+          }),
+          catchError((error) => {
+            console.error('Registration error:', error);
+            this.errorMessage = 'Registration failed. Please try again.';
+            this.isLoading = false;
+            return of(null);
+          })
+        )
+        .subscribe((result: any) => {
+          if (result !== null) {
+            this.successMessage = '';
+            this.isLoading = false;
+
+            this.modalService.openLenderRegistrationSuccessModal();
+
+            setTimeout(() => {
+              this.router.navigate(['/dashboard']);
+            }, 3000);
+          }
+        });
+    });
+  }
 
 
 
-  
+
 
   private extractStringValues(input: any[]): string[] {
     if (!input || !Array.isArray(input)) return [];
@@ -1198,11 +1204,11 @@ Object.keys(this.productForm.controls).forEach(controlName => {
   }
 
   private extractSelectedStatesArray(statesData: any): string[] {
-  if (!statesData) return [];
-  
-  return Object.keys(statesData)
-    .filter(key => !key.includes('_counties') && statesData[key] === true);
-}
+    if (!statesData) return [];
+
+    return Object.keys(statesData)
+      .filter(key => !key.includes('_counties') && statesData[key] === true);
+  }
 
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
@@ -1267,9 +1273,10 @@ Object.keys(this.productForm.controls).forEach(controlName => {
       propertyCategories: formData.productInfo.propertyCategories || [],
       subcategorySelections: formData.productInfo.subcategorySelections || [],
       loanTypes: formData.productInfo.loanTypes || [],
+      ficoScore: parseInt(formData.productInfo.ficoScore, 10) || 0,
       minLoanAmount: this.parseNumericValue(formData.productInfo.minLoanAmount),
       maxLoanAmount: this.parseNumericValue(formData.productInfo.maxLoanAmount),
-      createdAt: createTimestamp(),  
+      createdAt: createTimestamp(),
       updatedAt: createServerTimestamp(),
     };
 
@@ -1289,7 +1296,7 @@ Object.keys(this.productForm.controls).forEach(controlName => {
         const locationData = {
           lenderProfileId: userId,
           lendingFootprint: formData.footprintInfo.lendingFootprint || [],
-          createdAt: createTimestamp(),  
+          createdAt: createTimestamp(),
           updatedAt: createServerTimestamp(),
         };
 

@@ -1,24 +1,27 @@
-// src/services/notification-preferences.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Observable } from 'rxjs';
-import { EmailNotificationService, SavePreferencesResponse } from './email-notification.service';
-import { LenderNotificationPreferences } from '../types/notification.types'; 
+import { httpsCallable } from '@angular/fire/functions';
+import { Functions } from '@angular/fire/functions';
+import { Observable, from } from 'rxjs';
+import { LenderNotificationPreferences } from '../types/notification.types';
 
 @Injectable({
   providedIn: 'root'
 })
 export class NotificationPreferencesService {
-  private readonly emailNotificationService = inject(EmailNotificationService);
+  private functions = inject(Functions);
+
+  saveNotificationPreferences(preferences: LenderNotificationPreferences): Observable<any> {
+    const savePreferences = httpsCallable(this.functions, 'saveNotificationPreferences');
+    return from(savePreferences({ preferences }));
+  }
 
   getNotificationPreferences(): Observable<any> {
-    return this.emailNotificationService.getNotificationPreferencesCallable();
+    const getPreferences = httpsCallable(this.functions, 'getNotificationPreferences');
+    return from(getPreferences({}));
   }
 
-  saveNotificationPreferences(preferences: LenderNotificationPreferences): Observable<SavePreferencesResponse> {
-    return this.emailNotificationService.saveNotificationPreferencesCallable(preferences);
-  }
-
-  toggleEmailNotifications(enabled: boolean): Observable<SavePreferencesResponse> {
-    return this.emailNotificationService.toggleEmailNotificationsCallable(enabled);
+  toggleEmailNotifications(enabled: boolean): Observable<any> {
+    const toggleNotifications = httpsCallable(this.functions, 'toggleEmailNotifications');
+    return from(toggleNotifications({ enabled }));
   }
 }

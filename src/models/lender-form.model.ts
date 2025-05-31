@@ -41,6 +41,7 @@ export interface LenderProductDocument {
   propertyCategories: string[];
   subcategorySelections: string[];
   loanTypes: string[];
+  ficoScore: number;
   minLoanAmount: number | string;
   maxLoanAmount: number | string;
   createdAt: Timestamp;

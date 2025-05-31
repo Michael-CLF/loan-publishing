@@ -19,17 +19,17 @@
         <div class="profile-details">
           <div class="profile-row">
             <span class="label">Account #:</span>
-            <span class="value">{{ accountNumber | uppercase }}</span>
+            <span class="value"> {{ accountNumber | uppercase }}</span>
           </div>
 
           <div class="profile-row">
             <span class="label">Phone:</span>
-            <span class="value">{{ formatPhoneNumber(userData.phone) }}</span>
+            <span class="value"> {{ formatPhoneNumber(userData.phone) }}</span>
           </div>
 
           <div class="profile-row">
             <span class="label">Company:</span>
-            <span class="value">{{ userData.company }}</span>
+            <span class="value"> {{ userData.company }}</span>
           </div>
 
           <div class="profile-row">
@@ -234,6 +234,12 @@
   <h3 class="loans">Email Notifications</h3>
   <p>When you turn on email notifications, you'll get an email every time a loan is posted that meets your lending criteria. you can turn it off at any time.
 </p>
+
+<!-- dashboard.component.html -->
+<button (click)="getNotificationPreferencesTest()" style="margin-top: 20px;">
+  Test Notification Preferences
+</button>
+
 
  <input type="checkbox" id="toggle" class="toggleCheckbox" [checked]="notificationOptIn" (change)="toggleNotificationOptIn($event)" />
 <label for="toggle" class="toggleContainer">

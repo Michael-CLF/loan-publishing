@@ -86,6 +86,7 @@ export class LenderFilterComponent implements OnInit {
     { value: 'non-qm', name: 'Non-QM' },
     { value: 'rehab', name: 'Rehab' },
     { value: 'sba', name: 'SBA' },
+    { value: 'usda', name: 'USDA' },
   ];
 
  states = [

@@ -154,3 +154,20 @@ input[type="checkbox"]:checked {
   color: #0a2463;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
+.loan-type-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.loan-type-box {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  color: #0a2463;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}

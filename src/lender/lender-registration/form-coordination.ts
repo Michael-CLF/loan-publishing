@@ -54,6 +54,7 @@ export class FormCoordinationService {
       minLoanAmount: [''],
       maxLoanAmount: [''],
       loanTypes: this.fb.array([]),
+      ficoScore: [''],
     });
 
     this.footprintForm = this.fb.group({

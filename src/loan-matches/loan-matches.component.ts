@@ -68,8 +68,8 @@ export class LoanMatchesComponent implements OnInit {
   }
 
   async runMigration() {
-  await this.stateMigration.updateLenderFootprints();
-}
+    await this.stateMigration.updateLenderFootprints();
+  }
 
   private loadLendersAndMatch(loan: Loan): void {
     this.lenderService.getAllLenders().subscribe({
@@ -78,25 +78,25 @@ export class LoanMatchesComponent implements OnInit {
           const productInfo = lender.productInfo || {};
           const footprintInfo = lender.footprintInfo || {};
 
-         const loanAmountMatch =
-  !!loan.loanAmount &&
-  !!productInfo.minLoanAmount &&
-  !!productInfo.maxLoanAmount &&
-  Number(loan.loanAmount) >= Number(productInfo.minLoanAmount) &&
-  Number(loan.loanAmount) <= Number(productInfo.maxLoanAmount);
+          const loanAmountMatch =
+            !!loan.loanAmount &&
+            !!productInfo.minLoanAmount &&
+            !!productInfo.maxLoanAmount &&
+            Number(loan.loanAmount) >= Number(productInfo.minLoanAmount) &&
+            Number(loan.loanAmount) <= Number(productInfo.maxLoanAmount);
 
-         // ✅ Fixed: Use lendingFootprint array instead of states object
-         const stateMatch = footprintInfo.lendingFootprint?.some(
-           state => state.toLowerCase() === loan.state?.toLowerCase()
-         ) || false;
+          // ✅ Fixed: Use lendingFootprint array instead of states object
+          const stateMatch = footprintInfo.lendingFootprint?.some(
+            state => state.toLowerCase() === loan.state?.toLowerCase()
+          ) || false;
 
-         const breakdown = {
-  loanType: productInfo.loanTypes?.includes(loan.loanType?.toLowerCase()) || false,
-  loanAmount: loanAmountMatch,
-  propertyType: productInfo.propertyCategories?.includes(loan.propertyTypeCategory) || false,
-  propertySubCategory: productInfo.subcategorySelections?.includes(`${loan.propertyTypeCategory}:${loan.propertySubCategory}`) || false,
-  state: stateMatch,
-  ficoScore: Number(loan.sponsorFico) >= Number(productInfo.ficoScore || 0),
+          const breakdown = {
+            loanType: productInfo.loanTypes?.includes(loan.loanType?.toLowerCase()) || false,
+            loanAmount: loanAmountMatch,
+            propertyType: productInfo.propertyCategories?.includes(loan.propertyTypeCategory) || false,
+            propertySubCategory: productInfo.subcategorySelections?.includes(`${loan.propertyTypeCategory}:${loan.propertySubCategory}`) || false,
+            state: stateMatch,
+            ficoScore: Number(loan.sponsorFico) >= Number(productInfo.ficoScore || 0),
           };
 
           const matchedCount = Object.values(breakdown).filter(Boolean).length;

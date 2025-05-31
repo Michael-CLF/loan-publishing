@@ -27,6 +27,7 @@ export interface Lender extends BaseUser {
     propertyCategories?: string[];
     propertyTypes?: string[];
     loanTypes?: string[];
+    ficoScore: number;
   };
 
   contactInfo?: {
@@ -82,6 +83,7 @@ export function createLender(partial: Partial<Lender>): Lender {
       propertyCategories: [],
       propertyTypes: [],
       loanTypes: [],
+      ficoScore: 0, 
       minLoanAmount: 0,
       maxLoanAmount: 0,
     },
