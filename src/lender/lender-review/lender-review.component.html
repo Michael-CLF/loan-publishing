@@ -92,18 +92,21 @@
         </div>
     </div>
 
-
+    <!-- States -->
     <div class="section">
         <h3>Lending Footprint</h3>
         <div class="review-grid">
             <div class="review-item">
                 <div class="review-label">States:</div>
                 <div class="review-value">
-                    <ul *ngIf="lenderForm.get('footprintInfo.lendingFootprint')?.value?.length > 0">
-                        <li *ngFor="let state of lenderForm.get('footprintInfo.lendingFootprint')?.value">
-                            {{state}}
-                        </li>
-                    </ul>
+                    <div class="state-grid" *ngIf="lenderForm.get('footprintInfo.lendingFootprint')?.value?.length > 0">
+                        <div class="state-box"
+                            *ngFor="let state of lenderForm.get('footprintInfo.lendingFootprint')?.value">
+                            {{ state }}
+                        </div>
+                    </div>
+                    <span *ngIf="!lenderForm.get('footprintInfo.lendingFootprint')?.value?.length">None selected</span>
+
                     <span *ngIf="!lenderForm.get('footprintInfo.lendingFootprint')?.value?.length">None selected</span>
                 </div>
             </div>

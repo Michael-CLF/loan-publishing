@@ -758,7 +758,7 @@
    height: 100%;
    left: 0%;
    border-radius:30px;
-   background: #008080;
+   background: #0a2463;
    transition: all 0.3s;
  }
  .toggleCheckbox:checked + .toggleContainer::before {
@@ -779,13 +779,13 @@
    font-weight: 400;
  }
  .toggleCheckbox:checked + .toggleContainer div:last-child{
-   color: #000;
+   color: #fff;
    transition: color 0.3s;
    font-family: 'roboto', sans serif;
    font-weight: 500;
  }
  .toggleCheckbox + .toggleContainer div:first-child{
-   color: #000;
+   color: #fff;
    transition: color 0.3s;
    font-family: 'roboto', sans serif;
    font-weight: 500;

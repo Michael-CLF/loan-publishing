@@ -137,3 +137,20 @@ input[type="checkbox"]:checked {
   color: #0a2463;
   margin-bottom: 4px;
 }
+.state-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); /* Adjust 100px for card size */
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.state-box {
+  background-color: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 10px;
+  text-align: center;
+  font-weight: 600;
+  color: #0a2463;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
