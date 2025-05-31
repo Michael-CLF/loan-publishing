@@ -104,9 +104,6 @@
 }
 
 .detail-item {
-  display: flex;
-  flex-direction: row;
-  align-items: baseline;
   min-width: 45%;
   gap: 10px;
 }

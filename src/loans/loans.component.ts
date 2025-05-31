@@ -28,7 +28,7 @@ import {
   where,
 } from '@angular/fire/firestore';
 import { PropertyFilterComponent } from '../property-filter/property-filter.component';
-import { LOAN_TYPES } from '../shared/loan-constants';
+import { LOAN_TYPES } from '../shared/constants/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
 import { getUserId } from '../utils/user-helpers';
 

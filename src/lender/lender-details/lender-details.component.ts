@@ -1,4 +1,5 @@
-// lender-details.component.ts
+// Updated lender-details.component.ts - Using the new mapping constants
+
 import {
   Component,
   OnInit,
@@ -16,7 +17,20 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
 import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
-import { LocationService } from '../../services/location.service';
+
+// Import the new mapping constants
+import { 
+  getPropertyCategoryName, 
+  getPropertySubcategoryName, 
+  getCategoryFromSubcategory 
+} from '../../shared/constants/property-mappings';
+import { 
+  getLenderTypeName, 
+  getLoanTypeName 
+} from '../../shared/constants/lender-type-mappings';
+import { 
+  formatStateForDisplay 
+} from '../../shared/constants/state-mappings';
 
 @Component({
   selector: 'app-lender-details',
@@ -42,7 +56,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
-  private locationService = inject(LocationService);
 
   ngOnInit(): void {
     this.authService.getCurrentUser().subscribe((user) => {
@@ -213,7 +226,10 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Contact Information Methods
+  // =============================================
+  // CONTACT INFORMATION METHODS (Using new mappings)
+  // =============================================
+  
   getContactName(): string {
     const firstName = this.lender?.contactInfo?.firstName || '';
     const lastName = this.lender?.contactInfo?.lastName || '';
@@ -237,88 +253,21 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     const state = this.lender?.contactInfo?.state || '';
 
     if (city && state) {
-      return `${city}, ${this.locationService.formatValueForDisplay(state)}`;
+      return `${city}, ${formatStateForDisplay(state)}`;
     }
 
     return 'Not specified';
   }
 
-  // Product Info Methods
+  // =============================================
+  // PRODUCT INFO METHODS (Using new mappings)
+  // =============================================
+
   getLenderTypes(): string {
     if (!this.lender?.productInfo?.lenderTypes?.length) return 'None specified';
     return this.lender.productInfo.lenderTypes
-      .map(this.getLenderTypeName)
+      .map(type => getLenderTypeName(type))
       .join(', ');
-  }
-
-  getPropertyCategories(): string {
-    if (!this.lender?.productInfo?.propertyCategories?.length)
-      return 'None specified';
-    return this.lender.productInfo.propertyCategories
-      .map(this.getPropertyCategoryName)
-      .join(', ');
-  }
-
-  getLenderTypeName(value: string): string {
-    const map: { [key: string]: string } = {
-      agency: 'Agency Lender',
-      balanceSheet: 'Balance Sheet',
-      bank: 'Bank',
-      bridge_lender: 'Bridge Lender',
-      cdfi: 'CDFI Lender',
-      conduit_lender: 'Conduit Lender (CMBS)',
-      construction_lender: 'Construction Lender',
-      correspondent_lender: 'Correspondent Lender',
-      credit_union: 'Credit Union',
-      crowdfunding: 'Crowdfunding Platform',
-      direct_lender: 'Direct Lender',
-      family_office: 'Family Office',
-      hard_money: 'Hard Money Lender',
-      life_insurance: 'Life Insurance Lender',
-      mezzanine_lender: 'Mezzanine Lender',
-      non_qm_lender: 'Non-QM Lender',
-      portfolio_lender: 'Portfolio Lender',
-      private_lender: 'Private Lender',
-      sba: 'SBA Lender',
-      usda: 'USDA Lender',
-      general: 'General Lender',
-    };
-    return map[value] || value;
-  }
-
-  getPropertyCategoryName(value: string): string {
-    const propertyCategoryMap: { [key: string]: string } = {
-      commercial: 'Commercial',
-      healthcare: 'Healthcare',
-      hospitality: 'Hospitality',
-      industrial: 'Industrial',
-      land: 'Land',
-      mixed_use: 'Mixed Use',
-      multifamily: 'Multifamily',
-      office: 'Office',
-      residential: 'Residential',
-      retail: 'Retail',
-      specialPurpose: 'Special Purpose',
-    };
-    return propertyCategoryMap[value] || value;
-  }
-
-  getLoanTypeName(value: string): string {
-    const loanTypeMap: { [key: string]: string } = {
-      agency: 'Agency Loans',
-      bridge: 'Bridge Loans',
-      cmbs: 'CMBS Loans',
-      commercial: 'Commercial Loans',
-      construction: 'Construction Loans',
-      general: 'General',
-      hard_money: 'Hard Money Loans',
-      mezzanine: 'Mezzanine Loan',
-      'non-qm': 'Non-QM Loans',
-      rehab: 'Rehab Loans',
-      sba: 'SBA Loans',
-      usda: 'USDA',
-    };
-    return loanTypeMap[value] || value;
   }
 
   getLoanRange(): string {
@@ -344,10 +293,10 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 
     return rawTypes
       .map((lt: any) => {
-        if (typeof lt === 'string') return this.getLoanTypeName(lt);
+        if (typeof lt === 'string') return getLoanTypeName(lt);
         if (typeof lt === 'object') {
           // Prefer the custom name if provided
-          return lt.name || this.getLoanTypeName(lt.value || '');
+          return lt.name || getLoanTypeName(lt.value || '');
         }
         return '';
       })
@@ -355,48 +304,27 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       .sort((a, b) => a.localeCompare(b));
   }
 
-  getPropertyTypes(): string {
-    return (
-      this.lender?.productInfo?.propertyTypes?.join(', ') || 'None specified'
-    );
+  // Template helper methods to avoid function calls in templates
+  getFormattedSubcategoryName(subcategory: string): string {
+    return getPropertySubcategoryName(subcategory);
   }
 
-  hasPropertyTypes(): boolean {
-    return !!this.lender?.productInfo?.propertyTypes?.length;
-  }
-
-  getPropertyCategoriesArray(): string[] {
-    return (
-      this.lender?.productInfo?.propertyCategories?.map(
-        this.getPropertyCategoryName
-      ) || []
-    );
-  }
-
-  // Lending Footprint Methods
-  getLendingStates(): string {
-    return (
-      this.lender?.footprintInfo?.lendingFootprint?.join(', ') ||
-      'None specified'
-    );
-  }
+  // =============================================
+  // LENDING FOOTPRINT METHODS (Using new mappings)
+  // =============================================
 
   getLendingStatesArray(): string[] {
     if (!this.lender?.footprintInfo?.lendingFootprint) return [];
 
     return this.lender.footprintInfo.lendingFootprint
-      .map((state) => this.locationService.formatValueForDisplay(state))
-      .filter((state) => state.length > 0);
+      .map((state) => formatStateForDisplay(state))
+      .filter((state) => state.length > 0)
+      .sort((a, b) => a.localeCompare(b));
   }
 
-  // Subcategories Methods
-  getFormattedSubcategories(): string {
-    return (
-      this.lender?.productInfo?.subcategorySelections
-        ?.map(this.formatSubcategory)
-        .join(', ') || 'None specified'
-    );
-  }
+  // =============================================
+  // SUBCATEGORIES METHODS (Using new mappings)
+  // =============================================
 
   getSubcategories(): string[] {
     return this.lender?.productInfo?.subcategorySelections || [];
@@ -406,22 +334,14 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return true; // Always show subcategories section
   }
 
+  // UPDATED: Now uses the mapping constants
   formatSubcategory(sub: string): string {
-    const parts = sub.split(':');
-    return parts.length > 1
-      ? parts[1]
-          .split('-')
-          .map((w) => w[0].toUpperCase() + w.slice(1))
-          .join(' ')
-      : sub;
+    return getPropertySubcategoryName(sub);
   }
 
+  // UPDATED: Now uses the mapping constants
   getCategoryFromSubcategory(sub: string): string {
-    const parts = sub.split(':')[0];
-    return parts
-      .split('-')
-      .map((w) => w[0].toUpperCase() + w.slice(1))
-      .join(' ');
+    return getCategoryFromSubcategory(sub);
   }
 
   getGroupedSubcategories(): { [category: string]: string[] } {
@@ -439,6 +359,10 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     }
     return grouped;
   }
+
+  // =============================================
+  // UTILITY METHODS
+  // =============================================
 
   // Empty state handlers
   getEmptyStateMessage(sectionType: 'subcategories' | 'loanTypes'): string {
