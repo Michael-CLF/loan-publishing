@@ -13,6 +13,6 @@ export const environment = {
   redirectUrl: 'https://dailyloanpost.com/',
 
   // 👇 ADD THIS
-  appCheckDebugToken: 'FC8550B2-F95A-4F57-B6AC-28AA19CE5886',
+  appCheckDebugToken: 'f9cf33bc-b3e9-42bf-9460-126669ab11eb',
 };
 

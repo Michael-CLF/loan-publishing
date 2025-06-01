@@ -1,7 +1,9 @@
+// dashboard.component.ts
+
 // Import what we need
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms'; // Added for ngModel support
+import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { 
@@ -13,7 +15,6 @@ import {
 } from '../types/notification.types';
 import {
   Firestore,
-  collection,
   doc,
   getDoc,
   getDocs,
@@ -23,8 +24,8 @@ import {
   deleteDoc,
   addDoc,
 } from '@angular/fire/firestore';
-import { switchMap, filter, take } from 'rxjs/operators';
-import { Functions } from '@angular/fire/functions';
+import { switchMap, filter, take, finalize } from 'rxjs/operators';
+import { collection } from '@angular/fire/firestore';
 
 // Services
 import { AuthService } from '../services/auth.service';
@@ -44,7 +45,7 @@ import { LocationService } from '../services/location.service';
 import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
-
+import { getStateName } from '../shared/constants/state-mappings';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -56,7 +57,6 @@ interface LoanTypeOption {
   value: string;        // Snake_case for storage/matching  
   displayName: string;  // User-friendly display name
 }
-
 
 @Component({
   selector: 'app-dashboard',
@@ -78,9 +78,8 @@ export class DashboardComponent implements OnInit {
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
 
-
   getPropertySubcategoryName = getPropertySubcategoryName;
-
+  getStateName = getStateName;
 
   // State properties
   isLoggedIn = false;
@@ -95,8 +94,8 @@ export class DashboardComponent implements OnInit {
   // Lender-specific data
   lenderData: any | null = null;
 
-  
- notificationPrefs: LenderNotificationPreferences = {
+  // ✅ Angular 18 Best Practice: Use signals for reactive state management
+  notificationPrefs = signal<LenderNotificationPreferences>({
     wantsEmailNotifications: false,
     propertyCategories: [],
     subcategorySelections: [],
@@ -104,8 +103,13 @@ export class DashboardComponent implements OnInit {
     minLoanAmount: 0,
     ficoScore: 0, 
     footprint: [],
-  };
+  });
 
+  // ✅ Computed signal for toggle state - automatically syncs with preferences
+  notificationOptIn = computed(() => this.notificationPrefs().wantsEmailNotifications);
+  
+  // ✅ Signal for saving state
+  savingOptIn = signal(false);
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -121,40 +125,34 @@ export class DashboardComponent implements OnInit {
   savedLendersError = signal<string | null>(null);
   savedLendersWithDetails = signal<any[]>([]);
 
-  notificationOptIn = false;
-  savingOptIn = false;
-
-
   // Property colors for visualization - handle both old and new formats
-propertyColorMap: Record<string, string> = {
-  // New standardized format (snake_case)
-  commercial: '#1E90FF',
-  healthcare: '#cb4335',
-  hospitality: '#1b4f72',
-  industrial: '#2c3e50',
-  land: '#023020',
-  mixed_use: '#8A2BE2',
-  multifamily: '#6c3483',
-  office: '#4682B4',
-  residential: '#DC143C',
-  retail: '#660000',
-  special_purpose: '#6e2c00',
-  
-  // Legacy format (Title Case/spaces) - for backward compatibility
-  'Commercial': '#1E90FF',
-  'Healthcare': '#cb4335',
-  'Hospitality': '#1b4f72',
-  'Industrial': '#2c3e50',
-  'Land': '#023020',
-  'Mixed Use': '#8A2BE2',
-  'Multifamily': '#6c3483',
-  'Office': '#4682B4',
-  'Residential': '#DC143C',
-  'Retail': '#660000',
-  'Special Purpose': '#6e2c00',
-};
-
-
+  propertyColorMap: Record<string, string> = {
+    // New standardized format (snake_case)
+    commercial: '#1E90FF',
+    healthcare: '#cb4335',
+    hospitality: '#1b4f72',
+    industrial: '#2c3e50',
+    land: '#023020',
+    mixed_use: '#8A2BE2',
+    multifamily: '#6c3483',
+    office: '#4682B4',
+    residential: '#DC143C',
+    retail: '#660000',
+    special_purpose: '#6e2c00',
+    
+    // Legacy format (Title Case/spaces) - for backward compatibility
+    'Commercial': '#1E90FF',
+    'Healthcare': '#cb4335',
+    'Hospitality': '#1b4f72',
+    'Industrial': '#2c3e50',
+    'Land': '#023020',
+    'Mixed Use': '#8A2BE2',
+    'Multifamily': '#6c3483',
+    'Office': '#4682B4',
+    'Residential': '#DC143C',
+    'Retail': '#660000',
+    'Special Purpose': '#6e2c00',
+  };
 
   // ✅ CORRECTED: Property categories matching registration exactly
   allPropertyCategoryOptions: PropertyCategoryOption[] = [
@@ -173,29 +171,28 @@ propertyColorMap: Record<string, string> = {
 
   // ✅ CORRECTED: Loan types matching registration exactly
   allLoanTypeOptions: LoanTypeOption[] = [
-  { value: 'agency', displayName: 'Agency Loans' },
-  { value: 'bridge', displayName: 'Bridge Loans' },
-  { value: 'cmbs', displayName: 'CMBS Loans' },
-  { value: 'commercial', displayName: 'Commercial Loans' },
-  { value: 'construction', displayName: 'Construction Loans' },
-  { value: 'hard_money', displayName: 'Hard Money Loans' },
-  { value: 'mezzanine', displayName: 'Mezzanine Loan' },
-  { value: 'rehab', displayName: 'Rehab Loans' },
-  { value: 'non_qm', displayName: 'Non-QM Loans' },
-  { value: 'sba', displayName: 'SBA Loans' },
-  { value: 'usda', displayName: 'USDA Loans' },
-  // Add these missing mappings:
-  { value: 'purchase_money', displayName: 'Purchase Money Loan' },
-  { value: 'acquisition', displayName: 'Acquisition Loan' },
-  { value: 'balance_sheet', displayName: 'Balance Sheet' },
-  { value: 'bridge_perm', displayName: 'Bridge to Permanent' },
-  { value: 'dscr', displayName: 'DSCR' },
-  { value: 'fix_flip', displayName: 'Fix & Flip' },
-  { value: 'portfolio', displayName: 'Portfolio Loan' },
-  { value: 'sba_express', displayName: 'SBA Express' },
-  { value: 'sba_7a', displayName: 'SBA 7(a)' },
-  { value: 'sba_504', displayName: 'SBA 504' }
-];
+    { value: 'agency', displayName: 'Agency Loans' },
+    { value: 'bridge', displayName: 'Bridge Loans' },
+    { value: 'cmbs', displayName: 'CMBS Loans' },
+    { value: 'commercial', displayName: 'Commercial Loans' },
+    { value: 'construction', displayName: 'Construction Loans' },
+    { value: 'hard_money', displayName: 'Hard Money Loans' },
+    { value: 'mezzanine', displayName: 'Mezzanine Loan' },
+    { value: 'rehab', displayName: 'Rehab Loans' },
+    { value: 'non_qm', displayName: 'Non-QM Loans' },
+    { value: 'sba', displayName: 'SBA Loans' },
+    { value: 'usda', displayName: 'USDA Loans' },
+    { value: 'purchase_money', displayName: 'Purchase Money Loan' },
+    { value: 'acquisition', displayName: 'Acquisition Loan' },
+    { value: 'balance_sheet', displayName: 'Balance Sheet' },
+    { value: 'bridge_perm', displayName: 'Bridge to Permanent' },
+    { value: 'dscr', displayName: 'DSCR' },
+    { value: 'fix_flip', displayName: 'Fix & Flip' },
+    { value: 'portfolio', displayName: 'Portfolio Loan' },
+    { value: 'sba_express', displayName: 'SBA Express' },
+    { value: 'sba_7a', displayName: 'SBA 7(a)' },
+    { value: 'sba_504', displayName: 'SBA 504' }
+  ];
 
   // Available states for footprint selection
   allStates: string[] = [
@@ -239,28 +236,28 @@ propertyColorMap: Record<string, string> = {
     this.router.navigate(['/login']);
   }
 
-getLoanTypeName(value: string): string {
-  if (!value) return '';
-  
-  let loanType = this.allLoanTypeOptions.find((type) => type.value === value);
-  
-  // If not found, try case-insensitive match
-  if (!loanType) {
-    loanType = this.allLoanTypeOptions.find(
-      (type) => type.value.toLowerCase() === value.toLowerCase()
-    );
-  }
+  getLoanTypeName(value: string): string {
+    if (!value) return '';
+    
+    let loanType = this.allLoanTypeOptions.find((type) => type.value === value);
+    
+    // If not found, try case-insensitive match
+    if (!loanType) {
+      loanType = this.allLoanTypeOptions.find(
+        (type) => type.value.toLowerCase() === value.toLowerCase()
+      );
+    }
 
     // If still not found, try to convert camelCase to a readable format
-  if (!loanType) {
-    const formatted = value
-      .replace(/([A-Z])/g, ' $1') // Add space before capital letters
-      .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
-    return formatted.trim();
+    if (!loanType) {
+      const formatted = value
+        .replace(/([A-Z])/g, ' $1') // Add space before capital letters
+        .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
+      return formatted.trim();
+    }
+    
+    return loanType.displayName; // ✅ Use displayName consistently
   }
-  
-  return loanType.displayName; // ✅ Use displayName consistently
-}
 
   /**
    * Load user data from Firestore
@@ -348,10 +345,8 @@ getLoanTypeName(value: string): string {
     await this.handleMissingUserProfile(fbUser);
   }
 
-  
-
   /**
-   * Handle existing user profile - ENHANCED with notification preferences
+   * ✅ FIXED: Handle existing user profile with proper notification loading
    */
   async handleExistingUserProfile(
     docSnap: any,
@@ -365,8 +360,7 @@ getLoanTypeName(value: string): string {
       // It's a lender
       this.userData = {
         id: docSnap.id,
-        company:
-        data.company || (data.contactInfo && data.contactInfo.company) || '',
+        company: data.company || (data.contactInfo && data.contactInfo.company) || '',
         firstName: data.contactInfo?.firstName || '',
         lastName: data.contactInfo?.lastName || '',
         phone: data.contactInfo?.contactPhone || '',
@@ -376,7 +370,8 @@ getLoanTypeName(value: string): string {
         role: 'lender',
       };
 
-      this.loadNotificationPreferencesFromService(); 
+      // ✅ Load notification preferences for lenders AFTER user data is set
+      this.loadNotificationPreferencesFromService();
     } else if (data.role === 'originator') {
       this.userData = {
         id: docSnap.id,
@@ -393,7 +388,7 @@ getLoanTypeName(value: string): string {
 
     this.userRole = this.userData.role;
 
-    // Rest of the method remains unchanged
+    // Load role-specific data
     if (this.userRole === 'lender' && fbUser.uid) {
       await this.loadSavedLoans(fbUser.uid);
     }
@@ -410,29 +405,48 @@ getLoanTypeName(value: string): string {
     this.loading = false;
   }
 
- private loadNotificationPreferencesFromService(): void {
-  this.authService.waitForAuthInit().pipe(
-    switchMap(() => this.authService.isLoggedIn$),
-    filter(isLoggedIn => isLoggedIn),
-    take(1),
-    switchMap(() => this.notificationPreferencesService.getNotificationPreferences())
-  ).subscribe({
-    next: (preferences: any) => {
-      console.log('✅ Loaded notification preferences:', preferences);
+  /**
+   * ✅ FIXED: Load notification preferences with proper error handling and signal updates
+   */
+  private loadNotificationPreferencesFromService(): void {
+    this.authService.waitForAuthInit().pipe(
+      switchMap(() => this.authService.isLoggedIn$),
+      filter(isLoggedIn => isLoggedIn),
+      take(1),
+      switchMap(() => this.notificationPreferencesService.getNotificationPreferences())
+    ).subscribe({
+      next: (preferences: any) => {
+        console.log('✅ Loaded notification preferences:', preferences);
 
-      if (preferences) { // 👈✅ CHECK IF NOT NULL
-        this.notificationPrefs = {
-          wantsEmailNotifications: preferences.wantsEmailNotifications || false,
-          propertyCategories: preferences.propertyCategory || [],
-          subcategorySelections: preferences.subcategorySelections || [],
-          loanTypes: preferences.loanTypes || [], 
-          minLoanAmount: preferences.minLoanAmount || 0,
-          ficoScore: 0,
-          footprint: preferences.footprint || [],
-        };
-      } else {
-        console.warn('⚠️ No notification preferences found. Using defaults.');
-        this.notificationPrefs = {
+        if (preferences) {
+          // ✅ Update the signal with loaded preferences
+          this.notificationPrefs.set({
+            wantsEmailNotifications: preferences.wantsEmailNotifications || false,
+            propertyCategories: preferences.propertyCategory || [],
+            subcategorySelections: preferences.subcategorySelections || [],
+            loanTypes: preferences.loanTypes || [], 
+            minLoanAmount: preferences.minLoanAmount || 0,
+            ficoScore: preferences.ficoScore || 0,
+            footprint: preferences.footprint || [],
+          });
+          
+          console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
+        } else {
+          console.warn('⚠️ No notification preferences found. Using defaults.');
+          this.notificationPrefs.set({
+            wantsEmailNotifications: false,
+            propertyCategories: [],
+            subcategorySelections: [],
+            loanTypes: [],
+            minLoanAmount: 0,
+            ficoScore: 0,
+            footprint: [],
+          });
+        }
+      },
+      error: (error) => {
+        console.error('❌ Error loading notification preferences:', error);
+        this.notificationPrefs.set({
           wantsEmailNotifications: false,
           propertyCategories: [],
           subcategorySelections: [],
@@ -440,61 +454,55 @@ getLoanTypeName(value: string): string {
           minLoanAmount: 0,
           ficoScore: 0,
           footprint: [],
-        };
-      }
-    },
-    error: (error) => {
-      console.error('❌ Error loading notification preferences:', error);
-      this.notificationPrefs = {
-        wantsEmailNotifications: false,
-        propertyCategories: [],
-        subcategorySelections: [],
-        loanTypes: [],
-        minLoanAmount: 0,
-        ficoScore: 0,
-        footprint: [],
-      };
-    },
-  });
-}
+        });
+      },
+    });
+  }
 
-
-  testEmailSystem() {
-    console.log('=== EMAIL TEST DEBUG ===');
-    console.log('User data:', this.user);
-    console.log('Is logged in:', this.isLoggedIn);
-    console.log('User role:', this.userRole);
-
-    next: (preferences: any) => {
-  console.log('🔍 RAW backend response:', preferences);
-  console.log('🔍 Has propertyCategories?', 'propertyCategories' in preferences);
-  console.log('🔍 Has preferredPropertyTypes?', 'preferredPropertyTypes' in preferences);
-  // ... rest of your code
-}
+  /**
+   * ✅ FIXED: Toggle notification opt-in with proper signal updates
+   */
+  toggleNotificationOptIn(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const newStatus = input.checked;
     
-// Try to get current user directly
-this.authService.getCurrentUser().subscribe({
-  next: (user) => {
-    console.log('Auth service user:', user);
-    if (user) {
-      console.log('User UID:', user.uid);
-      console.log('User email:', user.email);
-      
-      // User authentication successful
-      console.log('User authenticated successfully');
-      alert('User authenticated successfully!');
-    } else {
-      console.error('No user from auth service');
-      alert('Please log out and log back in');
-    }
-  },
-  error: (error) => {
-    console.error('Auth service error:', error);
-    alert('Authentication error');
+    console.log('🔄 Toggling notification opt-in to:', newStatus);
+    
+    // ✅ Set saving state
+    this.savingOptIn.set(true);
+
+    // ✅ Optimistically update the UI by updating the signal
+    const currentPrefs = this.notificationPrefs();
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      wantsEmailNotifications: newStatus
+    });
+
+    // ✅ Save to backend
+    this.emailNotificationService.toggleEmailNotificationsCallable(newStatus).pipe(
+      finalize(() => {
+        // ✅ Always clear saving state when done
+        this.savingOptIn.set(false);
+      })
+    ).subscribe({
+      next: (response) => {
+        console.log('✅ Notification opt-in status updated via Cloud Function:', response);
+      },
+      error: (error) => {
+        console.error('❌ Error toggling notification opt-in via Cloud Function:', error);
+        
+        // ✅ Revert the optimistic update on error
+        const revertedPrefs = this.notificationPrefs();
+        this.notificationPrefs.set({
+          ...revertedPrefs,
+          wantsEmailNotifications: !newStatus
+        });
+        
+        // ✅ Show user-friendly error message
+        alert('Failed to update notification preferences. Please try again.');
+      }
+    });
   }
-});
-  }
-   
 
   /**
    * Handle missing user profile
@@ -536,7 +544,7 @@ this.authService.getCurrentUser().subscribe({
         firstName: '',
         lastName: '',
         company: '',
-        createdAt: createTimestamp(), // Using utility function instead of Timestamp.fromDate(new Date())
+        createdAt: createTimestamp(),
         role: undefined,
       };
 
@@ -590,9 +598,7 @@ this.authService.getCurrentUser().subscribe({
         this.savedLoansLoading.set(false);
       },
       error: (error: any) => {
-        // In your loadSavedLoans method
         console.log('Loading saved loans for user ID:', userId);
-        // Compare this printed ID with what you see in your Firestore console
         console.error('Error loading saved loans:', error);
         this.savedLoansError.set(
           'Failed to load your saved loans. Please try again.'
@@ -651,7 +657,7 @@ this.authService.getCurrentUser().subscribe({
       loanId: loan.id,
       loanData: loan,
       userId: this.user.uid,
-      createdAt: createTimestamp(), // Using utility function instead of new Date()
+      createdAt: createTimestamp(),
     };
 
     await addDoc(savedLoansCollectionRef, savedLoanData);
@@ -666,7 +672,6 @@ this.authService.getCurrentUser().subscribe({
    * Remove a saved loan
    */
   async removeSavedLoan(savedLoanId: string): Promise<void> {
-    // Get the saved loan data from our current list
     const savedLoan = this.savedLoans().find((loan) => loan.id === savedLoanId);
 
     if (!savedLoan) {
@@ -674,7 +679,6 @@ this.authService.getCurrentUser().subscribe({
       return;
     }
 
-    // Open the remove saved loan modal
     const confirmed = await this.modalService.openRemoveSavedLoanModal(
       savedLoan.loanData
     );
@@ -688,13 +692,11 @@ this.authService.getCurrentUser().subscribe({
 
         await deleteDoc(savedLoanDocRef);
 
-        // Update the savedLoans signal
         const currentSavedLoans = this.savedLoans();
         this.savedLoans.set(
           currentSavedLoans.filter((loan) => loan.id !== savedLoanId)
         );
 
-        // Show success message directly with alert
         alert('Loan removed from saved list');
       } catch (error) {
         console.error('Error removing saved loan:', error);
@@ -703,66 +705,95 @@ this.authService.getCurrentUser().subscribe({
     }
   }
 
-  
+  /**
+   * ✅ FIXED: Toggle methods using proper signal access
+   */
   togglePropertyCategory(categoryValue: string): void {
-    const index = this.notificationPrefs.propertyCategories.indexOf(categoryValue);
+    const currentPrefs = this.notificationPrefs();
+    const currentCategories = [...currentPrefs.propertyCategories];
+    const index = currentCategories.indexOf(categoryValue);
     
     if (index > -1) {
-      this.notificationPrefs.propertyCategories.splice(index, 1);
+      currentCategories.splice(index, 1);
     } else {
-      this.notificationPrefs.propertyCategories.push(categoryValue);
+      currentCategories.push(categoryValue);
     }
+    
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      propertyCategories: currentCategories
+    });
   }
 
   toggleSubcategorySelection(subcategoryValue: string): void {
-    const index = this.notificationPrefs.subcategorySelections.indexOf(subcategoryValue);
+    const currentPrefs = this.notificationPrefs();
+    const currentSelections = [...currentPrefs.subcategorySelections];
+    const index = currentSelections.indexOf(subcategoryValue);
     
     if (index > -1) {
-      this.notificationPrefs.subcategorySelections.splice(index, 1);
+      currentSelections.splice(index, 1);
     } else {
-      this.notificationPrefs.subcategorySelections.push(subcategoryValue);
+      currentSelections.push(subcategoryValue);
     }
+    
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      subcategorySelections: currentSelections
+    });
   }
 
   toggleLoanType(loanTypeValue: string): void {
-    const index = this.notificationPrefs.loanTypes.indexOf(loanTypeValue);
+    const currentPrefs = this.notificationPrefs();
+    const currentLoanTypes = [...currentPrefs.loanTypes];
+    const index = currentLoanTypes.indexOf(loanTypeValue);
     
     if (index > -1) {
-      this.notificationPrefs.loanTypes.splice(index, 1);
+      currentLoanTypes.splice(index, 1);
     } else {
-      this.notificationPrefs.loanTypes.push(loanTypeValue);
+      currentLoanTypes.push(loanTypeValue);
     }
+    
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      loanTypes: currentLoanTypes
+    });
   }
 
   toggleFootprintState(state: string): void {
-    const index = this.notificationPrefs.footprint.indexOf(state);
+    const currentPrefs = this.notificationPrefs();
+    const currentFootprint = [...currentPrefs.footprint];
+    const index = currentFootprint.indexOf(state);
     
     if (index > -1) {
-      this.notificationPrefs.footprint.splice(index, 1);
+      currentFootprint.splice(index, 1);
     } else {
-      this.notificationPrefs.footprint.push(state);
+      currentFootprint.push(state);
     }
+    
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      footprint: currentFootprint
+    });
   }
 
-  // ✅ CORRECTED: Helper methods using correct field names
+  // ✅ FIXED: Helper methods using proper signal access
   isCategorySelected(categoryValue: string): boolean {
-    return this.notificationPrefs.propertyCategories.includes(categoryValue);
+    return this.notificationPrefs().propertyCategories.includes(categoryValue);
   }
 
   isSubcategorySelected(subcategoryValue: string): boolean {
-    return this.notificationPrefs.subcategorySelections.includes(subcategoryValue);
+    return this.notificationPrefs().subcategorySelections.includes(subcategoryValue);
   }
 
   isLoanTypeSelected(loanTypeValue: string): boolean {
-    return this.notificationPrefs.loanTypes.includes(loanTypeValue);
+    return this.notificationPrefs().loanTypes.includes(loanTypeValue);
   }
 
   isStateSelected(state: string): boolean {
-    console.log('💾 Footprint being saved:', this.notificationPrefs.footprint);
-    return this.notificationPrefs.footprint.includes(state);
+    return this.notificationPrefs().footprint.includes(state);
   }
 
-  // ✅ NEW: Helper methods for display names
+// ✅ Helper methods for display names
   getCategoryDisplayName(categoryValue: string): string {
     const category = this.allPropertyCategoryOptions.find(cat => cat.value === categoryValue);
     return category ? category.displayName : categoryValue;
@@ -772,36 +803,41 @@ this.authService.getCurrentUser().subscribe({
     const loanType = this.allLoanTypeOptions.find(type => type.value === loanTypeValue);
     return loanType ? loanType.displayName : loanTypeValue;
   }
-  // ✅ Angular 18 Best Practice: Getter methods for computed template values
-get formattedPropertyTypes(): string {
-  return this.notificationPrefs.propertyCategories
-    .map(cat => this.getCategoryDisplayName(cat))
-    .join(', ');
-}
 
-get formattedLoanTypes(): string {
-  return this.notificationPrefs.loanTypes
-    .map(type => this.getLoanTypeDisplayName(type))
-    .join(', ');
-}
+  // ✅ Angular 18 Best Practice: Computed values for template
+  get formattedPropertyTypes(): string {
+    return this.notificationPrefs().propertyCategories
+      .map(cat => this.getCategoryDisplayName(cat))
+      .join(', ');
+  }
 
-get formattedFootprintStates(): string {
-  return this.notificationPrefs.footprint
-    .map(state => this.getFormattedStateName(state))
-    .join(', ');
-}
+  get formattedLoanTypes(): string {
+    return this.notificationPrefs().loanTypes
+      .map(type => this.getLoanTypeDisplayName(type))
+      .join(', ');
+  }
+
+  get formattedFootprintStates(): string {
+    return this.notificationPrefs().footprint
+      .map(state => this.getFormattedStateName(state))
+      .join(', ');
+  }
 
   onMinLoanAmountChange(event: any): void {
     const value = event.target.value;
-    // Remove any non-numeric characters except decimal points
     const numericValue = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
-    this.notificationPrefs.minLoanAmount = isNaN(numericValue) ? 0 : numericValue;
+    const currentPrefs = this.notificationPrefs();
+    
+    this.notificationPrefs.set({
+      ...currentPrefs,
+      minLoanAmount: isNaN(numericValue) ? 0 : numericValue
+    });
   }
 
-  // ✅ CORRECTED: Reset method using correct field names
+  // ✅ FIXED: Reset method using proper signal updates
   resetNotificationPreferences(): void {
     if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
-      this.notificationPrefs = {
+      this.notificationPrefs.set({
         wantsEmailNotifications: false,
         propertyCategories: [],       
         subcategorySelections: [],
@@ -809,51 +845,40 @@ get formattedFootprintStates(): string {
         minLoanAmount: 0,
         ficoScore: 0,
         footprint: [],
-      };
+      });
       
       console.log('Notification preferences reset to defaults');
     }
   }
 
- async debugNotificationPreferences(): Promise<void> {
-  console.log('=== NOTIFICATION PREFERENCES DEBUG ===');
-  console.log('Current component preferences:', this.notificationPrefs);
-  console.log('User role:', this.userRole);
-  console.log('Is lender:', this.isLender());
+  async debugNotificationPreferences(): Promise<void> {
+    console.log('=== NOTIFICATION PREFERENCES DEBUG ===');
+    console.log('Current component preferences:', this.notificationPrefs());
+    console.log('User role:', this.userRole);
+    console.log('Is lender:', this.isLender());
 
-  if (this.userRole === 'lender') {
-    this.notificationPreferencesService.getNotificationPreferences().subscribe({
-      next: (serverPrefs) => {
-        if (!serverPrefs) {
-          console.error('No server preferences found.');
-          return;
-        }
-        console.log('✅ Server preferences:', serverPrefs);
-
-        // Example debug output (adjust according to your needs)
-        console.log('Email Notifications Enabled:', serverPrefs.wantsEmailNotifications);
-        console.log('Property Categories:', serverPrefs.propertyCategories); 
-        console.log('Subcategory Selections:', serverPrefs.subcategorySelections);
-        console.log('Loan Types:', serverPrefs.loanTypes);
-        console.log('Minimum Loan Amount:', serverPrefs.minLoanAmount);
-        console.log('FICO Score:', serverPrefs.ficoScore);
-        console.log('Footprint:', serverPrefs.footprint);
-      },
-      error: (error) => {
-        console.error('Error loading server preferences:', error);
-      },
-    });
+    if (this.userRole === 'lender') {
+      this.notificationPreferencesService.getNotificationPreferences().subscribe({
+        next: (serverPrefs) => {
+          if (!serverPrefs) {
+            console.error('No server preferences found.');
+            return;
+          }
+          console.log('✅ Server preferences:', serverPrefs);
+          console.log('Email Notifications Enabled:', serverPrefs.wantsEmailNotifications);
+          console.log('Property Categories:', serverPrefs.propertyCategories); 
+          console.log('Subcategory Selections:', serverPrefs.subcategorySelections);
+          console.log('Loan Types:', serverPrefs.loanTypes);
+          console.log('Minimum Loan Amount:', serverPrefs.minLoanAmount);
+          console.log('FICO Score:', serverPrefs.ficoScore);
+          console.log('Footprint:', serverPrefs.footprint);
+        },
+        error: (error) => {
+          console.error('Error loading server preferences:', error);
+        },
+      });
+    }
   }
-}
-
-// dashboard.component.ts
-
-getNotificationPreferencesTest() {
-  this.emailNotificationService.getNotificationPreferencesCallable().subscribe(preferences => {
-    console.log('📦 Current Notification Preferences:', preferences);
-  });
-}
-
 
   /**
    * Load saved lenders for originators
@@ -869,8 +894,6 @@ getNotificationPreferencesTest() {
           `Found ${favorites.length} saved lenders for originator ${originatorId}`
         );
         this.savedLenders.set(favorites);
-
-        // Load the full lender details for each favorite
         this.loadLenderDetailsForFavorites(favorites);
       },
       error: (error: any) => {
@@ -893,7 +916,6 @@ getNotificationPreferencesTest() {
     const lendersWithDetails: any[] = [];
     let loadedCount = 0;
 
-    // For each favorite, fetch the lender details
     favorites.forEach((favorite) => {
       this.lenderService.getLender(favorite.lenderId).subscribe({
         next: (lender) => {
@@ -903,7 +925,6 @@ getNotificationPreferencesTest() {
               lenderData: lender,
             });
           } else {
-            // Handle missing lender (we'll keep the favorite but mark it)
             lendersWithDetails.push({
               ...favorite,
               lenderData: { notFound: true },
@@ -920,7 +941,6 @@ getNotificationPreferencesTest() {
             `Error loading lender details for ${favorite.lenderId}:`,
             err
           );
-          // Still count this as loaded, but with an error
           lendersWithDetails.push({
             ...favorite,
             lenderData: { error: true },
@@ -935,12 +955,12 @@ getNotificationPreferencesTest() {
       });
     });
   }
-  getFormattedLoanTypes(): string {
-  return this.notificationPrefs.loanTypes
-    .map(lt => this.getLoanTypeDisplayName(lt))
-    .join(', ');
-}
 
+  getFormattedLoanTypes(): string {
+    return this.notificationPrefs().loanTypes
+      .map(lt => this.getLoanTypeDisplayName(lt))
+      .join(', ');
+  }
 
   getLenderContactName(lenderFavorite: any): string {
     if (
@@ -959,25 +979,21 @@ getNotificationPreferencesTest() {
       : 'Not specified';
   }
 
-  /* Get lender company name from all possible locations*/
   getLenderCompanyName(lenderFavorite: any): string {
     if (!lenderFavorite.lenderData) {
       return 'Unknown Company';
     }
 
-    // Get the company name from the contactInfo object
     const companyFromContactInfo =
       lenderFavorite.lenderData.contactInfo?.company;
     const firstName = lenderFavorite.lenderData.contactInfo?.firstName || '';
     const lastName = lenderFavorite.lenderData.contactInfo?.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
 
-    // Return the company name if it exists and isn't empty
     if (companyFromContactInfo && companyFromContactInfo !== '') {
       return companyFromContactInfo;
     }
 
-    // If we don't have a company name, use the person's name as a fallback
     if (fullName) {
       return `${fullName}'s Company`;
     }
@@ -996,7 +1012,6 @@ getNotificationPreferencesTest() {
       return 'Not specified';
     }
 
-    // Return just the first lender type to keep it concise in the table
     const firstType = lenderFavorite.lenderData.productInfo.lenderTypes[0];
     return this.getLenderTypeName(firstType);
   }
@@ -1055,7 +1070,6 @@ getNotificationPreferencesTest() {
    * Remove a saved lender
    */
   async removeSavedLender(savedFavoriteId: string): Promise<void> {
-    // Find the saved lender in our list
     const savedLender = this.savedLendersWithDetails().find(
       (lender) => lender.id === savedFavoriteId
     );
@@ -1065,7 +1079,6 @@ getNotificationPreferencesTest() {
       return;
     }
 
-    // Open the remove saved lender modal
     const confirmed = await this.modalService.openRemoveSavedLenderModal(
       savedLender.lenderData
     );
@@ -1078,13 +1091,11 @@ getNotificationPreferencesTest() {
         );
         await deleteDoc(docRef);
 
-        // Update the favorites lists
         const currentFavorites = this.savedLenders();
         this.savedLenders.set(
           currentFavorites.filter((fav) => fav.id !== savedFavoriteId)
         );
 
-        // Update the details list too
         const currentDetails = this.savedLendersWithDetails();
         this.savedLendersWithDetails.set(
           currentDetails.filter((fav) => fav.id !== savedFavoriteId)
@@ -1141,17 +1152,14 @@ getNotificationPreferencesTest() {
     }
   }
 
-  // Add these methods to your DashboardComponent class
+  formatPropertyCategory(category: string): string {
+    const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
+    return categoryOption ? categoryOption.displayName : category;
+  }
 
-formatPropertyCategory(category: string): string {
-  const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
-  return categoryOption ? categoryOption.displayName : category;
-}
-
-formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
-  // Use the LoanUtils to safely extract the value
-  return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
-}
+  formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
+    return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
+  }
 
   /**
    * Format phone number
@@ -1171,7 +1179,7 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
   formatCurrency(value: string | number): string {
     if (!value) return '$0';
 
-    if (typeof value === 'string' && value.includes('$' )) {
+    if (typeof value === 'string' && value.includes('$')) {
       return value;
     }
 
@@ -1192,6 +1200,7 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
     if (!state) return '';
     return this.locationService.formatValueForDisplay(state);
   }
+
 
   /**
    * Format date
@@ -1269,15 +1278,13 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
   }
 
   goToMatches(loanId: string): void {
-  this.router.navigate(['/loan', loanId, 'matches']);
-}
-
+    this.router.navigate(['/loan', loanId, 'matches']);
+  }
 
   /**
    * Delete a loan
    */
   async deleteLoan(loanId: string): Promise<void> {
-    // Find the loan in our loans array
     const loanToDelete = this.loans().find((loan) => loan.id === loanId);
 
     if (!loanToDelete) {
@@ -1285,7 +1292,6 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
       return;
     }
 
-    // Open the delete published loan modal
     const confirmed = await this.modalService.openDeletePublishedLoanModal(
       loanToDelete
     );
@@ -1295,7 +1301,6 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
         const loanDocRef = doc(this.firestore, `loans/${loanId}`);
         await deleteDoc(loanDocRef);
 
-        // Update the loans signal
         const currentLoans = this.loans();
         this.loans.set(currentLoans.filter((loan) => loan.id !== loanId));
 
@@ -1306,36 +1311,42 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
       }
     }
   }
-  // Add this method to your component
-toggleAllStates(): void {
-  if (this.areAllStatesSelected()) {
-    // Deselect all states
-    this.notificationPrefs.footprint = [];
-  } else {
-    // Select all states
-    this.notificationPrefs.footprint = [...this.allStates];
+
+  // ✅ FIXED: Toggle all states using proper signal updates
+  toggleAllStates(): void {
+    const currentPrefs = this.notificationPrefs();
+    
+    if (this.areAllStatesSelected()) {
+      // Deselect all states
+      this.notificationPrefs.set({
+        ...currentPrefs,
+        footprint: []
+      });
+    } else {
+      // Select all states
+      this.notificationPrefs.set({
+        ...currentPrefs,
+        footprint: [...this.allStates]
+      });
+    }
   }
-}
 
-// Add this helper method
-areAllStatesSelected(): boolean {
-  return this.notificationPrefs.footprint.length === this.allStates.length;
-}
+  // ✅ FIXED: Helper methods using proper signal access
+  areAllStatesSelected(): boolean {
+    return this.notificationPrefs().footprint.length === this.allStates.length;
+  }
 
-// Optional: Add a method to check if some (but not all) states are selected
-areSomeStatesSelected(): boolean {
-  return this.notificationPrefs.footprint.length > 0 && 
-         this.notificationPrefs.footprint.length < this.allStates.length;
-}
+  areSomeStatesSelected(): boolean {
+    const footprintLength = this.notificationPrefs().footprint.length;
+    return footprintLength > 0 && footprintLength < this.allStates.length;
+  }
 
   /**
    * Delete user account
    */
   async deleteAccount(): Promise<void> {
-    // Determine the user type based on the current userRole
     const userType = this.userRole as 'lender' | 'originator';
 
-    // Open the delete account modal
     const confirmed = await this.modalService.openDeleteAccountModal(userType);
 
     if (confirmed) {
@@ -1348,22 +1359,19 @@ areSomeStatesSelected(): boolean {
     }
   }
 
-  // Update the deleteUserAndLogout method to redirect to home page
   private async deleteUserAndLogout(): Promise<void> {
     if (!this.userData || !this.userData.id) {
       throw new Error('User account information not available');
     }
 
-    // Determine the appropriate collection based on user role
-    const collection = this.userRole === 'lender' ? 'lenders' : 'originators';
-    const userDocRef = doc(this.firestore, `${collection}/${this.userData.id}`);
+    const collectionName = this.userRole === 'lender' ? 'lenders' : 'originators';
+    const userDocRef = doc(this.firestore, `${collectionName}/${this.userData.id}`);
     await deleteDoc(userDocRef);
 
-    // Log out the user
     this.authService.logout().subscribe({
       next: () => {
         alert('Your account has been deleted successfully');
-        this.router.navigate(['/']); // Redirect to home page
+        this.router.navigate(['/']);
       },
       error: (error: any) => {
         console.error('Error during logout after account deletion:', error);
@@ -1391,27 +1399,6 @@ areSomeStatesSelected(): boolean {
       },
     });
   }
-
-  toggleNotificationOptIn(event: Event): void {
-  const input = event.target as HTMLInputElement;
-  const newStatus = input.checked;
-  this.notificationOptIn = newStatus;
-  this.savingOptIn = true;
-
-  this.emailNotificationService.toggleEmailNotificationsCallable(newStatus).subscribe({
-    next: (response) => {
-      console.log('Notification opt-in status updated via Cloud Function:', response);
-    },
-    error: (error) => {
-      console.error('Error toggling notification opt-in via Cloud Function:', error);
-    },
-    complete: () => {
-      this.savingOptIn = false;
-    }
-  });
-}
-
-
 
   /**
    * Get error message from error object

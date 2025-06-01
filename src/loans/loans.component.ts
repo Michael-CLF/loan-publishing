@@ -32,6 +32,8 @@ import { LOAN_TYPES } from '../shared/constants/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
+import { getStateName } from '../shared/constants/state-mappings';
+
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -133,6 +135,8 @@ propertyColorMap: Record<string, string> = {
 
   // Add this to your LoansComponent class
   loanTypes = LOAN_TYPES;
+  getStateName = getStateName;
+
 
   // Add this method to your component class
 

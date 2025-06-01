@@ -16,7 +16,10 @@
                 <label for="state">State</label>
                 <select id="state" [ngModel]="filters().state" (ngModelChange)="updateFilter('state', $event)">
                     <option value="">All States</option>
-                    <option *ngFor="let state of states" [value]="state">{{ state }}</option>
+                    <option *ngFor="let state of states" [value]="state.value">
+                        {{ state.name }}
+                    </option>
+
                 </select>
             </div>
 

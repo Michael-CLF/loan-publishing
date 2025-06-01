@@ -206,7 +206,8 @@
 
           <div class="loan-detail">
             <span class="detail-label">Location:</span>
-            <span class="detail-value">{{ savedLoan.loanData.city }}, {{ savedLoan.loanData.state }}</span>
+           <span class="detail-value">{{ savedLoan.loanData.city }}, {{ getStateName(savedLoan.loanData.state) }}</span>
+
           </div>
 
           <div class="loan-detail">
@@ -240,13 +241,7 @@
       criteria. you can turn it off at any time.
     </p>
 
-    <!-- dashboard.component.html -->
-    <button (click)="getNotificationPreferencesTest()" style="margin-top: 20px;">
-      Test Notification Preferences
-    </button>
-
-
-    <input type="checkbox" id="toggle" class="toggleCheckbox" [checked]="notificationOptIn"
+      <input type="checkbox" id="toggle" class="toggleCheckbox" [checked]="notificationOptIn()"
       (change)="toggleNotificationOptIn($event)" />
     <label for="toggle" class="toggleContainer">
       <div>No Emails</div>
