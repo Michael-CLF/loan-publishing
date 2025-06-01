@@ -45,6 +45,7 @@ import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 
+
 // Property category interface for better type safety
 interface PropertyCategoryOption {
   value: string;        // Snake_case for storage/matching
@@ -76,7 +77,10 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
-  private readonly functions = inject(Functions);
+
+
+  getPropertySubcategoryName = getPropertySubcategoryName;
+
 
   // State properties
   isLoggedIn = false;
@@ -169,18 +173,29 @@ propertyColorMap: Record<string, string> = {
 
   // ✅ CORRECTED: Loan types matching registration exactly
   allLoanTypeOptions: LoanTypeOption[] = [
-    { value: 'agency', displayName: 'Agency Loans' },
-    { value: 'bridge', displayName: 'Bridge Loans' },
-    { value: 'cmbs', displayName: 'CMBS Loans' },
-    { value: 'commercial', displayName: 'Commercial Loans' },
-    { value: 'construction', displayName: 'Construction Loans' },
-    { value: 'hard_money', displayName: 'Hard Money Loans' },
-    { value: 'mezzanine', displayName: 'Mezzanine Loan' },
-    { value: 'rehab', displayName: 'Rehab Loans' },
-    { value: 'non_qm', displayName: 'Non-QM Loans' },
-    { value: 'sba', displayName: 'SBA Loans' },
-    { value: 'usda', displayName: 'USDA Loans' },
-  ];
+  { value: 'agency', displayName: 'Agency Loans' },
+  { value: 'bridge', displayName: 'Bridge Loans' },
+  { value: 'cmbs', displayName: 'CMBS Loans' },
+  { value: 'commercial', displayName: 'Commercial Loans' },
+  { value: 'construction', displayName: 'Construction Loans' },
+  { value: 'hard_money', displayName: 'Hard Money Loans' },
+  { value: 'mezzanine', displayName: 'Mezzanine Loan' },
+  { value: 'rehab', displayName: 'Rehab Loans' },
+  { value: 'non_qm', displayName: 'Non-QM Loans' },
+  { value: 'sba', displayName: 'SBA Loans' },
+  { value: 'usda', displayName: 'USDA Loans' },
+  // Add these missing mappings:
+  { value: 'purchase_money', displayName: 'Purchase Money Loan' },
+  { value: 'acquisition', displayName: 'Acquisition Loan' },
+  { value: 'balance_sheet', displayName: 'Balance Sheet' },
+  { value: 'bridge_perm', displayName: 'Bridge to Permanent' },
+  { value: 'dscr', displayName: 'DSCR' },
+  { value: 'fix_flip', displayName: 'Fix & Flip' },
+  { value: 'portfolio', displayName: 'Portfolio Loan' },
+  { value: 'sba_express', displayName: 'SBA Express' },
+  { value: 'sba_7a', displayName: 'SBA 7(a)' },
+  { value: 'sba_504', displayName: 'SBA 504' }
+];
 
   // Available states for footprint selection
   allStates: string[] = [

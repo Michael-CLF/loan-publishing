@@ -4,7 +4,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { AuthService } from '../services/auth.service';
 import { switchMap, catchError, tap, map } from 'rxjs/operators';
-import { Observable, of, Subscription } from 'rxjs';
+import { of, Subscription } from 'rxjs';
 import { Loan } from '../models/loan-model.model';
 import {
   Firestore,
@@ -91,35 +91,46 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
     'Special Purpose': '#6e2c00',
   };
 
-  // ✅ CORRECTED: Property categories matching registration exactly
-  allPropertyCategoryOptions: PropertyCategoryOption[] = [
-    { value: 'commercial', displayName: 'Commercial' },
-    { value: 'healthcare', displayName: 'Healthcare' },
-    { value: 'hospitality', displayName: 'Hospitality' },
-    { value: 'industrial', displayName: 'Industrial' },
-    { value: 'land', displayName: 'Land' },
-    { value: 'mixed_use', displayName: 'Mixed Use' },
-    { value: 'multifamily', displayName: 'Multifamily' },
-    { value: 'office', displayName: 'Office' },
-    { value: 'residential', displayName: 'Residential' },
-    { value: 'retail', displayName: 'Retail' },
-    { value: 'special_purpose', displayName: 'Special Purpose' },
-  ];
+ // Add this array after propertyColorMap and before allLoanTypeOptions:
+allPropertyCategoryOptions: PropertyCategoryOption[] = [
+  { value: 'commercial', displayName: 'Commercial' },
+  { value: 'healthcare', displayName: 'Healthcare' },
+  { value: 'hospitality', displayName: 'Hospitality' },
+  { value: 'industrial', displayName: 'Industrial' },
+  { value: 'land', displayName: 'Land' },
+  { value: 'mixed_use', displayName: 'Mixed Use' },
+  { value: 'multifamily', displayName: 'Multifamily' },
+  { value: 'office', displayName: 'Office' },
+  { value: 'residential', displayName: 'Residential' },
+  { value: 'retail', displayName: 'Retail' },
+  { value: 'special_purpose', displayName: 'Special Purpose' },
+];
 
-  // ✅ CORRECTED: Loan types matching registration exactly
-  allLoanTypeOptions: LoanTypeOption[] = [
-    { value: 'agency', displayName: 'Agency Loans' },
-    { value: 'bridge', displayName: 'Bridge Loans' },
-    { value: 'cmbs', displayName: 'CMBS Loans' },
-    { value: 'commercial', displayName: 'Commercial Loans' },
-    { value: 'construction', displayName: 'Construction Loans' },
-    { value: 'hard_money', displayName: 'Hard Money Loans' },
-    { value: 'mezzanine', displayName: 'Mezzanine Loan' },
-    { value: 'rehab', displayName: 'Rehab Loans' },
-    { value: 'non_qm', displayName: 'Non-QM Loans' },
-    { value: 'sba', displayName: 'SBA Loans' },
-    { value: 'usda', displayName: 'USDA Loans' },
-  ];
+// Replace the existing allLoanTypeOptions array with this complete version:
+allLoanTypeOptions: LoanTypeOption[] = [
+  { value: 'agency', displayName: 'Agency Loans' },
+  { value: 'bridge', displayName: 'Bridge Loans' },
+  { value: 'cmbs', displayName: 'CMBS Loans' },
+  { value: 'commercial', displayName: 'Commercial Loans' },
+  { value: 'construction', displayName: 'Construction Loans' },
+  { value: 'hard_money', displayName: 'Hard Money Loans' },
+  { value: 'mezzanine', displayName: 'Mezzanine Loan' },
+  { value: 'rehab', displayName: 'Rehab Loans' },
+  { value: 'non_qm', displayName: 'Non-QM Loans' },
+  { value: 'sba', displayName: 'SBA Loans' },
+  { value: 'usda', displayName: 'USDA Loans' },
+  // Add these missing loan types:
+  { value: 'acquisition', displayName: 'Acquisition Loan' },
+  { value: 'balance_sheet', displayName: 'Balance Sheet' },
+  { value: 'bridge_perm', displayName: 'Bridge to Permanent' },
+  { value: 'dscr', displayName: 'DSCR' },
+  { value: 'fix_flip', displayName: 'Fix & Flip' },
+  { value: 'purchase_money', displayName: 'Purchase Money Loan' },
+  { value: 'portfolio', displayName: 'Portfolio Loan' },
+  { value: 'sba_express', displayName: 'SBA Express' },
+  { value: 'sba_7a', displayName: 'SBA 7(a)' },
+  { value: 'sba_504', displayName: 'SBA 504' }
+];
 
   ngOnInit(): void {
     // Check authentication status and load user data
@@ -553,6 +564,20 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
       return 'Invalid Date';
     }
   }
+
+isLender(): boolean {
+  return this.user()?.role === 'lender';
+}
+
+isOriginator(): boolean {
+  return this.user()?.role === 'originator';
+}
+
+returnToDashboard(): void {
+  this.router.navigate(['/dashboard']);
+}
+
+
 
   /**
    * Navigate back to loans list

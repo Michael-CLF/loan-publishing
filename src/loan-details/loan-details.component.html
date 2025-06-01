@@ -1,8 +1,13 @@
 <div class="loan-details-container">
     <header class="loan-header">
-        <button class="back-btn" (click)="goBack()">← Back to all Loans</button>
-    </header>
+        <button *ngIf="isLender()" class="back-btn" (click)="goBack()">
+            ← Back to all Loans
+        </button>
 
+        <button *ngIf="isOriginator()" class="back-btn" (click)="returnToDashboard()">
+            Return to Dashboard
+        </button>
+    </header>
     <!-- Authentication check -->
     <div *ngIf="!isAuthenticated()" class="auth-message">
         <p>You must be logged in to view loan details.</p>
@@ -35,11 +40,13 @@
                     <h3 class="section-title">Property Information</h3>
                     <div class="detail-row">
                         <span class="detail-label">Property Type:</span>
-                        <span class="detail-value">{{ formatPropertyCategory(loan()?.propertyTypeCategory || '') }}</span>
+                        <span class="detail-value">{{ formatPropertyCategory(loan()?.propertyTypeCategory || '')
+                            }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Sub Category:</span>
-                        <span class="detail-value">{{ formatPropertySubcategory(loan()?.propertySubCategory || '') }}</span>
+                        <span class="detail-value">{{ formatPropertySubcategory(loan()?.propertySubCategory || '')
+                            }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">City:</span>

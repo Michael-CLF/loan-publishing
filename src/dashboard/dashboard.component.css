@@ -180,6 +180,8 @@
 }
 .detail-value {
   color: #0a2463;
+  font-weight: 400;
+  font-family: "roboto", sans-serif;
 }
 .loan-actions {
   display: flex;

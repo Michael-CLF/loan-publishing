@@ -14,9 +14,9 @@
   <div *ngIf="matchedLoan() && !loading()" class="loan-summary matched-card">
     <h2 class="section-header">Loan Summary</h2>
     <p><strong>Loan Amount:</strong> {{ matchedLoan()?.loanAmount }}</p>
-    <p><strong>Loan Type:</strong> {{ matchedLoan()?.loanType }}</p>
-    <p><strong>Property Type:</strong> {{ matchedLoan()?.propertyTypeCategory }}</p>
-    <p><strong>Subcategory:</strong> {{ getSubcategoryDisplay() }}</p>
+    <p><strong>Loan Type:</strong> {{ getLoanTypeName(matchedLoan()?.loanType) }}</p>
+    <p><strong>Property Type:</strong> {{ formatPropertyCategory(matchedLoan()?.propertyTypeCategory) }}</p>
+    <p><strong>Subcategory:</strong> {{ formatPropertySubcategory(matchedLoan()?.propertySubCategory || '') }}</p>
     <p><strong>Sponsor FICO:</strong> {{ matchedLoan()?.sponsorFico }}</p>
   </div>
 

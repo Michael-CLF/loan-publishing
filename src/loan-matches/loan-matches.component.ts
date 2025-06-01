@@ -5,8 +5,9 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { LenderService, Lender } from '../services/lender.service';
-import { Loan, LoanUtils } from '../models/loan-model.model'; // ADDED: Import LoanUtils
+import { Loan, LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model'; // ADDED: Import LoanUtils
 import { StateMigrationService } from '../services/update-states';
+import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 
 interface MatchedLender {
   lender: Lender;
@@ -69,6 +70,63 @@ export class LoanMatchesComponent implements OnInit {
       this.loading.set(false);
     },
   });
+}
+
+// Add these formatting methods to your component class:
+
+formatPropertyCategory(category: string | undefined): string {
+  if (!category) return '';
+  
+  const categoryMap: Record<string, string> = {
+    commercial: 'Commercial',
+    healthcare: 'Healthcare',
+    hospitality: 'Hospitality',
+    industrial: 'Industrial',
+    land: 'Land',
+    mixed_use: 'Mixed Use',
+    multifamily: 'Multifamily',
+    office: 'Office',
+    residential: 'Residential',
+    retail: 'Retail',
+    special_purpose: 'Special Purpose'
+  };
+  
+  return categoryMap[category.toLowerCase()] || category;
+}
+
+ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
+    // Use the LoanUtils to safely extract the value
+    return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
+  }
+
+getLoanTypeName(loanType: string | undefined): string {
+  if (!loanType) return '';
+  
+  const loanTypeMap: Record<string, string> = {
+    agency: 'Agency Loans',
+    bridge: 'Bridge Loans',
+    cmbs: 'CMBS Loans',
+    commercial: 'Commercial Loans',
+    construction: 'Construction Loans',
+    hard_money: 'Hard Money Loans',
+    mezzanine: 'Mezzanine Loan',
+    rehab: 'Rehab Loans',
+    non_qm: 'Non-QM Loans',
+    sba: 'SBA Loans',
+    usda: 'USDA Loans',
+    acquisition: 'Acquisition Loan',
+    balance_sheet: 'Balance Sheet',
+    bridge_perm: 'Bridge to Permanent',
+    dscr: 'DSCR',
+    fix_flip: 'Fix & Flip',
+    purchase_money: 'Purchase Money Loan',
+    portfolio: 'Portfolio Loan',
+    sba_express: 'SBA Express',
+    sba_7a: 'SBA 7(a)',
+    sba_504: 'SBA 504'
+  };
+  
+  return loanTypeMap[loanType.toLowerCase()] || loanType;
 }
 
   async runMigration() {
@@ -174,18 +232,6 @@ export class LoanMatchesComponent implements OnInit {
     }
     console.log(`✅ PROPERTY TYPE PASS`);
 
-    // 4. LTV Hard Elimination (when you add this field)
-    // Uncomment when LTV is added to your loan model
-    /*
-    const borrowerLTV = Number(loan.ltv || 0);
-    const maxLTV = Number(productInfo.maxLTV || 0);
-    console.log(`📈 LTV Check: ${borrowerLTV}% vs Max ${maxLTV}%`);
-    if (borrowerLTV > maxLTV) {
-      console.log(`❌ LTV ELIMINATION: ${borrowerLTV}% > ${maxLTV}%`);
-      return false;
-    }
-    console.log(`✅ LTV PASS`);
-    */
 
     console.log(`🎉 ${lenderName} PASSED ALL HARD ELIMINATIONS!`);
     return true; // Passed all hard eliminations
