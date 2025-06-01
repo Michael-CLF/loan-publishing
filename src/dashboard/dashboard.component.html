@@ -74,14 +74,14 @@
     <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
       <div *ngFor="let loan of loans()" class="loan-card">
         <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
-          <span class="loan-type">{{ loan.propertyTypeCategory }}</span>
+          <span class="loan-type">{{ formatPropertyCategory(loan.propertyTypeCategory) }}</span>
           <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
         </div>
 
         <div class="loan-body">
           <div class="loan-detail">
             <span class="detail-label">Property:</span>
-            <span class="detail-value">{{ loan.propertySubCategory }}</span>
+          <span class="detail-value">{{ formatPropertySubcategory(loan.propertySubCategory) }}</span>
           </div>
 
           <div class="loan-detail">

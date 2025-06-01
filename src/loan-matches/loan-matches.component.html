@@ -16,8 +16,7 @@
     <p><strong>Loan Amount:</strong> {{ matchedLoan()?.loanAmount }}</p>
     <p><strong>Loan Type:</strong> {{ matchedLoan()?.loanType }}</p>
     <p><strong>Property Type:</strong> {{ matchedLoan()?.propertyTypeCategory }}</p>
-    <p><strong>Subcategory:</strong> {{ matchedLoan()?.propertySubCategory }}</p>
-    <p><strong>Location:</strong> {{ matchedLoan()?.city }}, {{ matchedLoan()?.state }}</p>
+    <p><strong>Subcategory:</strong> {{ getSubcategoryDisplay() }}</p>
     <p><strong>Sponsor FICO:</strong> {{ matchedLoan()?.sponsorFico }}</p>
   </div>
 

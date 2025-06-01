@@ -26,7 +26,7 @@
         <!-- Loan details -->
         <div *ngIf="!isLoading() && loan()" class="loan-details-card">
             <div class="loan-type-header" [style.backgroundColor]="getColor(loan()?.propertyTypeCategory || '')">
-                <h2 class="loan-category">{{ loan()?.propertyTypeCategory }}</h2>
+                <h2 class="loan-category">{{ formatPropertyCategory(loan()?.propertyTypeCategory || '') }}</h2>
             </div>
 
 
@@ -35,11 +35,11 @@
                     <h3 class="section-title">Property Information</h3>
                     <div class="detail-row">
                         <span class="detail-label">Property Type:</span>
-                        <span class="detail-value">{{ loan()?.propertyTypeCategory }}</span>
+                        <span class="detail-value">{{ formatPropertyCategory(loan()?.propertyTypeCategory || '') }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">Sub Category:</span>
-                        <span class="detail-value">{{ loan()?.propertySubCategory }}</span>
+                        <span class="detail-value">{{ formatPropertySubcategory(loan()?.propertySubCategory || '') }}</span>
                     </div>
                     <div class="detail-row">
                         <span class="detail-label">City:</span>
@@ -141,3 +141,5 @@
             <p>This loan does not exist or has been removed.</p>
             <button class="back-btn" (click)="goBack()">Back to Loans</button>
         </div>
+    </ng-container>
+</div>

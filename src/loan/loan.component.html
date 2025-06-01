@@ -10,8 +10,8 @@
             <select id="propertyTypeCategory" formControlName="propertyTypeCategory" (change)="onCategoryChange($event)"
                 [ngClass]="{'invalid': isInvalid('propertyTypeCategory')}">
                 <option value="">-- Select Category --</option>
-                <option *ngFor="let category of categoryKeys()" [value]="category">
-                    {{ category }}
+                <option *ngFor="let category of propertyCategoryOptions" [value]="category.value">
+                    {{ category.name }}
                 </option>
             </select>
             <div *ngIf="isInvalid('propertyTypeCategory')" class="error-message">
@@ -20,19 +20,19 @@
         </div>
 
         <!-- Property Sub-category -->
-        <div class="form-group">
-            <label for="propertySubCategory">Property Sub-category</label>
-            <select id="propertySubCategory" formControlName="propertySubCategory"
-                [ngClass]="{'invalid': isInvalid('propertySubCategory')}">
-                <option value="">-- Select Sub-category --</option>
-                <option *ngFor="let sub of selectedSubCategories()" [value]="sub">
-                    {{ sub }}
-                </option>
-            </select>
-            <div *ngIf="isInvalid('propertySubCategory')" class="error-message">
-                *Please select a sub-category
-            </div>
-        </div>
+       <div class="form-group">
+    <label for="propertySubCategory">Property Sub-category</label>
+    <select id="propertySubCategory" formControlName="propertySubCategory"
+        [ngClass]="{'invalid': isInvalid('propertySubCategory')}">
+        <option value="">-- Select Sub-category --</option>
+        <option *ngFor="let sub of selectedSubCategories()" [value]="sub.value">
+            {{ sub.name }}
+        </option>
+    </select>
+    <div *ngIf="isInvalid('propertySubCategory')" class="error-message">
+        *Please select a sub-category
+    </div>
+</div>
 
         <!-- Transaction Type -->
         <div class="form-group">
@@ -121,7 +121,7 @@
             <select id="state" formControlName="state" [ngClass]="{'invalid': isInvalid('state')}">
                 <option value="">-- Select State --</option>
                 <option *ngFor="let state of states()" [ngValue]="state.value">
-                {{ state.name }}
+                    {{ state.name }}
                 </option>
 
             </select>

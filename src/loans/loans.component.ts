@@ -30,7 +30,19 @@ import {
 import { PropertyFilterComponent } from '../property-filter/property-filter.component';
 import { LOAN_TYPES } from '../shared/constants/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
-import { getUserId } from '../utils/user-helpers';
+import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
+import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
+
+// Property category interface for better type safety
+interface PropertyCategoryOption {
+  value: string;        // Snake_case for storage/matching
+  displayName: string;  // User-friendly display name
+}
+
+interface LoanTypeOption {
+  value: string;        // Snake_case for storage/matching  
+  displayName: string;  // User-friendly display name
+}
 
 // Define the interface here instead of importing it
 interface LoanFilters {
@@ -59,24 +71,79 @@ export class LoansComponent implements OnInit {
   private firestoreService = inject(FirestoreService);
   private loanTypeService = inject(LoanTypeService);
 
-  propertyColorMap: { [key: string]: string } = {
-    Commercial: '#1E90FF',
-    Healthcare: '#cb4335',
-    Hospitality: '#1b4f72',
-    Industrial: '#2c3e50',
-    Land: '#023020',
-    'Mixed Use': '#8A2BE2',
-    Multifamily: '#6c3483',
-    Office: '#4682B4',
-    Residential: '#DC143C',
-    Retail: '#660000',
-    specialPurpose: '#6e2c00',
-  };
+  // ✅ CORRECTED: Property categories matching registration exactly
+  allPropertyCategoryOptions: PropertyCategoryOption[] = [
+    { value: 'commercial', displayName: 'Commercial' },
+    { value: 'healthcare', displayName: 'Healthcare' },
+    { value: 'hospitality', displayName: 'Hospitality' },
+    { value: 'industrial', displayName: 'Industrial' },
+    { value: 'land', displayName: 'Land' },
+    { value: 'mixed_use', displayName: 'Mixed Use' },
+    { value: 'multifamily', displayName: 'Multifamily' },
+    { value: 'office', displayName: 'Office' },
+    { value: 'residential', displayName: 'Residential' },
+    { value: 'retail', displayName: 'Retail' },
+    { value: 'special_purpose', displayName: 'Special Purpose' },
+  ];
+
+  // ✅ CORRECTED: Loan types matching registration exactly
+  allLoanTypeOptions: LoanTypeOption[] = [
+    { value: 'agency', displayName: 'Agency Loans' },
+    { value: 'bridge', displayName: 'Bridge Loans' },
+    { value: 'cmbs', displayName: 'CMBS Loans' },
+    { value: 'commercial', displayName: 'Commercial Loans' },
+    { value: 'construction', displayName: 'Construction Loans' },
+    { value: 'hard_money', displayName: 'Hard Money Loans' },
+    { value: 'mezzanine', displayName: 'Mezzanine Loan' },
+    { value: 'rehab', displayName: 'Rehab Loans' },
+    { value: 'non_qm', displayName: 'Non-QM Loans' },
+    { value: 'sba', displayName: 'SBA Loans' },
+    { value: 'usda', displayName: 'USDA Loans' },
+  ];
+
+
+ // Property colors for visualization - handle both old and new formats
+propertyColorMap: Record<string, string> = {
+  // New standardized format (snake_case)
+  commercial: '#1E90FF',
+  healthcare: '#cb4335',
+  hospitality: '#1b4f72',
+  industrial: '#2c3e50',
+  land: '#023020',
+  mixed_use: '#8A2BE2',
+  multifamily: '#6c3483',
+  office: '#4682B4',
+  residential: '#DC143C',
+  retail: '#660000',
+  special_purpose: '#6e2c00',
+  
+  // Legacy format (Title Case/spaces) - for backward compatibility
+  'Commercial': '#1E90FF',
+  'Healthcare': '#cb4335',
+  'Hospitality': '#1b4f72',
+  'Industrial': '#2c3e50',
+  'Land': '#023020',
+  'Mixed Use': '#8A2BE2',
+  'Multifamily': '#6c3483',
+  'Office': '#4682B4',
+  'Residential': '#DC143C',
+  'Retail': '#660000',
+  'Special Purpose': '#6e2c00',
+};
 
   // Add this to your LoansComponent class
   loanTypes = LOAN_TYPES;
 
   // Add this method to your component class
+
+  formatPropertyCategory(category: string): string {
+  const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
+  return categoryOption ? categoryOption.displayName : category;
+}
+
+formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
+  return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
+}
 
   getLoanTypeName(value: string): string {
     console.log('Dashboard - looking up loan type value:', value);

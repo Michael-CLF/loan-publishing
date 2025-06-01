@@ -42,6 +42,8 @@ import { UserData } from '../models';
 import { ModalService } from '../services/modal.service';
 import { LocationService } from '../services/location.service';
 import { createTimestamp } from '../utils/firebase.utils';
+import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
+import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -119,20 +121,34 @@ export class DashboardComponent implements OnInit {
   savingOptIn = false;
 
 
-  // Property colors for visualization
-  propertyColorMap: Record<string, string> = {
-    Commercial: '#1E90FF',
-    Healthcare: '#cb4335',
-    Hospitality: '#1b4f72',
-    Industrial: '#2c3e50',
-    Land: '#023020',
-    'Mixed Use': '#8A2BE2',
-    Multifamily: '#6c3483',
-    Office: '#4682B4',
-    Residential: '#DC143C',
-    Retail: '#660000',
-    'Special Purpose': '#6e2c00',
-  };
+  // Property colors for visualization - handle both old and new formats
+propertyColorMap: Record<string, string> = {
+  // New standardized format (snake_case)
+  commercial: '#1E90FF',
+  healthcare: '#cb4335',
+  hospitality: '#1b4f72',
+  industrial: '#2c3e50',
+  land: '#023020',
+  mixed_use: '#8A2BE2',
+  multifamily: '#6c3483',
+  office: '#4682B4',
+  residential: '#DC143C',
+  retail: '#660000',
+  special_purpose: '#6e2c00',
+  
+  // Legacy format (Title Case/spaces) - for backward compatibility
+  'Commercial': '#1E90FF',
+  'Healthcare': '#cb4335',
+  'Hospitality': '#1b4f72',
+  'Industrial': '#2c3e50',
+  'Land': '#023020',
+  'Mixed Use': '#8A2BE2',
+  'Multifamily': '#6c3483',
+  'Office': '#4682B4',
+  'Residential': '#DC143C',
+  'Retail': '#660000',
+  'Special Purpose': '#6e2c00',
+};
 
 
 
@@ -1109,6 +1125,18 @@ getNotificationPreferencesTest() {
       alert('Contact information is not available for this loan.');
     }
   }
+
+  // Add these methods to your DashboardComponent class
+
+formatPropertyCategory(category: string): string {
+  const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
+  return categoryOption ? categoryOption.displayName : category;
+}
+
+formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
+  // Use the LoanUtils to safely extract the value
+  return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
+}
 
   /**
    * Format phone number

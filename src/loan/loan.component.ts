@@ -21,18 +21,25 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
 import { ModalService } from '../services/modal.service';
 
-// Type definitions
-type PropertyCategory =
-  | 'Commercial'
-  | 'Healthcare'
-  | 'Hospitality'
-  | 'Industrial'
-  | 'Multifamily'
-  | 'Mixed Use'
-  | 'Office'
-  | 'Residential'
-  | 'Retail'
-  | 'Special Purpose';
+interface SubcategoryItem {
+  value: string;  // Database format (snake_case)
+  name: string;   // Display name (Title Case)
+}
+
+interface CategoryOption {
+  value: string;  // Database format (snake_case)  
+  name: string;   // Display name (Title Case)
+}
+
+interface LoanTypeOption {
+  value: string;  // Database format
+  name: string;   // Display name
+}
+
+interface TransactionTypeOption {
+  value: string;  // Database format
+  name: string;   // Display name
+}
 
 @Component({
   selector: 'app-loan',
@@ -60,136 +67,176 @@ export class LoanComponent implements OnInit {
   submissionError = signal<string | null>(null);
   submissionSuccess = signal(false);
 
-  loanTypes = [
-    { value: 'agency', name: 'Agency' },
-    { value: 'acquisition', name: 'Acquisition Loan' },
-    { value: 'balance sheet', name: 'Balance Sheet' },
-    { value: 'bridge', name: 'Bridge Loan' },
-    { value: 'bridge_perm', name: 'Bridge to Permanent' },
-    { value: 'dscr', name: 'DSCR' },
-    { value: 'fix_Flip', name: 'Fix & Flip' },
-    { value: 'hard_money', name: 'Hard Money' },
-    { value: 'construction', name: 'New Construction' },
-    { value: 'portfolio', name: 'Portfolio Loan' },
-    { value: 'purchase_money', name: 'Purchase Money Loan' },
-    { value: 'rehab', name: 'Rehab/Renovation' },
-    { value: 'sba_express', name: 'SBA Express' },
-    { value: 'sba_7a', name: 'SBA 7(a)' },
-    { value: 'sba_504', name: 'SBA 504' },
-    { value: 'usda', name: 'USDA' },
-  ];
+propertyCategoryOptions: CategoryOption[] = [
+  { value: 'commercial', name: 'Commercial' },
+  { value: 'healthcare', name: 'Healthcare' },
+  { value: 'hospitality', name: 'Hospitality' },
+  { value: 'industrial', name: 'Industrial' },
+  { value: 'multifamily', name: 'Multifamily' },
+  { value: 'mixed_use', name: 'Mixed Use' },
+  { value: 'office', name: 'Office' },
+  { value: 'residential', name: 'Residential' },
+  { value: 'retail', name: 'Retail' },
+  { value: 'special_purpose', name: 'Special Purpose' },
+];
 
-  propertyCategories = signal<Record<PropertyCategory, string[]>>({
-    Commercial: [
-       	'Auto Repair Shop',
-         'Bank Branch',
-         'Business Center',
-         'Call Center',
-         'Car Wash',
-         'Dry Cleaner',
-         'Funeral Home',
-         'General Commercial',
-         'Printing Facility',
-         'Sales Office',
-         'Showroom',
-         'Truck Terminal',
-    ],
-    
-    Healthcare: [
-      'Assisted Living',
-      'Hospital',
-      'Independent Living',
-      'Rehab Facility',
-      'Urgent Care',
-    ],
-    Hospitality: [
-      'Hospitality Land',
-      'Hotel',
-      'Long-term Rentals',
-      'Motel',
-      'Short-term Rentals',
-    ],
-    Industrial: [
-      'Cold Storage',
-      'Flex Space',
-      'Industrial Land',
-      'RV Park',
-      'Self Storage',
-      'Warehouse',
-    ],
-    Multifamily: [
-      'Affordable Housing',
-      'Apartment Building',
-      'Assisted Living',
-      'Independent Living',
-      'Manufactured',
-      'Military Housing',
-      'Mixed Use',
-      'Multifamily Land',
-      'Senior Housing',
-      'Single Family Portfolio',
-      'Student Housing',
-    ],
-    'Mixed Use': [
-      'Live/Work Units',
-      'Residential + Office',
-      'Residential over Retail',
-      'Retail + Office',
-    ],
-    Office: ['Medical Office', 'Office Condo', 'Professional Office Building'],
+// All subcategories with standardized category:subcategory format
+propertySubcategories: Record<string, SubcategoryItem[]> = {
+  commercial: [
+    { value: 'commercial:auto_repair_shop', name: 'Auto Repair Shop' },
+    { value: 'commercial:bank_branch', name: 'Bank Branch' },
+    { value: 'commercial:business_center', name: 'Business Center' },
+    { value: 'commercial:call_center', name: 'Call Center' },
+    { value: 'commercial:car_wash', name: 'Car Wash' },
+    { value: 'commercial:dry_cleaner', name: 'Dry Cleaner' },
+    { value: 'commercial:funeral_home', name: 'Funeral Home' },
+    { value: 'commercial:general_commercial', name: 'General Commercial' },
+    { value: 'commercial:printing_facility', name: 'Printing Facility' },
+    { value: 'commercial:sales_office', name: 'Sales Office' },
+    { value: 'commercial:showroom', name: 'Showroom' },
+    { value: 'commercial:truck_terminal', name: 'Truck Terminal' },
+  ],
+  
+  healthcare: [
+    { value: 'healthcare:assisted_living', name: 'Assisted Living' },
+    { value: 'healthcare:hospital', name: 'Hospital' },
+    { value: 'healthcare:independent_living', name: 'Independent Living' },
+    { value: 'healthcare:rehab_facility', name: 'Rehab Facility' },
+    { value: 'healthcare:urgent_care', name: 'Urgent Care' },
+  ],
 
-    Residential: [
-      '1-4 Units',
-      'Condo',
-      'Duplex',
-      'PUD',
-      'Residential Portfolio',
-      'Townhome',
-      'Triplex',
-      'Quadplex',
-    ],
-    Retail: [
-      'Anchored Center',
-      'Mall',
-      'NNN Retail',
-      'Restaurant',
-      'Retail Land',
-      'Single Tenant',
-      'Strip Mall',
-    ],
-    'Special Purpose': [
-      'Car Dealership',
-      'Church',
-      'Data Center',
-      'Daycare',
-      'Energy Park',
-      'Farm',
-      'Gas Station',
-      'Golf Course',
-      'Marina',
-      'Mobile Home',
-      'Other',
-      'Parking Garage',
-      'R&D',
-      'Resort RV Park',
-      'Service Station',
-      'Stadium',
-    ],
-  });
+  hospitality: [
+    { value: 'hospitality:hotel', name: 'Hotel' },
+    { value: 'hospitality:long_term_rentals', name: 'Long-term Rentals' },
+    { value: 'hospitality:motel', name: 'Motel' },
+    { value: 'hospitality:short_term_rentals', name: 'Short-term Rentals' },
+  ],
 
-  // Computed signal for category keys with better typing
-  categoryKeys = computed(
-    () => Object.keys(this.propertyCategories()) as PropertyCategory[]
-  );
+  industrial: [
+    { value: 'industrial:cold_storage', name: 'Cold Storage' },
+    { value: 'industrial:distribution_center', name: 'Distribution Center' },
+    { value: 'industrial:flex_space', name: 'Flex Space' },
+    { value: 'industrial:self_storage', name: 'Self Storage' },
+    { value: 'industrial:warehouse', name: 'Warehouse' },
+  ],
 
-  // Signal for the selected category
-  selectedCategory = signal<PropertyCategory | ''>('');
+  multifamily: [
+    { value: 'multifamily:affordable_housing', name: 'Affordable Housing' },
+    { value: 'multifamily:apartment_building', name: 'Apartment Building' },
+    { value: 'multifamily:independent_living', name: 'Independent Living' },
+    { value: 'multifamily:manufactured', name: 'Manufactured' },
+    { value: 'multifamily:military_housing', name: 'Military Housing' },
+    { value: 'multifamily:senior_housing', name: 'Senior Housing' },
+    { value: 'multifamily:student_housing', name: 'Student Housing' },
+  ],
 
-  // Computed signal for subcategories based on selected category
-  selectedSubCategories = computed(() => {
-    const category = this.selectedCategory();
-    return category ? this.propertyCategories()[category] : [];
-  });
+  mixed_use: [
+    { value: 'mixed_use:live_work', name: 'Live/Work Units' },
+    { value: 'mixed_use:residential_office', name: 'Residential + Office' },
+    { value: 'mixed_use:residential_retail', name: 'Residential over Retail' },
+    { value: 'mixed_use:retail_office', name: 'Retail + Office' },
+  ],
+
+  office: [
+    { value: 'office:medical_office', name: 'Medical Office' },
+    { value: 'office:professional_office_building', name: 'Professional Office Building' },
+  ],
+
+  residential: [
+    { value: 'residential:1_4_units', name: '1-4 Units' },
+    { value: 'residential:co_op', name: 'Co-op' },
+    { value: 'residential:condominium', name: 'Condominium' },
+    { value: 'residential:quadplex', name: 'Quadplex' },
+    { value: 'residential:single_family', name: 'Single Family' },
+    { value: 'residential:triplex', name: 'Triplex' },
+  ],
+
+  retail: [
+    { value: 'retail:anchored_center', name: 'Anchored Center' },
+    { value: 'retail:mall', name: 'Mall' },
+    { value: 'retail:mixed_use_retail', name: 'Mixed Use Retail' },
+    { value: 'retail:nnn_retail', name: 'NNN Retail' },
+    { value: 'retail:restaurant', name: 'Restaurant' },
+    { value: 'retail:single_tenant', name: 'Single Tenant' },
+    { value: 'retail:strip_mall', name: 'Strip Mall' },
+  ],
+
+  special_purpose: [
+    { value: 'special_purpose:auto_dealership', name: 'Auto Dealership' },
+    { value: 'special_purpose:church', name: 'Church' },
+    { value: 'special_purpose:data_center', name: 'Data Center' },
+    { value: 'special_purpose:daycare', name: 'Daycare' },
+    { value: 'special_purpose:energy_park', name: 'Energy Park' },
+    { value: 'special_purpose:farm', name: 'Farm' },
+    { value: 'special_purpose:gas_station', name: 'Gas Station' },
+    { value: 'special_purpose:golf_course', name: 'Golf Course' },
+    { value: 'special_purpose:marina', name: 'Marina' },
+    { value: 'special_purpose:mobile_home_park', name: 'Mobile Home Park' },
+    { value: 'special_purpose:parking_garage', name: 'Parking Garage' },
+    { value: 'special_purpose:r_and_d', name: 'R&D' },
+    { value: 'special_purpose:resort_rv_park', name: 'Resort RV Park' },
+    { value: 'special_purpose:service_station', name: 'Service Station' },
+    { value: 'special_purpose:sports_complex', name: 'Sports Complex' },
+    { value: 'special_purpose:stadium', name: 'Stadium' },
+  ],
+};
+
+// Loan types with proper database values
+loanTypes: LoanTypeOption[] = [
+  { value: 'agency', name: 'Agency' },
+  { value: 'acquisition', name: 'Acquisition Loan' },
+  { value: 'balance_sheet', name: 'Balance Sheet' },
+  { value: 'bridge', name: 'Bridge Loan' },
+  { value: 'bridge_perm', name: 'Bridge to Permanent' },
+  { value: 'dscr', name: 'DSCR' },
+  { value: 'fix_flip', name: 'Fix & Flip' },
+  { value: 'hard_money', name: 'Hard Money' },
+  { value: 'construction', name: 'New Construction' },
+  { value: 'portfolio', name: 'Portfolio Loan' },
+  { value: 'purchase_money', name: 'Purchase Money Loan' },
+  { value: 'rehab', name: 'Rehab/Renovation' },
+  { value: 'sba_express', name: 'SBA Express' },
+  { value: 'sba_7a', name: 'SBA 7(a)' },
+  { value: 'sba_504', name: 'SBA 504' },
+  { value: 'usda', name: 'USDA' },
+];
+
+// Transaction types with proper database values
+transactionTypes: TransactionTypeOption[] = [
+  { value: 'purchase', name: 'Purchase' },
+  { value: 'refinance', name: 'Refinance' },
+  { value: 'cash_out_refinance', name: 'Cash-Out Refinance' },
+  { value: 'rate_and_term_refinance', name: 'Rate & Term Refinance' },
+];
+
+// Signal for selected category (now using database value)
+selectedCategoryValue = signal<string>('');
+
+// Computed signal for subcategories based on selected category
+selectedSubCategories = computed(() => {
+  const categoryValue = this.selectedCategoryValue();
+  return categoryValue ? this.propertySubcategories[categoryValue] || [] : [];
+});
+
+// Updated onCategoryChange method
+onCategoryChange(event: Event): void {
+  const value = (event.target as HTMLSelectElement).value;
+  
+  // Set the signal using the database value
+  this.selectedCategoryValue.set(value);
+
+  // Update the form control with the database value
+  this.propertyForm.get('propertyTypeCategory')?.setValue(value);
+  this.propertyForm.get('propertyTypeCategory')?.updateValueAndValidity();
+
+  // Reset subcategory when category changes
+  this.propertyForm.get('propertySubCategory')?.setValue('');
+  this.propertyForm.get('propertySubCategory')?.updateValueAndValidity();
+
+  // Force change detection
+  this.cdr.detectChanges();
+}
+ 
 
   states = signal<{ name: string; value: string }[]>([
   { name: 'Alabama', value: 'AL' },
@@ -249,15 +296,14 @@ export class LoanComponent implements OnInit {
     // Initialize the form in the constructor
     this.initForm();
 
-    // Set up effect to handle category changes
-    effect(() => {
-      const category = this.selectedCategory();
-      if (this.propertyForm && category !== undefined) {
-        this.propertyForm.get('propertySubCategory')?.setValue('');
-        this.propertyForm.get('propertySubCategory')?.updateValueAndValidity();
-      }
-    });
+  effect(() => {
+  const category = this.selectedCategoryValue(); // ✅ Use the new signal name
+  if (this.propertyForm && category !== undefined) {
+    this.propertyForm.get('propertySubCategory')?.setValue('');
+    this.propertyForm.get('propertySubCategory')?.updateValueAndValidity();
   }
+});
+}
 
   ngOnInit(): void {
     // Run change detection after component initialization
@@ -297,17 +343,6 @@ export class LoanComponent implements OnInit {
     });
   }
 
-  onCategoryChange(event: Event): void {
-    const value = (event.target as HTMLSelectElement).value;
-    this.selectedCategory.set(value as PropertyCategory);
-
-    // Ensure the formControl is updated
-    this.propertyForm.get('propertyTypeCategory')?.setValue(value);
-    this.propertyForm.get('propertyTypeCategory')?.updateValueAndValidity();
-
-    // Force change detection
-    this.cdr.detectChanges();
-  }
 
   formatLoanAmount(event: Event): void {
     const input = event.target as HTMLInputElement;

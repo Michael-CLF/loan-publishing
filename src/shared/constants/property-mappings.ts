@@ -23,8 +23,7 @@ export const PROPERTY_CATEGORIES: Record<string, string> = {
   office: 'Office',
   residential: 'Residential',
   retail: 'Retail',
-  specialPurpose: 'Special Purpose',
-  special_Purpose: 'Special Purpose', // Handle both variations
+  special_purpose: 'Special purpose',
 };
 
 // Complete property subcategory mappings
@@ -48,6 +47,7 @@ export const PROPERTY_SUBCATEGORIES: Record<string, string> = {
   'healthcare:hospital': 'Hospital',
   'healthcare:independent_living': 'Independent Living',
   'healthcare:rehab_facility': 'Rehab Facility',
+  'healthcare:urgent_care': 'Urgent Care',
 
   // Hospitality subcategories
   'hospitality:hotel': 'Hotel',
@@ -108,35 +108,23 @@ export const PROPERTY_SUBCATEGORIES: Record<string, string> = {
   'retail:single_tenant': 'Single Tenant',
   'retail:strip_mall': 'Strip Mall',
 
-  // Special Purpose subcategories
-  'special_Purpose:auto_dealership': 'Auto Dealership',
-  'special_Purpose:church': 'Church',
-  'special_Purpose:data_center': 'Data Center',
-  'special_Purpose:daycare': 'Daycare',
-  'special_Purpose:gas_station': 'Gas Station',
-  'special_Purpose:marina': 'Marina',
-  'special_Purpose:mobile_home_park': 'Mobile Home Park',
-  'special_Purpose:parking_garage': 'Parking Garage',
-  'special_Purpose:r_and_d': 'R&D',
-  'special_Purpose:resort_rv_park': 'Resort/RV Park',
-  'special_Purpose:service_station': 'Service Station',
-  'special_Purpose:sports_complex': 'Sports Complex',
-  'special_Purpose:stadium': 'Stadium',
-
-  // Handle variations with different casing/formatting
-  'specialPurpose:auto_dealership': 'Auto Dealership',
-  'specialPurpose:church': 'Church',
-  'specialPurpose:data_center': 'Data Center',
-  'specialPurpose:daycare': 'Daycare',
-  'specialPurpose:gas_station': 'Gas Station',
-  'specialPurpose:marina': 'Marina',
-  'specialPurpose:mobile_home_park': 'Mobile Home Park',
-  'specialPurpose:parking_garage': 'Parking Garage',
-  'specialPurpose:r_and_d': 'R&D',
-  'specialPurpose:resort_rv_park': 'Resort/RV Park',
-  'specialPurpose:service_station': 'Service Station',
-  'specialPurpose:sports_complex': 'Sports Complex',
-  'specialPurpose:stadium': 'Stadium',
+  // Special purpose subcategories
+  'special_purpose:auto_dealership': 'Auto Dealership',
+  'special_purpose:church': 'Church',
+  'special_purpose:data_center': 'Data Center',
+  'special_purpose:daycare': 'Daycare',
+  'special_purpose:energy_park': 'Energy Park',
+  'special_purpose:farm': 'Farm',
+  'special_purpose:gas_station': 'Gas Station',
+  'special_purpose:golf_course': 'Golf Course',  
+  'special_purpose:marina': 'Marina',
+  'special_purpose:mobile_home_park': 'Mobile Home Park',
+  'special_purpose:parking_garage': 'Parking Garage',
+  'special_purpose:r_and_d': 'R&D',
+  'special_purpose:resort_rv_park': 'Resort/RV Park',
+  'special_purpose:service_station': 'Service Station',
+  'special_purpose:sports_complex': 'Sports Complex',
+  'special_purpose:stadium': 'Stadium',
 };
 
 // Utility functions

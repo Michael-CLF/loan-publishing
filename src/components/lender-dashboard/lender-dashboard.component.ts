@@ -99,20 +99,32 @@ export class LenderDashboardComponent implements OnInit {
   savedLoansLoading = signal(true);
   savedLoansError = signal<string | null>(null);
 
-  // Property colors for visualization
   propertyColorMap: Record<string, string> = {
-    Commercial: '#1E90FF',
-    Healthcare: '#cb4335',
-    Hospitality: '#1b4f72',
-    Industrial: '#2c3e50',
-    Land: '#023020',
-    'Mixed Use': '#8A2BE2',
-    Multifamily: '#6c3483',
-    Office: '#4682B4',
-    Residential: '#DC143C',
-    Retail: '#660000',
-    'Special Purpose': '#6e2c00',
-  };
+  commercial: '#1E90FF',           
+  healthcare: '#cb4335',           // Changed from 'Healthcare'
+  hospitality: '#1b4f72',          // Changed from 'Hospitality'
+  industrial: '#2c3e50',           // Changed from 'Industrial'
+  land: '#023020',                 // Changed from 'Land'
+  mixed_use: '#8A2BE2',            // Changed from 'Mixed Use'
+  multifamily: '#6c3483',          // Changed from 'Multifamily'
+  office: '#4682B4',               // Changed from 'Office'
+  residential: '#DC143C',          // Changed from 'Residential'
+  retail: '#660000',               // Changed from 'Retail'
+  special_purpose: '#6e2c00',      // Changed from 'Special Purpose'
+
+// Legacy format (Title Case/spaces) - for backward compatibility
+ 'Commercial': '#1E90FF',
+  'Healthcare': '#cb4335',
+  'Hospitality': '#1b4f72',
+  'Industrial': '#2c3e50',
+  'Land': '#023020',
+  'Mixed Use': '#8A2BE2',
+  'Multifamily': '#6c3483',
+  'Office': '#4682B4',
+  'Residential': '#DC143C',
+  'Retail': '#660000',
+  'Special Purpose': '#6e2c00',
+};
 
   /**
    * Initialize the lender dashboard component

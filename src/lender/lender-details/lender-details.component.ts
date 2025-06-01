@@ -334,9 +334,20 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return true; // Always show subcategories section
   }
 
-  // UPDATED: Now uses the mapping constants
-  formatSubcategory(sub: string): string {
-    return getPropertySubcategoryName(sub);
+  // UPDATED: Now uses the mapping constants and handles objects safely
+  formatSubcategory(sub: string | any): string {
+    // Handle both string and object formats safely
+    if (typeof sub === 'string') {
+      return getPropertySubcategoryName(sub);
+    }
+    
+    if (typeof sub === 'object' && sub !== null) {
+      // If it's an object, try to get the value or name property
+      const value = sub.value || sub.name || '';
+      return getPropertySubcategoryName(value);
+    }
+    
+    return 'Unknown';
   }
 
   // UPDATED: Now uses the mapping constants

@@ -4,7 +4,6 @@ import {
   inject,
   DestroyRef,
   Injector,
-  runInInjectionContext,
   signal,
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -18,7 +17,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, tap, catchError, of } from 'rxjs';
-import { Loan } from '../models/loan-model.model';
+import { Loan, LoanUtils } from '../models/loan-model.model'; // ADDED: Import LoanUtils
 
 
 @Component({
@@ -28,13 +27,13 @@ import { Loan } from '../models/loan-model.model';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
 })
+
 export class EditLoanComponent implements OnInit {
   private router = inject(Router);
   private route = inject(ActivatedRoute);
   private loanService = inject(LoanService);
   private fb = inject(FormBuilder);
   private destroyRef = inject(DestroyRef);
-  private injector = inject(Injector);
 
   loanForm!: FormGroup;
   loanId: string = '';
@@ -95,7 +94,7 @@ export class EditLoanComponent implements OnInit {
           // Store property info in the signal for read-only display
           this.propertyInfo.set({
             propertyTypeCategory: loan.propertyTypeCategory || '',
-            propertySubCategory: loan.propertySubCategory || '',
+            propertySubCategory: LoanUtils.getSubcategoryValue(loan.propertySubCategory), // FIXED: Use utility function
             transactionType: loan.transactionType || '',
             city: loan.city || '',
             state: loan.state || '',
