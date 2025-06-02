@@ -268,7 +268,6 @@
 .how-it-works-section .left-content,
 .why-it-works-section .left-content {
     background: linear-gradient(to right, #0a2463, #008080);
-
     color: #fff;
 }
 
@@ -449,14 +448,17 @@
     
 }
 
+thead{
+background: linear-gradient(to right, #0a2463, #008080);
+}
+
 .lender-table th {
-    background: linear-gradient(to right, #0a2463, #008080);
     color: white;
     font-family: "Roboto", sans-serif;
     padding: 18px 20px;
     text-align: left;
     font-size: 1rem;
-    font-weight: 600;
+    font-weight: 500;
 }
 
 .lender-table td {
@@ -757,5 +759,128 @@
     
     .loan-grid {
         grid-template-columns: 1fr;
+    }
+}
+/* Smart Filtering Section */
+.smart-filtering-section {
+    background: #fff;
+    padding: 80px 0;
+    margin: 60px 0;
+}
+
+.filtering-hero {
+    text-align: center;
+    margin-bottom: 60px;
+    max-width: 1200px;
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0 20px;
+}
+
+.filtering-hero h2 {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: #0a2463;
+    margin-bottom: 20px;
+    font-family: "Roboto", sans-serif;
+}
+
+.filtering-hero p {
+    font-size: 1.2rem;
+    color: #64748b;
+    max-width: 700px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-family: "Roboto", sans-serif;
+}
+
+.filtering-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 40px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+}
+
+.filter-card {
+    background: #f8fafc;
+    border-radius: 15px;
+    padding: 40px;
+    border: 2px solid #e2e8f0;
+    transition: all 0.3s ease;
+}
+
+.filter-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.1);
+    border-color: #008080;
+}
+
+.filter-card h3 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: #0a2463;
+    margin-bottom: 15px;
+    font-family: "Roboto", sans-serif;
+}
+
+.filter-description {
+    color: #0a2463;
+    margin-bottom: 25px;
+    font-size: 1.1rem;
+    font-weight: 500;
+    line-height: 1.6;
+    font-family: "Roboto", sans-serif;
+}
+
+.filter-features {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.filter-tag {
+    background: linear-gradient(135deg, #0a2463 0%, #008080 100%);
+    color: white;
+    padding: 8px 16px;
+    border-radius: 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    font-family: "Roboto", sans-serif;
+}
+
+/* Responsive Design for Filtering */
+@media (max-width: 768px) {
+    .filtering-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    
+    .filtering-hero h2 {
+        font-size: 2rem;
+    }
+    
+    .filtering-hero p {
+        font-size: 1rem;
+    }
+    
+    .filter-card {
+        padding: 30px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filter-card {
+        padding: 25px;
+    }
+    
+    .filter-features {
+        gap: 8px;
+    }
+    
+    .filter-tag {
+        font-size: 0.8rem;
+        padding: 6px 12px;
     }
 }
