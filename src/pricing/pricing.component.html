@@ -1,94 +1,86 @@
 <!-- pricing.component.html -->
-<h2 class="free">Note: For a limited time only the site is FREE!</h2>
+<h2 class="free">Choose Your Plan - Powerful Tools for Every User Type</h2>
 <div class="card-container">
 
-    <!-- Card 1 -->
+    <!-- Originators/Mortgage Brokers Card -->
     <div class="card">
-
-        <div class="card-section header">
-            <h3 class="title">Essentials</h3>
+        <div class="card-section header originators-header">
+            <h3 class="title">For Originators</h3>
+            <p class="subtitle">Mortgage Brokers, Loan Officers and Originators</p>
         </div>
         <div class="card-section content">
-            <h4 class="price">$49.00 Per Loan Post</h4>
-            <p class="free">* Post As Needed</p>
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" class="pricing-checkbox" 
+                               [checked]="isOriginatorAnnual" 
+                               (change)="toggleOriginatorBilling()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isOriginatorAnnual">$149/month</h4>
+            <h4 class="price" [class.hidden]="!isOriginatorAnnual">$1,609/year</h4>
+            <p class="savings-text" [class.hidden]="!isOriginatorAnnual">Save $179 with annual billing</p>
+            <p class="free">* Get your loans funded faster</p>
             <ul class="feature-list">
-                <li>Pay per loan posting</li>
-                <li>Post as often as needed</li>
-                <li>Lenders can view post</li>
-                <li>View Dashboard</li>
-            </ul>
-        </div>
-        <div class="card-section footer">
-            <!-- Changed from href to click handler -->
-            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
-        </div>
-    </div>
-
-    <!-- Card 2 -->
-    <div class="card">
-        <div class="card-section header">
-            <h3 class="title">Essentials Plus</h3>
-        </div>
-        <div class="card-section content">
-            <h4 class="price">$99/monthly</h4>
-            <p class="free">* Full Lender access</p>
-            <ul class="feature-list">
-                <li>Contact lenders to view your loan</li>
-                <li>Access to better pricing</li>
-                <li>Save Favorite Lenders</li>
-                <li>Meet & work with new lenders</li>
-                <li>View Dashboard</li>
-                <li>Cancel Anytime</li>
-            </ul>
-        </div>
-        <div class="card-section footer">
-            <!-- Changed from href to click handler -->
-            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
-        </div>
-    </div>
-    <div class="card">
-        <div class="card-section header">
-            <h3 class="title">Essential Pro</h3>
-        </div>
-        <div class="card-section content">
-            <h4 class="price">$199/monthly</h4>
-            <p class="free">* Best for active users</p>
-            <ul class="feature-list">
-                <li>Unlimited Loan postings</li>
+                <li>Post unlimited loan requests</li>
+                <li>AI-powered lender matching</li>
+                <li>Instant email notifications when lenders respond</li>
+                <li>Access to 1000+ verified lenders</li>
+                <li>Advanced lender filtering & search</li>
+                <li>Compare multiple loan offers</li>
+                <li>Save favorite lenders for future deals</li>
                 <li>Analytics dashboard</li>
-                <li>SMS notifications for lender views</li>
-                <li>Cancel Anytime</li>
-
+                <li>No exclusivity or commitments</li>
+                <li>Cancel anytime</li>
             </ul>
         </div>
         <div class="card-section footer">
-            <!-- Changed from href to click handler -->
-            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
+            <button class="card-button login-btn">Get Started</button>
         </div>
     </div>
+
+    <!-- Lenders Card -->
     <div class="card">
-        <div class="card-section header">
-            <h3 class="title">Essentials Elite</h3>
+        <div class="card-section header lenders-header">
+            <h3 class="title">For Lenders</h3>
+            <p class="subtitle">Banks, Credit Unions & Private Lenders and all other Lenders</p>
         </div>
         <div class="card-section content">
-            <h4 class="price">$250/monthly</h4>
-            <p class="free">* Full Access, top tier</p>
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" class="pricing-checkbox" 
+                               [checked]="isLenderAnnual" 
+                               (change)="toggleLenderBilling()">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isLenderAnnual">$149/month</h4>
+            <h4 class="price" [class.hidden]="!isLenderAnnual">$1,609/year</h4>
+            <p class="savings-text" [class.hidden]="!isLenderAnnual">Save $179 with annual billing</p>
+            <p class="free">* Discover pre-screened opportunities</p>
             <ul class="feature-list">
-                <li>Unlimited Loan postings</li>
-                <li>Contact lenders to view your loan</li>
-                <li>SMS notifications for lender views</li>
-                <li>Access to better pricing</li>
-                <li>Unlimited access to lenders</li>
-                <li>Save favorite Lenders</li>
-                <li>Analytics dashboard</li>
-                <li>Meet & work with new lenders</li>
-                <li>Cancel Anytime</li>
-
+                <li>Browse unlimited pre-screened loan requests</li>
+                <li>AI powered email notifications for matching loans</li>
+                <li>Advanced loan filtering by criteria</li>
+                <li>Set your lending parameters & preferences</li>
+                <li>Direct access to verified originators</li>
+                <li>Detailed loan criteria</li>
+                <li>Lead generation dashboard</li>
+                <li>Dashboard for saving Loans</li>
+                <li>Cancel anytime</li>
             </ul>
         </div>
         <div class="card-section footer">
-            <!-- Changed from href to click handler -->
-            <button class="card-button login-btn" (click)="navigateToLoan('single')">Select</button>
+            <button class="card-button login-btn">Get Started</button>
         </div>
     </div>
+
 </div>

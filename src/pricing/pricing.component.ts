@@ -12,9 +12,27 @@ export class PricingComponent {
   private router = inject(Router);
   private authService = inject(AuthService);
 
-  navigateToLoan(planType: 'single' | 'team'): void {
-    // Store the plan type in localStorage
+  // Track billing cycle for each plan
+  isOriginatorAnnual = false;
+  isLenderAnnual = false;
+
+  toggleOriginatorBilling(): void {
+    this.isOriginatorAnnual = !this.isOriginatorAnnual;
+  }
+
+  toggleLenderBilling(): void {
+    this.isLenderAnnual = !this.isLenderAnnual;
+  }
+
+  navigateToLoan(planType: 'originator' | 'lender'): void {
+    // Get the selected billing cycle based on plan type
+    const billingCycle = planType === 'originator' 
+      ? (this.isOriginatorAnnual ? 'annual' : 'monthly')
+      : (this.isLenderAnnual ? 'annual' : 'monthly');
+    
+    // Store the plan type and billing cycle in localStorage
     localStorage.setItem('selectedPlan', planType);
+    localStorage.setItem('selectedBilling', billingCycle);
 
     // Check if user is authenticated
     this.authService
