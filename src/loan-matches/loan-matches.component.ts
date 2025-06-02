@@ -244,14 +244,14 @@ getLoanTypeName(loanType: string | undefined): string {
     // Updated weights with better business logic
     const weights = {
       // Hard elimination criteria (base score - 65%)
-      loanAmount: 20,               // Can they fund it?
-      propertyType: 25,             // Do they do this property type?
-      ficoScore: 15,                // Meet credit requirements?
+      loanAmount: 18,               // Can they fund it?
+      propertyType: 20,             // Do they do this property type?
+      ficoScore: 17,                // Meet credit requirements?
       
       // Preference criteria (35%)
-      state: 20,                    // Geographic preference  
-      loanType: 12,                 // Loan type preference
-      propertySubCategory: 3,       // Exact subcategory match (reduced weight)
+      state: 15,                    // Geographic preference  
+      loanType: 10,                 // Loan type preference
+      propertySubCategory: 20,       // Exact subcategory match (reduced weight)
     };
 
     let weightedScore = 0;
