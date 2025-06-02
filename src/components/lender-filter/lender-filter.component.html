@@ -40,22 +40,22 @@
                 <label for="state">State</label>
                 <select id="state" [(ngModel)]="filters().state" (ngModelChange)="updateFilter('state', $event)">
                     <option value="">All States</option>
+                    <!-- FIXED: Mirror the working loan filter pattern -->
                     <option *ngFor="let state of states" [value]="state">{{ state }}</option>
                 </select>
             </div>
-        </div>
 
-        <div class="filter-group">
-            <label for="loanAmount">Loan Amount</label>
-            <input type="text" id="loanAmount" [ngModel]="filters().loanAmount | currency:'USD':'symbol':'1.0-0'"
-                (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount"
-                inputmode="numeric">
-        </div>
-        <div class="filter-actions">
-            <button class="filter-btn reset-btn" (click)="onResetFilters()">
-                Reset
-            </button>
-            <a routerLink="/dashboard" class="dash-btn">Return to dashboard</a>
+            <div class="filter-group">
+                <label for="loanAmount">Loan Amount</label>
+                <input type="text" id="loanAmount" [ngModel]="filters().loanAmount | currency:'USD':'symbol':'1.0-0'"
+                    (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount"
+                    inputmode="numeric">
+            </div>
+            <div class="filter-actions">
+                <button class="filter-btn reset-btn" (click)="onResetFilters()">
+                    Reset
+                </button>
+                <a routerLink="/dashboard" class="dash-btn">Return to dashboard</a>
+            </div>
         </div>
     </div>
-</div>

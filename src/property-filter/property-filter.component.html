@@ -16,18 +16,19 @@
                 <label for="state">State</label>
                 <select id="state" [ngModel]="filters().state" (ngModelChange)="updateFilter('state', $event)">
                     <option value="">All States</option>
-                    <option *ngFor="let state of states" [value]="state.value">
+                    <!-- Fixed: Use trackBy for performance and proper value binding -->
+                    <option *ngFor="let state of states; trackBy: trackByStateValue" [value]="state.value">
                         {{ state.name }}
                     </option>
-
                 </select>
             </div>
 
             <div class="filter-group">
                 <label for="loanType">Loan Type</label>
-                <select [ngModel]="filters().loanType" (ngModelChange)="updateFilter('loanType', $event)">
+                <select id="loanType" [ngModel]="filters().loanType" (ngModelChange)="updateFilter('loanType', $event)">
                     <option value="">All Loan Types</option>
-                    <option *ngFor="let type of loanTypes" [value]="type.value">
+                    <!-- Fixed: Added trackBy for performance -->
+                    <option *ngFor="let type of loanTypes; trackBy: trackByLoanTypeValue" [value]="type.value">
                         {{ type.name }}
                     </option>
                 </select>
@@ -54,3 +55,4 @@
             </div>
         </div>
     </div>
+</div>
