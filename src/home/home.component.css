@@ -225,11 +225,11 @@
 /* Stats Section */
 .stats-section {
    background: linear-gradient(to right, #0a2463, #008080);
-
     padding: 80px 0;
     color: #fff;
-    margin: 60px 0;
+    margin: 0 auto;
     border-radius: 6px;
+    width: 1200px
 }
 
 .stats-grid {
