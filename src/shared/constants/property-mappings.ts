@@ -87,9 +87,12 @@ export const PROPERTY_SUBCATEGORIES: Record<string, string> = {
   'multifamily:senior_housing': 'Senior Housing',
   'multifamily:student_housing': 'Student Housing',
 
-  // Office subcategories
+   // Office subcategories
+  'office:corporate_office': 'Corporate Headquarters',
+  'office:excecutive_suites': 'Executive Suites / Co-working Spaces',
   'office:medical_office': 'Medical Office',
-  'office:professional_office_building': 'Professional Office Building',
+  'office:professional_office': 'Professional Office Building',
+  'office:flex': 'Office/industrial',
 
   // Residential subcategories
   'residential:1_4_units': '1-4 Units',

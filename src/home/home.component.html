@@ -1,530 +1,412 @@
-<div class="grid-container">
-    <!-- Headline -->
-    <h1 class="headline">Post Loans. Find Lenders. Fund Deals Faster.</h1>
-    <h4 class="sub-content">A smarter way for Originators and Lenders to connect and close</h4>
+    <main class="grid-container">
+        <!-- Hero Section -->
+        <section class="hero-section" aria-labelledby="main-headline">
+            <div class="hero-content">
+                <h1 class="headline" id="main-headline">Post Loans. Find Lenders. Fund Deals Faster.</h1>
+                <p class="sub-content">Revolutionary AI-powered platform connecting commercial loan originators with qualified lenders through intelligent matching and instant notifications.</p>
+                
+                <div class="button">
+                    <button class="begin-button" (click)="openRoleSelectionModal()" aria-describedby="cta-description">
+                        Get Started
+                        <span class="sr-only" id="cta-description">Sign up to access our loan-lender matching platform</span>
+                    </button>
+                </div>
+            </div>
+        </section>
 
-    <div class="button">
-        <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
-    </div>
+        <!-- AI Feature Highlight Section -->
+        <section class="ai-feature-section" aria-labelledby="ai-features-heading">
+            <div class="feature-hero">
+                <h2 id="ai-features-heading">Powered by Proprietary AI Technology</h2>
+                <p>Our advanced algorithm automatically matches posted loans with qualified lenders and sends instant email notifications to maximize your funding opportunities.</p>
+            </div>
+            
+            <div class="ai-features-grid">
+                <article class="feature-card">
+                    <div class="feature-icon" aria-hidden="true">🤖</div>
+                    <h3>Smart Loan Matching</h3>
+                    <p>Our proprietary algorithm analyzes loan criteria and automatically identifies the most qualified lenders for each deal, saving you hours of manual research.</p>
+                </article>
+                
+                <article class="feature-card">
+                    <div class="feature-icon" aria-hidden="true">📧</div>
+                    <h3>Instant Email Notifications</h3>
+                    <p>Lenders receive immediate notifications when loans matching their exact criteria are posted, ensuring faster response times and higher funding success rates.</p>
+                </article>
+                
+                <article class="feature-card">
+                    <div class="feature-icon" aria-hidden="true">⚡</div>
+                    <h3>Real-Time Matching</h3>
+                    <p>Connect with qualified lenders within minutes of posting. Our AI works 24/7 to match your loans with the right funding sources instantly.</p>
+                </article>
+            </div>
+        </section>
 
-    <!-- Lenders Section -->
-    <div class="product-container lenders-section">
-        <div class="sub-column left-content">
-            <h2 class="sub-title">Lenders</h2>
-            <h4 class="sub-headline">Discover Pre-Screened Loan Opportunities</h4>
+        <!-- Stats Section -->
+        <section class="stats-section" aria-labelledby="stats-heading">
+            <div class="stats-grid">
+                <div class="stat-item">
+                    <h3>500+</h3>
+                    <p>Loans Matched</p>
+                </div>
+                <div class="stat-item">
+                    <h3>1000+</h3>
+                    <p>Active Lenders</p>
+                </div>
+                <div class="stat-item">
+                    <h3>24hrs</h3>
+                    <p>Average Response Time</p>
+                </div>
+                <div class="stat-item">
+                    <h3>95%</h3>
+                    <p>Match Success Rate</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Lenders Section -->
+        <section class="product-container lenders-section" aria-labelledby="lenders-heading">
+            <div class="sub-column left-content">
+                <h2 class="sub-title" id="lenders-heading">For Lenders</h2>
+                <h3 class="sub-headline">Discover Pre-Screened Loan Opportunities</h3>
+            </div>
+            <div class="sub-column right-content">
+                <ul class="list-items" role="list">
+                    <li class="list-item" role="listitem">
+                        <span>Browse pre-screened loan requests tailored to your criteria</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Search by property type, location, loan amount, and more</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Connect directly with originators — no middlemen</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Expand your pipeline with quality deals and new broker relationships</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>All loan requests are posted by verified users</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Sample Loans Section -->
+        <section class="mock-loans-wrapper" aria-labelledby="sample-loans-heading">
+            <h2 class="loan-headline" id="sample-loans-heading">Sample of Live Loan Opportunities</h2>
+            <div class="loan-grid" role="region" aria-label="Sample loan listings">
+                <!-- Loan Card 1 -->
+                <article class="loan-card">
+                    <header class="card-header" style="background-color: #8A2BE2;">
+                        <span class="category">Mixed Use</span>
+                        <span class="amount">$965,000</span>
+                    </header>
+                    <div class="card-body">
+                        <p class="value"><strong class="label">Property:</strong> Residential over Retail</p>
+                        <p class="value"><strong class="label">Location:</strong> Raleigh, North Carolina</p>
+                        <p class="value"><strong class="label">Loan Type:</strong> Bridge to Permanent</p>
+                        <p class="value"><strong class="label">LTV:</strong> 65%</p>
+                        <p class="value"><strong class="label">Created:</strong> May 6, 2025</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="view-btn" aria-label="View details for $965,000 Mixed Use loan">View Loan Details</button>
+                    </div>
+                </article>
+
+                <!-- Loan Card 2 -->
+                <article class="loan-card">
+                    <header class="card-header" style="background-color: #4682b4;">
+                        <span class="category">Office</span>
+                        <span class="amount">$5,400,000</span>
+                    </header>
+                    <div class="card-body">
+                        <p class="value"><strong class="label">Property:</strong> Medical Office</p>
+                        <p class="value"><strong class="label">Location:</strong> Seattle, Washington</p>
+                        <p class="value"><strong class="label">Loan Type:</strong> Agency</p>
+                        <p class="value"><strong class="label">LTV:</strong> 70%</p>
+                        <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="view-btn" aria-label="View details for $5,400,000 Office loan">View Loan Details</button>
+                    </div>
+                </article>
+
+                <!-- Loan Card 3 -->
+                <article class="loan-card">
+                    <header class="card-header" style="background-color: #DC143C;">
+                        <span class="category">Residential</span>
+                        <span class="amount">$850,000</span>
+                    </header>
+                    <div class="card-body">
+                        <p class="value"><strong class="label">Property:</strong> Triplex</p>
+                        <p class="value"><strong class="label">Location:</strong> Bend, Oregon</p>
+                        <p class="value"><strong class="label">Loan Type:</strong> DSCR</p>
+                        <p class="value"><strong class="label">LTV:</strong> 61%</p>
+                        <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
+                    </div>
+                    <div class="card-actions">
+                        <button class="view-btn" aria-label="View details for $850,000 Residential loan">View Loan Details</button>
+                    </div>
+                </article>
+            </div>
+        </section>
+
+        <!-- Originators Section -->
+        <section class="product-container originators-section" aria-labelledby="originators-heading">
+            <div class="sub-column left-content">
+                <h2 class="sub-title" id="originators-heading">For Originators</h2>
+                <h3 class="sub-headline">Get Your Loans Funded and Meet New Lenders</h3>
+            </div>
+            <div class="sub-column right-content">
+                <ul class="list-items" role="list">
+                    <li class="list-item" role="listitem">
+                        <span>Post your commercial or residential loan in minutes</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Get discovered by vetted lenders you haven't worked with before</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Compare loan offers from multiple sources</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Retain full control — no exclusivity or commitments</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Find funding faster without cold calling</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+
+        <!-- Lender Table Container -->
+        <div class="lender-table-container">
+            <h2 class="loan-headline">Work with thousands of new lenders</h2>
+            <table class="lender-table">
+                <thead>
+                    <tr>
+                        <th>Contact Name</th>
+                        <th>Company Name</th>
+                        <th>Lender Type</th>
+                        <th>Min/Max Loan</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Ashley Parker</td>
+                        <td>CapitalEdge Group</td>
+                        <td>Private Lender</td>
+                        <td>$500,000 – $15,000,000</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td>Jason Meyers</td>
+                        <td>NewWave Funding</td>
+                        <td>Direct Lender</td>
+                        <td>$250,000 – $10,000,000</td>
+                    </tr>
+                    <tr>
+                        <td>Rebecca Cruz</td>
+                        <td>BlueRock Lending</td>
+                        <td>Credit Union</td>
+                        <td>$100,000 – $2,500,000</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td>Daniel Steinberg</td>
+                        <td>FirstStone Capital</td>
+                        <td>Hard Money</td>
+                        <td>$300,000 – $8,000,000</td>
+                    </tr>
+                    <tr>
+                        <td>Sophia Collucci</td>
+                        <td>Bluestar finance</td>
+                        <td>REIT</td>
+                        <td>$50,000 – $1,500,000</td>
+                    </tr>
+                    <tr class="highlight-row">
+                        <td>Marcus Patton</td>
+                        <td>EverTrust Partners</td>
+                        <td>Life Insurance Co.</td>
+                        <td>$5,000,000 – $120,000,000</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
-        <div class="sub-column right-content">
-            <ul class="list-items">
-                <li class="list-item"><span>Browse pre-screened loan requests tailored to your
-                        criteria</span></li>
-                <li class="list-item"><span>Search by property type, location, loan amount, and
-                        more</span></li>
-                <li class="list-item"><span>Connect directly with originators — no middlemen</span></li>
-                <li class="list-item"><span>Expand your pipeline with quality deals and new broker
-                        relationships</span>
-                </li>
-                <li class="list-item"><span>All loan requests are posted by verified users</span></li>
-            </ul>
+
+        <!-- How It Works Section -->
+        <section class="product-container how-it-works-section" aria-labelledby="how-it-works-heading">
+            <div class="sub-column left-content">
+                <h2 class="sub-title" id="how-it-works-heading">How It Works</h2>
+            </div>
+            <div class="sub-column right-content">
+                <ol class="list-items" role="list">
+                    <li class="list-item" role="listitem">
+                        <span>Loan Officers post a loan request (property type, loan amount, location, etc.)</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Our AI algorithm instantly matches loans with qualified lenders</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Lenders receive automatic email notifications for matching opportunities</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Loan Officers review offers and choose the best option — it's that easy</span>
+                    </li>
+                </ol>
+            </div>
+        </section>
+
+        <!-- Why It Works Section -->
+        <section class="product-container why-it-works-section" aria-labelledby="why-it-works-heading">
+            <div class="sub-column left-content">
+                <h2 class="sub-title" id="why-it-works-heading">Why It Works</h2>
+            </div>
+            <div class="sub-column right-content">
+                <ul class="list-items" role="list">
+                    <li class="list-item" role="listitem">
+                        <span>AI-powered matching eliminates manual searching</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Instant notifications ensure faster response times</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>More competitive offers through automated lender competition</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Built for transparency and efficiency</span>
+                    </li>
+                    <li class="list-item" role="listitem">
+                        <span>Avoid cold calling with intelligent matchmaking</span>
+                    </li>
+                </ul>
+            </div>
+        </section>
+
+        <!-- Final CTA -->
+        <div class="button">
+            <button class="begin-button" (click)="openRoleSelectionModal()">Start Matching Loans Today</button>
         </div>
-    </div>
 
-
-    <div class="mock-loans-wrapper">
-        <h2 class="loan-headline">Originators Post Funding Requests</h2>
-        <div class="loan-grid">
-            <!-- Loan Card 1 -->
-            <div class="loan-card">
-                <div class="card-header" style="background-color: #8A2BE2;">
-                    <span class="category">Mixed Use</span>
-                    <span class="amount">$965,000</span>
+        <!-- Lender Categories (Simplified) -->
+        <div class="container">
+            <div class="card">
+                <div class="categories">
+                    <h2 class="title">Trusted by 1000+ Lenders</h2>
                 </div>
                 <div class="card-body">
-                    <p class="value"><strong class="label">Property:</strong> Residential over Retail</p>
-                    <p class="value"><strong class="label">Location:</strong> Raliegh, North Carolina</p>
-                    <p class="value"><strong class="label">Loan Type:</strong> Bridge to Permanent</p>
-                    <p class="value"><strong class="label">LTV:</strong> 65%</p>
-                    <p class="value"><strong class="label">Created:</strong> May 6, 2025</p>
-                </div>
-                <div class="card-actions">
-                    <button class="view-btn">View Loan Details</button>
+                    <ul class="lender-columns">
+                        <li>Agency Lenders (FNMA, FHLMC)</li>
+                        <li>Banks (National, Regional, Community)</li>
+                        <li>Bridge & Hard Money Lenders</li>
+                        <li>Credit Unions</li>
+                        <li>DSCR & Fix & Flip Lenders</li>
+                        <li>Life Insurance Companies</li>
+                        <li>Private Lenders & Family Offices</li>
+                        <li>REITs & Debt Funds</li>
+                        <li>SBA Lenders (7(a), 504, Express)</li>
+                    </ul>
                 </div>
             </div>
+        </div>
 
-            <!-- Loan Card 2 -->
-            <div class="loan-card">
-                <div class="card-header" style="background-color: #4682b4;">
-                    <span class="category">Office</span>
-                    <span class="amount">$5,400,000</span>
+        <!-- Property Types -->
+        <div class="container">
+            <div class="card">
+                <div class="property-types">
+                    <h2 class="title">All Property Types Supported</h2>
                 </div>
                 <div class="card-body">
-                    <p class="value"><strong class="label">Property:</strong> Medical Office</p>
-                    <p class="value"><strong class="label">Location:</strong> Seattle, Washington</p>
-                    <p class="value"><strong class="label">Loan Type:</strong> Agency</p>
-                    <p class="value"><strong class="label">LTV:</strong> 70%</p>
-                    <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
-                </div>
-                <div class="card-actions">
-                    <button class="view-btn">View Loan Details</button>
-                </div>
-            </div>
+                    <div class="property-columns">
+                        <div>
+                            <strong class="label">Conventional / Residential Types</strong>
+                            <ul>
+                                <li>1-4 Units</li>
+                                <li>CO-OP</li>
+                                <li>Condominium</li>
+                                <li>Single family</li>
+                                <li>Triplex</li>
+                                <li>Quadplex</li>
+                            </ul>
+                        </div>
 
-            <!-- Loan Card 3 -->
-            <div class="loan-card">
-                <div class="card-header" style="background-color: #DC143C;">
-                    <span class="category">Residential</span>
-                    <span class="amount">$850,000</span>
-                </div>
-                <div class="card-body">
-                    <p class="value"><strong class="label">Property:</strong> Triplex</p>
-                    <p class="value"><strong class="label">Location:</strong> Bend, Oregon</p>
-                    <p class="value"><strong class="label">Loan Type:</strong> DSCR</p>
-                    <p class="value"><strong class="label">LTV:</strong> 61%</p>
-                    <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
-                </div>
-                <div class="card-actions">
-                    <button class="view-btn">View Loan Details</button>
-                </div>
-            </div>
+                        <div>
+                            <strong class="label">Healthcare</strong>
+                            <ul>
+                                <li>Assisted Living</li>
+                                <li>Hospital</li>
+                                <li>Independent Living</li>
+                                <li>Rehab Facility</li>
+                            </ul>
+                        </div>
 
-            <!-- Loan Card 4 -->
-            <div class="loan-card">
-                <div class="card-header" style="background-color: #2e4053;">
-                    <span class="category">Industrial</span>
-                    <span class="amount">$1,200,000</span>
-                </div>
-                <div class="card-body">
-                    <p class="value"><strong class="label">Property:</strong> Self Storage</p>
-                    <p class="value"><strong class="label">Location:</strong> Brunswick, New Jersey</p>
-                    <p class="value"><strong class="label">Loan Type:</strong> Balance Sheet</p>
-                    <p class="value"><strong class="label">LTV:</strong> 38%</p>
-                    <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
-                </div>
-                <div class="card-actions">
-                    <button class="view-btn">View Loan Details</button>
-                </div>
-            </div>
-        </div>
-    </div>
+                        <div>
+                            <strong class="label">Hospitality</strong>
+                            <ul>
+                                <li>Hospitality Land</li>
+                                <li>Hotel</li>
+                                <li>Long-term rentals</li>
+                                <li>Motel</li>
+                                <li>Short-term rentals</li>
+                            </ul>
+                        </div>
 
-    <div class="product-container originators-section">
-        <div class="sub-column left-content">
-            <h2 class="sub-title">For Originators</h2>
-            <h4 class="sub-headline">Get Your Loans Funded — and Meet New Lenders</h4>
-        </div>
+                        <div>
+                            <strong class="label">Industrial property</strong>
+                            <ul>
+                                <li>Cold Storage</li>
+                                <li>Flex space</li>
+                                <li>Industrial Land</li>
+                                <li>Self Storage</li>
+                                <li>Warehouse</li>
+                            </ul>
+                        </div>
 
+                        <div>
+                            <strong class="label">Office</strong>
+                            <ul>
+                                <li>Medical office</li>
+                                <li>Office building</li>
+                                <li>Office Condo</li>
+                            </ul>
+                        </div>
 
-        <div class="sub-column right-content">
-            <ul class="list-items">
-                <li class="list-item"><span>Post your commercial or residential loan in minutes</span>
-                </li>
-                <li class="list-item"><span>Get discovered by vetted lenders you haven’t worked with
-                        before</span></li>
-                <li class="list-item"><span>Compare loan offers from multiple sources</span></li>
-                <li class="list-item"><span>Retain full control — no exclusivity or commitments</span>
-                </li>
-                <li class="list-item"><span>Find funding faster without cold calling</span></li>
-            </ul>
-        </div>
-    </div>
+                        <div>
+                            <strong class="label">Retail</strong>
+                            <ul>
+                                <li>Anchored Center</li>
+                                <li>Mall</li>
+                                <li>NNN retail</li>
+                                <li>Restaurant</li>
+                                <li>Retail land</li>
+                                <li>Single tenant</li>
+                                <li>Strip mall</li>
+                            </ul>
+                        </div>
 
-    <div class="lender-table-container">
-        <h2 class="loan-headline">Work with thousands of new lenders</h2>
-        <table class="lender-table">
-            <thead>
-                <tr>
-                    <th>Contact Name</th>
-                    <th>Company Name</th>
-                    <th>Lender Type</th>
-                    <th>Min/Max Loan</th>
-                </tr>
-            </thead>
-            <tbody>
-                <tr>
-                    <td>Ashley Parker</td>
-                    <td>CapitalEdge Group</td>
-                    <td>Private Lender</td>
-                    <td>$500,000 – $15,000,000</td>
-                </tr>
-                <tr class="highlight-row">
-                    <td>Jason Meyers</td>
-                    <td>NewWave Funding</td>
-                    <td>Direct Lender</td>
-                    <td>$250,000 – $10,000,000</td>
-                </tr>
-                <tr>
-                    <td>Rebecca Cruz</td>
-                    <td>BlueRock Lending</td>
-                    <td>Credit Union</td>
-                    <td>$100,000 – $2,500,000</td>
-                </tr>
-                <tr class="highlight-row">
-                    <td>Daniel Steinberg</td>
-                    <td>FirstStone Capital</td>
-                    <td>Hard Money</td>
-                    <td>$300,000 – $8,000,000</td>
-                </tr>
-                <tr>
-                    <td>Sophia Collucci</td>
-                    <td>Bluestar finance</td>
-                    <td>REIT</td>
-                    <td>$50,000 – $1,500,000</td>
-                </tr>
-                <tr class="highlight-row">
-                    <td>Marcus Patton</td>
-                    <td>EverTrust Partners</td>
-                    <td>Life Insurance Co.</td>
-                    <td>$5,000,000 – $120,000,000</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-
-    <div class="button">
-        <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
-    </div>
-
-    <div class="lender-preview">
-        <h2 class="headline">Lender Preview</h2>
-
-        <div class="contact-info">
-            <p><strong>Contact Name:</strong> Jordan Smith</p>
-            <p><strong>Email:</strong> jsmith&#64;example.com</p>
-            <p><strong>Phone:</strong> (123) 456-7890</p>
-            <p><strong>Office Location:</strong> Charlotte, North Carolina</p>
-        </div>
-
-        <div class="section">
-            <h3>Lender Information</h3>
-            <p><strong>Lender Type:</strong> Direct Lender</p>
-            <p><strong>Loan Range:</strong> $250,000 – $10,000,000</p>
-        </div>
-
-        <div class="section">
-            <h3>Property Categories & Subcategories</h3>
-            <div class="category-wrapper">
-                <div class="category-card">
-                    <div class="category-title" id="healthcare">Healthcare</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Assisted Living</span>
-                        <span class="sub-cat">Hospital</span>
-                        <span class="sub-cat">Medical Facility</span>
-                        <span class="sub-cat">Nursing Home</span>
-                        <span class="sub-cat">Rehab Facility</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="hospitality">Hospitality</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Hotel</span>
-                        <span class="sub-cat">Long Term Rentals</span>
-                        <span class="sub-cat">Motel</span>
-                        <span class="sub-cat">Short Term Rentals</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="industrial">Industrial</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Cold Storage</span>
-                        <span class="sub-cat">Distribution Center</span>
-                        <span class="sub-cat">Flex Space</span>
-                        <span class="sub-cat">Self Storage</span>
-                        <span class="sub-cat">Warehouse</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="land">Land</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Acreage</span>
-                        <span class="sub-cat">Energy Park</span>
-                        <span class="sub-cat">Entitled Land</span>
-                        <span class="sub-cat">Farm</span>
-                        <span class="sub-cat">Golf Course</span>
-                        <span class="sub-cat">Industrial Land</span>
-                        <span class="sub-cat">Raw Land</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="mixed-use">Mixed Use</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Live Work</span>
-                        <span class="sub-cat">Retail/Office</span>
-                        <span class="sub-cat">Residential Over Office</span>
-                        <span class="sub-cat">Residential Over Retail</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="multifamily">Multifamily</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Apartment</span>
-                        <span class="sub-cat">Affordable Housing</span>
-                        <span class="sub-cat">Independent Living</span>
-                        <span class="sub-cat">Manufactured</span>
-                        <span class="sub-cat">Market Rate</span>
-                        <span class="sub-cat">Student Housing</span>
-                        <span class="sub-cat">Military Housing</span>
-                        <span class="sub-cat">Senior Housing</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="office">Office</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Medical Office</span>
-                        <span class="sub-cat">Office Condo</span>
-                        <span class="sub-cat">Professional Office</span>
-
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="resi">Residential</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">1-4 Units</span>
-                        <span class="sub-cat">Condom</span>
-                        <span class="sub-cat">Duplex</span>
-                        <span class="sub-cat">Single Family</span>
-                        <span class="sub-cat">Townhome</span>
-                        <span class="sub-cat">Triplex</span>
-                        <span class="sub-cat">Quadplex</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="retail">Retail</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Anchored Center</span>
-                        <span class="sub-cat">NNN Retail</span>
-                        <span class="sub-cat">Restaurant</span>
-                        <span class="sub-cat">Single Tenant</span>
-                        <span class="sub-cat">Strip Retail</span>
-                    </div>
-                </div>
-
-                <div class="category-card">
-                    <div class="category-title" id="special-purpose">Special Purpose</div>
-                    <div class="subcategory-columns">
-                        <span class="sub-cat">Auto Dealership</span>
-                        <span class="sub-cat">Bar/Nightclub</span>
-                        <span class="sub-cat">Church</span>
-                        <span class="sub-cat">Data Center</span>
-                        <span class="sub-cat">Daycare</span>
-                        <span class="sub-cat">Gas Station</span>
-                        <span class="sub-cat">Marina</span>
-                        <span class="sub-cat">Mobile Home Park</span>
-                        <span class="sub-cat">Parking Garage</span>
-                        <span class="sub-cat">RV Park</span>
-                        <span class="sub-cat">Sports Complex</span>
-                        <span class="sub-cat">Stadium</span>
+                        <div>
+                            <strong class="label">Special purpose loans</strong>
+                            <ul>
+                                <li>Auto dealership</li>
+                                <li>Church</li>
+                                <li>Data center</li>
+                                <li>Daycare</li>
+                                <li>Energy Park</li>
+                                <li>Farm</li>
+                                <li>Gas station</li>
+                                <li>Golf Course</li>
+                                <li>Marina</li>
+                                <li>Mobile home Park</li>
+                                <li>Parking garage</li>
+                                <li>R&D</li>
+                                <li>Resort RV Park</li>
+                                <li>Service station</li>
+                                <li>Stadium</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-
-        <div class="section">
-            <h3>Loan Types Offered</h3>
-            <div class="category-grid">
-                <span class="sub-cat">Commercial Loan</span>
-                <span class="sub-cat">Bridge Loan</span>
-                <span class="sub-cat">Construction Loan</span>
-                <span class="sub-cat">Refinance</span>
-                <span class="sub-cat">SBA</span>
+            
+            <div class="button">
+                <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
             </div>
         </div>
-
-        <div class="section">
-            <h3>Lending Footprint</h3>
-            <div class="category-grid">
-                <span class="sub-cat">North Carolina</span>
-                <span class="sub-cat">South Carolina</span>
-                <span class="sub-cat">Georgia</span>
-                <span class="sub-cat">Florida</span>
-            </div>
-        </div>
-    </div>
-
-
-    <div class="button">
-        <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
-    </div>
-
-    <!-- How It Works Section -->
-    <div class="product-container how-it-works-section">
-        <div class="sub-column left-content">
-            <h2 class="sub-title">How It Works</h2>
-        </div>
-        <div class="sub-column right-content">
-            <ol class="list-items">
-                <li class="list-item">
-                    <span>Loan Officers post a loan request (property type, loan amount, location,
-                        etc.)</span>
-                </li>
-                <li class="list-item">
-                    <span>Loan Officers browse the lender directory to find new funding sources</span>
-                </li>
-                <li class="list-item">
-                    <span>Lenders browse loan postings and send offers with terms</span>
-                </li>
-                <li class="list-item">
-                    <span>Loan Officers review and choose the best option — it's that easy</span>
-                </li>
-            </ol>
-        </div>
-    </div>
-
-    <!-- Why It Works Section -->
-    <div class="product-container why-it-works-section">
-        <div class="sub-column left-content">
-            <h2 class="sub-title">Why It Works</h2>
-        </div>
-        <div class="sub-column right-content">
-            <ul class="list-items">
-                <li class="list-item"><span>Connecting originators and lenders directly</span></li>
-                <li class="list-item"><span>Faster than traditional lending</span></li>
-                <li class="list-item"><span>More competitive offers through lender competition</span>
-                </li>
-                <li class="list-item"><span>Built for transparency and efficiency</span></li>
-                <li class="list-item"><span>Avoid cold calling for business and loan placement</span>
-                </li>
-            </ul>
-        </div>
-    </div>
-</div>
-
-<div class="container">
-    <div class="card">
-        <div class="categories">
-            <h2 class="title">Lender Categories</h2>
-        </div>
-        <div class="card-body">
-            <ul class="lender-columns">
-                <li>Agency Lenders (FNMA, FHLMC, etc)</li>
-                <li>Banks (national, regional, community)</li>
-                <li>Bridge Lenders</li>
-                <li>Collateralized Loan Obligation Lenders</li>
-                <li>Conduit Lenders</li>
-                <li>Construction Lenders</li>
-                <li>Credit Unions</li>
-                <li>Debt Funds</li>
-                <li>DSCR Lenders</li>
-                <li>Equity Lenders</li>
-                <li>Family Offices</li>
-                <li>Fix & Flip Lenders</li>
-                <li>Hard Money Lenders</li>
-                <li>Life Insurance Companies</li>
-                <li>Mezzanine Lenders</li>
-                <li>Pension Funds</li>
-                <li>Private Lenders</li>
-                <li>Real Estate Investment Trusts (REITs)</li>
-                <li>SBA Lenders (7(a) and 504) and Express</li>
-                <li>Specialty & Niche Lenders</li>
-                <li>USDA Business & Industry Loan Program</li>
-
-            </ul>
-        </div>
-    </div>
-</div>
-<div class="container">
-    <div class="card">
-        <div class="property-types">
-            <h2 class="title">Property Types</h2>
-        </div>
-        <div class="card-body">
-            <div class="property-columns">
-                <div>
-                    <strong class="label">Conventional / Residential Types</strong>
-                    <ul>
-                        <li>1-4 Units</li>
-                        <li>CO-OP</li>
-                        <li>Condominium</li>
-                        <li>Single family</li>
-                        <li>Triplex</li>
-                        <li>Quadplex</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Healthcare</strong>
-                    <ul>
-                        <li>Assisted Living</li>
-                        <li>Hospital</li>
-                        <li>Independent Living</li>
-                        <li>Rehab Facility</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Hospitality</strong>
-                    <ul>
-                        <li>Hospitality Land</li>
-                        <li>Hotel</li>
-                        <li>Long-term rentals</li>
-                        <li>Motel</li>
-                        <li>Short-term rentals</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Industrial property</strong>
-                    <ul>
-                        <li>Cold Storage</li>
-                        <li>Flex space</li>
-                        <li>Industrial Land</li>
-                        <li>Self Storage</li>
-                        <li>Warehouse</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Office</strong>
-                    <ul>
-                        <li>Medical office</li>
-                        <li>Office building</li>
-                        <li>Office Condo</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Retail</strong>
-                    <ul>
-                        <li>Anchored Center</li>
-                        <li>Mall</li>
-                        <li>NNN retail</li>
-                        <li>Restaurant</li>
-                        <li>Retail land</li>
-                        <li>Single tenant</li>
-                        <li>Strip mall</li>
-                    </ul>
-                </div>
-
-                <div>
-                    <strong class="label">Special purpose loans</strong>
-                    <ul>
-                        <li>Auto dealership</li>
-                        <li>Church</li>
-                        <li>Data center</li>
-                        <li>Daycare</li>
-                        <li>Energy Park</li>
-                        <li>Farm</li>
-                        <li>Gas station</li>
-                        <li>Golf Course</li>
-                        <li>Marina</li>
-                        <li>Mobile home Park</li>
-                        <li>Parking garage</li>
-                        <li>R&D</li>
-                        <li>Resort RV Park</li>
-                        <li>Service station</li>
-                        <li>Stadium</li>
-                    </ul>
-                </div>
-            </div>
-
-        </div>
-    </div>
-    <div class="button">
-        <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
-    </div>

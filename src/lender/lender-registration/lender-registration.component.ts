@@ -248,11 +248,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       value: 'office',
       name: 'Office',
       subcategories: [
-        { value: 'medical_office', name: 'Medical Office' },
-        {
+         { value: 'corporate_office', name: 'Corporate Headquarters' },
+         { value: 'executive_suites', name: 'Executive Suites/Co-working spaces' },
+         { value: 'medical_office', name: 'Medical Office' },
+         {
           value: 'professional_office_building',
           name: 'Professional Office Building',
-        },
+         },
+         { value: 'flex', name: 'Office/Industrial' },
       ],
     },
     {

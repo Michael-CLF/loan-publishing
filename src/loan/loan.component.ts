@@ -138,8 +138,14 @@ propertySubcategories: Record<string, SubcategoryItem[]> = {
   ],
 
   office: [
-    { value: 'office:medical_office', name: 'Medical Office' },
-    { value: 'office:professional_office_building', name: 'Professional Office Building' },
+     { value: 'corporate_office', name: 'Corporate Headquarters' },
+         { value: 'executive_suites', name: 'Executive Suites/Co-working spaces' },
+         { value: 'medical_office', name: 'Medical Office' },
+         {
+          value: 'professional_office_building',
+          name: 'Professional Office Building',
+         },
+         { value: 'flex', name: 'Office/Industrial' },
   ],
 
   residential: [
