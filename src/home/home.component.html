@@ -58,7 +58,7 @@
                     <p>Average Response Time</p>
                 </div>
                 <div class="stat-item">
-                    <h3>95%</h3>
+                    <h3>96%</h3>
                     <p>Match Success Rate</p>
                 </div>
             </div>
@@ -91,65 +91,74 @@
             </div>
         </section>
 
-        <!-- Sample Loans Section -->
-        <section class="mock-loans-wrapper" aria-labelledby="sample-loans-heading">
-            <h2 class="loan-headline" id="sample-loans-heading">Sample of Live Loan Opportunities</h2>
-            <div class="loan-grid" role="region" aria-label="Sample loan listings">
-                <!-- Loan Card 1 -->
-                <article class="loan-card">
-                    <header class="card-header" style="background-color: #8A2BE2;">
-                        <span class="category">Mixed Use</span>
-                        <span class="amount">$965,000</span>
-                    </header>
-                    <div class="card-body">
-                        <p class="value"><strong class="label">Property:</strong> Residential over Retail</p>
-                        <p class="value"><strong class="label">Location:</strong> Raleigh, North Carolina</p>
-                        <p class="value"><strong class="label">Loan Type:</strong> Bridge to Permanent</p>
-                        <p class="value"><strong class="label">LTV:</strong> 65%</p>
-                        <p class="value"><strong class="label">Created:</strong> May 6, 2025</p>
-                    </div>
-                    <div class="card-actions">
-                        <button class="view-btn" aria-label="View details for $965,000 Mixed Use loan">View Loan Details</button>
-                    </div>
-                </article>
-
-                <!-- Loan Card 2 -->
-                <article class="loan-card">
-                    <header class="card-header" style="background-color: #4682b4;">
-                        <span class="category">Office</span>
-                        <span class="amount">$5,400,000</span>
-                    </header>
-                    <div class="card-body">
-                        <p class="value"><strong class="label">Property:</strong> Medical Office</p>
-                        <p class="value"><strong class="label">Location:</strong> Seattle, Washington</p>
-                        <p class="value"><strong class="label">Loan Type:</strong> Agency</p>
-                        <p class="value"><strong class="label">LTV:</strong> 70%</p>
-                        <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
-                    </div>
-                    <div class="card-actions">
-                        <button class="view-btn" aria-label="View details for $5,400,000 Office loan">View Loan Details</button>
-                    </div>
-                </article>
-
-                <!-- Loan Card 3 -->
-                <article class="loan-card">
-                    <header class="card-header" style="background-color: #DC143C;">
-                        <span class="category">Residential</span>
-                        <span class="amount">$850,000</span>
-                    </header>
-                    <div class="card-body">
-                        <p class="value"><strong class="label">Property:</strong> Triplex</p>
-                        <p class="value"><strong class="label">Location:</strong> Bend, Oregon</p>
-                        <p class="value"><strong class="label">Loan Type:</strong> DSCR</p>
-                        <p class="value"><strong class="label">LTV:</strong> 61%</p>
-                        <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
-                    </div>
-                    <div class="card-actions">
-                        <button class="view-btn" aria-label="View details for $850,000 Residential loan">View Loan Details</button>
-                    </div>
-                </article>
+       <!-- Sample Loans Section with Lender Matches -->
+<section class="mock-loans-wrapper" aria-labelledby="sample-loans-heading">
+    <h2 class="loan-headline" id="sample-loans-heading">Sample of Live Loan Opportunities</h2>
+    <div class="loan-grid" role="region" aria-label="Sample loan listings">
+        <!-- Loan Card 1 -->
+        <article class="loan-card">
+            <header class="card-header" style="background-color: #8A2BE2;">
+                <span class="category">Mixed Use</span>
+                <span class="amount">$965,000</span>
+            </header>
+            <div class="card-body">
+                <p class="value"><strong class="label">Property:</strong> Residential over Retail</p>
+                <p class="value"><strong class="label">Location:</strong> Raleigh, North Carolina</p>
+                <p class="value"><strong class="label">Loan Type:</strong> Bridge to Permanent</p>
+                <p class="value"><strong class="label">LTV:</strong> 65%</p>
+                <p class="value"><strong class="label">Created:</strong> May 6, 2025</p>
             </div>
-        </section>
+            <div class="card-actions">
+                <button class="view-btn" aria-label="View details for $965,000 Mixed Use loan">View Loan Details</button>
+            </div>
+            <div class="lender-matches-section">
+                <button class="lender-matches-btn" aria-label="View lender matches for $965,000 Mixed Use loan">Lender Matches</button>
+            </div>
+        </article>
+
+        <!-- Loan Card 2 -->
+        <article class="loan-card">
+            <header class="card-header" style="background-color: #4682b4;">
+                <span class="category">Office</span>
+                <span class="amount">$5,400,000</span>
+            </header>
+            <div class="card-body">
+                <p class="value"><strong class="label">Property:</strong> Medical Office</p>
+                <p class="value"><strong class="label">Location:</strong> Seattle, Washington</p>
+                <p class="value"><strong class="label">Loan Type:</strong> Agency</p>
+                <p class="value"><strong class="label">LTV:</strong> 70%</p>
+                <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
+            </div>
+            <div class="card-actions">
+                <button class="view-btn" aria-label="View details for $5,400,000 Office loan">View Loan Details</button>
+            </div>
+            <div class="lender-matches-section">
+                <button class="lender-matches-btn" aria-label="View lender matches for $5,400,000 Office loan">Lender Matches</button>
+            </div>
+        </article>
+
+        <!-- Loan Card 3 -->
+        <article class="loan-card">
+            <header class="card-header" style="background-color: #DC143C;">
+                <span class="category">Residential</span>
+                <span class="amount">$850,000</span>
+            </header>
+            <div class="card-body">
+                <p class="value"><strong class="label">Property:</strong> Triplex</p>
+                <p class="value"><strong class="label">Location:</strong> Bend, Oregon</p>
+                <p class="value"><strong class="label">Loan Type:</strong> DSCR</p>
+                <p class="value"><strong class="label">LTV:</strong> 61%</p>
+                <p class="value"><strong class="label">Created:</strong> May 7, 2025</p>
+            </div>
+            <div class="card-actions">
+                <button class="view-btn" aria-label="View details for $850,000 Residential loan">View Loan Details</button>
+            </div>
+            <div class="lender-matches-section">
+                <button class="lender-matches-btn" aria-label="View lender matches for $850,000 Residential loan">Lender Matches</button>
+            </div>
+        </article>
+    </div>
+</section>
 
         <!-- Originators Section -->
         <section class="product-container originators-section" aria-labelledby="originators-heading">

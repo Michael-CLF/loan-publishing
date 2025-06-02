@@ -160,6 +160,68 @@
     font-family: "Roboto", sans-serif;
 }
 
+/* Updated Card Actions for Lender Matches */
+.card-actions {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 20px;
+    background: #f8fafc;
+    border-top: 1px solid #e2e8f0;
+}
+
+.lender-matches-section {
+    padding: 0 20px 20px;
+    background: #f8fafc;
+    display: flex;
+    justify-content: center;
+}
+
+.lender-matches-btn {
+    color: #fff;
+    background-color: #008080;
+    font-family: "Roboto", sans-serif;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    max-width: 80%;
+    font-size: 1rem;
+}
+
+.view-btn {
+    color: #fff;
+    font-family: "Roboto", sans-serif;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 6px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    flex: 1;
+    font-size: 1rem;
+}
+
+.view-btn {
+    background-color: #0a2463;
+}
+
+.view-btn:hover {
+    background-color: #008080;
+    transform: translateY(-1px);
+}
+
+.lender-matches-btn {
+    background-color: #008080;
+}
+
+.lender-matches-btn:hover {
+    background-color: #0a2463;
+    transform: translateY(-1px);
+}
+
 /* Stats Section */
 .stats-section {
    background: linear-gradient(to right, #0a2463, #008080);
