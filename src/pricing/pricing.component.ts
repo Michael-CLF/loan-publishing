@@ -15,6 +15,17 @@ export class PricingComponent {
   // Track billing cycle for each plan
   isOriginatorAnnual = false;
   isLenderAnnual = false;
+  isMortgageCompanyAnnual = false;
+
+  toggleMortgageCompanyBilling(): void {
+  this.isMortgageCompanyAnnual = !this.isMortgageCompanyAnnual;
+}
+
+onGetStarted(planType: 'originators' | 'lenders' | 'mortgage-companies'): void {
+  // Handle plan selection logic here
+  console.log('Selected plan:', planType);
+  // Navigate to signup or trigger appropriate action
+}
 
   toggleOriginatorBilling(): void {
     this.isOriginatorAnnual = !this.isOriginatorAnnual;

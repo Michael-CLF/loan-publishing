@@ -13,16 +13,18 @@
                 <div class="pricing-toggle">
                     <span class="toggle-label">Monthly</span>
                     <label class="switch">
-                        <input type="checkbox" class="pricing-checkbox" 
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
                                [checked]="isOriginatorAnnual" 
-                               (change)="toggleOriginatorBilling()">
+                               (change)="toggleOriginatorBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isOriginatorAnnual ? 'monthly' : 'annual') + ' billing for originators'">
                         <span class="slider"></span>
                     </label>
                     <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
                 </div>
             </div>
             <h4 class="price" [class.hidden]="isOriginatorAnnual">$149/month</h4>
-            <h4 class="price" [class.hidden]="!isOriginatorAnnual">$1,609/year</h4>
+            <h4 class="price" [class.hidden]="!isOriginatorAnnual">$1,610/year</h4>
             <p class="savings-text" [class.hidden]="!isOriginatorAnnual">Save $179 with annual billing</p>
             <p class="free">* Get your loans funded faster</p>
             <ul class="feature-list">
@@ -39,7 +41,12 @@
             </ul>
         </div>
         <div class="card-section footer">
-            <button class="card-button login-btn">Get Started</button>
+            <button class="card-button login-btn" 
+                    type="button"
+                    (click)="onGetStarted('originators')"
+                    [attr.aria-label]="'Get started with originators plan'">
+                Get Started
+            </button>
         </div>
     </div>
 
@@ -54,16 +61,18 @@
                 <div class="pricing-toggle">
                     <span class="toggle-label">Monthly</span>
                     <label class="switch">
-                        <input type="checkbox" class="pricing-checkbox" 
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
                                [checked]="isLenderAnnual" 
-                               (change)="toggleLenderBilling()">
+                               (change)="toggleLenderBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isLenderAnnual ? 'monthly' : 'annual') + ' billing for lenders'">
                         <span class="slider"></span>
                     </label>
                     <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
                 </div>
             </div>
             <h4 class="price" [class.hidden]="isLenderAnnual">$149/month</h4>
-            <h4 class="price" [class.hidden]="!isLenderAnnual">$1,609/year</h4>
+            <h4 class="price" [class.hidden]="!isLenderAnnual">$1,610/year</h4>
             <p class="savings-text" [class.hidden]="!isLenderAnnual">Save $179 with annual billing</p>
             <p class="free">* Discover pre-screened opportunities</p>
             <ul class="feature-list">
@@ -79,8 +88,62 @@
             </ul>
         </div>
         <div class="card-section footer">
-            <button class="card-button login-btn">Get Started</button>
+            <button class="card-button login-btn" 
+                    type="button"
+                    (click)="onGetStarted('lenders')"
+                    [attr.aria-label]="'Get started with lenders plan'">
+                Get Started
+            </button>
         </div>
     </div>
 
+    <!-- Mortgage Companies Card -->
+    <div class="card">
+        <div class="card-section header mortgage-companies-header">
+            <h3 class="title">Mortgage Companies</h3>
+            <p class="subtitle">Mortgage Companies, Lending Institutions & Financial Services</p>
+        </div>
+        <div class="card-section content">
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
+                               [checked]="isMortgageCompanyAnnual" 
+                               (change)="toggleMortgageCompanyBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isMortgageCompanyAnnual ? 'monthly' : 'annual') + ' billing for mortgage companies'">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 15%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isMortgageCompanyAnnual">$299/month</h4>
+            <h4 class="price" [class.hidden]="!isMortgageCompanyAnnual">$3,059/year</h4>
+            <p class="savings-text" [class.hidden]="!isMortgageCompanyAnnual">Save $529 with annual billing</p>
+            <p class="free">* Complete mortgage ecosystem solution</p>
+            <ul class="feature-list">
+                <li>Multi-user access (up to 10 users)</li>
+                <li>White-label platform options</li>
+                <li>Advanced analytics & reporting suite</li>
+                <li>Custom workflow automation</li>
+                <li>Priority customer support</li>
+                <li>API access for integrations</li>
+                <li>Bulk loan processing tools</li>
+                <li>Compliance management dashboard</li>
+                <li>Team collaboration features</li>
+                <li>Dedicated account manager</li>
+                <li>Custom training sessions</li>
+                <li>SLA guarantees</li>
+            </ul>
+        </div>
+        <div class="card-section footer">
+            <button class="card-button login-btn" 
+                    type="button"
+                    (click)="onGetStarted('mortgage-companies')"
+                    [attr.aria-label]="'Get started with mortgage companies plan'">
+                Get Started
+            </button>
+        </div>
+    </div>
 </div>
