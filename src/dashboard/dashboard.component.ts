@@ -132,7 +132,7 @@ export class DashboardComponent implements OnInit {
     commercial: '#1E90FF',
     healthcare: '#cb4335',
     hospitality: '#1b4f72',
-    industrial: '#2c3e50',
+    industrial: '#154360',
     land: '#023020',
     mixed_use: '#8A2BE2',
     multifamily: '#6c3483',

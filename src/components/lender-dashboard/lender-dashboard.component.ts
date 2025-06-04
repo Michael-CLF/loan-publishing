@@ -103,7 +103,7 @@ export class LenderDashboardComponent implements OnInit {
   commercial: '#1E90FF',           
   healthcare: '#cb4335',           // Changed from 'Healthcare'
   hospitality: '#1b4f72',          // Changed from 'Hospitality'
-  industrial: '#2c3e50',           // Changed from 'Industrial'
+  industrial: '#154360',           // Changed from 'Industrial'
   land: '#023020',                 // Changed from 'Land'
   mixed_use: '#8A2BE2',            // Changed from 'Mixed Use'
   multifamily: '#6c3483',          // Changed from 'Multifamily'
