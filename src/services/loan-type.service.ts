@@ -27,7 +27,6 @@ export class LoanTypeService {
     { value: 'bridge_perm', name: 'Bridge to Permanent' },
     { value: 'dscr', name: 'DSCR' },
     { value: 'fix_flip', name: 'Fix & Flip' },
-    { value: 'purchase_money', name: 'Purchase Money Loan' },
     { value: 'portfolio', name: 'Portfolio Loan' },
     { value: 'sba_express', name: 'SBA Express' },
     { value: 'sba_7a', name: 'SBA 7(a)' },

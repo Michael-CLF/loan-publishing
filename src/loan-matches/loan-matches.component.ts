@@ -1,13 +1,12 @@
-// loan-matches.component.ts - Complete standalone component with weighted matching
-
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { LenderService, Lender } from '../services/lender.service';
-import { Loan, LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model'; // ADDED: Import LoanUtils
+import { Loan, LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { StateMigrationService } from '../services/update-states';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
+import { Router } from '@angular/router';
 
 interface MatchedLender {
   lender: Lender;
@@ -17,7 +16,7 @@ interface MatchedLender {
     loanAmount: boolean;
     propertyType: boolean;
     propertySubCategory: boolean;
-    hasRelatedSubcategory: boolean;  // ADD THIS LINE
+    hasRelatedSubcategory: boolean;
     state: boolean;
     ficoScore: boolean;
   };
@@ -28,106 +27,136 @@ interface MatchedLender {
   templateUrl: './loan-matches.component.html',
   styleUrls: ['./loan-matches.component.css'],
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule]
 })
 export class LoanMatchesComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private loanService = inject(LoanService);
   private lenderService = inject(LenderService);
   private stateMigration = inject(StateMigrationService);
+  private router = inject(Router);
+  
 
+  // Existing signals
   matchedLoan = signal<Loan | null>(null);
   matchedLenders = signal<MatchedLender[]>([]);
   loading = signal(true);
   error = signal<string | null>(null);
 
+  // New signal for tracking expanded lender details
+  expandedLenders = signal<Set<string>>(new Set());
+
   ngOnInit(): void {
-  const loanId = this.route.snapshot.paramMap.get('loanId');
-  if (!loanId) {
-    this.error.set('Loan ID not found in URL.');
-    this.loading.set(false);
-    return;
+    const loanId = this.route.snapshot.paramMap.get('loanId');
+    if (!loanId) {
+      this.error.set('Loan ID not found in URL.');
+      this.loading.set(false);
+      return;
+    }
+
+    this.loanService.getLoanById(loanId).subscribe({
+      next: (loanData) => {
+        if (!loanData) {
+          this.error.set('Loan not found.');
+          this.loading.set(false);
+          return;
+        }
+
+        console.log('Raw loan data:', loanData);
+        console.log('propertySubCategory type:', typeof loanData.propertySubCategory);
+        console.log('propertySubCategory value:', loanData.propertySubCategory);
+        
+        this.matchedLoan.set(loanData);
+        this.loadLendersAndMatch(loanData);
+      },
+      error: () => {
+        this.error.set('Error loading loan.');
+        this.loading.set(false);
+      },
+    });
   }
 
-  this.loanService.getLoanById(loanId).subscribe({
-    next: (loanData) => {
-      if (!loanData) {
-        this.error.set('Loan not found.');
-        this.loading.set(false);
-        return;
-      }
-
-      // ADD THESE DEBUG LOGS
-      console.log('Raw loan data:', loanData);
-      console.log('propertySubCategory type:', typeof loanData.propertySubCategory);
-      console.log('propertySubCategory value:', loanData.propertySubCategory);
-      
-      this.matchedLoan.set(loanData);
-      this.loadLendersAndMatch(loanData);
-    },
-    error: () => {
-      this.error.set('Error loading loan.');
-      this.loading.set(false);
-    },
-  });
+viewLenderDetails(lenderId: string): void {
+  this.router.navigate(['/lender-details', lenderId]);
 }
+  /**
+   * Check if a lender's details are currently expanded
+   */
+  isLenderExpanded(lenderId: string): boolean {
+    return this.expandedLenders().has(lenderId);
+  }
 
-// Add these formatting methods to your component class:
+  /**
+   * Format currency values for display
+   */
+  formatCurrency(value: string | number | undefined): string {
+    if (!value) return 'Not specified';
+    
+    const numValue = typeof value === 'string' ? 
+      parseFloat(value.toString().replace(/[^0-9.]/g, '')) : 
+      value;
+    
+    if (isNaN(numValue) || numValue === 0) return 'Not specified';
+    
+    return new Intl.NumberFormat('en-US', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0
+    }).format(numValue);
+  }
 
-formatPropertyCategory(category: string | undefined): string {
-  if (!category) return '';
-  
-  const categoryMap: Record<string, string> = {
-    commercial: 'Commercial',
-    healthcare: 'Healthcare',
-    hospitality: 'Hospitality',
-    industrial: 'Industrial',
-    land: 'Land',
-    mixed_use: 'Mixed Use',
-    multifamily: 'Multifamily',
-    office: 'Office',
-    residential: 'Residential',
-    retail: 'Retail',
-    special_purpose: 'Special Purpose'
-  };
-  
-  return categoryMap[category.toLowerCase()] || category;
-}
+  // Existing formatting methods
+  formatPropertyCategory(category: string | undefined): string {
+    if (!category) return '';
+    
+    const categoryMap: Record<string, string> = {
+      commercial: 'Commercial',
+      healthcare: 'Healthcare',
+      hospitality: 'Hospitality',
+      industrial: 'Industrial',
+      land: 'Land',
+      mixed_use: 'Mixed Use',
+      multifamily: 'Multifamily',
+      office: 'Office',
+      residential: 'Residential',
+      retail: 'Retail',
+      special_purpose: 'Special Purpose'
+    };
+    
+    return categoryMap[category.toLowerCase()] || category;
+  }
 
- formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
-    // Use the LoanUtils to safely extract the value
+  formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
     return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
   }
 
-getLoanTypeName(loanType: string | undefined): string {
-  if (!loanType) return '';
-  
-  const loanTypeMap: Record<string, string> = {
-    agency: 'Agency Loans',
-    bridge: 'Bridge Loans',
-    cmbs: 'CMBS Loans',
-    commercial: 'Commercial Loans',
-    construction: 'Construction Loans',
-    hard_money: 'Hard Money Loans',
-    mezzanine: 'Mezzanine Loan',
-    rehab: 'Rehab Loans',
-    non_qm: 'Non-QM Loans',
-    sba: 'SBA Loans',
-    usda: 'USDA Loans',
-    acquisition: 'Acquisition Loan',
-    balance_sheet: 'Balance Sheet',
-    bridge_perm: 'Bridge to Permanent',
-    dscr: 'DSCR',
-    fix_flip: 'Fix & Flip',
-    purchase_money: 'Purchase Money Loan',
-    portfolio: 'Portfolio Loan',
-    sba_express: 'SBA Express',
-    sba_7a: 'SBA 7(a)',
-    sba_504: 'SBA 504'
-  };
-  
-  return loanTypeMap[loanType.toLowerCase()] || loanType;
-}
+  getLoanTypeName(loanType: string | undefined): string {
+    if (!loanType) return '';
+    
+    const loanTypeMap: Record<string, string> = {
+      agency: 'Agency Loans',
+      bridge: 'Bridge Loans',
+      cmbs: 'CMBS Loans',
+      commercial: 'Commercial Loans',
+      construction: 'Construction Loans',
+      hard_money: 'Hard Money Loans',
+      mezzanine: 'Mezzanine Loan',
+      rehab: 'Rehab Loans',
+      non_qm: 'Non-QM Loans',
+      sba: 'SBA Loans',
+      usda: 'USDA Loans',
+      acquisition: 'Acquisition Loan',
+      balance_sheet: 'Balance Sheet',
+      bridge_perm: 'Bridge to Permanent',
+      dscr: 'DSCR',
+      fix_flip: 'Fix & Flip',
+      portfolio: 'Portfolio Loan',
+      sba_express: 'SBA Express',
+      sba_7a: 'SBA 7(a)',
+      sba_504: 'SBA 504'
+    };
+    
+    return loanTypeMap[loanType.toLowerCase()] || loanType;
+  }
 
   async runMigration() {
     await this.stateMigration.updateLenderFootprints();
@@ -138,7 +167,6 @@ getLoanTypeName(loanType: string | undefined): string {
       next: (lenders) => {
         console.log(`\n🏁 Starting matching process for ${lenders.length} total lenders`);
         
-        // Filter out lenders that fail hard elimination criteria
         const viableLenders = lenders.filter(lender => 
           this.passesHardElimination(loan, lender)
         );
@@ -149,7 +177,6 @@ getLoanTypeName(loanType: string | undefined): string {
           console.log(`⚠️ WARNING: No lenders passed hard elimination! Check your criteria.`);
         }
 
-        // Calculate weighted scores only for viable lenders
         const matches: MatchedLender[] = viableLenders.map((lender) => {
           const breakdown = this.calculateMatchBreakdown(loan, lender);
           const matchScore = this.calculateWeightedScore(breakdown);
@@ -160,7 +187,6 @@ getLoanTypeName(loanType: string | undefined): string {
           return { lender, matchScore, matchBreakdown: breakdown };
         });
 
-        // Sort by match score (highest first)
         matches.sort((a, b) => b.matchScore - a.matchScore);
 
         this.matchedLenders.set(matches);
@@ -173,9 +199,6 @@ getLoanTypeName(loanType: string | undefined): string {
     });
   }
 
-  /**
-   * Hard elimination criteria - if any of these fail, lender is completely filtered out
-   */
   private passesHardElimination(loan: Loan, lender: Lender): boolean {
     const productInfo = lender.productInfo || {};
     const lenderName = `${lender.contactInfo?.firstName || ''} ${lender.contactInfo?.lastName || ''}`.trim() || 'Unknown Lender';
@@ -232,26 +255,18 @@ getLoanTypeName(loanType: string | undefined): string {
     }
     console.log(`✅ PROPERTY TYPE PASS`);
 
-
     console.log(`🎉 ${lenderName} PASSED ALL HARD ELIMINATIONS!`);
-    return true; // Passed all hard eliminations
+    return true;
   }
 
-  /**
-   * Calculate weighted score using improved business logic
-   */
   private calculateWeightedScore(breakdown: any): number {
-    // Updated weights with better business logic
     const weights = {
-      // Hard elimination criteria (base score - 65%)
-      loanAmount: 18,               // Can they fund it?
-      propertyType: 20,             // Do they do this property type?
-      ficoScore: 17,                // Meet credit requirements?
-      
-      // Preference criteria (35%)
-      state: 15,                    // Geographic preference  
-      loanType: 10,                 // Loan type preference
-      propertySubCategory: 20,       // Exact subcategory match (reduced weight)
+      loanAmount: 18,
+      propertyType: 20,
+      ficoScore: 17,
+      state: 15,
+      loanType: 10,
+      propertySubCategory: 20,
     };
 
     let weightedScore = 0;
@@ -259,7 +274,6 @@ getLoanTypeName(loanType: string | undefined): string {
     console.log('🔢 Scoring breakdown:', breakdown);
     console.log('⚖️ Updated weights:', weights);
 
-    // Hard elimination base points
     if (breakdown.loanAmount) {
       weightedScore += weights.loanAmount;
       console.log(`✅ +${weights.loanAmount}% for loan amount match`);
@@ -273,7 +287,6 @@ getLoanTypeName(loanType: string | undefined): string {
       console.log(`✅ +${weights.ficoScore}% for FICO match`);
     }
 
-    // Preference bonuses
     if (breakdown.state) {
       weightedScore += weights.state;
       console.log(`✅ +${weights.state}% for state match`);
@@ -288,12 +301,10 @@ getLoanTypeName(loanType: string | undefined): string {
       console.log(`❌ 0% for loan type match (no match)`);
     }
 
-    // Subcategory matching with partial credit
     if (breakdown.propertySubCategory) {
       weightedScore += weights.propertySubCategory;
       console.log(`✅ +${weights.propertySubCategory}% for exact subcategory match`);
     } else if (breakdown.hasRelatedSubcategory) {
-      // NEW: Partial credit for having ANY subcategory in the same property type
       const partialCredit = 1;
       weightedScore += partialCredit;
       console.log(`🔶 +${partialCredit}% for related subcategory match (partial credit)`);
@@ -306,74 +317,84 @@ getLoanTypeName(loanType: string | undefined): string {
   }
 
   /**
-   * Enhanced match breakdown with partial subcategory credit
-   */
-  private calculateMatchBreakdown(loan: Loan, lender: Lender) {
-    const productInfo = lender.productInfo || {};
-    const footprintInfo = lender.footprintInfo || {};
-    const lenderName = `${lender.contactInfo?.firstName || ''} ${lender.contactInfo?.lastName || ''}`.trim();
+ * Enhanced match breakdown with partial subcategory credit
+ */
+private calculateMatchBreakdown(loan: Loan, lender: Lender) {
+  const productInfo = lender.productInfo || {};
+  const footprintInfo = lender.footprintInfo || {};
+  const lenderName = `${lender.contactInfo?.firstName || ''} ${lender.contactInfo?.lastName || ''}`.trim();
 
-    console.log(`\n🔍 Calculating breakdown for ${lenderName}`);
+  console.log(`\n🔍 Calculating breakdown for ${lenderName}`);
 
-    // State matching
-    console.log(`🗺️ State Check: Loan state "${loan.state}" vs Lender footprint:`, footprintInfo.lendingFootprint || 'undefined');
-    const stateMatch = (footprintInfo.lendingFootprint || []).some(
-      (state: string) => state.toLowerCase() === loan.state?.toLowerCase()
-    );
-    console.log(`🗺️ State match result: ${stateMatch}`);
+  // State matching
+  console.log(`🗺️ State Check: Loan state "${loan.state}" vs Lender footprint:`, footprintInfo.lendingFootprint || 'undefined');
+  const stateMatch = (footprintInfo.lendingFootprint || []).some(
+    (state: string) => state.toLowerCase() === loan.state?.toLowerCase()
+  );
+  console.log(`🗺️ State match result: ${stateMatch}`);
 
-    // Loan type matching
-    console.log(`📋 Loan Type Check: Loan type "${loan.loanType}" vs Lender types:`, productInfo.loanTypes || 'undefined');
-    const loanTypeMatch = (productInfo.loanTypes || []).some(
-      (type: string) => type.toLowerCase() === loan.loanType?.toLowerCase()
-    );
-    console.log(`📋 Loan type match result: ${loanTypeMatch}`);
+  // Loan type matching
+  console.log(`📋 Loan Type Check: Loan type "${loan.loanType}" vs Lender types:`, productInfo.loanTypes || 'undefined');
+  const loanTypeMatch = (productInfo.loanTypes || []).some(
+    (type: string) => type.toLowerCase() === loan.loanType?.toLowerCase()
+  );
+  console.log(`📋 Loan type match result: ${loanTypeMatch}`);
 
-    // FIXED: Use LoanUtils to safely extract subcategory value
-    console.log('Debug - propertySubCategory:', {
-      type: typeof loan.propertySubCategory,
-      value: loan.propertySubCategory,
-      stringified: JSON.stringify(loan.propertySubCategory)
-    });
+  // Property type matching
+  const lenderPropertyTypes = productInfo.propertyCategories || [];
+  const loanPropertyType = loan.propertyTypeCategory?.toLowerCase();
+  console.log(`🏠 Property Type Check: "${loanPropertyType}" must be in [${lenderPropertyTypes.map(t => `"${t}"`).join(', ')}]`);
+  
+  const propertyTypeMatch = lenderPropertyTypes.some(
+    (type: string) => type.toLowerCase() === loanPropertyType
+  );
+  console.log(`🏠 Property type match result: ${propertyTypeMatch}`);
 
-    const subcategoryValue = LoanUtils.getSubcategoryValue(loan.propertySubCategory);
-    const expectedSubcategory = subcategoryValue.toLowerCase();
+  // Subcategory matching
+  console.log('Debug - propertySubCategory:', {
+    type: typeof loan.propertySubCategory,
+    value: loan.propertySubCategory,
+    stringified: JSON.stringify(loan.propertySubCategory)
+  });
+
+  const subcategoryValue = LoanUtils.getSubcategoryValue(loan.propertySubCategory);
+  const expectedSubcategory = subcategoryValue.toLowerCase();
+  
+  console.log(`🏢 Expected subcategory format: "${expectedSubcategory}"`);
+  console.log(`🏢 Lender subcategories:`, productInfo.subcategorySelections || 'undefined');
+  
+  // Exact subcategory match
+  const exactSubcategoryMatch = (productInfo.subcategorySelections || []).some(subcat => 
+    subcat.toLowerCase() === expectedSubcategory
+  );
+  
+  // NEW: Check for ANY subcategory in the same property category (partial credit)
+  const loanPropertyCategory = loan.propertyTypeCategory?.toLowerCase();
+  const hasRelatedSubcategory = !exactSubcategoryMatch && (productInfo.subcategorySelections || []).some(subcat => 
+    subcat.toLowerCase().startsWith(`${loanPropertyCategory}:`)
+  );
+  
+  console.log(`🏢 Exact subcategory match: ${exactSubcategoryMatch}`);
+  console.log(`🏢 Has related subcategory: ${hasRelatedSubcategory}`);
+
+  const breakdown = {
+    // Hard elimination criteria (now showing actual match results)
+    loanType: loanTypeMatch,        
+    loanAmount: true,               // Already passed hard elimination
+    propertyType: propertyTypeMatch, // Now shows actual property type match
+    ficoScore: true,                // Already passed hard elimination
     
-    console.log(`🏢 Expected subcategory format: "${expectedSubcategory}"`);
-    console.log(`🏢 Lender subcategories:`, productInfo.subcategorySelections || 'undefined');
-    
-    // Exact subcategory match
-    const exactSubcategoryMatch = (productInfo.subcategorySelections || []).some(subcat => 
-      subcat.toLowerCase() === expectedSubcategory
-    );
-    
-    // NEW: Check for ANY subcategory in the same property category (partial credit)
-    const loanPropertyCategory = loan.propertyTypeCategory?.toLowerCase();
-    const hasRelatedSubcategory = !exactSubcategoryMatch && (productInfo.subcategorySelections || []).some(subcat => 
-      subcat.toLowerCase().startsWith(`${loanPropertyCategory}:`)
-    );
-    
-    console.log(`🏢 Exact subcategory match: ${exactSubcategoryMatch}`);
-    console.log(`🏢 Has related subcategory: ${hasRelatedSubcategory}`);
+    // Scoring criteria
+    state: stateMatch,
+    propertySubCategory: exactSubcategoryMatch,
+    hasRelatedSubcategory: hasRelatedSubcategory,  // NEW: For partial credit
+  };
 
-    const breakdown = {
-      // Hard elimination criteria (always true for lenders that make it here)
-      loanType: loanTypeMatch,        
-      loanAmount: true,               // Already passed hard elimination
-      propertyType: true,             // Already passed hard elimination  
-      ficoScore: true,                // Already passed hard elimination
-      
-      // Scoring criteria
-      state: stateMatch,
-      propertySubCategory: exactSubcategoryMatch,
-      hasRelatedSubcategory: hasRelatedSubcategory,  // NEW: For partial credit
-    };
+  console.log(`📊 Final breakdown for ${lenderName}:`, breakdown);
+  return breakdown;
+}
 
-    console.log(`📊 Final breakdown for ${lenderName}:`, breakdown);
-    return breakdown;
-  }
 
-  // ADDED: Helper method for template to display subcategory safely
   getSubcategoryDisplay(): string {
     const loan = this.matchedLoan();
     if (!loan?.propertySubCategory) return 'None';
@@ -383,7 +404,6 @@ getLoanTypeName(loanType: string | undefined): string {
       value: loan.propertySubCategory
     });
     
-    // Handle both string and object formats
     if (typeof loan.propertySubCategory === 'string') {
       return loan.propertySubCategory;
     }

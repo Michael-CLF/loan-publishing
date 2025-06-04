@@ -125,7 +125,6 @@ allLoanTypeOptions: LoanTypeOption[] = [
   { value: 'bridge_perm', displayName: 'Bridge to Permanent' },
   { value: 'dscr', displayName: 'DSCR' },
   { value: 'fix_flip', displayName: 'Fix & Flip' },
-  { value: 'purchase_money', displayName: 'Purchase Money Loan' },
   { value: 'portfolio', displayName: 'Portfolio Loan' },
   { value: 'sba_express', displayName: 'SBA Express' },
   { value: 'sba_7a', displayName: 'SBA 7(a)' },

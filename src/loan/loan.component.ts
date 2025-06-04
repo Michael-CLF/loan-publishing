@@ -199,7 +199,6 @@ loanTypes: LoanTypeOption[] = [
   { value: 'hard_money', name: 'Hard Money' },
   { value: 'construction', name: 'New Construction' },
   { value: 'portfolio', name: 'Portfolio Loan' },
-  { value: 'purchase_money', name: 'Purchase Money Loan' },
   { value: 'rehab', name: 'Rehab/Renovation' },
   { value: 'sba_express', name: 'SBA Express' },
   { value: 'sba_7a', name: 'SBA 7(a)' },

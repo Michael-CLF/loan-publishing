@@ -25,41 +25,67 @@
     <h2 class="section-header">Matched Lenders ({{ matchedLenders().length }})</h2>
 
     <div *ngFor="let match of matchedLenders()" class="matched-card">
-      <div class="match-header">
-        <h3 class="match-name">
-          {{
-            match.lender.contactInfo?.firstName || match.lender.contactInfo?.lastName
+      <div class="two-column-layout">
+
+        <!-- First Column: Lender Information -->
+        <div class="lender-info-column">
+          <div class="match-title">Lender Contact Info</div>
+          <div class="match-header">
+            <h3 class="match-name">
+              {{
+              match.lender.contactInfo?.firstName || match.lender.contactInfo?.lastName
               ? (match.lender.contactInfo?.firstName || '') + ' ' + (match.lender.contactInfo?.lastName || '')
               : 'Unnamed Lender'
-          }}
-        </h3>
-        <span class="match-score">{{ match.matchScore.toFixed(2) }}%</span>
+              }}
+            </h3>
+          </div>
+
+          <p><strong>Company:</strong> {{ match.lender.contactInfo?.company }}</p>
+          <p><strong>Email:</strong> {{ match.lender.contactInfo?.contactEmail }}</p>
+          <p><strong>Phone:</strong> {{ match.lender.contactInfo?.contactPhone }}</p>
+
+
+          <button 
+  class="view-more-btn"
+  (click)="viewLenderDetails(match.lender.id)"
+  aria-label="View lender details">
+  View All Lender Details
+</button>
+        </div>
+
+        <!-- Second Column: Match Score and Breakdown -->
+        <div class="match-info-column">
+          <span class="match-score">{{ match.matchScore.toFixed(2) }}% Match</span>
+
+          <p><strong>Match Breakdown:</strong></p>
+          <ul class="breakdown">
+            <li [class.text-green-600]="match.matchBreakdown.loanType"
+              [class.text-red-600]="!match.matchBreakdown.loanType">
+              Loan Type Match
+            </li>
+            <li [class.text-green-600]="match.matchBreakdown.loanAmount"
+              [class.text-red-600]="!match.matchBreakdown.loanAmount">
+              Loan Amount Match
+            </li>
+            <li [class.text-green-600]="match.matchBreakdown.propertyType"
+              [class.text-red-600]="!match.matchBreakdown.propertyType">
+              Property Type Match
+            </li>
+            <li [class.text-green-600]="match.matchBreakdown.propertySubCategory"
+              [class.text-red-600]="!match.matchBreakdown.propertySubCategory">
+              Property Subcategory Match
+            </li>
+            <li [class.text-green-600]="match.matchBreakdown.state" [class.text-red-600]="!match.matchBreakdown.state">
+              State Match
+            </li>
+            <li [class.text-green-600]="match.matchBreakdown.ficoScore"
+              [class.text-red-600]="!match.matchBreakdown.ficoScore">
+              FICO Score Match
+            </li>
+          </ul>
+        </div>
+
       </div>
-
-      <p><strong>Email:</strong> {{ match.lender.contactInfo?.contactEmail }}</p>
-      <p><strong>Company:</strong> {{ match.lender.contactInfo?.company }}</p>
-
-      <p><strong>Match Breakdown:</strong></p>
-      <ul class="breakdown">
-        <li [class.text-green-600]="match.matchBreakdown.loanType" [class.text-red-600]="!match.matchBreakdown.loanType">
-          Loan Type Match
-        </li>
-        <li [class.text-green-600]="match.matchBreakdown.loanAmount" [class.text-red-600]="!match.matchBreakdown.loanAmount">
-          Loan Amount Match
-        </li>
-        <li [class.text-green-600]="match.matchBreakdown.propertyType" [class.text-red-600]="!match.matchBreakdown.propertyType">
-          Property Type Match
-        </li>
-        <li [class.text-green-600]="match.matchBreakdown.propertySubCategory" [class.text-red-600]="!match.matchBreakdown.propertySubCategory">
-          Property Subcategory Match
-        </li>
-        <li [class.text-green-600]="match.matchBreakdown.state" [class.text-red-600]="!match.matchBreakdown.state">
-          State Match
-        </li>
-        <li [class.text-green-600]="match.matchBreakdown.ficoScore" [class.text-red-600]="!match.matchBreakdown.ficoScore">
-          FICO Score Match
-        </li>
-      </ul>
     </div>
   </div>
 
