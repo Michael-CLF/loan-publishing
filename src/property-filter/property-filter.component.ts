@@ -1,4 +1,4 @@
-import { Component, EventEmitter, OnInit, Output, model, inject } from '@angular/core';
+import { Component, EventEmitter, OnInit, Output, Input, model, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -38,6 +38,10 @@ export class PropertyFilterComponent implements OnInit {
     maxAmount: '',
   });
 
+  // ✅ NEW: Inputs for count display
+  @Input() loanCount: number = 0;
+  @Input() isLoading: boolean = false;
+
   // Display values for formatted currency input
   displayMinAmount = '';
   displayMaxAmount = '';
@@ -45,73 +49,74 @@ export class PropertyFilterComponent implements OnInit {
   // Emit when filters are applied
   @Output() applyFilters = new EventEmitter<LoanFilters>();
 
-  // Property type options matching your existing propertyColorMap
+  // ✅ FIXED: Property types now match exactly what's stored in Firebase loans
   readonly propertyTypes = [
     'Commercial',
-    'Healthcare',
+    'Healthcare', 
     'Hospitality',
     'Industrial',
     'Land',
     'Mixed Use',
     'Multifamily',
-    'Office',
+    'Office', 
     'Residential',
     'Retail',
     'Special Purpose',
   ] as const;
 
-  // Made readonly for better immutability and properly typed
+  // ✅ FIXED: States now properly handle the mismatch between display and Firebase storage
+  // UI shows full names, but we need to send full names to match Firebase loan storage
   readonly states: StateOption[] = [
-    { name: 'Alabama', value: 'AL' },
-    { name: 'Alaska', value: 'AK' },
-    { name: 'Arizona', value: 'AZ' },
-    { name: 'Arkansas', value: 'AR' },
-    { name: 'California', value: 'CA' },
-    { name: 'Colorado', value: 'CO' },
-    { name: 'Connecticut', value: 'CT' },
-    { name: 'Delaware', value: 'DE' },
-    { name: 'Florida', value: 'FL' },
-    { name: 'Georgia', value: 'GA' },
-    { name: 'Hawaii', value: 'HI' },
-    { name: 'Idaho', value: 'ID' },
-    { name: 'Illinois', value: 'IL' },
-    { name: 'Indiana', value: 'IN' },
-    { name: 'Iowa', value: 'IA' },
-    { name: 'Kansas', value: 'KS' },
-    { name: 'Kentucky', value: 'KY' },
-    { name: 'Louisiana', value: 'LA' },
-    { name: 'Maine', value: 'ME' },
-    { name: 'Maryland', value: 'MD' },
-    { name: 'Massachusetts', value: 'MA' },
-    { name: 'Michigan', value: 'MI' },
-    { name: 'Minnesota', value: 'MN' },
-    { name: 'Mississippi', value: 'MS' },
-    { name: 'Missouri', value: 'MO' },
-    { name: 'Montana', value: 'MT' },
-    { name: 'Nebraska', value: 'NE' },
-    { name: 'Nevada', value: 'NV' },
-    { name: 'New Hampshire', value: 'NH' },
-    { name: 'New Jersey', value: 'NJ' },
-    { name: 'New Mexico', value: 'NM' },
-    { name: 'New York', value: 'NY' },
-    { name: 'North Carolina', value: 'NC' },
-    { name: 'North Dakota', value: 'ND' },
-    { name: 'Ohio', value: 'OH' },
-    { name: 'Oklahoma', value: 'OK' },
-    { name: 'Oregon', value: 'OR' },
-    { name: 'Pennsylvania', value: 'PA' },
-    { name: 'Rhode Island', value: 'RI' },
-    { name: 'South Carolina', value: 'SC' },
-    { name: 'South Dakota', value: 'SD' },
-    { name: 'Tennessee', value: 'TN' },
-    { name: 'Texas', value: 'TX' },
-    { name: 'Utah', value: 'UT' },
-    { name: 'Vermont', value: 'VT' },
-    { name: 'Virginia', value: 'VA' },
-    { name: 'Washington', value: 'WA' },
-    { name: 'West Virginia', value: 'WV' },
-    { name: 'Wisconsin', value: 'WI' },
-    { name: 'Wyoming', value: 'WY' },
+    { name: 'Alabama', value: 'Alabama' },
+    { name: 'Alaska', value: 'Alaska' },
+    { name: 'Arizona', value: 'Arizona' },
+    { name: 'Arkansas', value: 'Arkansas' },
+    { name: 'California', value: 'California' },
+    { name: 'Colorado', value: 'Colorado' },
+    { name: 'Connecticut', value: 'Connecticut' },
+    { name: 'Delaware', value: 'Delaware' },
+    { name: 'Florida', value: 'Florida' },
+    { name: 'Georgia', value: 'Georgia' },
+    { name: 'Hawaii', value: 'Hawaii' },
+    { name: 'Idaho', value: 'Idaho' },
+    { name: 'Illinois', value: 'Illinois' },
+    { name: 'Indiana', value: 'Indiana' },
+    { name: 'Iowa', value: 'Iowa' },
+    { name: 'Kansas', value: 'Kansas' },
+    { name: 'Kentucky', value: 'Kentucky' },
+    { name: 'Louisiana', value: 'Louisiana' },
+    { name: 'Maine', value: 'Maine' },
+    { name: 'Maryland', value: 'Maryland' },
+    { name: 'Massachusetts', value: 'Massachusetts' },
+    { name: 'Michigan', value: 'Michigan' },
+    { name: 'Minnesota', value: 'Minnesota' },
+    { name: 'Mississippi', value: 'Mississippi' },
+    { name: 'Missouri', value: 'Missouri' },
+    { name: 'Montana', value: 'Montana' },
+    { name: 'Nebraska', value: 'Nebraska' },
+    { name: 'Nevada', value: 'Nevada' },
+    { name: 'New Hampshire', value: 'New Hampshire' },
+    { name: 'New Jersey', value: 'New Jersey' },
+    { name: 'New Mexico', value: 'New Mexico' },
+    { name: 'New York', value: 'New York' },
+    { name: 'North Carolina', value: 'North Carolina' },
+    { name: 'North Dakota', value: 'North Dakota' },
+    { name: 'Ohio', value: 'Ohio' },
+    { name: 'Oklahoma', value: 'Oklahoma' },
+    { name: 'Oregon', value: 'Oregon' },
+    { name: 'Pennsylvania', value: 'Pennsylvania' },
+    { name: 'Rhode Island', value: 'Rhode Island' },
+    { name: 'South Carolina', value: 'South Carolina' },
+    { name: 'South Dakota', value: 'South Dakota' },
+    { name: 'Tennessee', value: 'Tennessee' },
+    { name: 'Texas', value: 'Texas' },
+    { name: 'Utah', value: 'Utah' },
+    { name: 'Vermont', value: 'Vermont' },
+    { name: 'Virginia', value: 'Virginia' },
+    { name: 'Washington', value: 'Washington' },
+    { name: 'West Virginia', value: 'West Virginia' },
+    { name: 'Wisconsin', value: 'Wisconsin' },
+    { name: 'Wyoming', value: 'Wyoming' },
   ] as const;
 
   loanTypes: LoanType[] = [];

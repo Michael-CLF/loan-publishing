@@ -284,7 +284,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       ],
     },
     {
-      value: 'special_Purpose',
+      value: 'special_purpose',
       name: 'Special Purpose',
       subcategories: [
         { value: 'auto_dealership', name: 'Auto Dealership' },

@@ -1,5 +1,7 @@
 <div class="filter-container">
-    <h2 class="filter-title">Filter Lenders</h2>
+    <div class="filter-header">
+        <h2 class="filter-title">Filter Lenders</h2>
+    </div>
 
     <div class="filter-form">
         <div class="filter-row">
@@ -51,11 +53,33 @@
                     (ngModelChange)="updateFilter('loanAmount', $event)" placeholder="Enter loan amount"
                     inputmode="numeric">
             </div>
-            <div class="filter-actions">
+        </div>
+        
+        <div class="filter-actions">
+            <div class="filter-buttons">
                 <button class="filter-btn reset-btn" (click)="onResetFilters()">
                     Reset
                 </button>
                 <a routerLink="/dashboard" class="dash-btn">Return to dashboard</a>
             </div>
+            
+            <!-- Count Badge positioned to the right of buttons -->
+            <div class="count-badge" 
+                 [ngClass]="{ 
+                    'loading': loading(),
+                    'empty': lenders().length === 0 && !loading(),
+                    'active': lenders().length > 0 
+                 }">
+                <span *ngIf="loading()" class="count-text">
+                    <i class="fas fa-spinner fa-spin"></i> Searching...
+                </span>
+                <span *ngIf="!loading() && lenders().length === 0" class="count-text">
+                    No lenders found
+                </span>
+                <span *ngIf="!loading() && lenders().length > 0" class="count-text">
+                    {{ lenders().length }} {{ lenders().length === 1 ? 'lender' : 'Lenders' }}
+                </span>
+            </div>
         </div>
     </div>
+</div>

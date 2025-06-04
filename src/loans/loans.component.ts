@@ -1,4 +1,3 @@
-// loans.component.ts
 import {
   Component,
   OnInit,
@@ -328,82 +327,39 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
     }
   }
 
+  /**
+   * ✅ FIXED: Now uses Firebase filtering instead of client-side filtering
+   */
   handleFilterApply(filters: LoanFilters): void {
     console.log('Applying filters:', filters);
+    this.loansLoading.set(true);
+    this.errorMessage.set(null);
 
-    const filteredResults = this.allLoans().filter((loan) => {
-      // Filter by property type
-      if (
-        filters.propertyTypeCategory &&
-        loan.propertyTypeCategory !== filters.propertyTypeCategory
-      ) {
-        return false;
+    // Use the new FirestoreService filterLoans method
+    this.firestoreService.filterLoans(
+      filters.propertyTypeCategory,
+      filters.state, 
+      filters.loanType,
+      filters.minAmount,
+      filters.maxAmount
+    ).subscribe({
+      next: (filteredLoans) => {
+        console.log(`Firebase returned ${filteredLoans.length} filtered loans`);
+        this.loans.set(filteredLoans);
+        this.loansLoading.set(false);
+        
+        // Check favorite status for filtered results
+        this.checkFavoriteStatus();
+      },
+      error: (error) => {
+        console.error('Error filtering loans:', error);
+        this.errorMessage.set('Failed to filter loans. Please try again.');
+        this.loansLoading.set(false);
+        
+        // Fall back to showing all loans
+        this.loans.set(this.allLoans());
       }
-
-      // Filter by state
-      if (filters.state && loan.state !== filters.state) {
-        return false;
-      }
-
-      if (
-        filters.loanType &&
-        loan.loanType?.toLowerCase() !== filters.loanType.toLowerCase()
-      ) {
-        return false;
-      }
-
-      // Parse loan amount - remove any formatting characters
-      const loanAmountString = String(loan.loanAmount || '0');
-      const loanAmount = Number(loanAmountString.replace(/[^0-9.-]/g, ''));
-
-      // Parse min amount - remove any formatting characters
-      let minAmount = 0;
-      if (filters.minAmount) {
-        const minAmountString = String(filters.minAmount);
-        minAmount = Number(minAmountString.replace(/[^0-9.-]/g, ''));
-      }
-
-      // Parse max amount - remove any formatting characters
-      let maxAmount = Number.MAX_VALUE; // Default to a very high number
-      if (filters.maxAmount) {
-        const maxAmountString = String(filters.maxAmount);
-        maxAmount = Number(maxAmountString.replace(/[^0-9.-]/g, ''));
-      }
-
-      // Debug values
-      console.log(
-        `Loan: ${loan.id}, Amount: ${loanAmount}, Min: ${minAmount}, Max: ${maxAmount}`
-      );
-
-      // Check for NaN values
-      if (isNaN(loanAmount)) {
-        console.warn(
-          `Invalid loan amount for loan ${loan.id}: ${loan.loanAmount}`
-        );
-        return false; // Filter out loans with invalid amounts
-      }
-
-      // Filter by min amount
-      if (filters.minAmount && !isNaN(minAmount) && loanAmount < minAmount) {
-        return false;
-      }
-
-      // Filter by max amount
-      if (filters.maxAmount && !isNaN(maxAmount) && loanAmount > maxAmount) {
-        return false;
-      }
-
-      return true;
     });
-
-    console.log(
-      `Filtered from ${this.allLoans().length} to ${
-        filteredResults.length
-      } loans`
-    );
-
-    // Update the displayed loans with the filtered results
-    this.loans.set(filteredResults);
   }
 
   /**

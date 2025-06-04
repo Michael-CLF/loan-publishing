@@ -1,4 +1,3 @@
-// lender-filter.component.ts
 import {
   Component,
   EventEmitter,
@@ -24,9 +23,17 @@ export class LenderFilterComponent implements OnInit {
   // Output event to emit when filters are applied
   private filterService = inject(LenderFilterService);
 
-  // Use the filters from the service
+  // ✅ NEW: Expose signals for count badge display
   get filters() {
     return this.filterService.filters;
+  }
+
+  get lenders() {
+    return this.filterService.lenders;
+  }
+
+  get loading() {
+    return this.filterService.loading;
   }
 
   // ADDED: Define loanTypes for template compatibility
@@ -35,7 +42,7 @@ export class LenderFilterComponent implements OnInit {
     return this.loanTypeOptions;
   }
 
-  // Lender types
+  // Lender types - these match Firebase exactly
   lenderTypeOptions: FilterOption[] = [
     { value: 'agency', name: 'Agency Lender' },
     { value: 'balance sheet', name: 'Balance Sheet' },
@@ -60,22 +67,22 @@ export class LenderFilterComponent implements OnInit {
     { value: 'usda', name: 'USDA Lender' },
   ];
 
-  // Property categories
+  // ✅ FIXED: Property categories now match Firebase lender storage exactly (lowercase with underscores)
   propertyCategoryOptions: FilterOption[] = [
     { value: 'commercial', name: 'Commercial' },
     { value: 'healthcare', name: 'Healthcare' },
     { value: 'hospitality', name: 'Hospitality' },
     { value: 'industrial', name: 'Industrial' },
     { value: 'land', name: 'Land' },
-    { value: 'mixed-use', name: 'Mixed Use' },
+    { value: 'mixed_use', name: 'Mixed Use' },
     { value: 'multifamily', name: 'Multifamily' },
     { value: 'office', name: 'Office' },
     { value: 'residential', name: 'Residential' },
     { value: 'retail', name: 'Retail' },
-    { value: 'special-purpose', name: 'Special Purpose' },
+    { value: 'special_purpose', name: 'Special Purpose' },
   ];
 
-  // Loan Types with display names
+  // ✅ FIXED: Loan Types now match Firebase lender storage exactly (lowercase with underscores)
   loanTypeOptions: FilterOption[] = [
     { value: 'agency', name: 'Agency' },
     { value: 'bridge', name: 'Bridge' },
@@ -85,13 +92,14 @@ export class LenderFilterComponent implements OnInit {
     { value: 'general', name: 'General' },
     { value: 'hard_money', name: 'Hard Money' },
     { value: 'mezzanine', name: 'Mezzanine' },
-    { value: 'non-qm', name: 'Non-QM' },
+    { value: 'non_qm', name: 'Non-QM' },
     { value: 'rehab', name: 'Rehab' },
     { value: 'sba', name: 'SBA' },
     { value: 'usda', name: 'USDA' },
   ];
 
-  // FIXED: Change to simple string array like the working loan filter
+  // ✅ FIXED: States now send full names to be converted to abbreviations by FirestoreService
+  // This matches what lenders expect in their footprintInfo.lendingFootprint (state abbreviations)
   states = [
     'Alabama', 'Alaska', 'Arizona', 'Arkansas', 'California', 'Colorado', 
     'Connecticut', 'Delaware', 'Florida', 'Georgia', 'Hawaii', 'Idaho', 

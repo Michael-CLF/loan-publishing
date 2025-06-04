@@ -23,7 +23,7 @@ export const PROPERTY_CATEGORIES: Record<string, string> = {
   office: 'Office',
   residential: 'Residential',
   retail: 'Retail',
-  special_purpose: 'Special purpose',
+  special_purpose: 'Special Purpose',
 };
 
 // Complete property subcategory mappings

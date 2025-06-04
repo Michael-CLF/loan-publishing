@@ -130,6 +130,11 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       });
   }
 
+  formatCategoryName(category: string): string {
+  return getPropertyCategoryName(category);
+}
+
+
   goBack(): void {
     this.router.navigate(['/lender-list']);
   }
@@ -236,9 +241,15 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return `${firstName} ${lastName}`.trim() || 'Not specified';
   }
 
-  getCompanyName(): string {
-    return this.lender?.contactInfo?.company || 'Not specified';
-  }
+  getCompanyName(lender: any): string {
+  const topCompany = lender.company;
+  const contactInfoCompany = lender.contactInfo?.company;
+
+  const company = (topCompany || contactInfoCompany || '').trim();
+  return company !== '' ? company : 'N/A';
+}
+
+
 
   getEmail(): string {
     return this.lender?.contactInfo?.contactEmail || 'Not specified';

@@ -20,7 +20,7 @@
     </div>
 
     <div class="company">
-        <span class="company-header">{{ getCompanyName() }}</span>
+        <span class="company-header">{{ getCompanyName(lender) }}</span>
     </div>
 
     <div *ngIf="loading" class="text-center my-8">
@@ -85,7 +85,10 @@
                     <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
                         <div class="subcategory">
                             <div class="category-header" [ngStyle]="getCategoryStyle(category.key)">
-                                {{ category.key }}
+                             {{ formatCategoryName(category.key) }}
+
+
+
                             </div>
 
 
@@ -100,7 +103,6 @@
                 </div>
             </div>
         </div>
-
 
 
         <!-- Loan Types Section (conditional) -->

@@ -68,6 +68,7 @@ interface LoanTypeOption {
 export class DashboardComponent implements OnInit {
   // Dependency injection
   private readonly authService = inject(AuthService);
+  
   private readonly router = inject(Router);
   private readonly firestore = inject(Firestore);
   private readonly firestoreService = inject(FirestoreService);
@@ -409,29 +410,38 @@ export class DashboardComponent implements OnInit {
    * ✅ FIXED: Load notification preferences with proper error handling and signal updates
    */
   private loadNotificationPreferencesFromService(): void {
-    this.authService.waitForAuthInit().pipe(
-      switchMap(() => this.authService.isLoggedIn$),
-      filter(isLoggedIn => isLoggedIn),
-      take(1),
-      switchMap(() => this.notificationPreferencesService.getNotificationPreferences())
-    ).subscribe({
-      next: (preferences: any) => {
-        console.log('✅ Loaded notification preferences:', preferences);
+  console.log('🔍 Loading notification preferences...');
+  
+  this.authService.waitForAuthInit().pipe(
+    switchMap(() => this.authService.isLoggedIn$),
+    filter(isLoggedIn => isLoggedIn),
+    take(1),
+    switchMap(() => {
+      console.log('🔍 Calling getNotificationPreferences...');
+      return this.notificationPreferencesService.getNotificationPreferences();
+    })
+  ).subscribe({
+    next: (preferences: any) => {
+      console.log('🔍 Raw server response:', preferences);
+      console.log('🔍 wantsEmailNotifications value:', preferences?.wantsEmailNotifications);
+      
+        const actualPrefs = preferences?.data?.preferences || preferences?.preferences || preferences;
+  
+  if (actualPrefs) {
+    // ✅ Use actualPrefs instead of preferences
+    this.notificationPrefs.set({
+      wantsEmailNotifications: actualPrefs.wantsEmailNotifications || false, // ← Use actualPrefs!
+      propertyCategories: actualPrefs.propertyCategory || [],
+      subcategorySelections: actualPrefs.subcategorySelections || [],
+      loanTypes: actualPrefs.loanTypes || [], 
+      minLoanAmount: actualPrefs.minLoanAmount || 0,
+      ficoScore: actualPrefs.ficoScore || 0,
+      footprint: actualPrefs.footprint || [],
+    });
+     console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
+  } else {
 
-        if (preferences) {
-          // ✅ Update the signal with loaded preferences
-          this.notificationPrefs.set({
-            wantsEmailNotifications: preferences.wantsEmailNotifications || false,
-            propertyCategories: preferences.propertyCategory || [],
-            subcategorySelections: preferences.subcategorySelections || [],
-            loanTypes: preferences.loanTypes || [], 
-            minLoanAmount: preferences.minLoanAmount || 0,
-            ficoScore: preferences.ficoScore || 0,
-            footprint: preferences.footprint || [],
-          });
-          
-          console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
-        } else {
+  
           console.warn('⚠️ No notification preferences found. Using defaults.');
           this.notificationPrefs.set({
             wantsEmailNotifications: false,

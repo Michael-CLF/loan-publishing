@@ -1,4 +1,75 @@
-/* lender-filter.component.css */
+/* Filter Header with Title and Count Badge */
+.filter-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.filter-title {
+  font-size: 2rem;
+  font-weight: 600;
+  color: #0a2463;
+  margin: 0;
+  font-family: "Roboto", sans-serif;
+}
+
+/* Count Badge Styles - positioned next to title */
+.count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  font-size: 1rem;
+  transition: all 0.3s ease;
+  min-width: 120px;
+  justify-content: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-family: "Roboto", sans-serif;
+}
+
+.count-badge.loading {
+  background: #0a2463;
+  color: white;
+  animation: pulse 2s infinite;
+}
+
+.count-badge.empty {
+  background: #cdcdcd;
+  color: white;
+}
+
+.count-badge.active {
+  background: #0a2463;
+  color: white;
+}
+
+.count-text {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.count-badge .fa-spinner {
+  font-size: 0.75rem;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* Filter Container */
 .filter-container {
   background-color: #f8f9fa;
   border-radius: 8px;
@@ -24,15 +95,10 @@
   min-width: 200px;
 }
 
-.filter-title {
-  color: #0a2463;
-  font-family: "roboto", sans-serif;
-}
-
 label {
   display: block;
   margin-bottom: 6px;
-  font-family: "roboto", sans-serif;
+  font-family: "Roboto", sans-serif;
   font-weight: 500;
   color: #0a2463;
 }
@@ -44,20 +110,33 @@ input {
   border: 1px solid #ced4da;
   border-radius: 4px;
   font-size: 14px;
+  color: #0a2463;
+  font-family: "Roboto", sans-serif;
 }
 
+select:focus,
+input:focus {
+  outline: none;
+  border-color: #008080;
+  box-shadow: 0 0 0 2px rgba(0, 128, 128, 0.2);
+}
+
+/* Fixed Filter Actions - wider buttons, no wrapping */
 .filter-actions {
   display: flex;
   gap: 12px;
   margin-top: 8px;
+  flex-wrap: nowrap; /* Prevent wrapping */
 }
 
 button {
-  padding: 8px 16px;
+  padding: 8px 24px; /* Wider padding */
   border: none;
   border-radius: 4px;
   cursor: pointer;
   font-weight: 500;
+  white-space: nowrap; /* Prevent text wrapping */
+  min-width: 100px; /* Minimum width */
 }
 
 .apply-btn {
@@ -74,6 +153,7 @@ button {
   background-color: #6c757d;
   color: white;
   font-family: "Roboto", sans-serif;
+  margin-right: 10px;
 }
 
 .reset-btn:hover {
@@ -83,28 +163,53 @@ button {
 .dash-btn {
   background-color: #008080;
   color: white;
-  padding: 8px 12px;
+  padding: 8px 24px; /* Wider padding to match buttons */
   border: none;
   border-radius: 4px;
   font-family: "Roboto", sans-serif;
   text-decoration: none;
   display: inline-block;
   cursor: pointer;
-  margin-right: 8px;
+  white-space: nowrap; /* Prevent text wrapping */
+  min-width: 140px; /* Wider minimum for longer text */
 }
 
 .dash-btn:hover {
   background-color: #0a2463;
 }
 
+/* Responsive Design */
 @media (max-width: 768px) {
+  .filter-header {
+    flex-direction: row; /* Keep header elements side by side */
+    justify-content: space-between;
+    align-items: center;
+  }
+  
   .filter-group {
     min-width: 100%;
   }
+  
+  .filter-actions {
+    flex-wrap: wrap; /* Allow wrapping on very small screens */
+    justify-content: flex-start;
+  }
+  
+  button,
+  .dash-btn {
+    min-width: auto; /* Allow smaller buttons on mobile */
+    padding: 8px 16px;
+  }
 }
 
-select {
-  color: #0a2463;
-  font-family: "roboto", sans-serif;
-  font-size: 1rem;
+@media (max-width: 480px) {
+  .filter-header {
+    flex-direction: column; /* Stack on very small screens */
+    align-items: flex-start;
+  }
+  
+  .count-badge {
+    align-self: center;
+    margin-top: 0.5rem;
+  }
 }

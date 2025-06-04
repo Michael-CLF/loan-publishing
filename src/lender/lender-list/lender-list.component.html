@@ -33,7 +33,8 @@
             {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
           </td>
           <td class="lender-detail">
-            {{ lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A' }}
+          {{ lender.company ? lender.company.trim() : (lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A') }}
+
           </td>
           <td class="lender-detail">
             <div *ngIf="lender.productInfo?.lenderTypes">
@@ -51,22 +52,20 @@
     </table>
 
     <div class="pagination-controls">
-  <!-- Prev button -->
- <!-- Previous -->
-<button class="page-arrow" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Previous page">
-  <i class="fas fa-chevron-left"></i>
-</button>
+      <!-- Prev button -->
+      <!-- Previous -->
+      <button class="page-arrow" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Previous page">
+        <i class="fas fa-chevron-left"></i>
+      </button>
 
-<!-- Page Info -->
-<span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
+      <!-- Page Info -->
+      <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
 
-<!-- Next -->
-<button class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Next page">
-  <i class="fas fa-chevron-right"></i>
-</button>
+      <!-- Next -->
+      <button class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Next page">
+        <i class="fas fa-chevron-right"></i>
+      </button>
 
-</div>
-
-
+    </div>
   </div>
 </div>

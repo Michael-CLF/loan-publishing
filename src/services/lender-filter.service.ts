@@ -1,4 +1,3 @@
-// src/app/services/lender-filter.service.ts
 import { Injectable, signal, effect, inject, computed } from '@angular/core';
 import { LenderFilters } from '../models/lender-filters.model';
 import { FirestoreService } from './firestore.service';
@@ -21,7 +20,7 @@ export class LenderFilterService {
   private lendersSignal = signal<any[]>([]);
   private loadingSignal = signal<boolean>(false);
 
-  // Auto-fetch data when filters change
+  // ✅ FIXED: Auto-fetch data when filters change using the corrected filterLenders method
   private fetchEffect = effect(() => {
     const filters = this.filtersSignal();
 

@@ -328,6 +328,9 @@ deleteDocument(path: string): Promise<void> {
     });
   }
 
+  /**
+   * 🔧 FIXED: Filter lenders with corrected field mappings
+   */
   filterLenders(
     lenderType: string = '',
     propertyCategory: string = '',
@@ -340,6 +343,7 @@ deleteDocument(path: string): Promise<void> {
       let q = query(collectionRef);
       const queryConstraints: QueryConstraint[] = [];
 
+      // ✅ FIXED: Lender type filtering (this was already correct)
       if (lenderType) {
         queryConstraints.push(where('productInfo.lenderTypes', 'array-contains', lenderType));
       }
@@ -350,18 +354,25 @@ deleteDocument(path: string): Promise<void> {
 
       return collectionData(q, { idField: 'id' }).pipe(
         map((lenders) => lenders.filter((lender: any) => {
+          
+          // ✅ FIXED: Property category filtering - handle both formats and normalize
           if (propertyCategory) {
-            const category = propertyCategory.toLowerCase();
-            const categories = (lender.productInfo?.propertyCategories || []).map((c: string) => c.toLowerCase());
-            if (!categories.includes(category)) return false;
+            const normalizedCategory = propertyCategory.toLowerCase().replace(/-/g, '_');
+            const categories = (lender.productInfo?.propertyCategories || [])
+              .map((c: string) => c.toLowerCase().replace(/\s+/g, '_'));
+            
+            if (!categories.includes(normalizedCategory)) return false;
           }
 
+          // ✅ FIXED: State filtering - now uses correct field and converts full name to abbreviation
           if (state) {
-            const stateKey = state.toLowerCase();
-            const states = Object.keys(lender.footprintInfo?.states || {}).map((s) => s.toLowerCase());
-            if (!states.includes(stateKey)) return false;
+            const stateAbbr = this.getStateAbbreviation(state);
+            const lenderStates = lender.footprintInfo?.lendingFootprint || [];
+            
+            if (!lenderStates.includes(stateAbbr)) return false;
           }
 
+          // ✅ FIXED: Loan amount filtering (this was already working correctly)
           if (loanAmount) {
             const amount = Number(loanAmount.replace(/[^0-9.]/g, ''));
             const min = Number(lender.productInfo?.minLoanAmount) || 0;
@@ -369,9 +380,12 @@ deleteDocument(path: string): Promise<void> {
             if (amount < min || amount > max) return false;
           }
 
+          // ✅ FIXED: Loan type filtering - normalize comparison
           if (loanType) {
-            const selectedLoanType = loanType.toLowerCase();
-            const loanTypes = (lender.productInfo?.loanTypes || []).map((t: any) => typeof t === 'string' ? t.toLowerCase() : (t?.value || '').toLowerCase());
+            const selectedLoanType = loanType.toLowerCase().replace(/-/g, '_');
+            const loanTypes = (lender.productInfo?.loanTypes || [])
+              .map((t: any) => typeof t === 'string' ? t.toLowerCase() : (t?.value || '').toLowerCase());
+            
             if (!loanTypes.includes(selectedLoanType)) return false;
           }
 
@@ -383,5 +397,112 @@ deleteDocument(path: string): Promise<void> {
         })
       ) as Observable<any[]>;
     });
+  }
+
+  /**
+   * 🆕 NEW: Filter loans method - now properly queries Firebase
+   */
+  filterLoans(
+    propertyTypeCategory: string = '',
+    state: string = '',
+    loanType: string = '',
+    minAmount: string = '',
+    maxAmount: string = ''
+  ): Observable<any[]> {
+    return this.runSafely(() => {
+      const collectionRef = collection(this.firestore, 'loans');
+      let q = query(collectionRef);
+      const queryConstraints: QueryConstraint[] = [];
+
+      // Build Firestore queries for fields that can be efficiently queried
+      if (propertyTypeCategory) {
+        queryConstraints.push(where('propertyTypeCategory', '==', propertyTypeCategory));
+      }
+
+      if (state) {
+        queryConstraints.push(where('state', '==', state));
+      }
+
+      if (loanType) {
+        queryConstraints.push(where('loanType', '==', loanType.toLowerCase()));
+      }
+
+      if (queryConstraints.length > 0) {
+        q = query(q, ...queryConstraints);
+      }
+
+      return collectionData(q, { idField: 'id' }).pipe(
+        map((loans) => loans.filter((loan: any) => {
+          
+          // Client-side filtering for loan amount ranges (Firestore doesn't support range queries with other filters)
+          if (minAmount || maxAmount) {
+            const loanAmountString = String(loan.loanAmount || '0');
+            const loanAmount = Number(loanAmountString.replace(/[^0-9.-]/g, ''));
+
+            if (minAmount) {
+              const minAmountNum = Number(minAmount.replace(/[^0-9.-]/g, ''));
+              if (loanAmount < minAmountNum) return false;
+            }
+
+            if (maxAmount) {
+              const maxAmountNum = Number(maxAmount.replace(/[^0-9.-]/g, ''));
+              if (loanAmount > maxAmountNum) return false;
+            }
+          }
+
+          return true;
+        })),
+        catchError((error) => {
+          console.error('Error filtering loans:', error);
+          return of([]);
+        })
+      ) as Observable<any[]>;
+    });
+  }
+
+  /**
+   * 🆕 NEW: Helper method to convert full state name to abbreviation
+   */
+  private getStateAbbreviation(stateName: string): string {
+    const stateMap: { [key: string]: string } = {
+      'alabama': 'AL', 'alaska': 'AK', 'arizona': 'AZ', 'arkansas': 'AR',
+      'california': 'CA', 'colorado': 'CO', 'connecticut': 'CT', 'delaware': 'DE',
+      'florida': 'FL', 'georgia': 'GA', 'hawaii': 'HI', 'idaho': 'ID',
+      'illinois': 'IL', 'indiana': 'IN', 'iowa': 'IA', 'kansas': 'KS',
+      'kentucky': 'KY', 'louisiana': 'LA', 'maine': 'ME', 'maryland': 'MD',
+      'massachusetts': 'MA', 'michigan': 'MI', 'minnesota': 'MN', 'mississippi': 'MS',
+      'missouri': 'MO', 'montana': 'MT', 'nebraska': 'NE', 'nevada': 'NV',
+      'new hampshire': 'NH', 'new jersey': 'NJ', 'new mexico': 'NM', 'new york': 'NY',
+      'north carolina': 'NC', 'north dakota': 'ND', 'ohio': 'OH', 'oklahoma': 'OK',
+      'oregon': 'OR', 'pennsylvania': 'PA', 'rhode island': 'RI', 'south carolina': 'SC',
+      'south dakota': 'SD', 'tennessee': 'TN', 'texas': 'TX', 'utah': 'UT',
+      'vermont': 'VT', 'virginia': 'VA', 'washington': 'WA', 'west virginia': 'WV',
+      'wisconsin': 'WI', 'wyoming': 'WY'
+    };
+
+    return stateMap[stateName.toLowerCase()] || stateName;
+  }
+
+  /**
+   * 🆕 NEW: Helper method to convert state abbreviation to full name
+   */
+  private getStateFullName(stateAbbr: string): string {
+    const stateMap: { [key: string]: string } = {
+      'AL': 'Alabama', 'AK': 'Alaska', 'AZ': 'Arizona', 'AR': 'Arkansas',
+      'CA': 'California', 'CO': 'Colorado', 'CT': 'Connecticut', 'DE': 'Delaware',
+      'FL': 'Florida', 'GA': 'Georgia', 'HI': 'Hawaii', 'ID': 'Idaho',
+      'IL': 'Illinois', 'IN': 'Indiana', 'IA': 'Iowa', 'KS': 'Kansas',
+      'KY': 'Kentucky', 'LA': 'Louisiana', 'ME': 'Maine', 'MD': 'Maryland',
+      'MA': 'Massachusetts', 'MI': 'Michigan', 'MN': 'Minnesota', 'MS': 'Mississippi',
+      'MO': 'Missouri', 'MT': 'Montana', 'NE': 'Nebraska', 'NV': 'Nevada',
+      'NH': 'New Hampshire', 'NJ': 'New Jersey', 'NM': 'New Mexico', 'NY': 'New York',
+      'NC': 'North Carolina', 'ND': 'North Dakota', 'OH': 'Ohio', 'OK': 'Oklahoma',
+      'OR': 'Oregon', 'PA': 'Pennsylvania', 'RI': 'Rhode Island', 'SC': 'South Carolina',
+      'SD': 'South Dakota', 'TN': 'Tennessee', 'TX': 'Texas', 'UT': 'Utah',
+      'VT': 'Vermont', 'VA': 'Virginia', 'WA': 'Washington', 'WV': 'West Virginia',
+      'WI': 'Wisconsin', 'WY': 'Wyoming'
+    };
+
+    return stateMap[stateAbbr.toUpperCase()] || stateAbbr;
   }
 }
