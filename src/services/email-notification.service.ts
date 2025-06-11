@@ -236,7 +236,7 @@ sendEventConfirmation(email: string, firstName: string): Observable<EmailNotific
 
   const sendEventConfirmationFn = httpsCallable<{ email: string, firstName: string }, EmailNotificationResponse>(
     this.functions,
-    'sendEventConfirmationEmail'  // ✅ Correct function name
+    'sendEventConfirmationEmailCallable'
   );
 
   const requestData = { 
