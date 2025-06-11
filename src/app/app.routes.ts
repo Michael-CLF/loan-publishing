@@ -25,6 +25,7 @@ import { AdminComponent } from 'src/components/admin/admin.component';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
+import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -33,6 +34,9 @@ export const routes: Routes = [
     path: 'account/edit',
     component: EditAccountComponent,
     canActivate: [AuthGuard],
+  },
+   {
+    path: 'event-registration', component: EventRegistrationComponent,
   },
   { path: '', component: HomeComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },
