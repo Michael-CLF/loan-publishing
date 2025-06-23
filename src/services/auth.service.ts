@@ -1165,12 +1165,16 @@ registerUser(
 
   /**
    * Set registration success flag - used by Stripe callback
-   * Angular 18 best practice: Use signals for reactive state
    */
-  setRegistrationSuccess(success: boolean): void {
-    this.registrationSuccess.set(success);
-    console.log('Registration success flag set to:', success);
+setRegistrationSuccess(success: boolean): void {
+  this.registrationSuccess.set(success);
+  if (success) {
+    localStorage.setItem('showRegistrationModal', 'true');
+  } else {
+    localStorage.removeItem('showRegistrationModal');
   }
+  console.log('Registration success flag set to:', success);
+}
 
   /**
    * Get registration success flag - used by dashboard component
@@ -1185,10 +1189,10 @@ registerUser(
    * Angular 18 best practice: Explicit state management
    */
   clearRegistrationSuccess(): void {
-    this.registrationSuccess.set(false);
-    console.log('Registration success flag cleared');
-  }
-
+  this.registrationSuccess.set(false);
+  localStorage.removeItem('showRegistrationModal');
+  console.log('Registration success flag cleared');
+}
   /**
    * Get registration success as signal for reactive components
    * Angular 18 best practice: Signal-based reactivity

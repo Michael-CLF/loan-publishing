@@ -233,15 +233,21 @@ export class DashboardComponent implements OnInit {
  * Check if user just completed registration via Stripe
  */
 private checkForRegistrationSuccess(): void {
-  if (this.authService.getRegistrationSuccess()) {
+  const isSuccess = this.authService.getRegistrationSuccess() || 
+                    localStorage.getItem('showRegistrationModal') === 'true';
+
+  if (isSuccess) {
     console.log('Registration success detected, opening modal via ModalService');
     this.modalService.openUserRegSuccessModal();
-    // Clear the flag after a delay to match modal auto-close timing
+
+    // Clear both flag types after modal display
     setTimeout(() => {
       this.authService.clearRegistrationSuccess();
+      localStorage.removeItem('showRegistrationModal');
     }, 4000);
   }
 }
+
 
 /**
  * Close registration success modal
