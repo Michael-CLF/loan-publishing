@@ -223,27 +223,37 @@ export class AuthService implements OnDestroy, CanActivate {
   private resolveAuthInconsistency(): void {
     if (this.isBrowser) {
       console.log('AuthService: Checking for auth inconsistencies');
-      console.log(
-        'localStorage isLoggedIn:',
-        localStorage.getItem('isLoggedIn')
-      );
+      console.log( 'localStorage isLoggedIn:', localStorage.getItem('isLoggedIn'));
       console.log('Current Firebase user:', this.auth.currentUser);
+      console.log('Current URL:', window.location.href);
+
+      const isFromStripeCallback = window.location.pathname.includes('payment-callback');
 
       // If localStorage thinks we're logged in but Firebase doesn't have a current user
       if (
         localStorage.getItem('isLoggedIn') === 'true' &&
-        !this.auth.currentUser
+        !this.auth.currentUser &&
+          !isFromStripeCallback
       ) {
-        console.log(
-          'Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not'
-        );
-        // Clear the localStorage flag
-        localStorage.removeItem('isLoggedIn');
-        // Update the login state
-        this.isLoggedInSubject.next(false);
-        this.userProfileSubject.next(null);
-        // Force a redirect to login
-        this.router.navigate(['/login']);
+        console.log('Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not');
+      // Clear the localStorage flag
+      localStorage.removeItem('isLoggedIn');
+      // Update the login state
+      this.isLoggedInSubject.next(false);
+      this.userProfileSubject.next(null);
+      // Force a redirect to login
+      this.router.navigate(['/login']);
+    } else if (isFromStripeCallback) {
+      console.log('Coming from Stripe callback - giving Firebase time to restore auth');
+      // Give Firebase 3 seconds to restore auth session
+      setTimeout(() => {
+        if (!this.auth.currentUser && localStorage.getItem('isLoggedIn') === 'true') {
+          console.log('Firebase did not restore auth after Stripe callback');
+          localStorage.removeItem('isLoggedIn');
+          this.isLoggedInSubject.next(false);
+          this.router.navigate(['/login']);
+        }
+      }, 3000);
       }
     }
   }
