@@ -1,6 +1,4 @@
 // dashboard.component.ts
-
-// Import what we need
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
@@ -112,6 +110,7 @@ export class DashboardComponent implements OnInit {
   
   // ✅ Signal for saving state
   savingOptIn = signal(false);
+  showRegistrationSuccessModal = signal(false);
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -211,6 +210,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
     this.subscribeToAuthState();
+    this.checkForRegistrationSuccess();
   }
 
   /**
@@ -228,6 +228,29 @@ export class DashboardComponent implements OnInit {
       }
     });
   }
+
+ /**
+ * Check if user just completed registration via Stripe
+ */
+private checkForRegistrationSuccess(): void {
+  if (this.authService.getRegistrationSuccess()) {
+    console.log('Registration success detected, opening modal via ModalService');
+    this.modalService.openUserRegSuccessModal();
+    // Clear the flag after a delay to match modal auto-close timing
+    setTimeout(() => {
+      this.authService.clearRegistrationSuccess();
+    }, 4000);
+  }
+}
+
+/**
+ * Close registration success modal
+ */
+closeRegistrationSuccessModal(): void {
+  this.showRegistrationSuccessModal.set(false);
+  this.authService.clearRegistrationSuccess();
+}
+
 
   /**
    * Handle logged out state

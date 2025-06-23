@@ -26,18 +26,18 @@ import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
-
+import { StripeCallbackComponent } from '../components/stripe-callback/stripe-callback.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
-
   {
     path: 'account/edit',
     component: EditAccountComponent,
     canActivate: [AuthGuard],
   },
-   {
-    path: 'event-registration', component: EventRegistrationComponent,
+  {
+    path: 'event-registration', 
+    component: EventRegistrationComponent,
   },
   { path: '', component: HomeComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },
@@ -50,7 +50,6 @@ export const routes: Routes = [
   { path: 'user-form', component: UserFormComponent },
   { path: 'login', component: EmailLoginComponent },
   { path: 'login/verify', component: EmailLoginComponent },
-
   { path: 'lender-registration', component: LenderRegistrationComponent },
   { path: 'lender-contact', component: LenderContactComponent },
   { path: 'lender-product', component: LenderProductComponent },
@@ -59,6 +58,14 @@ export const routes: Routes = [
   { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
+  
+  // ✅ ADD THIS: The missing payment-callback route
+  { 
+    path: 'payment-callback', 
+    component: StripeCallbackComponent 
+  },
+  
+  // ✅ OPTIONAL: Keep these redirects or remove them entirely
   {
     path: 'payment/success',
     redirectTo: '/payment-callback?payment=success',
@@ -90,7 +97,7 @@ export const routes: Routes = [
     component: DashboardComponent,
     canActivate: [AuthGuard],
   },
-   {
+  {
     path: 'originator-details/:id',
     component: OriginatorDetailsComponent,
   },

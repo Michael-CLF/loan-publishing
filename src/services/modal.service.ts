@@ -62,11 +62,13 @@ export class ModalService implements OnDestroy {
       this.closeModal();
     });
 
-    // Auto-redirect to dashboard after 3 seconds
-    setTimeout(() => {
-      this.closeModal();
-      this.router.navigate(['/dashboard']);
-    }, 3000);
+   // Auto-close after 3 seconds (don't redirect if already on dashboard)
+setTimeout(() => {
+  this.closeModal();
+  if (!this.router.url.includes('/dashboard')) {
+    this.router.navigate(['/dashboard']);
+  }
+}, 3000);
   }
 
   openLenderRegistrationSuccessModal(): void {

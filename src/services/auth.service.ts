@@ -5,6 +5,7 @@ import {
   PLATFORM_ID,
   NgZone,
   OnDestroy,
+  signal,
 } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import {
@@ -101,6 +102,7 @@ export class AuthService implements OnDestroy, CanActivate {
   // User profile - keep as UserData for backward compatibility
   private userProfileSubject = new BehaviorSubject<UserData | null>(null);
   public userProfile$ = this.userProfileSubject.asObservable();
+  private registrationSuccess = signal<boolean>(false);
 
   // Auth initialization state
   private authReadySubject = new BehaviorSubject<boolean>(false);
@@ -1130,7 +1132,7 @@ registerUser(
    * Helper method to convert user data for compatibility
    * This helps fix the original TypeScript error
    */
-  convertUserData(
+ convertUserData(
     userData: UserData,
     targetType: 'originator' | 'lender' | 'user'
   ): any {
@@ -1146,5 +1148,39 @@ registerUser(
       default:
         return userData;
     }
+  }
+
+  /**
+   * Set registration success flag - used by Stripe callback
+   * Angular 18 best practice: Use signals for reactive state
+   */
+  setRegistrationSuccess(success: boolean): void {
+    this.registrationSuccess.set(success);
+    console.log('Registration success flag set to:', success);
+  }
+
+  /**
+   * Get registration success flag - used by dashboard component
+   * Angular 18 best practice: Expose signals as readonly
+   */
+  getRegistrationSuccess(): boolean {
+    return this.registrationSuccess();
+  }
+
+  /**
+   * Clear registration success flag - call after showing modal
+   * Angular 18 best practice: Explicit state management
+   */
+  clearRegistrationSuccess(): void {
+    this.registrationSuccess.set(false);
+    console.log('Registration success flag cleared');
+  }
+
+  /**
+   * Get registration success as signal for reactive components
+   * Angular 18 best practice: Signal-based reactivity
+   */
+  get registrationSuccessSignal() {
+    return this.registrationSuccess.asReadonly();
   }
 }
