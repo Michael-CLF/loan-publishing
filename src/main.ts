@@ -8,6 +8,14 @@ import { provideClientHydration } from '@angular/platform-browser';
 import { initializeApp } from 'firebase/app';
 import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 import { environment } from './environments/environment';
+import { registerLocaleData } from '@angular/common';
+import localeEn from '@angular/common/locales/en';
+
+// Register English locale globally to fix ./en error
+registerLocaleData(localeEn);
+
+bootstrapApplication(AppComponent, appConfig)
+  .catch((err) => console.error(err));
 
 const app = initializeApp(environment.firebase);
 
