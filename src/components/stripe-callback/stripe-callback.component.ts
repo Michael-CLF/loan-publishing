@@ -78,26 +78,6 @@ export class StripeCallbackComponent implements OnInit {
   private handleSuccessfulPayment(): void {
     // Set registration success flag in AuthService for dashboard modal
     this.authService.setRegistrationSuccess(true);
-    
-    // Show success modal briefly, then redirect
-    this.showSuccessModal.set(true);
-    
-    // Auto-redirect to dashboard after 3 seconds
-    setTimeout(() => {
-      this.redirectToDashboard();
-    }, 3000);
-  }
-
-  public redirectToDashboard(): void {
-    this.showSuccessModal.set(false);
     this.router.navigate(['/dashboard']);
-  }
-
-  public goToPricing(): void {
-    this.router.navigate(['/pricing']);
-  }
-
-  public goToHome(): void {
-    this.router.navigate(['/']);
   }
 }
