@@ -45,6 +45,7 @@ import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
+import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -62,7 +63,7 @@ interface LoanTypeOption {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule], 
+  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent], 
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
