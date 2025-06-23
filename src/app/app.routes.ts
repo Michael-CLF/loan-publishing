@@ -27,6 +27,7 @@ import { OriginatorDetailsComponent } from 'src/components/originator-details/or
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 
+
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
 
@@ -58,6 +59,16 @@ export const routes: Routes = [
   { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
+  {
+    path: 'payment/success',
+    redirectTo: '/payment-callback?payment=success',
+    pathMatch: 'full'
+  },
+  {
+    path: 'payment/cancel',
+    redirectTo: '/payment-callback?payment=cancel',
+    pathMatch: 'full'
+  },
 
   {
     path: 'loan-details',

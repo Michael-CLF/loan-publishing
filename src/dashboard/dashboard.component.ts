@@ -26,6 +26,8 @@ import {
 } from '@angular/fire/firestore';
 import { switchMap, filter, take, finalize } from 'rxjs/operators';
 import { collection } from '@angular/fire/firestore';
+import { ActivatedRoute } from '@angular/router';
+import { ModalService } from '../services/modal.service';
 
 // Services
 import { AuthService } from '../services/auth.service';
@@ -40,7 +42,6 @@ import { SavedLoan } from '../models/saved-loan.model';
 import { Loan } from '../models/loan-model.model';
 import { getUserId } from '../utils/user-helpers';
 import { UserData } from '../models';
-import { ModalService } from '../services/modal.service';
 import { LocationService } from '../services/location.service';
 import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
@@ -68,7 +69,7 @@ interface LoanTypeOption {
 export class DashboardComponent implements OnInit {
   // Dependency injection
   private readonly authService = inject(AuthService);
-  
+  private route = inject(ActivatedRoute);
   private readonly router = inject(Router);
   private readonly firestore = inject(Firestore);
   private readonly firestoreService = inject(FirestoreService);
@@ -312,6 +313,8 @@ export class DashboardComponent implements OnInit {
     this.loading = false;
     this.router.navigate(['/login']);
   }
+
+
 
   /**
    * Fetch user profile from Firestore

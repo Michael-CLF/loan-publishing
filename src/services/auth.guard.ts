@@ -5,9 +5,10 @@ import {
   RouterStateSnapshot,
   Router,
 } from '@angular/router';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { filter, map, take, switchMap } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 @Injectable({
   providedIn: 'root',
@@ -15,6 +16,7 @@ import { AuthService } from './auth.service';
 export class AuthGuard implements CanActivate {
   private router = inject(Router);
   private authService = inject(AuthService);
+  private firestore = inject(Firestore); // ADD THIS
 
   canActivate(
     route: ActivatedRouteSnapshot,
@@ -57,14 +59,62 @@ export class AuthGuard implements CanActivate {
       // Then check if user is logged in
       switchMap(() => this.authService.isLoggedIn$),
       take(1),
-      map((isLoggedIn) => {
-        if (isLoggedIn) {
-          return true;
+      // ADD SUBSCRIPTION CHECK
+      switchMap((isLoggedIn) => {
+        if (!isLoggedIn) {
+          // If user is not logged in, redirect to login
+          this.router.navigate(['/login']);
+          return of(false);
+        }
+        
+        // User is logged in, now check subscription status
+        return this.checkUserSubscriptionStatus();
+      })
+    );
+  }
+
+  // ADD THIS METHOD
+  private checkUserSubscriptionStatus(): Observable<boolean> {
+    return this.authService.getCurrentUser().pipe(
+      take(1),
+      switchMap(async (user) => {
+        if (!user || !user.uid) {
+          this.router.navigate(['/login']);
+          return false;
         }
 
-        // If user is not logged in, redirect to login
-        this.router.navigate(['/login']);
-        return false;
+        // Check both collections for the user
+        const collections = ['originators', 'lenders'];
+        
+        for (const collection of collections) {
+          const userRef = doc(this.firestore, `${collection}/${user.uid}`);
+          const userSnap = await getDoc(userRef);
+          
+          if (userSnap.exists()) {
+            const userData = userSnap.data();
+            
+            // Check if user has completed registration and payment
+            if (userData['subscriptionStatus'] === 'pending' || 
+                userData['registrationCompleted'] === false) {
+              
+              console.log('User has pending subscription, redirecting to complete payment');
+              
+              // Create checkout session and redirect
+              // Note: You might want to store the user data and redirect to a payment page
+              // For now, we'll just prevent access
+              alert('Please complete your subscription payment to access this area.');
+              this.router.navigate(['/pricing']);
+              return false;
+            }
+            
+            // User has active subscription
+            return true;
+          }
+        }
+        
+        // User document not found in either collection
+        console.error('User document not found in any collection');
+        return true; // Allow access but user might need to complete profile
       })
     );
   }

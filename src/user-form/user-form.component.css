@@ -136,3 +136,174 @@ button:disabled {
 .invalid {
   border: 2px solid #c00000;
 }
+/* Pricing Section Styles */
+.pricing-section {
+  margin: 2rem 0;
+  padding: 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 1px solid #e9ecef;
+  width: 800px;
+}
+
+.pricing-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.pricing-header h3 {
+  color: #0a2463;
+  font-family: 'roboto', sans-serif;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 500;
+}
+
+.pricing-subtitle {
+  color: #008080;
+  font-family: 'roboto', sans-serif;
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.billing-options {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 768px) {
+  .billing-options {
+    grid-template-columns: 1fr;
+  }
+}
+
+.billing-card {
+  background: white;
+  border: 2px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.billing-card:hover {
+  border-color: #2c5aa0;
+  box-shadow: 0 4px 12px rgba(44, 90, 160, 0.15);
+}
+
+.billing-card.selected {
+  border-color: #0a2463;
+  background: #f0f7ff;
+  box-shadow: 0 4px 12px rgba(44, 90, 160, 0.2);
+}
+
+.billing-card.popular {
+  border-color: #0b5345;
+}
+
+.billing-card.popular.selected {
+  border-color: #0b5345;
+  background: #f0fff4;
+}
+
+.popular-badge {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #0b5345;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.billing-header {
+  margin-bottom: 1rem;
+}
+
+.billing-radio {
+  margin-right: 0.75rem;
+  transform: scale(1.2);
+}
+
+.billing-label {
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.billing-period {
+  font-size: 1.2rem;
+  font-family: 'roboto', sans-serif;
+  font-weight: 500;
+  color: #0a2463;
+}
+
+.billing-price {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #0a2463;
+  font-family: 'roboto', sans-serif;
+}
+
+.billing-savings {
+  font-size: 0.9rem;
+  color: #0b5345;
+  font-weight: 600;
+  font-family: 'roboto', sans-serif;
+}
+
+.billing-features {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.billing-features li {
+  padding: 0.25rem 0;
+  color: #0a2463;
+  font-weight: 500;
+  font-size: .95rem;
+  font-family: 'roboto', sans-serif;
+}
+
+.billing-features li:before {
+  content: "✓";
+  color: #0b5345;
+  font-weight: bold;
+  margin-right: 0.5rem;
+}
+
+.price-summary {
+  border: 1px solid #008080;
+  border-radius: 8px;
+  padding: 1.5rem;
+  color: #0a2463;
+  font-family: 'roboto', sans-serif;
+}
+
+.summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.summary-row:last-child {
+  border-bottom: none;
+}
+
+.summary-row.total {
+  font-weight: 600;
+  font-size: 1.1rem;
+  padding-top: 1rem;
+  border-top: 2px solid #dee2e6;
+  margin-top: 0.5rem;
+}

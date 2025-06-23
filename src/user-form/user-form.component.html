@@ -144,6 +144,88 @@
                 </label>
             </div>
 
+            <!-- Add this section in your form, probably after the state field -->
+
+<!-- Pricing Selection Section - Place before Terms of Service -->
+<div class="pricing-section">
+  <div class="pricing-header">
+    <h3>Choose Your Plan</h3>
+    <p class="pricing-subtitle">Select your billing frequency</p>
+  </div>
+
+  <div class="billing-options">
+    <!-- Monthly Option -->
+    <div class="billing-card" 
+         [class.selected]="userForm.get('interval')?.value === 'monthly'"
+         (click)="selectBilling('monthly')">
+      <div class="billing-header">
+        <input type="radio" 
+               formControlName="interval" 
+               value="monthly" 
+               id="monthly"
+               class="billing-radio">
+        <label for="monthly" class="billing-label">
+          <span class="billing-period">Monthly</span>
+          <span class="billing-price">$149.00/month</span>
+        </label>
+      </div>
+      <div class="billing-details">
+        <ul class="billing-features">
+          <li>Billed monthly</li>
+          <li>Cancel anytime</li>
+          <li>Full access to platform</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- Annual Option -->
+    <div class="billing-card popular" 
+         [class.selected]="userForm.get('interval')?.value === 'annually'"
+         (click)="selectBilling('annually')">
+      <div class="popular-badge">Most Popular</div>
+      <div class="billing-header">
+        <input type="radio" 
+               formControlName="interval" 
+               value="annually" 
+               id="annually"
+               class="billing-radio">
+        <label for="annually" class="billing-label">
+          <span class="billing-period">Annually</span>
+          <span class="billing-price">$1610.00/year</span>
+          <span class="billing-savings">Save $178.00</span>
+        </label>
+      </div>
+      <div class="billing-details">
+        <ul class="billing-features">
+          <li>Billed annually</li>
+          <li>10% savings vs monthly</li>
+          <li>Full access to platform</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Price Summary -->
+  <div class="price-summary">
+    <div class="summary-row">
+      <span>Plan:</span>
+      <span>Originator {{ userForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
+    </div>
+    
+    <div class="summary-row total">
+      <span>Total:</span>
+      <span *ngIf="userForm.get('applyTrial')?.value">
+        $0.00 for 90 days, then {{ userForm.get('interval')?.value === 'monthly' ? '$149.00/month' : '$1610.00/year' }}
+      </span>
+      <span *ngIf="!userForm.get('applyTrial')?.value">
+        {{ userForm.get('interval')?.value === 'monthly' ? '$149.00/month' : '$1610.00/year' }}
+      </span>
+    </div>
+  </div>
+</div>
+
+
             <!-- Button - moved inside form but full width -->
             <div class="button-container full-width">
                 <button type="submit" [disabled]="userForm.invalid || isLoading">
