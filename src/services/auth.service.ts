@@ -227,15 +227,18 @@ export class AuthService implements OnDestroy, CanActivate {
       console.log('Current Firebase user:', this.auth.currentUser);
       console.log('Current URL:', window.location.href);
 
-      const isFromStripeCallback = window.location.pathname.includes('payment-callback');
+     const isFromStripeCallback = window.location.pathname.includes('payment-callback') || 
+                                 window.location.href.includes('payment-callback');
+
+        console.log('Is from Stripe callback:', isFromStripeCallback);
 
       // If localStorage thinks we're logged in but Firebase doesn't have a current user
-      if (
-        localStorage.getItem('isLoggedIn') === 'true' &&
-        !this.auth.currentUser &&
-          !isFromStripeCallback
-      ) {
-        console.log('Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not');
+        if (
+      localStorage.getItem('isLoggedIn') === 'true' &&
+      !this.auth.currentUser &&
+      !isFromStripeCallback  // ← Don't redirect if from Stripe
+    ) {
+      console.log('Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not');
       // Clear the localStorage flag
       localStorage.removeItem('isLoggedIn');
       // Update the login state
