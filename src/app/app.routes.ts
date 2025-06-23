@@ -27,6 +27,7 @@ import { OriginatorDetailsComponent } from 'src/components/originator-details/or
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { StripeCallbackComponent } from '../components/stripe-callback/stripe-callback.component';
+import { stripeCallbackResolver } from '../components/stripe-callback/stripe-callback.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -62,7 +63,8 @@ export const routes: Routes = [
   // ✅ ADD THIS: The missing payment-callback route
   { 
     path: 'payment-callback', 
-    component: StripeCallbackComponent 
+    component: StripeCallbackComponent,
+    resolve: { success: stripeCallbackResolver }
   },
   
   // ✅ OPTIONAL: Keep these redirects or remove them entirely
