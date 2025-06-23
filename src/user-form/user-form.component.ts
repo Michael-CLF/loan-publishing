@@ -197,6 +197,7 @@ export class UserFormComponent implements OnInit {
         switchMap((user) => {
           if (user && user.uid) {
             // Create Stripe checkout session
+            localStorage.setItem('showRegistrationModal', 'true');           
             return this.stripeService.createCheckoutSession({
               email: formData.email,
               role: 'originator',
