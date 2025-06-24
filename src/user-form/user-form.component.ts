@@ -187,52 +187,52 @@ export class UserFormComponent implements OnInit {
           subscriptionStatus: 'pending', // Mark as pending until payment
           registrationCompleted: false // Flag to track full registration
         })
-         .pipe(
-        // MODIFIED: Get the current user after registration
-        switchMap(() => {
-          // Get the current authenticated user
-          return this.authService.getCurrentUser().pipe(take(1));
-        }),
-        // MODIFIED: Create Stripe checkout session
-        switchMap((user) => {
-          if (user && user.uid) {
-            // Create Stripe checkout session
-            localStorage.setItem('showRegistrationModal', 'true');           
-            return this.stripeService.createCheckoutSession({
-              email: formData.email,
-              role: 'originator',
-              interval: formData.interval as 'monthly' | 'annually',
-              userId: user.uid,
-              userData: {
-                firstName: formData.firstName,
-                lastName: formData.lastName,
-                company: formData.company,
-                phone: formData.phone,
-                city: formData.city,
-                state: formData.state,
-              }
-            });
-          } else {
-            throw new Error('User registration succeeded but user not found');
-          }
-        }),
-        tap((checkoutResponse) => {
-          // Redirect to Stripe Checkout
-          window.location.href = checkoutResponse.url;
-        }),
-        catchError((error) => {
-          this.isLoading = false;
-          console.error('Registration error:', error);
-          if (error.code === 'auth/email-already-in-use') {
-            this.errorMessage =
-              'This email is already registered. Please use a different email or login with your existing account.';
-          } else {
-            this.errorMessage = error.message || 'Registration failed. Please try again.';
-          }
-          return of(null);
-        })
-      )
-      .subscribe();
-  });
-}
+        .pipe(
+          // MODIFIED: Get the current user after registration
+          switchMap(() => {
+            // Get the current authenticated user
+            return this.authService.getCurrentUser().pipe(take(1));
+          }),
+          // MODIFIED: Create Stripe checkout session
+          switchMap((user) => {
+            if (user && user.uid) {
+              // Create Stripe checkout session
+              localStorage.setItem('showRegistrationModal', 'true');
+              return this.stripeService.createCheckoutSession({
+                email: formData.email,
+                role: 'originator',
+                interval: formData.interval as 'monthly' | 'annually',
+                userData: {
+                  firstName: formData.firstName,
+                  lastName: formData.lastName,
+                  company: formData.company,
+                  phone: formData.phone,
+                  city: formData.city,
+                  state: formData.state,
+                }
+              });
+
+            } else {
+              throw new Error('User registration succeeded but user not found');
+            }
+          }),
+          tap((checkoutResponse) => {
+            // Redirect to Stripe Checkout
+            window.location.href = checkoutResponse.url;
+          }),
+          catchError((error) => {
+            this.isLoading = false;
+            console.error('Registration error:', error);
+            if (error.code === 'auth/email-already-in-use') {
+              this.errorMessage =
+                'This email is already registered. Please use a different email or login with your existing account.';
+            } else {
+              this.errorMessage = error.message || 'Registration failed. Please try again.';
+            }
+            return of(null);
+          })
+        )
+        .subscribe();
+    });
+  }
 }

@@ -5,12 +5,15 @@ export interface PropertySubcategory {
   name: string;
 }
 
+// Already present in property-mappings.ts?
 export interface PropertyCategory {
   value: string;
   name: string;
-  subcategories: PropertySubcategory[];
+  subcategories: {
+    value: string;
+    name: string;
+  }[];
 }
-
 // Property category mappings
 export const PROPERTY_CATEGORIES: Record<string, string> = {
   commercial: 'Commercial',

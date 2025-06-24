@@ -331,7 +331,7 @@ export class LenderProductComponent implements OnInit {
     // If we should select all, add all subcategories
     if (shouldSelect) {
       const formArray = this.subcategorySelectionsArray;
-      category.subcategories.forEach((subcategory) => {
+      category.subcategories?.forEach((subcategory) => {
         formArray.push(
           new FormControl(`${categoryValue}:${subcategory.value}`)
         );
@@ -351,13 +351,13 @@ export class LenderProductComponent implements OnInit {
     if (
       !category ||
       !category.subcategories ||
-      category.subcategories.length === 0
+      category.subcategories?.length === 0
     )
       return false;
 
     return (
       this.getSelectedSubcategoriesCount(categoryValue) ===
-      category.subcategories.length
+      category.subcategories?.length
     );
   }
 

@@ -1,0 +1,115 @@
+<div class="payment-container">
+  <div class="payment-card">
+    <!-- Payment Header -->
+    <div class="payment-header">
+      <p class="payment-subtitle">Choose your Plan</p>
+    </div> 
+
+    <!-- Payment Form -->
+    <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" novalidate>
+      
+      <!-- Lender Pricing Selection Section -->
+      <div class="pricing-section">
+        <div class="pricing-header">
+          <h3>Choose Your Lender Plan</h3>
+          <p class="pricing-subtitle">Select your billing frequency</p>
+        </div>
+
+        <div class="billing-options">
+          <!-- Monthly Option -->
+          <div class="billing-card" 
+               [class.selected]="paymentForm.get('interval')?.value === 'monthly'"
+               (click)="selectBilling('monthly')">
+            <div class="billing-header">
+              <input type="radio" 
+                     formControlName="interval" 
+                     value="monthly" 
+                     id="lender-monthly"
+                     class="billing-radio">
+              <label for="lender-monthly" class="billing-label">
+                <span class="billing-period">Monthly</span>
+                <span class="billing-price">$149.00/month</span>
+              </label>
+            </div>
+            <div class="billing-details">
+              <ul class="billing-features">
+                <li>Billed monthly</li>
+                <li>Cancel anytime</li>
+                <li>Full lender platform access</li>
+                <li>Unlimited loan submissions</li>
+              </ul>
+            </div>
+          </div>
+
+          <!-- Annual Option -->
+          <div class="billing-card popular" 
+               [class.selected]="paymentForm.get('interval')?.value === 'annually'"
+               (click)="selectBilling('annually')">
+            <div class="popular-badge">Most Popular</div>
+            <div class="billing-header">
+              <input type="radio" 
+                     formControlName="interval" 
+                     value="annually" 
+                     id="lender-annually"
+                     class="billing-radio">
+              <label for="lender-annually" class="billing-label">
+                <span class="billing-period">Annually</span>
+                <span class="billing-price">$1610.00/year</span>
+                <span class="billing-savings">Save {{ getSavingsAmount() }}</span>
+              </label>
+            </div>
+            <div class="billing-details">
+              <ul class="billing-features">
+                <li>Billed annually</li>
+                <li>10% savings vs monthly</li>
+                <li>Full lender platform access</li>
+                <li>Unlimited loan submissions</li>
+                <li>Priority support</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Price Summary -->
+        <div class="price-summary">
+          <div class="summary-row">
+            <span>Plan:</span>
+            <span>Lender {{ paymentForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
+          </div>
+          
+          <div class="summary-row total">
+            <span>Total:</span>
+            <span *ngIf="paymentForm.get('applyTrial')?.value">
+              $0.00 for 90 days, then {{ getDisplayPrice() }}
+            </span>
+            <span *ngIf="!paymentForm.get('applyTrial')?.value">
+              {{ getDisplayPrice() }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Form Validation Errors -->
+      <div class="form-errors" 
+           *ngIf="paymentForm.get('interval')?.invalid && paymentForm.get('interval')?.touched">
+        <p class="error-text">Please select a billing option</p>
+      </div>
+
+      <!-- Submit Button -->
+      <div class="button-container">
+        <button type="submit" 
+                class="payment-button"
+                [disabled]="paymentForm.invalid || isLoading"
+                [class.loading]="isLoading">
+          <span *ngIf="!isLoading">Complete Registration</span>
+          <span *ngIf="isLoading">Processing...</span>
+        </button>
+      </div>
+
+      <!-- Error Message -->
+      <div *ngIf="errorMessage" class="error-message">
+        <p>{{ errorMessage }}</p>
+      </div>
+    </form>
+  </div>
+</div>

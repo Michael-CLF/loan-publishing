@@ -20,6 +20,13 @@ export class LenderRegSuccessModalComponent implements OnDestroy {
   countdown = 5; // 5 seconds before auto-redirect
   private timer: any;
 
+  public isVisible = false;
+
+  open(): void {
+    this.isVisible = true;
+  }
+
+
   @Output() modalClosed = new EventEmitter<void>();
 
   constructor() {

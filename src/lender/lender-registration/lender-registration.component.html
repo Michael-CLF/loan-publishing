@@ -13,56 +13,144 @@
         <div class="step" [ngClass]="{'active': currentStep === 2, 'completed': currentStep > 2}">
             Lending Footprint
         </div>
-        <div class="step" [ngClass]="{'active': currentStep === 3}">
+        <div class="step" [ngClass]="{'active': currentStep === 3, 'completed': currentStep > 3}">
             Review
+        </div>
+        <div class="step" [ngClass]="{'active': currentStep === 4}">
+            Payment
         </div>
     </div>
 
     <div class="form-container">
         <form [formGroup]="lenderForm">
             @if (currentStep === 0) {
-            <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
+                <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
             } @else if (currentStep === 1) {
-            <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
-                [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes">
-            </app-lender-product>
+                <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
+                    [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes">
+                </app-lender-product>
             } @else if (currentStep === 2) {
-            <app-lender-footprint [lenderForm]="lenderForm" [footprintLocation]="states">
-            </app-lender-footprint>
-
+                <app-lender-footprint [lenderForm]="lenderForm" [footprintLocation]="states">
+                </app-lender-footprint>
             } @else if (currentStep === 3) {
-            <app-lender-review [lenderForm]="lenderForm" [states]="states" [lenderTypes]="lenderTypes"
-                [propertyCategories]="propertyCategories" [loanTypes]="loanTypes">
-            </app-lender-review>
+                <app-lender-review [lenderForm]="lenderForm" [states]="states" [lenderTypes]="lenderTypes"
+                    [propertyCategories]="propertyCategories" [loanTypes]="loanTypes">
+                </app-lender-review>
+            } @else if (currentStep === 4) {
+                <!-- Payment Step Content -->
+                <div class="payment-section">
+                    <h3>Choose Your Lender Plan</h3>
+                    <p class="pricing-subtitle">Select your billing frequency</p>
+                    
+                    <div class="billing-options">
+                        <!-- Monthly Option -->
+                        <div class="billing-card" 
+                             [class.selected]="lenderForm.get('interval')?.value === 'monthly'"
+                             (click)="selectBilling('monthly')">
+                            <div class="billing-header">
+                                <input type="radio" 
+                                       formControlName="interval" 
+                                       value="monthly" 
+                                       id="lender-monthly"
+                                       class="billing-radio">
+                                <label for="lender-monthly" class="billing-label">
+                                    <span class="billing-period">Monthly</span>
+                                    <span class="billing-price">$149.00/month</span>
+                                </label>
+                            </div>
+                            <div class="billing-details">
+                                <ul class="billing-features">
+                                    <li>Billed monthly</li>
+                                    <li>Cancel anytime</li>
+                                    <li>Full lender platform access</li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- Annual Option -->
+                        <div class="billing-card popular" 
+                             [class.selected]="lenderForm.get('interval')?.value === 'annually'"
+                             (click)="selectBilling('annually')">
+                            <div class="popular-badge">Most Popular</div>
+                            <div class="billing-header">
+                                <input type="radio" 
+                                       formControlName="interval" 
+                                       value="annually" 
+                                       id="lender-annually"
+                                       class="billing-radio">
+                                <label for="lender-annually" class="billing-label">
+                                    <span class="billing-period">Annually</span>
+                                    <span class="billing-price">$1610.00/year</span>
+                                    <span class="billing-savings">Save $178.00</span>
+                                </label>
+                            </div>
+                            <div class="billing-details">
+                                <ul class="billing-features">
+                                    <li>Billed annually</li>
+                                    <li>10% savings vs monthly</li>
+                                    <li>Full lender platform access</li>
+                                    <li>Priority support</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Price Summary -->
+                    <div class="price-summary">
+                        <div class="summary-row">
+                            <span>Plan:</span>
+                            <span>Lender {{ lenderForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
+                        </div>
+                        
+                        <div class="summary-row total">
+                            <span>Total:</span>
+                            <span>{{ lenderForm.get('interval')?.value === 'monthly' ? '$149.00/month' : '$1610.00/year' }}</span>
+                        </div>
+                    </div>
+                </div>
             }
 
             @if (errorMessage) {
-            <div class="error-message">{{ errorMessage }}</div>
+                <div class="error-message">{{ errorMessage }}</div>
             }
 
             @if (successMessage) {
-            <div class="success-message">{{ successMessage }}</div>
+                <div class="success-message">{{ successMessage }}</div>
             }
 
             <div class="button-container">
+                <!-- Previous button for steps 1-4 -->
                 @if (currentStep > 0) {
-                <button type="button" class="btn btn-secondary" (click)="prevStep()">
-                    Previous
-                </button>
+                    <button type="button" class="btn btn-secondary" (click)="prevStep()">
+                        Previous
+                    </button>
                 }
 
-                @if (currentStep < 3) { <button type="button" class="btn btn-primary" id="next-btn" (click)="nextStep()"
-                    [disabled]="!getStepFormGroup().valid">
-                    Next
+                <!-- Next button for steps 0-2 -->
+                @if (currentStep >= 0 && currentStep <= 2) {
+                    <button type="button" class="btn btn-primary" id="next-btn" (click)="nextStep()">
+                        Next
                     </button>
-                    }
+                }
 
-                    @if (currentStep === 3) {
-                    <button type="button" class="btn btn-success" id="lender-submit-btn" [disabled]="!lenderForm.valid"
-                        (click)="submitForm()">
-                        Submit
+                <!-- Proceed to Payment button for step 3 (Review) -->
+                @if (currentStep === 3) {
+                    <button type="button" class="btn btn-success" id="proceed-to-payment-btn" 
+                        [disabled]="!lenderForm.get('termsAccepted')?.value"
+                        (click)="nextStep()">
+                        Proceed to Payment
                     </button>
-                    }
+                }
+
+                <!-- Complete Registration button for step 4 (Payment) -->
+                @if (currentStep === 4) {
+                    <button type="submit" class="btn btn-success" 
+                        [disabled]="!lenderForm.get('interval')?.value || isLoading"
+                        (click)="submitForm()">
+                        <span *ngIf="!isLoading">Complete Registration</span>
+                        <span *ngIf="isLoading">Processing...</span>
+                    </button>
+                }
             </div>
         </form>
     </div>

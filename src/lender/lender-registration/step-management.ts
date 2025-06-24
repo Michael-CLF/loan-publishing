@@ -14,12 +14,14 @@ export interface Step {
   providedIn: 'root',
 })
 export class StepManagementService {
-  private steps: Step[] = [
-    { id: 0, name: 'Contact Information', completed: false, valid: false },
-    { id: 1, name: 'Product Details', completed: false, valid: false },
-    { id: 2, name: 'Lending Footprint', completed: false, valid: false },
-    { id: 3, name: 'Review', completed: false, valid: false },
-  ];
+private steps: Step[] = [
+  { id: 0, name: 'Contact Information', completed: false, valid: false },
+  { id: 1, name: 'Product Details', completed: false, valid: false },
+  { id: 2, name: 'Lending Footprint', completed: false, valid: false },
+  { id: 3, name: 'Review', completed: false, valid: false },
+  { id: 4, name: 'Payment', completed: false, valid: false },
+];
+
 
   private currentStepSubject = new BehaviorSubject<number>(0);
   currentStep$ = this.currentStepSubject.asObservable();

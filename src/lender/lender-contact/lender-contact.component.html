@@ -57,6 +57,22 @@
                 </div>
             </div>
 
+              <!-- Email -->
+            <div class="form-group">
+                <label for="contactEmail">Email</label>
+                <input id="contactEmail" type="email" formControlName="contactEmail"
+                    [ngClass]="{'invalid': lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched}" />
+                <div *ngIf="lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched"
+                    class="error">
+                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['required']">
+                        *Email is required.
+                    </div>
+                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['email']">
+                        *Please enter a valid email address.
+                    </div>
+                </div>
+            </div>
+
             <!-- Contact Phone -->
             <div class="form-group">
                 <label for="contactPhone">Phone</label>
@@ -73,22 +89,6 @@
                     </div>
                     <div *ngIf="lenderForm.get('contactPhone')?.errors?.['invalidLength']">
                         *Please enter 10 digits.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Email -->
-            <div class="form-group">
-                <label for="contactEmail">Email</label>
-                <input id="contactEmail" type="email" formControlName="contactEmail"
-                    [ngClass]="{'invalid': lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched}" />
-                <div *ngIf="lenderForm.get('contactEmail')?.invalid && lenderForm.get('contactEmail')?.touched"
-                    class="error">
-                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['required']">
-                        *Email is required.
-                    </div>
-                    <div *ngIf="lenderForm.get('contactEmail')?.errors?.['email']">
-                        *Please enter a valid email address.
                     </div>
                 </div>
             </div>

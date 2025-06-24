@@ -9,15 +9,16 @@ import {
   Validators,
 } from '@angular/forms';
 import {
-  PropertyCategory,
   StateOption,
   LenderTypeOption,
   LoanTypes,
   SubCategory,
 } from '../lender-registration/lender-registration.component';
-import { debounceTime, distinctUntilChanged, switchMap } from 'rxjs/operators';
 import { FirestoreService } from 'src/services/firestore.service';
 import { AuthService } from 'src/services/auth.service';
+// ✅ CORRECT
+import { PropertyCategory } from '../../shared/constants/property-mappings';
+
 
 interface CountyInfo {
   state: string;
@@ -154,7 +155,7 @@ export class LenderReviewComponent implements OnInit {
           (c) => c.value === categoryCode
         );
         if (category && category.subcategories) {
-          category.subcategories.forEach((subcategory) => {
+         category.subcategories?.forEach((subcategory: { value: string; name: string }) => {
             this.selectedPropertyTypes.push({
               category: this.getPropertyCategoryName(categoryCode),
               subcategory: subcategory.name,
@@ -167,8 +168,9 @@ export class LenderReviewComponent implements OnInit {
       propertyTypes.forEach((typeCode: string) => {
         // Find which category this subcategory belongs to
         for (const category of this.propertyCategories) {
-          const foundSubcategory = category.subcategories.find(
-            (sc) => sc.value === typeCode
+          const foundSubcategory = category.subcategories?.find(
+            (sc: { value: string; name: string }) => sc.value === typeCode
+
           );
           if (foundSubcategory) {
             this.selectedPropertyTypes.push({
