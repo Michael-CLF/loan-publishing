@@ -967,6 +967,10 @@ export class AuthService implements OnDestroy, CanActivate {
             city: additionalData.city || '',
             state: additionalData.state || '',
             role: role,
+            // ✅ FIXED: Add subscription status fields for lenders
+            subscriptionStatus: additionalData.subscriptionStatus || 'pending',
+            registrationCompleted: additionalData.registrationCompleted || false,
+            paymentPending: additionalData.paymentPending || true,
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             contactInfo: {
@@ -978,6 +982,9 @@ export class AuthService implements OnDestroy, CanActivate {
               city: additionalData.city || '',
               state: additionalData.state || '',
             },
+            // ✅ FIXED: Add the complete lender data
+            productInfo: additionalData.productInfo,
+            footprintInfo: additionalData.footprintInfo,
           };
 
           return from(
@@ -1017,10 +1024,10 @@ export class AuthService implements OnDestroy, CanActivate {
             city: additionalData.city || '',
             state: additionalData.state || '',
             role: role,
-            subscriptionStatus: additionalData.subscriptionStatus || 'pending',  
-            registrationCompleted: additionalData.registrationCompleted || false, 
-            paymentPending: additionalData.paymentPending || false,               
-            billingInterval: additionalData.billingInterval || 'monthly',          
+            subscriptionStatus: additionalData.subscriptionStatus || 'pending',
+            registrationCompleted: additionalData.registrationCompleted || false,
+            paymentPending: additionalData.paymentPending || false,
+            billingInterval: additionalData.billingInterval || 'monthly',
             createdAt: serverTimestamp(),
             updatedAt: serverTimestamp(),
             contactInfo: {
