@@ -46,6 +46,7 @@ import { getPropertySubcategoryName } from '../shared/constants/property-mapping
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
+import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -63,7 +64,7 @@ interface LoanTypeOption {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent], 
+  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent, LenderRegSuccessModalComponent], 
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
@@ -112,6 +113,7 @@ export class DashboardComponent implements OnInit {
   // ✅ Signal for saving state
   savingOptIn = signal(false);
   showRegistrationSuccessModal = signal(false);
+  showLenderRegistrationSuccessModal = signal(false);
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -238,14 +240,30 @@ private checkForRegistrationSuccess(): void {
                     localStorage.getItem('showRegistrationModal') === 'true';
 
   if (isSuccess) {
-    console.log('Registration success detected, opening modal via ModalService');
-    this.modalService.openUserRegSuccessModal();
+    console.log('Registration success detected, user role:', this.userRole);
+    
+    // Show appropriate modal based on user type
+    if (this.userRole === 'originator') {
+      console.log('Showing originator registration success modal');
+      this.showRegistrationSuccessModal.set(true);
+  } else if (this.userRole === 'lender') {
+      console.log('Showing lender registration success modal');
+      this.showLenderRegistrationSuccessModal.set(true);
+    } else {
+      // If role not yet determined, wait and check again
+      setTimeout(() => {
+        if (this.userRole) {
+          this.checkForRegistrationSuccess();
+        }
+      }, 500);
+      return;
+    }
 
-    // Clear both flag types after modal display
+    // Clear flags after modal display
     setTimeout(() => {
       this.authService.clearRegistrationSuccess();
       localStorage.removeItem('showRegistrationModal');
-    }, 4000);
+    }, 1000);
   }
 }
 
@@ -255,6 +273,14 @@ private checkForRegistrationSuccess(): void {
  */
 closeRegistrationSuccessModal(): void {
   this.showRegistrationSuccessModal.set(false);
+  this.authService.clearRegistrationSuccess();
+}
+
+/**
+ * Close lender registration success modal
+ */
+closeLenderRegistrationSuccessModal(): void {
+  this.showLenderRegistrationSuccessModal.set(false);
   this.authService.clearRegistrationSuccess();
 }
 

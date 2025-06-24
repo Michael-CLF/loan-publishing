@@ -223,40 +223,40 @@ export class AuthService implements OnDestroy, CanActivate {
   private resolveAuthInconsistency(): void {
     if (this.isBrowser) {
       console.log('AuthService: Checking for auth inconsistencies');
-      console.log( 'localStorage isLoggedIn:', localStorage.getItem('isLoggedIn'));
+      console.log('localStorage isLoggedIn:', localStorage.getItem('isLoggedIn'));
       console.log('Current Firebase user:', this.auth.currentUser);
       console.log('Current URL:', window.location.href);
 
-     const isFromStripeCallback = window.location.pathname.includes('payment-callback') || 
-                                 window.location.href.includes('payment-callback');
+      const isFromStripeCallback = window.location.pathname.includes('payment-callback') ||
+        window.location.href.includes('payment-callback');
 
-        console.log('Is from Stripe callback:', isFromStripeCallback);
+      console.log('Is from Stripe callback:', isFromStripeCallback);
 
       // If localStorage thinks we're logged in but Firebase doesn't have a current user
-        if (
-      localStorage.getItem('isLoggedIn') === 'true' &&
-      !this.auth.currentUser &&
-      !isFromStripeCallback  // ← Don't redirect if from Stripe
-    ) {
-      console.log('Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not');
-      // Clear the localStorage flag
-      localStorage.removeItem('isLoggedIn');
-      // Update the login state
-      this.isLoggedInSubject.next(false);
-      this.userProfileSubject.next(null);
-      // Force a redirect to login
-      this.router.navigate(['/login']);
-    } else if (isFromStripeCallback) {
-      console.log('Coming from Stripe callback - giving Firebase time to restore auth');
-      // Give Firebase 3 seconds to restore auth session
-      setTimeout(() => {
-        if (!this.auth.currentUser && localStorage.getItem('isLoggedIn') === 'true') {
-          console.log('Firebase did not restore auth after Stripe callback');
-          localStorage.removeItem('isLoggedIn');
-          this.isLoggedInSubject.next(false);
-          this.router.navigate(['/login']);
-        }
-      }, 3000);
+      if (
+        localStorage.getItem('isLoggedIn') === 'true' &&
+        !this.auth.currentUser &&
+        !isFromStripeCallback  // ← Don't redirect if from Stripe
+      ) {
+        console.log('Fixing inconsistent auth state: localStorage thinks user is logged in but Firebase does not');
+        // Clear the localStorage flag
+        localStorage.removeItem('isLoggedIn');
+        // Update the login state
+        this.isLoggedInSubject.next(false);
+        this.userProfileSubject.next(null);
+        // Force a redirect to login
+        this.router.navigate(['/login']);
+      } else if (isFromStripeCallback) {
+        console.log('Coming from Stripe callback - giving Firebase time to restore auth');
+        // Give Firebase 3 seconds to restore auth session
+        setTimeout(() => {
+          if (!this.auth.currentUser && localStorage.getItem('isLoggedIn') === 'true') {
+            console.log('Firebase did not restore auth after Stripe callback');
+            localStorage.removeItem('isLoggedIn');
+            this.isLoggedInSubject.next(false);
+            this.router.navigate(['/login']);
+          }
+        }, 3000);
       }
     }
   }
@@ -934,131 +934,136 @@ export class AuthService implements OnDestroy, CanActivate {
     );
   }
 
- /**
- * Register new user
- */
-registerUser(
-  email: string,
-  password: string,
-  additionalData: any = {}
-): Observable<any> {
-  const normalizedEmail = email.toLowerCase();
-  const role = additionalData.role || 'originator';
+  /**
+  * Register new user
+  */
+  registerUser(
+    email: string,
+    password: string,
+    additionalData: any = {}
+  ): Observable<any> {
+    const normalizedEmail = email.toLowerCase();
+    const role = additionalData.role || 'originator';
 
-  console.log('Registering user with email:', normalizedEmail, 'and role:', role);
+    console.log('Registering user with email:', normalizedEmail, 'and role:', role);
 
-  return from(
-    this.ngZone.runOutsideAngular(() =>
-      createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
-    )
-  ).pipe(
-    switchMap((cred) => {
-      const firebaseUser = cred.user;
+    return from(
+      this.ngZone.runOutsideAngular(() =>
+        createUserWithEmailAndPassword(this.auth, normalizedEmail, password)
+      )
+    ).pipe(
+      switchMap((cred) => {
+        const firebaseUser = cred.user;
 
-      if (role === 'lender') {
-        const lenderData = {
-          uid: firebaseUser.uid,
-          id: firebaseUser.uid,
-          email: normalizedEmail,
-          firstName: additionalData.firstName || '',
-          lastName: additionalData.lastName || '',
-          company: additionalData.company || '',
-          phone: additionalData.phone || '',
-          city: additionalData.city || '',
-          state: additionalData.state || '',
-          role: role,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          contactInfo: {
+        if (role === 'lender') {
+          const lenderData = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            email: normalizedEmail,
             firstName: additionalData.firstName || '',
             lastName: additionalData.lastName || '',
-            contactEmail: normalizedEmail,
-            contactPhone: additionalData.phone || '',
             company: additionalData.company || '',
+            phone: additionalData.phone || '',
             city: additionalData.city || '',
             state: additionalData.state || '',
-          },
-        };
+            role: role,
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            contactInfo: {
+              firstName: additionalData.firstName || '',
+              lastName: additionalData.lastName || '',
+              contactEmail: normalizedEmail,
+              contactPhone: additionalData.phone || '',
+              company: additionalData.company || '',
+              city: additionalData.city || '',
+              state: additionalData.state || '',
+            },
+          };
 
-        return from(
-          this.firestoreService.setDocument(
-            `lenders/${firebaseUser.uid}`,
-            lenderData
-          )
-        ).pipe(
-          map(() => {
-            console.log('Lender document created in lenders collection');
-            return firebaseUser;
-          }),
-          catchError((error) => {
-            console.error('Error creating lender document:', error);
-            if (firebaseUser) {
-              firebaseUser.delete().catch((deleteError) => {
-                console.error(
-                  'Failed to delete Firebase Auth user after document creation error:',
-                  deleteError
-                );
-              });
-            }
-            return throwError(() => error);
-          })
-        );
-      }
+          return from(
+            this.firestoreService.setDocument(
+              `lenders/${firebaseUser.uid}`,
+              lenderData
+            )
+          ).pipe(
+            map(() => {
+              console.log('Lender document created in lenders collection');
+              return firebaseUser;
+            }),
+            catchError((error) => {
+              console.error('Error creating lender document:', error);
+              if (firebaseUser) {
+                firebaseUser.delete().catch((deleteError) => {
+                  console.error(
+                    'Failed to delete Firebase Auth user after document creation error:',
+                    deleteError
+                  );
+                });
+              }
+              return throwError(() => error);
+            })
+          );
+        }
 
-      if (role === 'originator') {
-        const userData = {
-          uid: firebaseUser.uid,
-          id: firebaseUser.uid,
-          email: normalizedEmail,
-          firstName: additionalData.firstName || '',
-          lastName: additionalData.lastName || '',
-          company: additionalData.company || '',
-          phone: additionalData.phone || '',
-          city: additionalData.city || '',
-          state: additionalData.state || '',
-          role: role,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          contactInfo: {
+        if (role === 'originator') {
+          const userData = {
+            uid: firebaseUser.uid,
+            id: firebaseUser.uid,
+            email: normalizedEmail,
             firstName: additionalData.firstName || '',
             lastName: additionalData.lastName || '',
-            contactEmail: normalizedEmail,
-            contactPhone: additionalData.phone || '',
             company: additionalData.company || '',
+            phone: additionalData.phone || '',
             city: additionalData.city || '',
             state: additionalData.state || '',
-          },
-        };
+            role: role,
+            subscriptionStatus: additionalData.subscriptionStatus || 'pending',  
+            registrationCompleted: additionalData.registrationCompleted || false, 
+            paymentPending: additionalData.paymentPending || false,               
+            billingInterval: additionalData.billingInterval || 'monthly',          
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
+            contactInfo: {
+              firstName: additionalData.firstName || '',
+              lastName: additionalData.lastName || '',
+              contactEmail: normalizedEmail,
+              contactPhone: additionalData.phone || '',
+              company: additionalData.company || '',
+              city: additionalData.city || '',
+              state: additionalData.state || '',
+            },
+          };
 
-        return this.firestoreService.setDocument(
-          `originators/${firebaseUser.uid}`,
-          userData
-        ).pipe(
-          map(() => {
-            console.log('✅ Originator document created via FirestoreService');
-            return firebaseUser;
-          }),
-          catchError((error) => {
-            console.error('❌ Error creating originator document:', error);
-            if (firebaseUser) {
-              firebaseUser.delete().catch((deleteError) => {
-                console.error('❌ Failed to delete Firebase Auth user after document creation error:', deleteError);
-              });
-            }
-            return throwError(() => error);
-          })
-        );
-      }
 
-      // Fallback for unknown role
-      return of(firebaseUser);
-    }),
-    catchError((err) => {
-      console.error('Registration error:', err);
-      return throwError(() => err);
-    })
-  );
-}
+          return this.firestoreService.setDocument(
+            `originators/${firebaseUser.uid}`,
+            userData
+          ).pipe(
+            map(() => {
+              console.log('✅ Originator document created via FirestoreService');
+              return firebaseUser;
+            }),
+            catchError((error) => {
+              console.error('❌ Error creating originator document:', error);
+              if (firebaseUser) {
+                firebaseUser.delete().catch((deleteError) => {
+                  console.error('❌ Failed to delete Firebase Auth user after document creation error:', deleteError);
+                });
+              }
+              return throwError(() => error);
+            })
+          );
+        }
+
+        // Fallback for unknown role
+        return of(firebaseUser);
+      }),
+      catchError((err) => {
+        console.error('Registration error:', err);
+        return throwError(() => err);
+      })
+    );
+  }
 
   /**
    * Update user role
@@ -1145,7 +1150,7 @@ registerUser(
    * Helper method to convert user data for compatibility
    * This helps fix the original TypeScript error
    */
- convertUserData(
+  convertUserData(
     userData: UserData,
     targetType: 'originator' | 'lender' | 'user'
   ): any {
@@ -1166,15 +1171,15 @@ registerUser(
   /**
    * Set registration success flag - used by Stripe callback
    */
-setRegistrationSuccess(success: boolean): void {
-  this.registrationSuccess.set(success);
-  if (success) {
-    localStorage.setItem('showRegistrationModal', 'true');
-  } else {
-    localStorage.removeItem('showRegistrationModal');
+  setRegistrationSuccess(success: boolean): void {
+    this.registrationSuccess.set(success);
+    if (success) {
+      localStorage.setItem('showRegistrationModal', 'true');
+    } else {
+      localStorage.removeItem('showRegistrationModal');
+    }
+    console.log('Registration success flag set to:', success);
   }
-  console.log('Registration success flag set to:', success);
-}
 
   /**
    * Get registration success flag - used by dashboard component
@@ -1189,10 +1194,10 @@ setRegistrationSuccess(success: boolean): void {
    * Angular 18 best practice: Explicit state management
    */
   clearRegistrationSuccess(): void {
-  this.registrationSuccess.set(false);
-  localStorage.removeItem('showRegistrationModal');
-  console.log('Registration success flag cleared');
-}
+    this.registrationSuccess.set(false);
+    localStorage.removeItem('showRegistrationModal');
+    console.log('Registration success flag cleared');
+  }
   /**
    * Get registration success as signal for reactive components
    * Angular 18 best practice: Signal-based reactivity

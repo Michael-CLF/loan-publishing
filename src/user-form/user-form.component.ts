@@ -183,9 +183,9 @@ export class UserFormComponent implements OnInit {
           state: formData.state,
           role: 'originator',
           // ADD THESE FIELDS
-          billingInterval: formData.interval,
-          subscriptionStatus: 'pending', // Mark as pending until payment
-          registrationCompleted: false // Flag to track full registration
+          subscriptionStatus: 'pending', // ← Key addition
+          registrationCompleted: false,   // ← Key addition
+          paymentPending: true            // ← Key addition
         })
         .pipe(
           // MODIFIED: Get the current user after registration
