@@ -104,70 +104,68 @@ export class StripeCallbackComponent implements OnInit {
     });
   }
 
-  private handleLenderPaymentSuccess(rawLenderData: string): void {
-    console.log('Processing lender payment success');
-    const lenderData = JSON.parse(rawLenderData);
-    const email = lenderData?.contactInfo?.contactEmail;
+ private handleLenderPaymentSuccess(rawLenderData: string): void {
+  console.log('Processing lender payment success');
+  const lenderData = JSON.parse(rawLenderData);
+  const email = lenderData?.contactInfo?.contactEmail;
 
-    if (!email) {
-      this.hasError.set(true);
-      this.router.navigate(['/register/lender']);
-      return;
-    }
+  if (!email) {
+    this.hasError.set(true);
+    this.router.navigate(['/register/lender']);
+    return;
+  }
 
-    const password = 'placeholder-password-not-used';
+  const password = 'placeholder-password-not-used';
 
-    this.authService
-      .registerUser(email, password, {
-        role: 'lender',
-        subscriptionStatus: 'active',      // ← Set to active immediately
-        registrationCompleted: true,       // ← Set to true immediately
-        paymentPending: false,             // ← Payment is complete
-        userData: {
-          firstName: lenderData.contactInfo.firstName,
-          lastName: lenderData.contactInfo.lastName,
-          company: lenderData.contactInfo.company,
-          phone: lenderData.contactInfo.contactPhone,
-          city: lenderData.contactInfo.city,
-          state: lenderData.contactInfo.state,
-        },
-        lenderData: {
-          contactInfo: lenderData.contactInfo,
-          productInfo: lenderData.productInfo,
-          footprintInfo: lenderData.footprintInfo,
-        },
-      })
-      .pipe(take(1))
-      .subscribe({
-        next: async () => {
-          try {
-            // Additional update to ensure all fields are set
-            const currentUser = await this.authService.getCurrentUser().pipe(take(1)).toPromise();
-            if (currentUser && currentUser.uid) {
-              const userRef = doc(this.firestore, `lenders/${currentUser.uid}`);
-              await updateDoc(userRef, {
-                paidAt: serverTimestamp(),
-                updatedAt: serverTimestamp()
-              });
-              console.log('Updated lender subscription status to active');
-            }
-
-            this.authService.setRegistrationSuccess(true);
-
-            localStorage.removeItem('showRegistrationModal');
-            localStorage.removeItem('completeLenderData');
-            this.router.navigate(['/dashboard']);
-          } catch (error) {
-            console.error('Error updating lender subscription status:', error);
-            this.hasError.set(true);
-            this.router.navigate(['/register/lender']);
+  // ✅ FIXED: Flatten the data structure to match what registerUser expects
+  this.authService
+    .registerUser(email, password, {
+      role: 'lender',
+      subscriptionStatus: 'active',
+      registrationCompleted: true,
+      paymentPending: false,
+      // ✅ FIXED: Direct properties instead of nested userData
+      firstName: lenderData.contactInfo.firstName,
+      lastName: lenderData.contactInfo.lastName,
+      company: lenderData.contactInfo.company,
+      phone: lenderData.contactInfo.contactPhone,
+      city: lenderData.contactInfo.city,
+      state: lenderData.contactInfo.state,
+      // ✅ FIXED: Store complete lender data for the lender document
+      contactInfo: lenderData.contactInfo,
+      productInfo: lenderData.productInfo,
+      footprintInfo: lenderData.footprintInfo,
+    })
+    .pipe(take(1))
+    .subscribe({
+      next: async () => {
+        try {
+          const currentUser = await this.authService.getCurrentUser().pipe(take(1)).toPromise();
+          if (currentUser && currentUser.uid) {
+            const userRef = doc(this.firestore, `lenders/${currentUser.uid}`);
+            await updateDoc(userRef, {
+              paidAt: serverTimestamp(),
+              updatedAt: serverTimestamp()
+            });
+            console.log('Updated lender subscription status to active');
           }
-        },
-        error: (err) => {
-          console.error('Lender registration after payment failed:', err);
+
+          this.authService.setRegistrationSuccess(true);
+
+          localStorage.removeItem('showRegistrationModal');
+          localStorage.removeItem('completeLenderData');
+          this.router.navigate(['/dashboard']);
+        } catch (error) {
+          console.error('Error updating lender subscription status:', error);
           this.hasError.set(true);
           this.router.navigate(['/register/lender']);
-        },
-      });
-  }
+        }
+      },
+      error: (err) => {
+        console.error('Lender registration after payment failed:', err);
+        this.hasError.set(true);
+        this.router.navigate(['/register/lender']);
+      },
+    });
+}
 }
