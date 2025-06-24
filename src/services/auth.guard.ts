@@ -1,72 +1,75 @@
-import { Injectable, inject } from '@angular/core';
-import {
-  CanActivate,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Router,
-} from '@angular/router';
-import { Observable, from } from 'rxjs';
-import { filter, map, take, switchMap } from 'rxjs/operators';
-import { AuthService } from './auth.service';
+import { inject } from '@angular/core';
+import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { Observable, from, of } from 'rxjs';
+import { filter, map, take, switchMap, catchError } from 'rxjs/operators';
+import { AuthService } from './auth.service';
 
-@Injectable({
-  providedIn: 'root',
-})
-export class AuthGuard implements CanActivate {
-  private router = inject(Router);
-  private authService = inject(AuthService);
-  private firestore = inject(Firestore);
+export const authGuard: CanActivateFn = (
+  route: ActivatedRouteSnapshot,
+  state: RouterStateSnapshot
+): Observable<boolean> => {
+  const router = inject(Router);
+  const authService = inject(AuthService);
+  const firestore = inject(Firestore);
 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> {
-    // Store the attempted URL for redirecting
-    localStorage.setItem('redirectUrl', state.url);
+  // Store the attempted URL for redirecting
+  localStorage.setItem('redirectUrl', state.url);
 
-    return this.authService.authReady$.pipe(
-      filter((ready) => ready),
-      take(1),
-      switchMap(() => this.authService.isLoggedIn$),
-      take(1),
-      switchMap((isLoggedIn) => {
-        if (!isLoggedIn) {
-          this.router.navigate(['/login']);
-          return from(Promise.resolve(false));
-        }
-        
-        // User is logged in, check subscription status
-        return this.checkSubscriptionStatus();
-      })
-    );
-  }
+  return authService.authReady$.pipe(
+    filter(ready => ready),
+    take(1),
+    switchMap(() => authService.isLoggedIn$),
+    take(1),
+    switchMap(isLoggedIn => {
+      if (!isLoggedIn) {
+        router.navigate(['/login']);
+        return of(false);
+      }
+      
+      return checkSubscriptionStatus(authService, firestore, router);
+    }),
+    catchError(error => {
+      console.error('Auth guard error:', error);
+      router.navigate(['/login']);
+      return of(false);
+    })
+  );
+};
 
-  private checkSubscriptionStatus(): Observable<boolean> {
-    return this.authService.getCurrentUser().pipe(
-      take(1),
-      switchMap((user) => {
-        if (!user || !user.uid) {
-          this.router.navigate(['/login']);
-          return from(Promise.resolve(false));
-        }
+function checkSubscriptionStatus(
+  authService: AuthService, 
+  firestore: Firestore, 
+  router: Router
+): Observable<boolean> {
+  return authService.getCurrentUser().pipe(
+    take(1),
+    switchMap(user => {
+      if (!user?.uid) {
+        router.navigate(['/login']);
+        return of(false);
+      }
 
-        return from(this.checkUserInFirestore(user.uid));
-      })
-    );
-  }
+      return from(checkUserSubscription(user.uid, firestore, router));
+    })
+  );
+}
 
-  private async checkUserInFirestore(uid: string): Promise<boolean> {
-    const collections = ['originators', 'lenders'];
-    
-    for (const collection of collections) {
-      const userRef = doc(this.firestore, `${collection}/${uid}`);
+async function checkUserSubscription(
+  uid: string, 
+  firestore: Firestore, 
+  router: Router
+): Promise<boolean> {
+  const collections = ['originators', 'lenders'];
+  
+  for (const collection of collections) {
+    try {
+      const userRef = doc(firestore, `${collection}/${uid}`);
       const userSnap = await getDoc(userRef);
       
       if (userSnap.exists()) {
         const userData = userSnap.data();
         
-        // Check subscription status
         const subscriptionStatus = userData['subscriptionStatus'];
         const registrationCompleted = userData['registrationCompleted'];
         const paymentPending = userData['paymentPending'];
@@ -74,28 +77,46 @@ export class AuthGuard implements CanActivate {
         console.log('Subscription check:', {
           subscriptionStatus,
           registrationCompleted,
-          paymentPending
+          paymentPending,
+          collection
         });
         
-        // Block access if subscription is not active
-        if (subscriptionStatus === 'pending' || 
-            registrationCompleted === false ||
-            paymentPending === true ||
-            subscriptionStatus !== 'active') {
-          
-          console.log('Blocking access - subscription not active');
-          this.router.navigate(['/pricing']);
+        // FIXED LOGIC: Active subscription grants access regardless of other flags
+        if (subscriptionStatus === 'active') {
+          console.log('Access granted - active subscription');
+          return true;
+        }
+        
+        // Check registration completion
+        if (registrationCompleted === false) {
+          console.log('Blocking access - registration not completed');
+          router.navigate(['/complete-registration']);
           return false;
         }
         
-        // User has active subscription
-        console.log('Access granted - active subscription');
+        // Check for pending or missing subscription
+        if (subscriptionStatus === 'pending' || !subscriptionStatus) {
+          console.log('Blocking access - subscription pending or missing');
+          router.navigate(['/pricing']);
+          return false;
+        }
+        
+        // Handle cancelled/past due subscriptions
+        if (subscriptionStatus === 'cancelled' || subscriptionStatus === 'past_due') {
+          console.log('Blocking access - subscription issues');
+          router.navigate(['/pricing']);
+          return false;
+        }
+        
+        // Default allow if we reach here
         return true;
       }
+    } catch (error) {
+      console.error(`Error checking user in ${collection}:`, error);
     }
-    
-    // User document not found - allow access with warning
-    console.warn('User document not found in Firestore');
-    return true;
   }
+  
+  // User document not found - allow access with warning
+  console.warn('User document not found in Firestore, allowing access');
+  return true;
 }

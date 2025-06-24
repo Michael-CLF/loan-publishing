@@ -4,7 +4,7 @@ import { EmailLoginComponent } from '../email-login/email-login.component';
 import { LoanComponent } from '../loan/loan.component';
 import { LoansComponent } from '../loans/loans.component';
 import { DashboardComponent } from '../dashboard/dashboard.component';
-import { AuthGuard } from '../services/auth.guard';
+import { authGuard } from '../services/auth.guard';
 import { UserFormComponent } from '../user-form/user-form.component';
 import { PricingComponent } from '../pricing/pricing.component';
 import { TermsComponent } from 'src/terms/terms.component';
@@ -34,7 +34,7 @@ export const routes: Routes = [
   {
     path: 'account/edit',
     component: EditAccountComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'event-registration', 
@@ -45,7 +45,7 @@ export const routes: Routes = [
   {
     path: 'lender-list',
     component: LenderListComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   { path: 'lender-reg', component: LenderRegSuccessModalComponent },
   { path: 'user-form', component: UserFormComponent },
@@ -56,8 +56,8 @@ export const routes: Routes = [
   { path: 'lender-product', component: LenderProductComponent },
   { path: 'lender-review', component: LenderReviewComponent },
   { path: 'lender-footprint', component: LenderFootprintComponent },
-  { path: 'loan', component: LoanComponent, canActivate: [AuthGuard] },
-  { path: 'loans', component: LoansComponent, canActivate: [AuthGuard] },
+  { path: 'loan', component: LoanComponent, canActivate: [authGuard] },
+  { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
   
   // ✅ ADD THIS: The missing payment-callback route
@@ -82,22 +82,22 @@ export const routes: Routes = [
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'loans/:id',
     component: LoanDetailsComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'loans/:id/edit',
     component: EditLoanComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'dashboard',
     component: DashboardComponent,
-    canActivate: [AuthGuard],
+    canActivate: [authGuard],
   },
   {
     path: 'originator-details/:id',

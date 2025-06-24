@@ -82,7 +82,7 @@ import { FieldValue, Timestamp } from '@angular/fire/firestore';
 type ProfileType = Originator | Lender | UserData;
 
 @Injectable({ providedIn: 'root' })
-export class AuthService implements OnDestroy, CanActivate {
+export class AuthService implements OnDestroy {
   // Services
   private auth = inject(Auth);
   private firestore = inject(Firestore);
@@ -152,50 +152,7 @@ export class AuthService implements OnDestroy, CanActivate {
     }
   }
 
-  /**
-   * Implement CanActivate for route guarding
-   */
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean | UrlTree> | Promise<boolean | UrlTree> | boolean | UrlTree {
-    console.log('AuthGuard - Checking route access:', state.url);
-
-    // Check localStorage first for quick access
-    if (localStorage.getItem('isLoggedIn') === 'true') {
-      console.log('AuthGuard - User logged in according to localStorage');
-
-      // Force a profile creation if needed (this will bypass the profile check temporarily)
-      localStorage.setItem('bypassProfileCheck', 'true');
-
-      return true;
-    }
-
-    return this.isLoggedIn$.pipe(
-      take(1),
-      map((isLoggedIn) => {
-        console.log('AuthGuard - Auth state:', isLoggedIn);
-
-        if (isLoggedIn) {
-          return true;
-        }
-
-        // Store the URL the user was trying to access
-        console.log('AuthGuard - User not logged in, redirecting to login');
-        localStorage.setItem('redirectUrl', state.url);
-
-        // Navigate to login page
-        return this.router.createUrlTree(['/login']);
-      })
-    );
-  }
-
-  /**
-   * Check for persistent auth state in localStorage
-   * This helps prevent the login screen flash by assuming the user is logged in
-   * if localStorage has the flag set, while waiting for Firebase to confirm
-   */
-  private checkPersistentAuth(): void {
+   private checkPersistentAuth(): void {
     if (localStorage.getItem('isLoggedIn') === 'true') {
       console.log('AuthService: Persistent auth detected in localStorage');
 
@@ -611,34 +568,21 @@ export class AuthService implements OnDestroy, CanActivate {
           // Sometimes the UID in auth may differ from the document ID
           console.log(`Attempting broader search for user profile`);
 
-          // Try to find the user by email
-          const usersRef = collection(this.firestore, 'originators');
-          const usersQuery = query(
-            usersRef,
-            where('email', '==', 'altcoins61@gmail.com')
-          );
-          const usersSnapshot = await getDocs(usersQuery);
-
-          if (!usersSnapshot.empty) {
-            const userDoc = usersSnapshot.docs[0];
-            console.log(
-              `Found user in originators collection by email: ${userDoc.id}`
+        // Try to find the user by email if Firebase user has email
+          if (this.auth.currentUser?.email) {
+            const usersRef = collection(this.firestore, 'originators');
+            const usersQuery = query(
+              usersRef,
+              where('email', '==', this.auth.currentUser.email)
             );
-            const userData = userDoc.data() as DocumentData;
-            return {
-              id: userDoc.id,
-              uid: uid, // Keep the Firebase Auth UID for consistency
-              role: 'originator',
-              ...userData as any,
-            } as UserData;
           }
 
-          // Try lenders collection by email
-          const lendersRef = collection(this.firestore, 'lenders');
-          const lendersQuery = query(
-            lendersRef,
-            where('contactInfo.contactEmail', '==', 'altcoins61@gmail.com')
-          );
+         // Try lenders collection by email
+            const lendersRef = collection(this.firestore, 'lenders');
+            const lendersQuery = query(
+              lendersRef,
+              where('contactInfo.contactEmail', '==', this.auth.currentUser?.email)
+            );
           const lendersSnapshot = await getDocs(lendersQuery);
 
           if (!lendersSnapshot.empty) {
@@ -658,13 +602,13 @@ export class AuthService implements OnDestroy, CanActivate {
           // If we get here, we didn't find a document
           console.error(`No profile found for user ${uid} in any collection`);
 
-          // IMPORTANT FIX: Since we can see the user document exists, let's just create
+        // IMPORTANT FIX: Since we can see the user document exists, let's just create
           // a temporary user profile to prevent logout loop
           console.log('Creating temporary user profile to prevent logout loop');
           return {
             id: uid,
             uid: uid,
-            email: 'altcoins61@gmail.com',
+            email: this.auth.currentUser?.email || 'unknown@example.com',
             role: 'originator',
             firstName: 'Temporary',
             lastName: 'User',
@@ -672,10 +616,11 @@ export class AuthService implements OnDestroy, CanActivate {
         } catch (error) {
           console.error(`Error in getUserProfile:`, error);
           // Return a temporary profile to prevent logout
+        // Return a temporary profile to prevent logout
           return {
             id: uid,
             uid: uid,
-            email: 'altcoins61@gmail.com',
+            email: this.auth.currentUser?.email || 'unknown@example.com',
             role: 'originator',
             firstName: 'Error',
             lastName: 'Recovery',
@@ -708,12 +653,12 @@ export class AuthService implements OnDestroy, CanActivate {
         } else {
           console.error('AuthService: No profile found for user:', uid);
 
-          // IMPORTANT: Instead of setting userProfileSubject to null,
+        // IMPORTANT: Instead of setting userProfileSubject to null,
           // create a temporary profile to prevent logout
           const tempProfile: UserData = {
             id: uid,
             uid: uid,
-            email: 'altcoins61@gmail.com', // Use actual email from authentication
+            email: this.auth.currentUser?.email || 'unknown@example.com',
             role: 'originator',
             firstName: 'Temporary',
             lastName: 'User',
@@ -735,10 +680,11 @@ export class AuthService implements OnDestroy, CanActivate {
         console.error('Error in profile loading:', error);
 
         // On error, still create a temporary profile
+      // On error, still create a temporary profile
         const tempProfile: UserData = {
           id: uid,
           uid: uid,
-          email: 'altcoins61@gmail.com',
+          email: this.auth.currentUser?.email || 'unknown@example.com',
           role: 'originator',
           firstName: 'Error',
           lastName: 'Recovery',
