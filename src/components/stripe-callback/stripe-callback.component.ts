@@ -91,13 +91,10 @@ export class StripeCallbackComponent implements OnInit {
 
           // Show modal and redirect
           this.authService.setRegistrationSuccess(true);
-          this.showSuccessModal.set(true);
-          this.isLoading.set(false);
-
+          // Just clean up and redirect - let dashboard handle the modal
           localStorage.removeItem('showRegistrationModal');
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 3000);
+          this.router.navigate(['/dashboard']);
+
         } catch (error) {
           console.error('Error updating originator subscription status:', error);
           this.hasError.set(true);
@@ -155,16 +152,11 @@ export class StripeCallbackComponent implements OnInit {
               console.log('Updated lender subscription status to active');
             }
 
+            this.authService.setRegistrationSuccess(true);
+
             localStorage.removeItem('showRegistrationModal');
             localStorage.removeItem('completeLenderData');
-
-            this.modalService.openLenderRegistrationSuccessModal();
-            this.showSuccessModal.set(true);
-            this.isLoading.set(false);
-
-            setTimeout(() => {
-              this.router.navigate(['/dashboard']);
-            }, 3000);
+            this.router.navigate(['/dashboard']);
           } catch (error) {
             console.error('Error updating lender subscription status:', error);
             this.hasError.set(true);
