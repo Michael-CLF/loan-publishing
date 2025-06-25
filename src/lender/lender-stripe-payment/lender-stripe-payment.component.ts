@@ -47,7 +47,7 @@ interface PaymentResult {
 @Component({
   selector: 'app-lender-stripe-payment',
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './lender-stripe-payment.component.html',
   styleUrls: ['./lender-stripe-payment.component.css'],
 })

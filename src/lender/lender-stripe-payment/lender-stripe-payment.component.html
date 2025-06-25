@@ -1,9 +1,5 @@
 <div class="payment-container">
   <div class="payment-card">
-    <!-- Payment Header -->
-    <div class="payment-header">
-      <p class="payment-subtitle">Choose your Plan</p>
-    </div> 
 
     <!-- Payment Form -->
     <form [formGroup]="paymentForm" (ngSubmit)="onSubmit()" novalidate>
@@ -11,7 +7,7 @@
       <!-- Lender Pricing Selection Section -->
       <div class="pricing-section">
         <div class="pricing-header">
-          <h3>Choose Your Lender Plan</h3>
+          <h3>Choose Your Plan</h3>
           <p class="pricing-subtitle">Select your billing frequency</p>
         </div>
 
@@ -33,10 +29,12 @@
             </div>
             <div class="billing-details">
               <ul class="billing-features">
-                <li>Billed monthly</li>
-                <li>Cancel anytime</li>
                 <li>Full lender platform access</li>
-                <li>Unlimited loan submissions</li>
+                <li>Billed monthly</li>
+                <li>Unlimited loan searches</li>
+                <li>New loan notifications</li>
+                <li>Cancel anytime</li>
+                
               </ul>
             </div>
           </div>
@@ -60,11 +58,13 @@
             </div>
             <div class="billing-details">
               <ul class="billing-features">
-                <li>Billed annually</li>
-                <li>10% savings vs monthly</li>
                 <li>Full lender platform access</li>
-                <li>Unlimited loan submissions</li>
+                <li>Billed annually</li>
+                <li>Unlimited loan searches</li>
+                <li>New loan notifications</li>               
+                <li>10% savings vs monthly</li>
                 <li>Priority support</li>
+                 <li>Cancel anytime</li>
               </ul>
             </div>
           </div>
@@ -89,11 +89,7 @@
         </div>
       </div>
 
-      <!-- Form Validation Errors -->
-      <div class="form-errors" 
-           *ngIf="paymentForm.get('interval')?.invalid && paymentForm.get('interval')?.touched">
-        <p class="error-text">Please select a billing option</p>
-      </div>
+    
 
       <!-- Submit Button -->
       <div class="button-container">

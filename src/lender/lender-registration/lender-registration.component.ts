@@ -36,6 +36,7 @@ import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
 import { StripeService } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
+import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import {
   PROPERTY_CATEGORIES,
   PROPERTY_SUBCATEGORIES,
@@ -76,6 +77,7 @@ export interface StateOption {
     LenderProductComponent,
     LenderFootprintComponent,
     LenderReviewComponent,
+    LenderStripePaymentComponent,
   ],
   templateUrl: './lender-registration.component.html',
   styleUrls: ['./lender-registration.component.css'],
@@ -216,6 +218,33 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   get termsAccepted(): FormControl {
     return this.lenderForm.get('termsAccepted') as FormControl;
   }
+
+  getLenderData() {
+  return {
+    companyName: this.lenderForm.get('contactInfo.company')?.value || '',
+    firstName: this.lenderForm.get('contactInfo.firstName')?.value || '',
+    lastName: this.lenderForm.get('contactInfo.lastName')?.value || '',
+    email: this.lenderForm.get('contactInfo.contactEmail')?.value || '',
+    phone: this.lenderForm.get('contactInfo.contactPhone')?.value || '',
+    city: this.lenderForm.get('contactInfo.city')?.value || '',
+    state: this.lenderForm.get('contactInfo.state')?.value || '',
+    completeFormData: {
+      contactInfo: this.lenderForm.get('contactInfo')?.value,
+      productInfo: this.lenderForm.get('productInfo')?.value,
+      footprintInfo: this.lenderForm.get('footprintInfo')?.value
+    }
+  };
+}
+
+handlePaymentComplete(event: any) {
+  console.log('Payment completed:', event);
+  this.successMessage = event.message || 'Payment completed successfully!';
+}
+
+handlePaymentError(event: any) {
+  console.log('Payment error:', event);
+  this.errorMessage = event.error || 'Payment failed. Please try again.';
+}
 
   public getStepFormGroup(): FormGroup {
   // Get appropriate form group based on current step (1-based)

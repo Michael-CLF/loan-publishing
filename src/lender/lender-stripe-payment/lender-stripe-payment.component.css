@@ -1,149 +1,37 @@
-.container {
-  gap: 30px;
+/* Main Container */
+.payment-container {
   max-width: 800px;
   margin: 0 auto;
-  padding: 20px;
-  margin-bottom: 100px;
-}
-.full-width {
-  grid-column: 1 / -1;
-}
-
-.grid-form {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 15px;
-}
-.form-group {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 15px;
-}
-.full-width {
-  grid-column: 1 / -1;
-}
-.tos-container {
-  margin-top: 15px;
-}
-
-.headline {
-  color: #0a2463;
-  font-family: "roboto", sans-serif;
-  margin-bottom: 10px;
-}
-
-/* Fix the checkbox styling */
-.checkbox-label {
-  display: flex;
-  align-items: flex-start;
-}
-
-.checkbox-label input[type="checkbox"] {
-  width: 20px; /* Make checkbox larger */
-  height: 20px; /* Make checkbox larger */
-  margin-right: 10px;
-  margin-top: 2px; /* Align checkbox with text */
-  border: 1px solid #0a2463; /* Border color */
-  border-radius: 3px; /* Slightly rounded corners */
-  position: relative;
-  cursor: pointer;
-}
-input[type="checkbox"]:checked {
-  background-color: #0a2463;
-}
-
-.tos-link {
-  margin-left: 4px; /* or use padding-left */
-}
-
-/* Add bottom spacing to the form */
-.grid-form {
-  margin-bottom: 30px;
-}
-
-/* Fix the button container spacing */
-.button-container {
-  margin-top: 20px;
-}
-
-.form-section,
-.list-section {
-  flex: 1;
-}
-
-label {
-  display: block;
-  margin-bottom: 5px;
-  font-family: "roboto", sans-serif;
-  color: #0a2463;
-  font-weight: 500;
-}
-
-input,
-select {
-  width: 100%;
-  padding: 8px;
-  border: 1px solid #0a2463;
-  border-radius: 4px;
-}
-.full-width {
-  grid-column: 1 / span 2;
-}
-
-.error {
-  color: #c00000;
-  font-size: 1rem;
-  margin-top: 5px;
-  font-weight: 500;
-  font-family: "roboto", sans-serif;
-}
-.button-container {
-  width: 100%;
-  text-align: center;
-}
-
-button {
-  padding: 8px 25px;
-  background-color: #0a2463;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-family: "roboto", sans-serif;
-  font-size: 1.25rem;
-}
-
-button:disabled {
-  background-color: #cccccc;
-}
-
-.success-message {
-  color: #023020;
-  margin-top: 15px;
-  margin-bottom: 25px;
-  font-family: "roboto", sans-serif;
-  font-size: 1.5rem;
-  text-align: center;
-}
-
-.user-card {
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  padding: 15px;
-  margin-bottom: 15px;
-}
-
-.invalid {
-  border: 2px solid #c00000;
-}
-/* Pricing Section Styles */
-.pricing-section {
-  margin: 2rem 0;
   padding: 2rem;
   background: #f8f9fa;
+  min-height: 100vh;
+  font-family: 'roboto', sans-serif;
+}
+
+.payment-card {
+  background: white;
   border-radius: 12px;
-  border: 1px solid #e9ecef;
-  width: 800px;
+  padding: 2rem;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+/* Header Section */
+.payment-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.payment-subtitle {
+  color: #0a2463;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin: 0;
+  font-family: 'roboto', sans-serif;
+}
+
+/* Pricing Section */
+.pricing-section {
+  margin-bottom: 2rem;
 }
 
 .pricing-header {
@@ -156,7 +44,7 @@ button:disabled {
   font-family: 'roboto', sans-serif;
   margin-bottom: 0.5rem;
   font-size: 1.5rem;
-  font-weight: 500;
+  font-weight: 600;
 }
 
 .pricing-subtitle {
@@ -167,6 +55,7 @@ button:disabled {
   font-weight: 500;
 }
 
+/* Billing Options */
 .billing-options {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -180,6 +69,7 @@ button:disabled {
   }
 }
 
+/* Billing Cards */
 .billing-card {
   background: white;
   border: 2px solid #dee2e6;
@@ -210,6 +100,7 @@ button:disabled {
   background: #f0fff4;
 }
 
+/* Popular Badge */
 .popular-badge {
   position: absolute;
   top: -10px;
@@ -219,17 +110,23 @@ button:disabled {
   color: white;
   padding: 4px 12px;
   border-radius: 12px;
-  font-size: 0.95rem;
+  font-size: 0.75rem;
   font-weight: 600;
+  font-family: 'roboto', sans-serif;
 }
 
+/* Billing Header */
 .billing-header {
   margin-bottom: 1rem;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
 }
 
 .billing-radio {
-  margin-right: 0.75rem;
+  margin-top: 2px;
   transform: scale(1.2);
+  accent-color: #0a2463;
 }
 
 .billing-label {
@@ -237,12 +134,13 @@ button:disabled {
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
+  flex: 1;
 }
 
 .billing-period {
   font-size: 1.2rem;
   font-family: 'roboto', sans-serif;
-  font-weight: 500;
+  font-weight: 600;
   color: #0a2463;
 }
 
@@ -260,6 +158,11 @@ button:disabled {
   font-family: 'roboto', sans-serif;
 }
 
+/* Billing Details */
+.billing-details {
+  margin-top: 1rem;
+}
+
 .billing-features {
   list-style: none;
   padding: 0;
@@ -270,23 +173,28 @@ button:disabled {
   padding: 0.25rem 0;
   color: #0a2463;
   font-weight: 500;
-  font-size: .95rem;
+  font-size: 0.95rem;
   font-family: 'roboto', sans-serif;
+  position: relative;
+  padding-left: 1.5rem;
 }
 
 .billing-features li:before {
   content: "✓";
   color: #0b5345;
   font-weight: bold;
-  margin-right: 0.5rem;
+  position: absolute;
+  left: 0;
 }
 
+/* Price Summary */
 .price-summary {
   border: 1px solid #008080;
   border-radius: 8px;
   padding: 1.5rem;
   color: #0a2463;
   font-family: 'roboto', sans-serif;
+  margin-bottom: 2rem;
 }
 
 .summary-row {
@@ -306,4 +214,75 @@ button:disabled {
   padding-top: 1rem;
   border-top: 2px solid #dee2e6;
   margin-top: 0.5rem;
+}
+
+/* Form Validation */
+.form-errors {
+  margin-bottom: 1rem;
+}
+
+.error-text {
+  color: #c00000;
+  font-size: 0.9rem;
+  margin: 0;
+  font-weight: 500;
+  font-family: 'roboto', sans-serif;
+  text-align: center;
+}
+
+/* Button */
+.button-container {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.payment-button {
+  background-color: #0a2463;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 12px 40px;
+  font-size: 1.1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  font-family: 'roboto', sans-serif;
+}
+
+.payment-button:hover:not(:disabled) {
+  background-color: #2c5aa0;
+}
+
+.payment-button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.payment-button.loading {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+/* Error Message */
+.error-message {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+.error-message p {
+  color: #c00000;
+  font-size: 0.9rem;
+  margin: 0;
+  font-weight: 500;
+  font-family: 'roboto', sans-serif;
+}
+
+/* Form styling */
+form {
+  width: 100%;
+}
+
+/* Input elements */
+input[type="radio"] {
+  accent-color: #0a2463;
 }
