@@ -257,13 +257,25 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-
-  /**
-   * Close registration success modal
-   */
   closeRegistrationSuccessModal(): void {
     this.showRegistrationSuccessModal.set(false);
     this.authService.clearRegistrationSuccess();
+    
+    setTimeout(() => {
+      this.showDashboardContent.set(true);
+    }, 300);
+  }
+  /**
+   * Close lender registration success modal
+   */
+  closeLenderRegistrationSuccessModal(): void {
+    this.showLenderRegistrationSuccessModal.set(false);
+    this.authService.clearRegistrationSuccess();
+    
+    // ✅ NEW: Show dashboard content after modal closes
+    setTimeout(() => {
+      this.showDashboardContent.set(true);
+    }, 300);
   }
 
   
