@@ -7,6 +7,14 @@
   (modalClosed)="closeLenderRegistrationSuccessModal()">
 </app-lender-reg-success-modal>
 
+<div *ngIf="isProcessingRegistrationSuccess" class="registration-processing-overlay">
+  <div class="registration-processing-content">
+    <div class="spinner"></div>
+    <h3>Welcome!</h3>
+    <p>Setting up your account...</p>
+  </div>
+</div>
+
 <div *ngIf="showDashboardContent()">
   <h1 class="title">Dashboard</h1>
 

@@ -80,6 +80,7 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
+  private readonly processingRegistrationSuccess = signal(false);
 
   getPropertySubcategoryName = getPropertySubcategoryName;
   getStateName = getStateName;
@@ -211,38 +212,9 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
-    
-    // ✅ FIXED: Check for registration success FIRST, before loading user data
-    const isRegistrationSuccess = this.authService.getRegistrationSuccess() || 
-                                  localStorage.getItem('showRegistrationModal') === 'true';
-    
-    if (isRegistrationSuccess) {
-      console.log('🎉 Registration success detected - showing modal first');
-      this.handleRegistrationSuccessFlow();
-    } else {
-      console.log('📋 No registration success - proceeding with normal dashboard load');
-      this.showDashboardContent.set(true);
-      this.subscribeToAuthState();
-    }
-  }
-
-  private handleRegistrationSuccessFlow(): void {
-    // First, subscribe to auth and load minimal user data to determine role
     this.subscribeToAuthState();
-    
-    // Wait a moment for user data to load, then show appropriate modal
-    setTimeout(() => {
-      const role = this.userRole || this.userData?.role;
-      
-      if (role === 'lender') {
-        console.log('🏢 Showing lender registration success modal');
-        this.showLenderRegistrationSuccessModal.set(true);
-      } else {
-        console.log('👤 Showing originator registration success modal');
-        this.showRegistrationSuccessModal.set(true);
-      }
-    }, 1000);
   }
+  
 
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
@@ -260,28 +232,21 @@ export class DashboardComponent implements OnInit {
   closeRegistrationSuccessModal(): void {
     this.showRegistrationSuccessModal.set(false);
     this.authService.clearRegistrationSuccess();
-    
-    setTimeout(() => {
-      this.showDashboardContent.set(true);
-    }, 300);
+    this.showDashboardContent.set(true); // ✅ Show dashboard after modal closes
   }
-  /**
-   * Close lender registration success modal
-   */
+
+  // 8. Update closeLenderRegistrationSuccessModal:
   closeLenderRegistrationSuccessModal(): void {
     this.showLenderRegistrationSuccessModal.set(false);
     this.authService.clearRegistrationSuccess();
-    
-    // ✅ NEW: Show dashboard content after modal closes
-    setTimeout(() => {
-      this.showDashboardContent.set(true);
-    }, 300);
+    this.showDashboardContent.set(true); // ✅ Show dashboard after modal closes
   }
 
-  
-    /**
-   * Handle logged out state
-   */
+
+
+  /**
+ * Handle logged out state
+ */
   private handleLoggedOut(): void {
     this.userData = {} as UserData;
     this.accountNumber = '';
@@ -402,9 +367,6 @@ export class DashboardComponent implements OnInit {
     await this.handleMissingUserProfile(fbUser);
   }
 
-  /**
-   * ✅ FIXED: Handle existing user profile with proper notification loading
-   */
   async handleExistingUserProfile(
     docSnap: any,
     fbUser: FirebaseUser
@@ -414,7 +376,6 @@ export class DashboardComponent implements OnInit {
     const data = docSnap.data();
 
     if (data.role === 'lender') {
-      // It's a lender
       this.userData = {
         id: docSnap.id,
         company: data.company || (data.contactInfo && data.contactInfo.company) || '',
@@ -426,8 +387,6 @@ export class DashboardComponent implements OnInit {
         state: data.contactInfo?.state || '',
         role: 'lender',
       };
-
-      // ✅ Load notification preferences for lenders AFTER user data is set
       this.loadNotificationPreferencesFromService();
     } else if (data.role === 'originator') {
       this.userData = {
@@ -458,7 +417,63 @@ export class DashboardComponent implements OnInit {
       await this.loadLoans(fbUser.uid);
     }
 
+    // ✅ SIMPLIFIED: Check for registration success after everything loads
+    this.handleRegistrationSuccessAfterDataLoad();
+
+    // Show dashboard content
     this.loading = false;
+    this.showDashboardContent.set(true);
+  }
+
+  private handleRegistrationSuccessAfterDataLoad(): void {
+    const hasRegistrationSuccess = this.authService.getRegistrationSuccess() ||
+      localStorage.getItem('showRegistrationModal') === 'true';
+
+    if (!hasRegistrationSuccess) {
+      console.log('📋 No registration success flag detected');
+      return;
+    }
+
+    console.log('🎉 Registration success detected - showing spinner then modal');
+
+    // Show processing spinner
+    this.processingRegistrationSuccess.set(true);
+    this.showDashboardContent.set(false);
+
+    // Show spinner for 1.5 seconds, then show modal
+    setTimeout(() => {
+      this.processingRegistrationSuccess.set(false);
+      this.showModalBasedOnRole();
+    }, 1500);
+  }
+
+  private showModalBasedOnRole(): void {
+    const role = this.userRole || this.userData?.role;
+    console.log('🎭 Showing modal for role:', role);
+
+    if (role === 'originator') {
+      console.log('👤 Showing originator registration success modal');
+      this.showRegistrationSuccessModal.set(true);
+    } else if (role === 'lender') {
+      console.log('🏢 Showing lender registration success modal');
+      this.showLenderRegistrationSuccessModal.set(true);
+    } else {
+      console.warn('⚠️ Unknown role, showing default modal. Role:', role);
+      this.showRegistrationSuccessModal.set(true);
+    }
+
+    // Clear flags after showing modal
+    setTimeout(() => {
+      console.log('🧹 Clearing registration success flags');
+      this.authService.clearRegistrationSuccess();
+      localStorage.removeItem('showRegistrationModal');
+      localStorage.removeItem('completeLenderData');
+    }, 1000);
+  }
+
+  // ✅ ADD this getter to access the signal in template:
+  get isProcessingRegistrationSuccess(): boolean {
+    return this.processingRegistrationSuccess();
   }
 
   /**
