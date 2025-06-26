@@ -9,36 +9,28 @@
   padding-top: 15vh; /* Move spinner higher up */
 }
 
-.processing-content {
-  text-align: center;
-  padding: 3rem;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-  max-width: 400px;
-  width: 100%;
-}
 
 .processing-content h3 {
   margin: 1.5rem 0 0.5rem 0;
-  color: #333;
-  font-size: 1.8rem;
+  color: #0a2463;
+  font-size: 2rem;
   font-weight: 600;
   font-family: 'Roboto', sans-serif;
+  text-align:center;
 }
 
 .processing-content p {
   margin: 0;
-  color: #666;
+  color: #008080;
   font-size: 1.1rem;
   font-family: 'Roboto', sans-serif;
+  text-align:center;
 }
 
 /* Spinner Animation */
 .spinner {
   width: 60px;
   height: 60px;
-  border: 5px solid #f3f3f3;
   border-top: 5px solid #008080;
   border-radius: 50%;
   animation: spin 1s linear infinite;
