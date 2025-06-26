@@ -115,6 +115,7 @@ export class DashboardComponent implements OnInit {
   savingOptIn = signal(false);
   showRegistrationSuccessModal = signal(false);
   showLenderRegistrationSuccessModal = signal(false);
+  showDashboardContent = signal(false);
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -208,21 +209,41 @@ export class DashboardComponent implements OnInit {
     'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
   ];
 
-  /**
-   * Initialize the dashboard component
-   */
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
-    console.log('🎉 Registration success detected, checking user role...');
-    console.log('👤 User role available:', this.userRole);
-    console.log('🎭 Showing appropriate modal for role:', this.userRole);
-    this.subscribeToAuthState();
-    this.checkForRegistrationSuccess();
+    
+    // ✅ FIXED: Check for registration success FIRST, before loading user data
+    const isRegistrationSuccess = this.authService.getRegistrationSuccess() || 
+                                  localStorage.getItem('showRegistrationModal') === 'true';
+    
+    if (isRegistrationSuccess) {
+      console.log('🎉 Registration success detected - showing modal first');
+      this.handleRegistrationSuccessFlow();
+    } else {
+      console.log('📋 No registration success - proceeding with normal dashboard load');
+      this.showDashboardContent.set(true);
+      this.subscribeToAuthState();
+    }
   }
 
-  /**
-   * Subscribe to authentication state changes
-   */
+  private handleRegistrationSuccessFlow(): void {
+    // First, subscribe to auth and load minimal user data to determine role
+    this.subscribeToAuthState();
+    
+    // Wait a moment for user data to load, then show appropriate modal
+    setTimeout(() => {
+      const role = this.userRole || this.userData?.role;
+      
+      if (role === 'lender') {
+        console.log('🏢 Showing lender registration success modal');
+        this.showLenderRegistrationSuccessModal.set(true);
+      } else {
+        console.log('👤 Showing originator registration success modal');
+        this.showRegistrationSuccessModal.set(true);
+      }
+    }, 1000);
+  }
+
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
       console.log('DashboardComponent - Auth state changed:', loggedIn);
@@ -236,58 +257,6 @@ export class DashboardComponent implements OnInit {
     });
   }
 
- // Replace your checkForRegistrationSuccess() method with this simpler version:
-
-/**
- * ✅ Simple and reliable registration success check
- */
-private checkForRegistrationSuccess(): void {
-  const isSuccess = this.authService.getRegistrationSuccess() || 
-                    localStorage.getItem('showRegistrationModal') === 'true';
-
-  if (!isSuccess) {
-    console.log('📋 No registration success flag detected');
-    return;
-  }
-
-  console.log('🎉 Registration success detected, checking user role...');
-  console.log('👤 Current userRole:', this.userRole);
-  console.log('👤 Current userData:', this.userData);
-  
-  // ✅ FIXED: Wait for user data to load if not ready
-  if (!this.userRole && !this.userData?.role) {
-    console.log('⏳ User role not yet available, waiting...');
-    
-    // Simple retry with timeout
-    setTimeout(() => {
-      this.checkForRegistrationSuccess();
-    }, 500);
-    return;
-  }
-
-  // ✅ Get role from userData if userRole is not set
-  const role = this.userRole || this.userData?.role;
-  console.log('🎭 Using role for modal:', role);
-  
-  if (role === 'originator') {
-    console.log('👤 Showing originator registration success modal');
-    this.showRegistrationSuccessModal.set(true);
-  } else if (role === 'lender') {
-    console.log('🏢 Showing lender registration success modal');  
-    this.showLenderRegistrationSuccessModal.set(true);
-  } else {
-    console.warn('⚠️ Unknown role, showing default modal. Role:', role);
-    this.showRegistrationSuccessModal.set(true);
-  }
-
-  // ✅ Clear flags after showing modal
-  setTimeout(() => {
-    console.log('🧹 Clearing registration success flags');
-    this.authService.clearRegistrationSuccess();
-    localStorage.removeItem('showRegistrationModal');
-    localStorage.removeItem('completeLenderData');
-  }, 1000);
-}
 
   /**
    * Close registration success modal
@@ -297,13 +266,7 @@ private checkForRegistrationSuccess(): void {
     this.authService.clearRegistrationSuccess();
   }
 
-  /**
-   * Close lender registration success modal
-   */
-  closeLenderRegistrationSuccessModal(): void {
-    this.showLenderRegistrationSuccessModal.set(false);
-    this.authService.clearRegistrationSuccess();
-  }
+  
     /**
    * Handle logged out state
    */
@@ -364,7 +327,6 @@ private checkForRegistrationSuccess(): void {
             await this.fetchUserProfile(this.user);
             setTimeout(() => {
               console.log('🎯 User data loaded, checking for registration success...');
-              this.checkForRegistrationSuccess();
             }, 100);
           } catch (error: any) {
             this.handleUserProfileError(error, userId);
@@ -483,8 +445,6 @@ private checkForRegistrationSuccess(): void {
     if (fbUser.uid) {
       await this.loadLoans(fbUser.uid);
     }
-
-     setTimeout(() => this.checkForRegistrationSuccess(), 200);
 
     this.loading = false;
   }
