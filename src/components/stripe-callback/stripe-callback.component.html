@@ -1,7 +1,7 @@
-<div class="payment-callback-container">
-  <!-- Loading State -->
-  <div *ngIf="isLoading()" class="loading-section">
-    <p class="loading-text">Processing your payment...</p>
-     <div class="spinner"></div>
+<div class="processing-screen">
+  <div class="processing-content">
+    <div class="spinner"></div>
+    <h3>Processing Payment...</h3>
+    <p>{{ processingMessage() }}</p>
   </div>
 </div>
