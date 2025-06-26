@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common';
 import { Router, ResolveFn } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { ModalService } from '../../services/modal.service';
-import { take, finalize, delay } from 'rxjs/operators';
+import { take, finalize } from 'rxjs/operators';
 import {
   Firestore,
   doc,

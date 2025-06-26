@@ -47,8 +47,7 @@ import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model'
 import { getStateName } from '../shared/constants/state-mappings';
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
-// Add these imports to the top of your file
-import { effect } from '@angular/core';
+
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -237,41 +236,59 @@ export class DashboardComponent implements OnInit {
     });
   }
 
-  // In your dashboard.component.ts - Replace the checkForRegistrationSuccess method
+ // Replace your checkForRegistrationSuccess() method with this simpler version:
 
 /**
- * ✅ Simplified registration success check
+ * ✅ Simple and reliable registration success check
  */
 private checkForRegistrationSuccess(): void {
-  // ✅ Use computed signal instead of complex logic
-  const registrationSuccess = computed(() => {
-    return this.authService.getRegistrationSuccess() || 
-           localStorage.getItem('showRegistrationModal') === 'true';
-  });
+  const isSuccess = this.authService.getRegistrationSuccess() || 
+                    localStorage.getItem('showRegistrationModal') === 'true';
 
-  // ✅ Effect to handle modal display
-  effect(() => {
-    const shouldShow = registrationSuccess();
-    const userRole = this.userRole;
-    
-    if (shouldShow && userRole) {
-      console.log('📋 Dashboard: Showing registration success modal for:', userRole);
-      
-      if (userRole === 'originator') {
-        this.showRegistrationSuccessModal.set(true);
-      } else if (userRole === 'lender') {
-        this.showLenderRegistrationSuccessModal.set(true);
-      }
-      
-      // ✅ Auto-clear after showing
-      setTimeout(() => {
-        this.authService.clearRegistrationSuccess();
-      }, 1000);
-    }
-  });
-}
- 
+  if (!isSuccess) {
+    console.log('📋 No registration success flag detected');
+    return;
+  }
+
+  console.log('🎉 Registration success detected, checking user role...');
+  console.log('👤 Current userRole:', this.userRole);
+  console.log('👤 Current userData:', this.userData);
   
+  // ✅ FIXED: Wait for user data to load if not ready
+  if (!this.userRole && !this.userData?.role) {
+    console.log('⏳ User role not yet available, waiting...');
+    
+    // Simple retry with timeout
+    setTimeout(() => {
+      this.checkForRegistrationSuccess();
+    }, 500);
+    return;
+  }
+
+  // ✅ Get role from userData if userRole is not set
+  const role = this.userRole || this.userData?.role;
+  console.log('🎭 Using role for modal:', role);
+  
+  if (role === 'originator') {
+    console.log('👤 Showing originator registration success modal');
+    this.showRegistrationSuccessModal.set(true);
+  } else if (role === 'lender') {
+    console.log('🏢 Showing lender registration success modal');  
+    this.showLenderRegistrationSuccessModal.set(true);
+  } else {
+    console.warn('⚠️ Unknown role, showing default modal. Role:', role);
+    this.showRegistrationSuccessModal.set(true);
+  }
+
+  // ✅ Clear flags after showing modal
+  setTimeout(() => {
+    console.log('🧹 Clearing registration success flags');
+    this.authService.clearRegistrationSuccess();
+    localStorage.removeItem('showRegistrationModal');
+    localStorage.removeItem('completeLenderData');
+  }, 1000);
+}
+
   /**
    * Close registration success modal
    */
@@ -287,9 +304,7 @@ private checkForRegistrationSuccess(): void {
     this.showLenderRegistrationSuccessModal.set(false);
     this.authService.clearRegistrationSuccess();
   }
-
-
-  /**
+    /**
    * Handle logged out state
    */
   private handleLoggedOut(): void {
@@ -469,7 +484,8 @@ private checkForRegistrationSuccess(): void {
       await this.loadLoans(fbUser.uid);
     }
 
-    // Final UI update
+     setTimeout(() => this.checkForRegistrationSuccess(), 200);
+
     this.loading = false;
   }
 
