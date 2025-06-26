@@ -1,21 +1,4 @@
-<!-- Originator Registration Success Modal -->
-<app-user-reg-success-modal *ngIf="showRegistrationSuccessModal()" (modalClosed)="closeRegistrationSuccessModal()">
-</app-user-reg-success-modal>
 
-<!-- Lender Registration Success Modal -->
-<app-lender-reg-success-modal *ngIf="showLenderRegistrationSuccessModal()"
-  (modalClosed)="closeLenderRegistrationSuccessModal()">
-</app-lender-reg-success-modal>
-
-<div *ngIf="isProcessingRegistrationSuccess" class="registration-processing-overlay">
-  <div class="registration-processing-content">
-    <div class="spinner"></div>
-    <h3>Welcome!</h3>
-    <p>Setting up your account...</p>
-  </div>
-</div>
-
-<div *ngIf="showDashboardContent()">
   <h1 class="title">Dashboard</h1>
 
   <div class="dashboard-container">

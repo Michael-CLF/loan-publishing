@@ -22,7 +22,6 @@ export const stripeCallbackResolver: ResolveFn<void> = (route) => {
   if (payment === 'success') {
     authService.setRegistrationSuccess(true);
   }
-
   return;
 };
 
@@ -58,7 +57,7 @@ if (StripeCallbackComponent.processingInProgress) {
   console.log('⏭️ Payment processing already in progress, skipping duplicate');
   this.isLoading.set(false); // ✅ Clear loading state
   setTimeout(() => {
-    this.router.navigate(['/dashboard']);
+    this.router.navigate(['/registration-processing']);
   }, 500);
   return;
 }
@@ -180,7 +179,7 @@ if (StripeCallbackComponent.processingInProgress) {
       if (StripeCallbackComponent.processedEmails.has(email)) {
         console.log(`✅ Email ${email} already processed, redirecting to dashboard`);
         this.authService.setRegistrationSuccess(true);
-        this.redirectToDashboard();
+       this.redirectToRegistrationProcessing();
         return;
       }
 
@@ -293,19 +292,18 @@ if (StripeCallbackComponent.processingInProgress) {
     }
   }
 
-  // ✅ Centralized cleanup and redirect
-  private cleanupAndRedirect(): void {
-    localStorage.removeItem('showRegistrationModal');
-    localStorage.removeItem('completeLenderData');
-    this.redirectToDashboard();
-  }
+ private cleanupAndRedirect(): void {
+  localStorage.removeItem('showRegistrationModal');
+  localStorage.removeItem('completeLenderData');
+  this.redirectToRegistrationProcessing();
+}
 
   // ✅ Centralized dashboard redirect with delay for auth
-  private redirectToDashboard(): void {
+  private redirectToRegistrationProcessing(): void {
     this.isLoading.set(false);
     // ✅ Small delay to ensure auth state is ready
     setTimeout(() => {
-      this.router.navigate(['/dashboard']);
+      this.router.navigate(['/registration-processing']);
     }, 500);
   }
 

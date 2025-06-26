@@ -45,8 +45,6 @@ import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
-import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
-import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 
 
 // Property category interface for better type safety
@@ -65,7 +63,7 @@ interface LoanTypeOption {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent, LenderRegSuccessModalComponent],
+  imports: [CommonModule, RouterLink, FormsModule],
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
@@ -80,7 +78,7 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
-  private readonly processingRegistrationSuccess = signal(false);
+
 
   getPropertySubcategoryName = getPropertySubcategoryName;
   getStateName = getStateName;
@@ -114,9 +112,6 @@ export class DashboardComponent implements OnInit {
 
   // ✅ Signal for saving state
   savingOptIn = signal(false);
-  showRegistrationSuccessModal = signal(false);
-  showLenderRegistrationSuccessModal = signal(false);
-  showDashboardContent = signal(false);
 
   // Reactive signals for better performance
   loans = signal<Loan[]>([]);
@@ -212,30 +207,9 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
-    this.checkForRegistrationSuccessImmediately();
     this.subscribeToAuthState();
   }
-  
-private checkForRegistrationSuccessImmediately(): void {
-  const hasRegistrationSuccess = 
-    this.authService.getRegistrationSuccess() ||
-    localStorage.getItem('showRegistrationModal') === 'true';
 
-  if (hasRegistrationSuccess) {
-    console.log('🎉 Registration success detected immediately - showing spinner');
-    
-    // ✅ Immediately show processing spinner, hide dashboard
-    this.processingRegistrationSuccess.set(true);
-    this.showDashboardContent.set(false);
-    
-    // ✅ Set flag to handle modal after user data loads
-    this.pendingRegistrationModal = true;
-  } else {
-    // ✅ No registration success, show dashboard normally after auth loads
-    console.log('📋 No registration success detected');
-  }
-
-}
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
       console.log('DashboardComponent - Auth state changed:', loggedIn);
@@ -248,20 +222,6 @@ private checkForRegistrationSuccessImmediately(): void {
       }
     });
   }
-
-  closeRegistrationSuccessModal(): void {
-    this.showRegistrationSuccessModal.set(false);
-    this.authService.clearRegistrationSuccess();
-    this.showDashboardContent.set(true); // ✅ Show dashboard after modal closes
-  }
-
-  // 8. Update closeLenderRegistrationSuccessModal:
-  closeLenderRegistrationSuccessModal(): void {
-    this.showLenderRegistrationSuccessModal.set(false);
-    this.authService.clearRegistrationSuccess();
-    this.showDashboardContent.set(true); // ✅ Show dashboard after modal closes
-  }
-  
   /**
  * Handle logged out state
  */
@@ -383,8 +343,6 @@ private checkForRegistrationSuccessImmediately(): void {
     await this.handleMissingUserProfile(fbUser);
   }
 
-  private pendingRegistrationModal = false;
-
  async handleExistingUserProfile(
   docSnap: any,
   fbUser: FirebaseUser
@@ -434,59 +392,8 @@ private checkForRegistrationSuccessImmediately(): void {
   if (fbUser.uid) {
     await this.loadLoans(fbUser.uid);
   }
-
-  // ✅ UPDATED: Check if we have a pending registration modal to show
-  if (this.pendingRegistrationModal) {
-    this.handleRegistrationSuccessAfterDataLoad();
-  } else {
-    // ✅ No registration modal pending, show dashboard immediately
-    this.loading = false;
-    this.showDashboardContent.set(true);
-  }
-}
-
-private handleRegistrationSuccessAfterDataLoad(): void {
-  console.log('🎯 User data loaded, handling pending registration modal...');
-
-  // ✅ Wait 1.5 seconds for spinner, then show modal
-  setTimeout(() => {
-    this.processingRegistrationSuccess.set(false);
-    this.showModalBasedOnRole();
-    this.pendingRegistrationModal = false; // Clear the flag
-  }, 1500);
-  
   this.loading = false;
 }
-
-  private showModalBasedOnRole(): void {
-    const role = this.userRole || this.userData?.role;
-    console.log('🎭 Showing modal for role:', role);
-
-    if (role === 'originator') {
-      console.log('👤 Showing originator registration success modal');
-      this.showRegistrationSuccessModal.set(true);
-    } else if (role === 'lender') {
-      console.log('🏢 Showing lender registration success modal');
-      this.showLenderRegistrationSuccessModal.set(true);
-    } else {
-      console.warn('⚠️ Unknown role, showing default modal. Role:', role);
-      this.showRegistrationSuccessModal.set(true);
-    }
-
-    // Clear flags after showing modal
-    setTimeout(() => {
-      console.log('🧹 Clearing registration success flags');
-      this.authService.clearRegistrationSuccess();
-      localStorage.removeItem('showRegistrationModal');
-      localStorage.removeItem('completeLenderData');
-    }, 1000);
-  }
-
-  // ✅ ADD this getter to access the signal in template:
-  get isProcessingRegistrationSuccess(): boolean {
-    return this.processingRegistrationSuccess();
-  }
-
   /**
    * ✅ FIXED: Load notification preferences with proper error handling and signal updates
    */

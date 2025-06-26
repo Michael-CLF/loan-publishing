@@ -28,6 +28,7 @@ import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { StripeCallbackComponent } from '../components/stripe-callback/stripe-callback.component';
 import { stripeCallbackResolver } from '../components/stripe-callback/stripe-callback.component';
+import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -80,10 +81,10 @@ export const routes: Routes = [
   },
   {
     path: 'complete-registration',
-    redirectTo: '/dashboard',
+    redirectTo: '/regitstration-proccesing',
     pathMatch: 'full'
   },
-
+   { path: 'registration-processing', component: RegistrationProcessingComponent },
   {
     path: 'loan-details',
     component: LoanDetailsComponent,

@@ -1,0 +1,17 @@
+<!-- Originator Registration Success Modal -->
+<app-user-reg-success-modal *ngIf="showRegistrationSuccessModal()" (modalClosed)="closeRegistrationSuccessModal()">
+</app-user-reg-success-modal>
+
+<!-- Lender Registration Success Modal -->
+<app-lender-reg-success-modal *ngIf="showLenderRegistrationSuccessModal()"
+  (modalClosed)="closeLenderRegistrationSuccessModal()">
+</app-lender-reg-success-modal>
+
+<!-- Processing Spinner - Always show initially -->
+<div *ngIf="showProcessingSpinner()" class="registration-processing-overlay">
+  <div class="registration-processing-content">
+    <div class="spinner"></div>
+    <h3>Welcome!</h3>
+    <p>Setting up your account...</p>
+  </div>
+</div>
