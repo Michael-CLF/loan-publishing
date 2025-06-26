@@ -47,6 +47,8 @@ import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model'
 import { getStateName } from '../shared/constants/state-mappings';
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
+// Add these imports to the top of your file
+import { effect } from '@angular/core';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -235,57 +237,40 @@ export class DashboardComponent implements OnInit {
     });
   }
 
- private checkForRegistrationSuccess(): void {
-  const isSuccess = this.authService.getRegistrationSuccess() || 
-                    localStorage.getItem('showRegistrationModal') === 'true';
+  // In your dashboard.component.ts - Replace the checkForRegistrationSuccess method
 
-  if (!isSuccess) {
-    console.log('📋 No registration success flag detected');
-    return;
-  }
+/**
+ * ✅ Simplified registration success check
+ */
+private checkForRegistrationSuccess(): void {
+  // ✅ Use computed signal instead of complex logic
+  const registrationSuccess = computed(() => {
+    return this.authService.getRegistrationSuccess() || 
+           localStorage.getItem('showRegistrationModal') === 'true';
+  });
 
-  console.log('🎉 Registration success detected, checking user role...');
-  
-  // ✅ FIXED: Use your existing modal logic instead of non-existent methods
-  if (this.userRole) {
-    console.log('👤 User role available:', this.userRole);
+  // ✅ Effect to handle modal display
+  effect(() => {
+    const shouldShow = registrationSuccess();
+    const userRole = this.userRole;
     
-    // Show appropriate modal based on user type (your existing code)
-    if (this.userRole === 'originator') {
-      console.log('👤 Showing originator registration success modal');
-      this.showRegistrationSuccessModal.set(true);
-    } else if (this.userRole === 'lender') {
-      console.log('🏢 Showing lender registration success modal');
-      this.showLenderRegistrationSuccessModal.set(true);
-    } else {
-      console.warn('⚠️ Unknown user role, showing default modal');
-      this.showRegistrationSuccessModal.set(true);
-    }
-
-    // Clear flags after modal is shown (your existing cleanup logic)
-    setTimeout(() => {
-      console.log('🧹 Clearing registration success flags');
-      this.authService.clearRegistrationSuccess();
-      localStorage.removeItem('showRegistrationModal');
-      localStorage.removeItem('completeLenderData');
-    }, 1000);
-    
-  } else {
-    console.log('⏳ User role not yet available, trying again...');
-    
-    // ✅ FIXED: Simple retry instead of complex new method
-    setTimeout(() => {
-      if (this.userRole) {
-        this.checkForRegistrationSuccess();
-      } else {
-        console.warn('⚠️ Timeout waiting for user role, showing default modal');
+    if (shouldShow && userRole) {
+      console.log('📋 Dashboard: Showing registration success modal for:', userRole);
+      
+      if (userRole === 'originator') {
         this.showRegistrationSuccessModal.set(true);
-        this.authService.clearRegistrationSuccess();
-        localStorage.removeItem('showRegistrationModal');
+      } else if (userRole === 'lender') {
+        this.showLenderRegistrationSuccessModal.set(true);
       }
-    }, 500);
+      
+      // ✅ Auto-clear after showing
+      setTimeout(() => {
+        this.authService.clearRegistrationSuccess();
+      }, 1000);
+    }
+  });
 }
- }
+ 
   
   /**
    * Close registration success modal
