@@ -4,12 +4,12 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
-import { 
-  NotificationPreferencesService, 
+import {
+  NotificationPreferencesService,
 } from '../services/notification-preferences.service';
-import { 
-  LenderNotificationPreferences, 
-  DEFAULT_LENDER_NOTIFICATION_PREFERENCES 
+import {
+  LenderNotificationPreferences,
+  DEFAULT_LENDER_NOTIFICATION_PREFERENCES
 } from '../types/notification.types';
 import {
   Firestore,
@@ -64,7 +64,7 @@ interface LoanTypeOption {
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
-  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent, LenderRegSuccessModalComponent], 
+  imports: [CommonModule, RouterLink, FormsModule, UserRegSuccessModalComponent, LenderRegSuccessModalComponent],
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
@@ -101,15 +101,15 @@ export class DashboardComponent implements OnInit {
     wantsEmailNotifications: false,
     propertyCategories: [],
     subcategorySelections: [],
-    loanTypes: [], 
+    loanTypes: [],
     minLoanAmount: 0,
-    ficoScore: 0, 
+    ficoScore: 0,
     footprint: [],
   });
 
   // ✅ Computed signal for toggle state - automatically syncs with preferences
   notificationOptIn = computed(() => this.notificationPrefs().wantsEmailNotifications);
-  
+
   // ✅ Signal for saving state
   savingOptIn = signal(false);
   showRegistrationSuccessModal = signal(false);
@@ -143,7 +143,7 @@ export class DashboardComponent implements OnInit {
     residential: '#DC143C',
     retail: '#660000',
     special_purpose: '#6e2c00',
-    
+
     // Legacy format (Title Case/spaces) - for backward compatibility
     'Commercial': '#1E90FF',
     'Healthcare': '#cb4335',
@@ -212,6 +212,9 @@ export class DashboardComponent implements OnInit {
    */
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
+    console.log('🎉 Registration success detected, checking user role...');
+    console.log('👤 User role available:', this.userRole);
+    console.log('🎭 Showing appropriate modal for role:', this.userRole);
     this.subscribeToAuthState();
     this.checkForRegistrationSuccess();
   }
@@ -232,57 +235,73 @@ export class DashboardComponent implements OnInit {
     });
   }
 
- /**
- * Check if user just completed registration via Stripe
- */
-private checkForRegistrationSuccess(): void {
+ private checkForRegistrationSuccess(): void {
   const isSuccess = this.authService.getRegistrationSuccess() || 
                     localStorage.getItem('showRegistrationModal') === 'true';
 
-  if (isSuccess) {
-    console.log('Registration success detected, user role:', this.userRole);
+  if (!isSuccess) {
+    console.log('📋 No registration success flag detected');
+    return;
+  }
+
+  console.log('🎉 Registration success detected, checking user role...');
+  
+  // ✅ FIXED: Use your existing modal logic instead of non-existent methods
+  if (this.userRole) {
+    console.log('👤 User role available:', this.userRole);
     
-    // Show appropriate modal based on user type
+    // Show appropriate modal based on user type (your existing code)
     if (this.userRole === 'originator') {
-      console.log('Showing originator registration success modal');
+      console.log('👤 Showing originator registration success modal');
       this.showRegistrationSuccessModal.set(true);
-  } else if (this.userRole === 'lender') {
-      console.log('Showing lender registration success modal');
+    } else if (this.userRole === 'lender') {
+      console.log('🏢 Showing lender registration success modal');
       this.showLenderRegistrationSuccessModal.set(true);
     } else {
-      // If role not yet determined, wait and check again
-      setTimeout(() => {
-        if (this.userRole) {
-          this.checkForRegistrationSuccess();
-        }
-      }, 500);
-      return;
+      console.warn('⚠️ Unknown user role, showing default modal');
+      this.showRegistrationSuccessModal.set(true);
     }
 
-    // Clear flags after modal display
+    // Clear flags after modal is shown (your existing cleanup logic)
     setTimeout(() => {
+      console.log('🧹 Clearing registration success flags');
       this.authService.clearRegistrationSuccess();
       localStorage.removeItem('showRegistrationModal');
+      localStorage.removeItem('completeLenderData');
     }, 1000);
+    
+  } else {
+    console.log('⏳ User role not yet available, trying again...');
+    
+    // ✅ FIXED: Simple retry instead of complex new method
+    setTimeout(() => {
+      if (this.userRole) {
+        this.checkForRegistrationSuccess();
+      } else {
+        console.warn('⚠️ Timeout waiting for user role, showing default modal');
+        this.showRegistrationSuccessModal.set(true);
+        this.authService.clearRegistrationSuccess();
+        localStorage.removeItem('showRegistrationModal');
+      }
+    }, 500);
+}
+ }
+  
+  /**
+   * Close registration success modal
+   */
+  closeRegistrationSuccessModal(): void {
+    this.showRegistrationSuccessModal.set(false);
+    this.authService.clearRegistrationSuccess();
   }
-}
 
-
-/**
- * Close registration success modal
- */
-closeRegistrationSuccessModal(): void {
-  this.showRegistrationSuccessModal.set(false);
-  this.authService.clearRegistrationSuccess();
-}
-
-/**
- * Close lender registration success modal
- */
-closeLenderRegistrationSuccessModal(): void {
-  this.showLenderRegistrationSuccessModal.set(false);
-  this.authService.clearRegistrationSuccess();
-}
+  /**
+   * Close lender registration success modal
+   */
+  closeLenderRegistrationSuccessModal(): void {
+    this.showLenderRegistrationSuccessModal.set(false);
+    this.authService.clearRegistrationSuccess();
+  }
 
 
   /**
@@ -296,9 +315,9 @@ closeLenderRegistrationSuccessModal(): void {
 
   getLoanTypeName(value: string): string {
     if (!value) return '';
-    
+
     let loanType = this.allLoanTypeOptions.find((type) => type.value === value);
-    
+
     // If not found, try case-insensitive match
     if (!loanType) {
       loanType = this.allLoanTypeOptions.find(
@@ -313,7 +332,7 @@ closeLenderRegistrationSuccessModal(): void {
         .replace(/^./, (str) => str.toUpperCase()); // Capitalize first letter
       return formatted.trim();
     }
-    
+
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
@@ -343,6 +362,10 @@ closeLenderRegistrationSuccessModal(): void {
         if (userId) {
           try {
             await this.fetchUserProfile(this.user);
+            setTimeout(() => {
+              console.log('🎯 User data loaded, checking for registration success...');
+              this.checkForRegistrationSuccess();
+            }, 100);
           } catch (error: any) {
             this.handleUserProfileError(error, userId);
           }
@@ -469,38 +492,38 @@ closeLenderRegistrationSuccessModal(): void {
    * ✅ FIXED: Load notification preferences with proper error handling and signal updates
    */
   private loadNotificationPreferencesFromService(): void {
-  console.log('🔍 Loading notification preferences...');
-  
-  this.authService.waitForAuthInit().pipe(
-    switchMap(() => this.authService.isLoggedIn$),
-    filter(isLoggedIn => isLoggedIn),
-    take(1),
-    switchMap(() => {
-      console.log('🔍 Calling getNotificationPreferences...');
-      return this.notificationPreferencesService.getNotificationPreferences();
-    })
-  ).subscribe({
-    next: (preferences: any) => {
-      console.log('🔍 Raw server response:', preferences);
-      console.log('🔍 wantsEmailNotifications value:', preferences?.wantsEmailNotifications);
-      
-        const actualPrefs = preferences?.data?.preferences || preferences?.preferences || preferences;
-  
-  if (actualPrefs) {
-    // ✅ Use actualPrefs instead of preferences
-    this.notificationPrefs.set({
-      wantsEmailNotifications: actualPrefs.wantsEmailNotifications || false, // ← Use actualPrefs!
-      propertyCategories: actualPrefs.propertyCategory || [],
-      subcategorySelections: actualPrefs.subcategorySelections || [],
-      loanTypes: actualPrefs.loanTypes || [], 
-      minLoanAmount: actualPrefs.minLoanAmount || 0,
-      ficoScore: actualPrefs.ficoScore || 0,
-      footprint: actualPrefs.footprint || [],
-    });
-     console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
-  } else {
+    console.log('🔍 Loading notification preferences...');
 
-  
+    this.authService.waitForAuthInit().pipe(
+      switchMap(() => this.authService.isLoggedIn$),
+      filter(isLoggedIn => isLoggedIn),
+      take(1),
+      switchMap(() => {
+        console.log('🔍 Calling getNotificationPreferences...');
+        return this.notificationPreferencesService.getNotificationPreferences();
+      })
+    ).subscribe({
+      next: (preferences: any) => {
+        console.log('🔍 Raw server response:', preferences);
+        console.log('🔍 wantsEmailNotifications value:', preferences?.wantsEmailNotifications);
+
+        const actualPrefs = preferences?.data?.preferences || preferences?.preferences || preferences;
+
+        if (actualPrefs) {
+          // ✅ Use actualPrefs instead of preferences
+          this.notificationPrefs.set({
+            wantsEmailNotifications: actualPrefs.wantsEmailNotifications || false, // ← Use actualPrefs!
+            propertyCategories: actualPrefs.propertyCategory || [],
+            subcategorySelections: actualPrefs.subcategorySelections || [],
+            loanTypes: actualPrefs.loanTypes || [],
+            minLoanAmount: actualPrefs.minLoanAmount || 0,
+            ficoScore: actualPrefs.ficoScore || 0,
+            footprint: actualPrefs.footprint || [],
+          });
+          console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
+        } else {
+
+
           console.warn('⚠️ No notification preferences found. Using defaults.');
           this.notificationPrefs.set({
             wantsEmailNotifications: false,
@@ -534,9 +557,9 @@ closeLenderRegistrationSuccessModal(): void {
   toggleNotificationOptIn(event: Event): void {
     const input = event.target as HTMLInputElement;
     const newStatus = input.checked;
-    
+
     console.log('🔄 Toggling notification opt-in to:', newStatus);
-    
+
     // ✅ Set saving state
     this.savingOptIn.set(true);
 
@@ -559,14 +582,14 @@ closeLenderRegistrationSuccessModal(): void {
       },
       error: (error) => {
         console.error('❌ Error toggling notification opt-in via Cloud Function:', error);
-        
+
         // ✅ Revert the optimistic update on error
         const revertedPrefs = this.notificationPrefs();
         this.notificationPrefs.set({
           ...revertedPrefs,
           wantsEmailNotifications: !newStatus
         });
-        
+
         // ✅ Show user-friendly error message
         alert('Failed to update notification preferences. Please try again.');
       }
@@ -781,13 +804,13 @@ closeLenderRegistrationSuccessModal(): void {
     const currentPrefs = this.notificationPrefs();
     const currentCategories = [...currentPrefs.propertyCategories];
     const index = currentCategories.indexOf(categoryValue);
-    
+
     if (index > -1) {
       currentCategories.splice(index, 1);
     } else {
       currentCategories.push(categoryValue);
     }
-    
+
     this.notificationPrefs.set({
       ...currentPrefs,
       propertyCategories: currentCategories
@@ -798,13 +821,13 @@ closeLenderRegistrationSuccessModal(): void {
     const currentPrefs = this.notificationPrefs();
     const currentSelections = [...currentPrefs.subcategorySelections];
     const index = currentSelections.indexOf(subcategoryValue);
-    
+
     if (index > -1) {
       currentSelections.splice(index, 1);
     } else {
       currentSelections.push(subcategoryValue);
     }
-    
+
     this.notificationPrefs.set({
       ...currentPrefs,
       subcategorySelections: currentSelections
@@ -815,13 +838,13 @@ closeLenderRegistrationSuccessModal(): void {
     const currentPrefs = this.notificationPrefs();
     const currentLoanTypes = [...currentPrefs.loanTypes];
     const index = currentLoanTypes.indexOf(loanTypeValue);
-    
+
     if (index > -1) {
       currentLoanTypes.splice(index, 1);
     } else {
       currentLoanTypes.push(loanTypeValue);
     }
-    
+
     this.notificationPrefs.set({
       ...currentPrefs,
       loanTypes: currentLoanTypes
@@ -832,13 +855,13 @@ closeLenderRegistrationSuccessModal(): void {
     const currentPrefs = this.notificationPrefs();
     const currentFootprint = [...currentPrefs.footprint];
     const index = currentFootprint.indexOf(state);
-    
+
     if (index > -1) {
       currentFootprint.splice(index, 1);
     } else {
       currentFootprint.push(state);
     }
-    
+
     this.notificationPrefs.set({
       ...currentPrefs,
       footprint: currentFootprint
@@ -862,7 +885,7 @@ closeLenderRegistrationSuccessModal(): void {
     return this.notificationPrefs().footprint.includes(state);
   }
 
-// ✅ Helper methods for display names
+  // ✅ Helper methods for display names
   getCategoryDisplayName(categoryValue: string): string {
     const category = this.allPropertyCategoryOptions.find(cat => cat.value === categoryValue);
     return category ? category.displayName : categoryValue;
@@ -896,7 +919,7 @@ closeLenderRegistrationSuccessModal(): void {
     const value = event.target.value;
     const numericValue = parseFloat(value.toString().replace(/[^0-9.]/g, ''));
     const currentPrefs = this.notificationPrefs();
-    
+
     this.notificationPrefs.set({
       ...currentPrefs,
       minLoanAmount: isNaN(numericValue) ? 0 : numericValue
@@ -908,14 +931,14 @@ closeLenderRegistrationSuccessModal(): void {
     if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
       this.notificationPrefs.set({
         wantsEmailNotifications: false,
-        propertyCategories: [],       
+        propertyCategories: [],
         subcategorySelections: [],
-        loanTypes: [], 
+        loanTypes: [],
         minLoanAmount: 0,
         ficoScore: 0,
         footprint: [],
       });
-      
+
       console.log('Notification preferences reset to defaults');
     }
   }
@@ -935,7 +958,7 @@ closeLenderRegistrationSuccessModal(): void {
           }
           console.log('✅ Server preferences:', serverPrefs);
           console.log('Email Notifications Enabled:', serverPrefs.wantsEmailNotifications);
-          console.log('Property Categories:', serverPrefs.propertyCategories); 
+          console.log('Property Categories:', serverPrefs.propertyCategories);
           console.log('Subcategory Selections:', serverPrefs.subcategorySelections);
           console.log('Loan Types:', serverPrefs.loanTypes);
           console.log('Minimum Loan Amount:', serverPrefs.minLoanAmount);
@@ -1384,7 +1407,7 @@ closeLenderRegistrationSuccessModal(): void {
   // ✅ FIXED: Toggle all states using proper signal updates
   toggleAllStates(): void {
     const currentPrefs = this.notificationPrefs();
-    
+
     if (this.areAllStatesSelected()) {
       // Deselect all states
       this.notificationPrefs.set({

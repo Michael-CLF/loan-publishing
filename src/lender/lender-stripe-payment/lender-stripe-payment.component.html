@@ -64,7 +64,7 @@
                 <li>New loan notifications</li>               
                 <li>10% savings vs monthly</li>
                 <li>Priority support</li>
-                 <li>Cancel anytime</li>
+                <li>Cancel anytime</li>
               </ul>
             </div>
           </div>
@@ -75,21 +75,12 @@
           <div class="summary-row">
             <span>Plan:</span>
             <span>Lender {{ paymentForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
-          </div>
-          
+          </div>          
           <div class="summary-row total">
             <span>Total:</span>
-            <span *ngIf="paymentForm.get('applyTrial')?.value">
-              $0.00 for 90 days, then {{ getDisplayPrice() }}
-            </span>
-            <span *ngIf="!paymentForm.get('applyTrial')?.value">
-              {{ getDisplayPrice() }}
-            </span>
           </div>
         </div>
-      </div>
-
-    
+      </div>    
 
       <!-- Submit Button -->
       <div class="button-container">
