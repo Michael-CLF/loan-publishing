@@ -212,10 +212,30 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     console.log('Dashboard component initializing...');
+    this.checkForRegistrationSuccessImmediately();
     this.subscribeToAuthState();
   }
   
+private checkForRegistrationSuccessImmediately(): void {
+  const hasRegistrationSuccess = 
+    this.authService.getRegistrationSuccess() ||
+    localStorage.getItem('showRegistrationModal') === 'true';
 
+  if (hasRegistrationSuccess) {
+    console.log('🎉 Registration success detected immediately - showing spinner');
+    
+    // ✅ Immediately show processing spinner, hide dashboard
+    this.processingRegistrationSuccess.set(true);
+    this.showDashboardContent.set(false);
+    
+    // ✅ Set flag to handle modal after user data loads
+    this.pendingRegistrationModal = true;
+  } else {
+    // ✅ No registration success, show dashboard normally after auth loads
+    console.log('📋 No registration success detected');
+  }
+
+}
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
       console.log('DashboardComponent - Auth state changed:', loggedIn);
@@ -241,9 +261,7 @@ export class DashboardComponent implements OnInit {
     this.authService.clearRegistrationSuccess();
     this.showDashboardContent.set(true); // ✅ Show dashboard after modal closes
   }
-
-
-
+  
   /**
  * Handle logged out state
  */
@@ -332,8 +350,6 @@ export class DashboardComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-
-
   /**
    * Fetch user profile from Firestore
    */
@@ -367,85 +383,80 @@ export class DashboardComponent implements OnInit {
     await this.handleMissingUserProfile(fbUser);
   }
 
-  async handleExistingUserProfile(
-    docSnap: any,
-    fbUser: FirebaseUser
-  ): Promise<void> {
-    console.log('DashboardComponent - User profile found:', docSnap.data());
+  private pendingRegistrationModal = false;
 
-    const data = docSnap.data();
+ async handleExistingUserProfile(
+  docSnap: any,
+  fbUser: FirebaseUser
+): Promise<void> {
+  console.log('DashboardComponent - User profile found:', docSnap.data());
 
-    if (data.role === 'lender') {
-      this.userData = {
-        id: docSnap.id,
-        company: data.company || (data.contactInfo && data.contactInfo.company) || '',
-        firstName: data.contactInfo?.firstName || '',
-        lastName: data.contactInfo?.lastName || '',
-        phone: data.contactInfo?.contactPhone || '',
-        email: data.contactInfo?.contactEmail || '',
-        city: data.contactInfo?.city || '',
-        state: data.contactInfo?.state || '',
-        role: 'lender',
-      };
-      this.loadNotificationPreferencesFromService();
-    } else if (data.role === 'originator') {
-      this.userData = {
-        id: docSnap.id,
-        email: data.contactInfo?.contactEmail || data.email || '',
-        firstName: data.contactInfo?.firstName || data.firstName || '',
-        lastName: data.contactInfo?.lastName || data.lastName || '',
-        phone: data.contactInfo?.contactPhone || data.phone || '',
-        company: data.contactInfo?.company || data.company || '',
-        city: data.contactInfo?.city || data.city || '',
-        state: data.contactInfo?.state || data.state || '',
-        role: 'originator',
-      };
-    }
+  const data = docSnap.data();
 
-    this.userRole = this.userData.role;
+  if (data.role === 'lender') {
+    this.userData = {
+      id: docSnap.id,
+      company: data.company || (data.contactInfo && data.contactInfo.company) || '',
+      firstName: data.contactInfo?.firstName || '',
+      lastName: data.contactInfo?.lastName || '',
+      phone: data.contactInfo?.contactPhone || '',
+      email: data.contactInfo?.contactEmail || '',
+      city: data.contactInfo?.city || '',
+      state: data.contactInfo?.state || '',
+      role: 'lender',
+    };
+    this.loadNotificationPreferencesFromService();
+  } else if (data.role === 'originator') {
+    this.userData = {
+      id: docSnap.id,
+      email: data.contactInfo?.contactEmail || data.email || '',
+      firstName: data.contactInfo?.firstName || data.firstName || '',
+      lastName: data.contactInfo?.lastName || data.lastName || '',
+      phone: data.contactInfo?.contactPhone || data.phone || '',
+      company: data.contactInfo?.company || data.company || '',
+      city: data.contactInfo?.city || data.city || '',
+      state: data.contactInfo?.state || data.state || '',
+      role: 'originator',
+    };
+  }
 
-    // Load role-specific data
-    if (this.userRole === 'lender' && fbUser.uid) {
-      await this.loadSavedLoans(fbUser.uid);
-    }
+  this.userRole = this.userData.role;
 
-    if (this.userRole === 'originator' && fbUser.uid) {
-      await this.loadSavedLenders(fbUser.uid);
-    }
+  // Load role-specific data
+  if (this.userRole === 'lender' && fbUser.uid) {
+    await this.loadSavedLoans(fbUser.uid);
+  }
 
-    if (fbUser.uid) {
-      await this.loadLoans(fbUser.uid);
-    }
+  if (this.userRole === 'originator' && fbUser.uid) {
+    await this.loadSavedLenders(fbUser.uid);
+  }
 
-    // ✅ SIMPLIFIED: Check for registration success after everything loads
+  if (fbUser.uid) {
+    await this.loadLoans(fbUser.uid);
+  }
+
+  // ✅ UPDATED: Check if we have a pending registration modal to show
+  if (this.pendingRegistrationModal) {
     this.handleRegistrationSuccessAfterDataLoad();
-
-    // Show dashboard content
+  } else {
+    // ✅ No registration modal pending, show dashboard immediately
     this.loading = false;
     this.showDashboardContent.set(true);
   }
+}
 
-  private handleRegistrationSuccessAfterDataLoad(): void {
-    const hasRegistrationSuccess = this.authService.getRegistrationSuccess() ||
-      localStorage.getItem('showRegistrationModal') === 'true';
+private handleRegistrationSuccessAfterDataLoad(): void {
+  console.log('🎯 User data loaded, handling pending registration modal...');
 
-    if (!hasRegistrationSuccess) {
-      console.log('📋 No registration success flag detected');
-      return;
-    }
-
-    console.log('🎉 Registration success detected - showing spinner then modal');
-
-    // Show processing spinner
-    this.processingRegistrationSuccess.set(true);
-    this.showDashboardContent.set(false);
-
-    // Show spinner for 1.5 seconds, then show modal
-    setTimeout(() => {
-      this.processingRegistrationSuccess.set(false);
-      this.showModalBasedOnRole();
-    }, 1500);
-  }
+  // ✅ Wait 1.5 seconds for spinner, then show modal
+  setTimeout(() => {
+    this.processingRegistrationSuccess.set(false);
+    this.showModalBasedOnRole();
+    this.pendingRegistrationModal = false; // Clear the flag
+  }, 1500);
+  
+  this.loading = false;
+}
 
   private showModalBasedOnRole(): void {
     const role = this.userRole || this.userData?.role;
