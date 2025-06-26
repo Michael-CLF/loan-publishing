@@ -53,13 +53,15 @@ export class StripeCallbackComponent implements OnInit {
   ngOnInit(): void {
     console.log('🔄 StripeCallbackComponent initializing...');
     
-    // ✅ Check if already processing
-    if (StripeCallbackComponent.processingInProgress) {
-      console.log('⏭️ Payment processing already in progress, skipping duplicate');
-      this.processingMessage.set('Payment already being processed...');
-      this.redirectToDashboard();
-      return;
-    }
+   // ✅ CRITICAL FIX: Check if already processing
+if (StripeCallbackComponent.processingInProgress) {
+  console.log('⏭️ Payment processing already in progress, skipping duplicate');
+  this.isLoading.set(false); // ✅ Clear loading state
+  setTimeout(() => {
+    this.router.navigate(['/dashboard']);
+  }, 500);
+  return;
+}
 
     const showModal = localStorage.getItem('showRegistrationModal');
     const rawLenderData = localStorage.getItem('completeLenderData');
