@@ -78,6 +78,11 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
+  {
+    path: 'complete-registration',
+    redirectTo: '/dashboard',
+    pathMatch: 'full'
+  },
 
   {
     path: 'loan-details',
