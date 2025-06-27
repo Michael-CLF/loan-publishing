@@ -50,9 +50,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     // Add debug logs
     console.log('🎯 Initial spinner state:', this.showProcessingSpinner());
     console.log('🎯 Query params:', this.route.snapshot.queryParams);
-    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));
-    
-   
+    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));   
 
     // ✅ Check URL params to determine if this is a Stripe callback
     const queryParams = this.route.snapshot.queryParams;
@@ -120,7 +118,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     this.authService.getCurrentUser().pipe(
       take(1),
       finalize(() => {
-        this.showProcessingSpinner.set(false);
         RegistrationProcessingComponent.processingInProgress = false;
       })
     ).subscribe({
@@ -353,6 +350,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
    * ✅ Show appropriate modal based on user role
    */
   private showModalBasedOnRole(): void {
+     this.showProcessingSpinner.set(false);
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
 
