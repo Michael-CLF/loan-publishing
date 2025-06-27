@@ -34,28 +34,28 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   showLenderRegistrationSuccessModal = signal(false);
   processingMessage = signal('Setting up your account...');
   hasError = signal(false);
-  
+
   private userRole: 'originator' | 'lender' | undefined = undefined;
-  
+
   // ✅ Prevent duplicate processing
   private static processingInProgress = false;
   private static processedEmails = new Set<string>();
 
   ngOnInit(): void {
     console.log('🔄 Registration Processing Component - Starting...');
-    
+
     // ✅ RESET static flags on fresh component load
     RegistrationProcessingComponent.processingInProgress = false;
-    
+
     // Add debug logs
     console.log('🎯 Initial spinner state:', this.showProcessingSpinner());
     console.log('🎯 Query params:', this.route.snapshot.queryParams);
-    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));   
+    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));
 
     // ✅ Check URL params to determine if this is a Stripe callback
     const queryParams = this.route.snapshot.queryParams;
     const paymentStatus = queryParams['payment'];
-    
+
     if (paymentStatus === 'success') {
       console.log('💳 Processing Stripe payment success callback');
       this.handleStripeCallback();
@@ -79,7 +79,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private handleStripeCallback(): void {
     console.log('💳 Processing Stripe payment callback');
     this.processingMessage.set('Processing your payment...');
-    
+
     // ✅ Set processing flag
     RegistrationProcessingComponent.processingInProgress = true;
 
@@ -136,11 +136,11 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
             console.log('✅ Updated originator subscription status to active');
             this.processingMessage.set('Success! Welcome to your dashboard...');
-            
+
             // Set success flag and continue to modal flow
             this.authService.setRegistrationSuccess(true);
             this.userRole = 'originator';
-            
+
             setTimeout(() => {
               this.showModalBasedOnRole();
             }, 1500);
@@ -192,7 +192,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
       // ✅ Check if user already exists in Firebase Auth
       const signInMethods = await fetchSignInMethodsForEmail(this.auth, email);
-      
+
       if (signInMethods.length > 0) {
         console.log(`👤 User with email ${email} already exists, updating account`);
         await this.updateExistingLenderAccount(email, lenderData);
@@ -225,7 +225,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         .pipe(
           take(1),
           finalize(() => {
-            this.showProcessingSpinner.set(false);
             RegistrationProcessingComponent.processingInProgress = false;
           })
         )
@@ -246,7 +245,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
               this.authService.setRegistrationSuccess(true);
               this.userRole = 'lender';
               this.processingMessage.set('Success! Welcome to your dashboard...');
-              
+
               setTimeout(() => {
                 this.showModalBasedOnRole();
               }, 1500);
@@ -254,12 +253,14 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
             } catch (error) {
               console.error('❌ Error updating lender subscription:', error);
               this.hasError.set(true);
+              this.showProcessingSpinner.set(false); // ✅ Only hide on error
               this.router.navigate(['/register/lender']);
             }
           },
           error: (err) => {
             console.error('❌ Lender registration after payment failed:', err);
             this.hasError.set(true);
+            this.showProcessingSpinner.set(false);
             this.router.navigate(['/register/lender']);
           },
         });
@@ -279,12 +280,12 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private async updateExistingLenderAccount(email: string, lenderData: any): Promise<void> {
     try {
       this.processingMessage.set('Updating your existing account...');
-      
+
       console.log('✅ Updated existing lender account subscription to active');
       this.authService.setRegistrationSuccess(true);
       this.userRole = 'lender';
       this.processingMessage.set('Success! Welcome back...');
-      
+
       setTimeout(() => {
         this.showModalBasedOnRole();
       }, 1500);
@@ -303,8 +304,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
    * ✅ Check if we should show standard registration processing
    */
   private shouldShowRegistrationProcessing(): boolean {
-    return this.authService.getRegistrationSuccess() || 
-           localStorage.getItem('showRegistrationModal') === 'true';
+    return this.authService.getRegistrationSuccess() ||
+      localStorage.getItem('showRegistrationModal') === 'true';
   }
 
   /**
@@ -313,10 +314,10 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private startStandardRegistrationFlow(): void {
     console.log('🔄 Starting standard registration processing flow...');
     this.processingMessage.set('Setting up your account...');
-    
+
     // Step 1: Load user data and determine role
     this.loadUserRole();
-    
+
     // Step 2: After 1.5 seconds, hide spinner and show modal
     setTimeout(() => {
       console.log('🔄 Hiding spinner, showing modal...');
@@ -350,7 +351,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
    * ✅ Show appropriate modal based on user role
    */
   private showModalBasedOnRole(): void {
-     this.showProcessingSpinner.set(false);
+    this.showProcessingSpinner.set(false);
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
 
