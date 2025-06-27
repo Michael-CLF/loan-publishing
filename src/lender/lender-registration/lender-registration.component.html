@@ -74,8 +74,16 @@
                         Proceed to Payment
                     </button>
                 }
-              <!-- Complete Registration button handled by lender-stripe-payment component -->
-              <!-- Removed duplicate button for step 4 -->
+
+                <!-- Complete Registration button for step 4 (Payment) -->
+                @if (currentStep === 4) {
+                    <button type="submit" class="btn btn-success" 
+                        [disabled]="!lenderForm.get('interval')?.value || isLoading"
+                        (click)="submitForm()">
+                        <span *ngIf="!isLoading">Complete Registration</span>
+                        <span *ngIf="isLoading">Processing...</span>
+                    </button>
+                }
             </div>
         </form>
     </div>

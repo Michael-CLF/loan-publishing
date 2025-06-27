@@ -80,17 +80,6 @@
             <span>Total:</span>
           </div>
         </div>
-      </div>    
-
-      <!-- Submit Button -->
-      <div class="button-container">
-        <button type="submit" 
-                class="payment-button"
-                [disabled]="paymentForm.invalid || isLoading"
-                [class.loading]="isLoading">
-          <span *ngIf="!isLoading">Complete Registration</span>
-          <span *ngIf="isLoading">Processing...</span>
-        </button>
       </div>
 
       <!-- Error Message -->
