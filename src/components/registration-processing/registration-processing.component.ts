@@ -52,15 +52,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     console.log('🎯 Query params:', this.route.snapshot.queryParams);
     console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));
     
-    // ✅ CRITICAL FIX: Check if already processing
-    if (RegistrationProcessingComponent.processingInProgress) {
-      console.log('⏭️ Processing already in progress, skipping duplicate');
-      this.showProcessingSpinner.set(false);
-      setTimeout(() => {
-        this.router.navigate(['/dashboard']);
-      }, 500);
-      return;
-    }
+   
 
     // ✅ Check URL params to determine if this is a Stripe callback
     const queryParams = this.route.snapshot.queryParams;
