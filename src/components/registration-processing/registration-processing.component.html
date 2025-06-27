@@ -1,20 +1,25 @@
-<!-- ✅ Processing Screen - Now handles both payment and registration flows -->
-<div *ngIf="showProcessingSpinner()" class="processing-screen">
-  <div class="processing-content">
-    <div class="spinner"></div>
-    <h3>{{ processingMessage().includes('payment') ? 'Processing Payment...' : 'Welcome!' }}</h3>
-    <p>{{ processingMessage() }}</p>
+<div class="processing-wrapper">
+  <!-- ✅ Processing Spinner -->
+  <div *ngIf="showProcessingSpinner()" class="processing-screen">
+    <div class="processing-content">
+      <div class="spinner"></div>
+      <h3>
+        {{ processingMessage().includes('payment') ? 'Processing Payment...' : 'Welcome!' }}
+      </h3>
+      <p>{{ processingMessage() }}</p>
+    </div>
+  </div>
+
+  <!-- ❌ Error State -->
+  <div *ngIf="hasError()" class="processing-screen">
+    <div class="processing-content">
+      <div class="error-icon">❌</div>
+      <h3>Something went wrong</h3>
+      <p>Please try again or contact support if the issue persists.</p>
+    </div>
   </div>
 </div>
 
-<!-- ✅ Error Screen -->
-<div *ngIf="hasError()" class="processing-screen">
-  <div class="processing-content">
-    <div class="error-icon">❌</div>
-    <h3>Something went wrong</h3>
-    <p>Please try again or contact support if the issue persists.</p>
-  </div>
-</div>
 
 <!-- ✅ Originator Registration Success Modal -->
 <app-user-reg-success-modal 
