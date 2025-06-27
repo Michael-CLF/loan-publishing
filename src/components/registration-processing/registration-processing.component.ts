@@ -44,6 +44,14 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('🔄 Registration Processing Component - Starting...');
     
+    // ✅ RESET static flags on fresh component load
+    RegistrationProcessingComponent.processingInProgress = false;
+    
+    // Add debug logs
+    console.log('🎯 Initial spinner state:', this.showProcessingSpinner());
+    console.log('🎯 Query params:', this.route.snapshot.queryParams);
+    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));
+    
     // ✅ CRITICAL FIX: Check if already processing
     if (RegistrationProcessingComponent.processingInProgress) {
       console.log('⏭️ Processing already in progress, skipping duplicate');
