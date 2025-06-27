@@ -1,12 +1,13 @@
-/* ✅ Full Screen Processing - Unified styling for all processing states */
 .processing-screen {
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 50vh;
+  height: 100vh; /* 🔄 changed from min-height: 50vh */
   background: #f8f9fa;
   padding: 1rem;
+  animation: fadeIn 0.3s ease-in;
 }
+
 
 .processing-content {
   text-align: center;
