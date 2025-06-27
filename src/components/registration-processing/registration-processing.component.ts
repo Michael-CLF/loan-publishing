@@ -351,10 +351,11 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
    * ✅ Show appropriate modal based on user role
    */
   private showModalBasedOnRole(): void {
-    this.showProcessingSpinner.set(false);
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
-
+    this.showProcessingSpinner.set(false);
+ 
+    setTimeout(() => {
     if (role === 'originator') {
       console.log('👤 Showing originator registration success modal');
       this.showRegistrationSuccessModal.set(true);
@@ -366,27 +367,36 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       this.showRegistrationSuccessModal.set(true);
     }
 
-    // Clean up flags after showing modal
-    this.clearRegistrationFlags();
-  }
+    // ✅ Clean up flags after modal is shown
+    setTimeout(() => {
+      this.clearRegistrationFlags();
+    }, 100);
+  }, 200);
+}
 
-  /**
-   * ✅ Handle originator modal close
-   */
-  closeRegistrationSuccessModal(): void {
-    console.log('✅ Originator modal closed - redirecting to dashboard');
-    this.showRegistrationSuccessModal.set(false);
+ closeRegistrationSuccessModal(): void {
+  console.log('✅ Originator modal closed - redirecting to dashboard');
+  
+  // ✅ Hide modal first
+  this.showRegistrationSuccessModal.set(false);
+  
+  // ✅ Small delay before redirect to allow modal close animation
+  setTimeout(() => {
     this.redirectToDashboard();
-  }
+  }, 100);
+}
 
-  /**
-   * ✅ Handle lender modal close  
-   */
-  closeLenderRegistrationSuccessModal(): void {
-    console.log('✅ Lender modal closed - redirecting to dashboard');
-    this.showLenderRegistrationSuccessModal.set(false);
+closeLenderRegistrationSuccessModal(): void {
+  console.log('✅ Lender modal closed - redirecting to dashboard');
+  
+  // ✅ Hide modal first
+  this.showLenderRegistrationSuccessModal.set(false);
+  
+  // ✅ Small delay before redirect to allow modal close animation
+  setTimeout(() => {
     this.redirectToDashboard();
-  }
+  }, 100);
+}
 
   /**
    * ✅ Clean up all registration success flags
@@ -398,13 +408,17 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     localStorage.removeItem('completeLenderData');
   }
 
-  /**
-   * ✅ Redirect to dashboard
-   */
-  private redirectToDashboard(): void {
-    console.log('🎯 Redirecting to dashboard...');
+private redirectToDashboard(): void {
+  console.log('🎯 Redirecting to dashboard...');
+  
+  try {
     this.router.navigate(['/dashboard']);
+  } catch (error) {
+    console.error('❌ Error navigating to dashboard:', error);
+    // ✅ Fallback: try direct navigation
+    window.location.href = '/dashboard';
   }
+}
 
   /**
    * ✅ Clean up static flags when component is destroyed

@@ -1,12 +1,15 @@
-/* ✅ Full Screen Processing - Simplified and reliable */
 .processing-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  min-height: 100vh;
   background: #f8f9fa;
+  z-index: 999;
   padding: 1rem;
-  margin-top: -200px; /* Pull it up higher on the page */
 }
 
 .processing-content {

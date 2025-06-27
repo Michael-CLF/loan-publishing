@@ -15,54 +15,55 @@ import { User } from '@angular/fire/auth';
   styleUrl: './lender-reg-success-modal.component.css',
 })
 export class LenderRegSuccessModalComponent implements OnDestroy {
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  countdown = 5; // 5 seconds before auto-redirect
-  private timer: any;
-
-  public isVisible = false;
-
-  open(): void {
-    this.isVisible = true;
-  }
-
+ private router = inject(Router);
+  
+  // ✅ Simple state management (matching originator modal)
+  isVisible = false;
 
   @Output() modalClosed = new EventEmitter<void>();
 
   constructor() {
-    this.startCountdown();
+    console.log('LenderRegSuccessModal created');
   }
 
-  startCountdown(): void {
-    this.timer = setInterval(() => {
-      this.countdown--;
+  ngOnInit(): void {
+    console.log('LenderRegSuccessModal initialized');
+    // Show modal with slight delay for animation
+    setTimeout(() => {
+      console.log('Setting lender modal visible');
+      this.isVisible = true;
+    }, 100);
 
-      if (this.countdown <= 0) {
-        clearInterval(this.timer);
-        this.navigateToDashboard();
-      }
-    }, 1000);
+    // Auto navigate to dashboard after 4 seconds (matching originator modal)
+    setTimeout(() => {
+      console.log('Auto-navigating to dashboard');
+      this.goToDashboard();
+    }, 4000);
   }
 
-  async navigateToDashboard(): Promise<void> {
-    clearInterval(this.timer);
+  open(): void {
+    console.log('Lender modal open method called');
+    this.isVisible = true;
+  }
 
-    this.modalClosed.emit();
+  goToDashboard(): void {
+    console.log('goToDashboard called');
+    this.close();
+    // Emit event that will be caught by the modal service
+    setTimeout(() => {
+      this.router.navigate(['/dashboard']);
+    }, 300);
+  }
 
-    await this.authService.refreshCurrentUser();
-
-    await firstValueFrom(
-      this.authService.getFirebaseUser().pipe(
-        filter((user: User | null) => !!user) // correctly inside pipe
-      )
-    );
-
-    this.router.navigate(['/dashboard']);
+  close(): void {
+    console.log('Lender modal close method called');
+    this.isVisible = false;
+    setTimeout(() => {
+      this.modalClosed.emit();
+    }, 300); // Match the transition duration
   }
 
   ngOnDestroy(): void {
-    if (this.timer) {
-      clearInterval(this.timer);
-    }
+    console.log('LenderRegSuccessModal destroyed');
   }
 }
