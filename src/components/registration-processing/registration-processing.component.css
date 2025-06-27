@@ -1,13 +1,18 @@
 .processing-screen {
+  position: fixed; 
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh; /* 🔄 changed from min-height: 50vh */
   background: #f8f9fa;
-  padding: 1rem;
+  z-index: 9999; 
+  padding: 0;
+  margin: 0;
   animation: fadeIn 0.3s ease-in;
 }
-
 
 .processing-content {
   text-align: center;
