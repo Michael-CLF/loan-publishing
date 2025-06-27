@@ -26,8 +26,6 @@ import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
-import { StripeCallbackComponent } from '../components/stripe-callback/stripe-callback.component';
-import { stripeCallbackResolver } from '../components/stripe-callback/stripe-callback.component';
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
 
 export const routes: Routes = [
@@ -61,14 +59,14 @@ export const routes: Routes = [
   { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
   
-  // ✅ ADD THIS: The missing payment-callback route
+  // ✅ CONSOLIDATED: Payment callback now goes directly to registration processing
   { 
     path: 'payment-callback', 
-    component: StripeCallbackComponent,
-    resolve: { success: stripeCallbackResolver }
+    component: RegistrationProcessingComponent
   },
   
-  // ✅ OPTIONAL: Keep these redirects or remove them entirely
+  // ✅ SIMPLIFIED: Remove redundant payment redirects since we handle params directly
+  // Old routes for backward compatibility (optional - can remove these)
   {
     path: 'payment/success',
     redirectTo: '/payment-callback?payment=success',
@@ -79,12 +77,20 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
+  
+  // ✅ FIXED: Corrected typo in redirect
   {
     path: 'complete-registration',
-    redirectTo: '/regitstration-proccesing',
+    redirectTo: '/registration-processing',
     pathMatch: 'full'
   },
-   { path: 'registration-processing', component: RegistrationProcessingComponent },
+  
+  // ✅ Main registration processing route
+  { 
+    path: 'registration-processing', 
+    component: RegistrationProcessingComponent 
+  },
+  
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
@@ -116,5 +122,7 @@ export const routes: Routes = [
     path: 'verify',
     component: VerificationComponent,
   },
+  
+  // ✅ Testing route (can be removed in production)
   { path: 'test-processing', component: RegistrationProcessingComponent },
 ];

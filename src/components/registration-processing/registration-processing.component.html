@@ -1,16 +1,29 @@
-<!-- Originator Registration Success Modal -->
-<app-user-reg-success-modal *ngIf="showRegistrationSuccessModal()" (modalClosed)="closeRegistrationSuccessModal()">
-</app-user-reg-success-modal>
-
-<!-- Lender Registration Success Modal -->
-<app-lender-reg-success-modal *ngIf="showLenderRegistrationSuccessModal()"
-  (modalClosed)="closeLenderRegistrationSuccessModal()">
-</app-lender-reg-success-modal>
-
+<!-- ✅ Processing Screen - Now handles both payment and registration flows -->
 <div *ngIf="showProcessingSpinner()" class="processing-screen">
   <div class="processing-content">
     <div class="spinner"></div>
-    <h3>Welcome!</h3>
-    <p>Setting up your account...</p>
+    <h3>{{ processingMessage().includes('payment') ? 'Processing Payment...' : 'Welcome!' }}</h3>
+    <p>{{ processingMessage() }}</p>
   </div>
 </div>
+
+<!-- ✅ Error Screen -->
+<div *ngIf="hasError()" class="processing-screen">
+  <div class="processing-content">
+    <div class="error-icon">❌</div>
+    <h3>Something went wrong</h3>
+    <p>Please try again or contact support if the issue persists.</p>
+  </div>
+</div>
+
+<!-- ✅ Originator Registration Success Modal -->
+<app-user-reg-success-modal 
+  *ngIf="showRegistrationSuccessModal()" 
+  (modalClosed)="closeRegistrationSuccessModal()">
+</app-user-reg-success-modal>
+
+<!-- ✅ Lender Registration Success Modal -->
+<app-lender-reg-success-modal 
+  *ngIf="showLenderRegistrationSuccessModal()"
+  (modalClosed)="closeLenderRegistrationSuccessModal()">
+</app-lender-reg-success-modal>
