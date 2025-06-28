@@ -12,7 +12,7 @@ import {
   serverTimestamp,
   getDoc,
 } from '@angular/fire/firestore';
-import { Auth, fetchSignInMethodsForEmail } from '@angular/fire/auth';
+import { Auth } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-registration-processing',
@@ -179,7 +179,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         throw new Error('Email is required');
       }
 
-      // ✅ Check if email was already processed
+      // ✅ Check if email was already processed (prevent double processing)
       if (RegistrationProcessingComponent.processedEmails.has(email)) {
         console.log(`✅ Email ${email} already processed, showing success modal`);
         this.userRole = 'lender';
@@ -190,19 +190,10 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // ✅ Check if user already exists in Firebase Auth
-      const signInMethods = await fetchSignInMethodsForEmail(this.auth, email);
-
-      if (signInMethods.length > 0) {
-        console.log(`👤 User with email ${email} already exists, updating account`);
-        await this.updateExistingLenderAccount(email, lenderData);
-        return;
-      }
-
       // ✅ Add email to processed set
       RegistrationProcessingComponent.processedEmails.add(email);
 
-      // ✅ User doesn't exist, create new account
+      // ✅ OPTION A: Always create new account after payment (no pre-registration)
       this.processingMessage.set('Creating your account...');
       const password = 'placeholder-password-not-used';
 
@@ -253,7 +244,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
             } catch (error) {
               console.error('❌ Error updating lender subscription:', error);
               this.hasError.set(true);
-              this.showProcessingSpinner.set(false); // ✅ Only hide on error
+              this.showProcessingSpinner.set(false);
               this.router.navigate(['/register/lender']);
             }
           },
@@ -271,32 +262,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       this.showProcessingSpinner.set(false);
       RegistrationProcessingComponent.processingInProgress = false;
       this.router.navigate(['/register/lender']);
-    }
-  }
-
-  /**
-   * ✅ Handle existing lender account update
-   */
-  private async updateExistingLenderAccount(email: string, lenderData: any): Promise<void> {
-    try {
-      this.processingMessage.set('Updating your existing account...');
-
-      console.log('✅ Updated existing lender account subscription to active');
-      this.authService.setRegistrationSuccess(true);
-      this.userRole = 'lender';
-      this.processingMessage.set('Success! Welcome back...');
-
-      setTimeout(() => {
-        this.showModalBasedOnRole();
-      }, 1500);
-
-    } catch (error) {
-      console.error('❌ Error updating existing lender account:', error);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      this.router.navigate(['/register/lender']);
-    } finally {
-      RegistrationProcessingComponent.processingInProgress = false;
     }
   }
 
@@ -354,49 +319,49 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
     this.showProcessingSpinner.set(false);
- 
-    setTimeout(() => {
-    if (role === 'originator') {
-      console.log('👤 Showing originator registration success modal');
-      this.showRegistrationSuccessModal.set(true);
-    } else if (role === 'lender') {
-      console.log('🏢 Showing lender registration success modal');
-      this.showLenderRegistrationSuccessModal.set(true);
-    } else {
-      console.warn('⚠️ Unknown role, showing default originator modal');
-      this.showRegistrationSuccessModal.set(true);
-    }
 
-    // ✅ Clean up flags after modal is shown
     setTimeout(() => {
-      this.clearRegistrationFlags();
+      if (role === 'originator') {
+        console.log('👤 Showing originator registration success modal');
+        this.showRegistrationSuccessModal.set(true);
+      } else if (role === 'lender') {
+        console.log('🏢 Showing lender registration success modal');
+        this.showLenderRegistrationSuccessModal.set(true);
+      } else {
+        console.warn('⚠️ Unknown role, showing default originator modal');
+        this.showRegistrationSuccessModal.set(true);
+      }
+
+      // ✅ Clean up flags after modal is shown
+      setTimeout(() => {
+        this.clearRegistrationFlags();
+      }, 100);
+    }, 200);
+  }
+
+  closeRegistrationSuccessModal(): void {
+    console.log('✅ Originator modal closed - redirecting to dashboard');
+
+    // ✅ Hide modal first
+    this.showRegistrationSuccessModal.set(false);
+
+    // ✅ Small delay before redirect to allow modal close animation
+    setTimeout(() => {
+      this.redirectToDashboard();
     }, 100);
-  }, 200);
-}
+  }
 
- closeRegistrationSuccessModal(): void {
-  console.log('✅ Originator modal closed - redirecting to dashboard');
-  
-  // ✅ Hide modal first
-  this.showRegistrationSuccessModal.set(false);
-  
-  // ✅ Small delay before redirect to allow modal close animation
-  setTimeout(() => {
-    this.redirectToDashboard();
-  }, 100);
-}
+  closeLenderRegistrationSuccessModal(): void {
+    console.log('✅ Lender modal closed - redirecting to dashboard');
 
-closeLenderRegistrationSuccessModal(): void {
-  console.log('✅ Lender modal closed - redirecting to dashboard');
-  
-  // ✅ Hide modal first
-  this.showLenderRegistrationSuccessModal.set(false);
-  
-  // ✅ Small delay before redirect to allow modal close animation
-  setTimeout(() => {
-    this.redirectToDashboard();
-  }, 100);
-}
+    // ✅ Hide modal first
+    this.showLenderRegistrationSuccessModal.set(false);
+
+    // ✅ Small delay before redirect to allow modal close animation
+    setTimeout(() => {
+      this.redirectToDashboard();
+    }, 100);
+  }
 
   /**
    * ✅ Clean up all registration success flags
@@ -408,17 +373,17 @@ closeLenderRegistrationSuccessModal(): void {
     localStorage.removeItem('completeLenderData');
   }
 
-private redirectToDashboard(): void {
-  console.log('🎯 Redirecting to dashboard...');
-  
-  try {
-    this.router.navigate(['/dashboard']);
-  } catch (error) {
-    console.error('❌ Error navigating to dashboard:', error);
-    // ✅ Fallback: try direct navigation
-    window.location.href = '/dashboard';
+  private redirectToDashboard(): void {
+    console.log('🎯 Redirecting to dashboard...');
+
+    try {
+      this.router.navigate(['/dashboard']);
+    } catch (error) {
+      console.error('❌ Error navigating to dashboard:', error);
+      // ✅ Fallback: try direct navigation
+      window.location.href = '/dashboard';
+    }
   }
-}
 
   /**
    * ✅ Clean up static flags when component is destroyed
