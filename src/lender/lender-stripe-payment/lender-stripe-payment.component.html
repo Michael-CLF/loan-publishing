@@ -77,7 +77,8 @@
             <span>Lender {{ paymentForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
           </div>          
           <div class="summary-row total">
-            <span>Total:</span>
+           <span>Total:</span>
+  <span>{{ getDisplayPrice() }}</span>
           </div>
         </div>
       </div>
