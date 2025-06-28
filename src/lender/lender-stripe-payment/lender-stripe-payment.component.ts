@@ -109,10 +109,10 @@ export class LenderStripePaymentComponent implements OnInit {
     });
   }
 
-private processLenderPayment(paymentData: any): void {
+  private processLenderPayment(paymentData: any): void {
     console.log('🚀 processLenderPayment starting with data:', paymentData);
     console.log('🚀 lenderData:', this.lenderData);
-    
+
     this.authService
       .registerUser(this.lenderData.email, 'defaultPassword123', {
         firstName: this.lenderData.firstName,
@@ -149,14 +149,12 @@ private processLenderPayment(paymentData: any): void {
             throw new Error('User registration succeeded but user not found');
           }
 
-          // Store complete lender data in localStorage for post-payment processing
-          localStorage.setItem('showRegistrationModal', 'true');
-          if (this.lenderData.completeFormData) {
-            localStorage.setItem('completeLenderData', JSON.stringify({
-              ...this.lenderData.completeFormData,
-              userId: user.uid
-            }));
-          }
+          const dataToStore = {
+            ...this.lenderData.completeFormData,
+            userId: user.uid  // ✅ Force userId to always be our value
+          };
+          localStorage.setItem('completeLenderData', JSON.stringify(dataToStore));
+          console.log('🔍 Stored lender data:', dataToStore); // ✅ Debug log
 
           console.log('🔄 Calling stripeService.createCheckoutSession');
           return this.stripeService.createCheckoutSession({
@@ -196,7 +194,7 @@ private processLenderPayment(paymentData: any): void {
         complete: () => console.log('✅ Observable chain completed')
       });
   }
- 
+
 
   private handlePaymentError(error: any): void {
     this.isLoading = false;
