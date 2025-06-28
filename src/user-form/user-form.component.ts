@@ -152,87 +152,74 @@ export class UserFormComponent implements OnInit {
     }
   }
 
-  onSubmit(): void {
-    // Mark form as touched to show validation errors
-    Object.keys(this.userForm.controls).forEach((key) => {
-      const control = this.userForm.get(key);
-      control?.markAsTouched();
-    });
+ onSubmit(): void {
+  // Mark form as touched to show validation errors
+  Object.keys(this.userForm.controls).forEach((key) => {
+    const control = this.userForm.get(key);
+    control?.markAsTouched();
+  });
 
-    if (this.userForm.invalid) {
-      return;
-    }
-
-    this.isLoading = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    const formData = this.userForm.value;
-
-    // Run Firebase operations inside injection context for consistency with LenderRegistrationComponent
-    runInInjectionContext(this.injector, () => {
-      // MODIFIED: Register user with pending subscription status
-      this.authService
-        .registerUser(formData.email, 'defaultPassword123', {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          company: formData.company,
-          userType: formData.userType,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-          role: 'originator',
-          // ADD THESE FIELDS
-          subscriptionStatus: 'pending', // ← Key addition
-          registrationCompleted: false,   // ← Key addition
-          paymentPending: true            // ← Key addition
-        })
-        .pipe(
-          // MODIFIED: Get the current user after registration
-          switchMap(() => {
-            // Get the current authenticated user
-            return this.authService.getCurrentUser().pipe(take(1));
-          }),
-          // MODIFIED: Create Stripe checkout session
-          switchMap((user) => {
-            if (user && user.uid) {
-              // Create Stripe checkout session
-              localStorage.setItem('showRegistrationModal', 'true');
-              return this.stripeService.createCheckoutSession({
-                email: formData.email,
-                role: 'originator',
-                interval: formData.interval as 'monthly' | 'annually',
-                userData: {
-                  firstName: formData.firstName,
-                  lastName: formData.lastName,
-                  company: formData.company,
-                  phone: formData.phone,
-                  city: formData.city,
-                  state: formData.state,
-                }
-              });
-
-            } else {
-              throw new Error('User registration succeeded but user not found');
-            }
-          }),
-          tap((checkoutResponse) => {
-            // Redirect to Stripe Checkout
-            window.location.href = checkoutResponse.url;
-          }),
-          catchError((error) => {
-            this.isLoading = false;
-            console.error('Registration error:', error);
-            if (error.code === 'auth/email-already-in-use') {
-              this.errorMessage =
-                'This email is already registered. Please use a different email or login with your existing account.';
-            } else {
-              this.errorMessage = error.message || 'Registration failed. Please try again.';
-            }
-            return of(null);
-          })
-        )
-        .subscribe();
-    });
+  if (this.userForm.invalid) {
+    return;
   }
+
+  this.isLoading = true;
+  this.errorMessage = '';
+  this.successMessage = '';
+
+  const formData = this.userForm.value;
+
+  // ✅ NEW: Store originator data for post-payment processing
+  const originatorData = {
+    email: formData.email,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    company: formData.company,
+    phone: formData.phone,
+    city: formData.city,
+    state: formData.state,
+    role: 'originator',
+    billingInterval: formData.interval,
+  };
+
+  try {
+    localStorage.setItem('completeOriginatorData', JSON.stringify(originatorData));
+    localStorage.setItem('showRegistrationModal', 'true');
+  } catch (err) {
+    console.error('Failed to store originator data locally', err);
+    this.errorMessage = 'Failed to prepare registration. Please try again.';
+    this.isLoading = false;
+    return;
+  }
+
+  // ✅ NEW: Create Stripe checkout session directly (no user creation)
+  runInInjectionContext(this.injector, () => {
+    this.stripeService.createCheckoutSession({
+      email: formData.email,
+      role: 'originator',
+      interval: formData.interval as 'monthly' | 'annually',
+      userData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+      }
+    })
+    .pipe(
+      tap((checkoutResponse) => {
+        console.log('✅ Stripe checkout session created:', checkoutResponse);
+        window.location.href = checkoutResponse.url;
+      }),
+      catchError((error) => {
+        this.isLoading = false;
+        console.error('Stripe error:', error);
+        this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
+        return of(null);
+      })
+    )
+    .subscribe();
+  });
+}
 }

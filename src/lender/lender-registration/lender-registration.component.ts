@@ -808,76 +808,82 @@ switch (this.currentStep) {
   }
 
   // MODIFIED: Combined submit and payment processing
-  submitForm(): void {
-     this.submitted = true;
-    this.markAllAsTouched(this.lenderForm);
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.footprintForm.get('states')?.updateValueAndValidity();
-    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
-    console.log('Form valid:', this.lenderForm.valid);
+submitForm(): void {
+  this.submitted = true;
+  this.markAllAsTouched(this.lenderForm);
+  this.errorMessage = '';
+  this.successMessage = '';
+  this.footprintForm.get('states')?.updateValueAndValidity();
+  console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
+  console.log('Form valid:', this.lenderForm.valid);
 
-      if (!this.lenderForm.valid) {
-      this.isLoading = false;
-      this.errorMessage = this.getStepErrorMessage();
-      return;
-    }
-
-    this.isLoading = true;
-
-    const formData = this.lenderForm.value;
-    const email = formData.contactInfo?.contactEmail;
-
-    if (!email) {
-      this.errorMessage = 'Email is required';
-      this.isLoading = false;
-      return;
-    }
-
-    // ✅ Save full form data for post-payment handling
-    const completeData = {
-      contactInfo: formData.contactInfo,
-      productInfo: formData.productInfo,
-      footprintInfo: {
-        lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
-      },
-    };
-
-    try {
-      localStorage.setItem('completeLenderData', JSON.stringify(completeData));
-      localStorage.setItem('showRegistrationModal', 'true');
-    } catch (err) {
-      console.error('Failed to store lender data locally', err);
-    }
-
-  runInInjectionContext(this.injector, () => {
-      this.stripeService.createCheckoutSession({
-        email: email,
-        role: 'lender',
-        interval: formData.interval,
-        userData: {
-          firstName: formData.contactInfo.firstName,
-          lastName: formData.contactInfo.lastName,
-          company: formData.contactInfo.company,
-          phone: formData.contactInfo.contactPhone,
-          city: formData.contactInfo.city,
-          state: formData.contactInfo.state,
-        },
-      })
-      .pipe(
-        tap((checkoutResponse) => {
-          window.location.href = checkoutResponse.url;
-        }),
-        catchError((error) => {
-          this.isLoading = false;
-          console.error('Stripe error:', error);
-          this.errorMessage = error.message || 'Failed to initiate payment.';
-          return of(null);
-        })
-      )
-      .subscribe();
-    });
+  if (!this.lenderForm.valid) {
+    this.isLoading = false;
+    this.errorMessage = this.getStepErrorMessage();
+    return;
   }
+
+  this.isLoading = true;
+
+  const formData = this.lenderForm.value;
+  const email = formData.contactInfo?.contactEmail;
+
+  if (!email) {
+    this.errorMessage = 'Email is required';
+    this.isLoading = false;
+    return;
+  }
+
+  // ✅ NEW: Save complete form data for post-payment processing (no user creation)
+  const completeData = {
+    contactInfo: formData.contactInfo,
+    productInfo: formData.productInfo,
+    footprintInfo: {
+      lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
+    },
+  };
+
+  try {
+    localStorage.setItem('completeLenderData', JSON.stringify(completeData));
+    localStorage.setItem('showRegistrationModal', 'true');
+  } catch (err) {
+    console.error('Failed to store lender data locally', err);
+    this.errorMessage = 'Failed to prepare registration. Please try again.';
+    this.isLoading = false;
+    return;
+  }
+
+  // ✅ NEW: Create Stripe checkout session directly (no user creation)
+  runInInjectionContext(this.injector, () => {
+    this.stripeService.createCheckoutSession({
+      email: email,
+      role: 'lender',
+      interval: formData.interval,
+      userData: {
+        firstName: formData.contactInfo.firstName,
+        lastName: formData.contactInfo.lastName,
+        company: formData.contactInfo.company,
+        phone: formData.contactInfo.contactPhone,
+        city: formData.contactInfo.city,
+        state: formData.contactInfo.state,
+      },
+    })
+    .pipe(
+      tap((checkoutResponse) => {
+        console.log('✅ Stripe checkout session created:', checkoutResponse);
+        window.location.href = checkoutResponse.url;
+      }),
+      catchError((error) => {
+        this.isLoading = false;
+        console.error('Stripe error:', error);
+        this.errorMessage = error.message || 'Failed to initiate payment.';
+        return of(null);
+      })
+    )
+    .subscribe();
+  });
+}
+ 
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];

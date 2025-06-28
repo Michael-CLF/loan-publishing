@@ -109,129 +109,163 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * ✅ Handle originator payment success
-   */
+  * ✅ Handle originator payment success - CREATE user after payment
+  */
   private handleOriginatorPaymentSuccess(): void {
     console.log('👤 Processing originator payment success');
-    this.processingMessage.set('Activating your subscription...');
+    this.processingMessage.set('Creating your account...');
 
-    this.authService.getCurrentUser().pipe(
-      take(1),
-      finalize(() => {
-        RegistrationProcessingComponent.processingInProgress = false;
+    const rawOriginatorData = localStorage.getItem('completeOriginatorData');
+
+    if (!rawOriginatorData) {
+      console.error('❌ No originator data found in localStorage');
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      this.router.navigate(['/register']);
+      return;
+    }
+
+    try {
+      const originatorData = JSON.parse(rawOriginatorData);
+      const email = originatorData.email;
+
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      // ✅ Check if email was already processed (prevent double processing)
+      if (RegistrationProcessingComponent.processedEmails.has(email)) {
+        console.log(`✅ Email ${email} already processed, showing success modal`);
+        this.userRole = 'originator';
+        this.authService.setRegistrationSuccess(true);
+        setTimeout(() => {
+          this.showModalBasedOnRole();
+        }, 1500);
+        return;
+      }
+
+      // ✅ Add email to processed set
+      RegistrationProcessingComponent.processedEmails.add(email);
+
+      // ✅ NOW create the originator user after successful payment
+      console.log('🔄 Creating originator user after payment success');
+      this.processingMessage.set('Setting up your account...');
+
+      this.authService.registerUser(email, 'defaultPassword123', {
+        firstName: originatorData.firstName,
+        lastName: originatorData.lastName,
+        company: originatorData.company,
+        phone: originatorData.phone,
+        city: originatorData.city,
+        state: originatorData.state,
+        role: 'originator',
+        subscriptionStatus: 'active',        // ✅ Set to active immediately
+        registrationCompleted: true,         // ✅ Registration is complete
+        paymentPending: false,               // ✅ Payment is done
+        billingInterval: originatorData.billingInterval,
       })
-    ).subscribe({
-      next: async (user) => {
-        if (user?.uid) {
-          try {
-            // Update subscription status in Firestore
-            const userRef = doc(this.firestore, `originators/${user.uid}`);
-            await updateDoc(userRef, {
-              subscriptionStatus: 'active',
-              registrationCompleted: true,
-              paymentPending: false,
-              paidAt: serverTimestamp(),
-              updatedAt: serverTimestamp()
-            });
-
-            console.log('✅ Updated originator subscription status to active');
-            this.processingMessage.set('Success! Welcome to your dashboard...');
-
-            // Set success flag and continue to modal flow
+        .pipe(
+          take(1),
+          finalize(() => {
+            RegistrationProcessingComponent.processingInProgress = false;
+          })
+        )
+        .subscribe({
+          next: (user) => {
+            console.log('✅ Originator user created successfully:', user);
             this.authService.setRegistrationSuccess(true);
             this.userRole = 'originator';
+            this.processingMessage.set('Success! Welcome to your dashboard...');
 
             setTimeout(() => {
               this.showModalBasedOnRole();
             }, 1500);
-
-          } catch (error) {
-            console.error('❌ Error updating originator subscription:', error);
+          },
+          error: (error) => {
+            console.error('❌ Error creating originator user:', error);
             this.hasError.set(true);
-            this.router.navigate(['/pricing']);
+            this.showProcessingSpinner.set(false);
+            this.router.navigate(['/register']);
           }
-        } else {
-          console.error('❌ No user found for originator payment');
-          this.hasError.set(true);
-          this.router.navigate(['/pricing']);
-        }
-      },
-      error: (error) => {
-        console.error('❌ Error getting current user:', error);
-        this.hasError.set(true);
-        this.router.navigate(['/pricing']);
+        });
+
+    } catch (error) {
+      console.error('❌ Error parsing originator data:', error);
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      RegistrationProcessingComponent.processingInProgress = false;
+      this.router.navigate(['/register']);
+    }
+  }
+
+  /**
+  * ✅ Handle lender payment success - Angular Best Practice: Idempotent operation
+  */
+  private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
+    console.log('🏢 Processing lender payment success');
+    this.processingMessage.set('Finalizing your lender account...');
+
+    try {
+      const lenderData = JSON.parse(rawLenderData);
+      const email = lenderData?.contactInfo?.contactEmail;
+      const userId = lenderData?.userId;
+
+      if (!email) {
+        throw new Error('Email is required');
       }
-    });
+
+      // ✅ Check if email was already processed (prevent double processing)
+      if (RegistrationProcessingComponent.processedEmails.has(email)) {
+        console.log(`✅ Email ${email} already processed, showing success modal`);
+        this.userRole = 'lender';
+        this.authService.setRegistrationSuccess(true);
+        setTimeout(() => {
+          this.showModalBasedOnRole();
+        }, 1500);
+        return;
+      }
+
+      // ✅ Add email to processed set
+      RegistrationProcessingComponent.processedEmails.add(email);
+
+      // ✅ Angular Best Practice: Idempotent operation - user should already exist from pre-registration
+      console.log('✅ Updating existing lender subscription status to active');
+      this.processingMessage.set('Activating your subscription...');
+
+      if (userId) {
+        // Update the pre-registered user to active status
+        const userRef = doc(this.firestore, `lenders/${userId}`);
+        await updateDoc(userRef, {
+          subscriptionStatus: 'active',
+          registrationCompleted: true,
+          paymentPending: false,
+          paidAt: serverTimestamp(),
+          updatedAt: serverTimestamp()
+        });
+
+        console.log('✅ Updated lender subscription status to active');
+        this.authService.setRegistrationSuccess(true);
+        this.userRole = 'lender';
+        this.processingMessage.set('Success! Welcome to your dashboard...');
+
+        setTimeout(() => {
+          this.showModalBasedOnRole();
+        }, 1500);
+
+      } else {
+        throw new Error('User ID not found in stored data');
+      }
+
+    } catch (error) {
+      console.error('❌ Error in handleLenderPaymentSuccess:', error);
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      RegistrationProcessingComponent.processingInProgress = false;
+      this.router.navigate(['/register/lender']);
+    } finally {
+      RegistrationProcessingComponent.processingInProgress = false;
+    }
   }
-
- /**
- * ✅ Handle lender payment success - Angular Best Practice: Idempotent operation
- */
-private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
-  console.log('🏢 Processing lender payment success');
-  this.processingMessage.set('Finalizing your lender account...');
-
-  try {
-    const lenderData = JSON.parse(rawLenderData);
-    const email = lenderData?.contactInfo?.contactEmail;
-    const userId = lenderData?.userId;
-
-    if (!email) {
-      throw new Error('Email is required');
-    }
-
-    // ✅ Check if email was already processed (prevent double processing)
-    if (RegistrationProcessingComponent.processedEmails.has(email)) {
-      console.log(`✅ Email ${email} already processed, showing success modal`);
-      this.userRole = 'lender';
-      this.authService.setRegistrationSuccess(true);
-      setTimeout(() => {
-        this.showModalBasedOnRole();
-      }, 1500);
-      return;
-    }
-
-    // ✅ Add email to processed set
-    RegistrationProcessingComponent.processedEmails.add(email);
-
-    // ✅ Angular Best Practice: Idempotent operation - user should already exist from pre-registration
-    console.log('✅ Updating existing lender subscription status to active');
-    this.processingMessage.set('Activating your subscription...');
-
-    if (userId) {
-      // Update the pre-registered user to active status
-      const userRef = doc(this.firestore, `lenders/${userId}`);
-      await updateDoc(userRef, {
-        subscriptionStatus: 'active',
-        registrationCompleted: true,
-        paymentPending: false,
-        paidAt: serverTimestamp(),
-        updatedAt: serverTimestamp()
-      });
-
-      console.log('✅ Updated lender subscription status to active');
-      this.authService.setRegistrationSuccess(true);
-      this.userRole = 'lender';
-      this.processingMessage.set('Success! Welcome to your dashboard...');
-
-      setTimeout(() => {
-        this.showModalBasedOnRole();
-      }, 1500);
-
-    } else {
-      throw new Error('User ID not found in stored data');
-    }
-
-  } catch (error) {
-    console.error('❌ Error in handleLenderPaymentSuccess:', error);
-    this.hasError.set(true);
-    this.showProcessingSpinner.set(false);
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.router.navigate(['/register/lender']);
-  } finally {
-    RegistrationProcessingComponent.processingInProgress = false;
-  }
-}
 
   /**
    * ✅ Check if we should show standard registration processing
@@ -331,14 +365,12 @@ private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
     }, 100);
   }
 
-  /**
-   * ✅ Clean up all registration success flags
-   */
   private clearRegistrationFlags(): void {
     console.log('🧹 Clearing registration success flags');
     this.authService.clearRegistrationSuccess();
     localStorage.removeItem('showRegistrationModal');
     localStorage.removeItem('completeLenderData');
+    localStorage.removeItem('completeOriginatorData');
   }
 
   private redirectToDashboard(): void {
