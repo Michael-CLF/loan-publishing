@@ -85,13 +85,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
     const showModal = localStorage.getItem('showRegistrationModal');
     const rawLenderData = localStorage.getItem('completeLenderData');
-
-    // ✅ ORIGINATOR FLOW: User is already registered, just update subscription
-    if (showModal === 'true' && !rawLenderData) {
-      console.log('👤 Processing originator payment success');
-      this.handleOriginatorPaymentSuccess();
-      return;
-    }
+    const rawOriginatorData = localStorage.getItem('completeOriginatorData');  // ✅ NEW: Check for originator data
 
     // ✅ LENDER FLOW: Complete registration after payment
     if (showModal === 'true' && rawLenderData) {
@@ -100,8 +94,18 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       return;
     }
 
+    // ✅ ORIGINATOR FLOW: Complete registration after payment  
+    if (showModal === 'true' && rawOriginatorData) {
+      console.log('👤 Processing originator payment success');
+      this.handleOriginatorPaymentSuccess();
+      return;
+    }
+
     // ✅ Fallback: Neither condition met
     console.error('⚠️ Invalid payment callback state');
+    console.log('showModal:', showModal);
+    console.log('rawLenderData exists:', !!rawLenderData);
+    console.log('rawOriginatorData exists:', !!rawOriginatorData);
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
     RegistrationProcessingComponent.processingInProgress = false;
