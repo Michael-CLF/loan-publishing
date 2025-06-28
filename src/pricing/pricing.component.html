@@ -40,14 +40,14 @@
                 <li>Cancel anytime</li>
             </ul>
         </div>
-        <div class="card-section footer">
-            <button class="card-button login-btn" 
-                    type="button"
-                    (click)="onGetStarted('originators')"
-                    [attr.aria-label]="'Get started with originators plan'">
-                Get Started
-            </button>
-        </div>
+       <div class="card-section footer">
+    <button class="card-button login-btn" 
+            type="button"
+            (click)="navigateToUserForm('originators')"
+            [attr.aria-label]="'Get started with originators plan'">
+        Get Started
+    </button>
+</div>
     </div>
 
     <!-- Lenders Card -->
@@ -87,18 +87,18 @@
                 <li>Cancel anytime</li>
             </ul>
         </div>
-        <div class="card-section footer">
-            <button class="card-button login-btn" 
-                    type="button"
-                    (click)="onGetStarted('lenders')"
-                    [attr.aria-label]="'Get started with lenders plan'">
-                Get Started
-            </button>
-        </div>
+       <div class="card-section footer">
+    <button class="card-button login-btn" 
+            type="button"
+            (click)="navigateToUserForm('lenders')"
+            [attr.aria-label]="'Get started with lenders plan'">
+        Get Started
+    </button>
+</div>
     </div>
 
     <!-- Mortgage Companies Card -->
-    <div class="card">
+    <!--<div class="card">
         <div class="card-section header mortgage-companies-header">
             <h3 class="title">Mortgage Companies</h3>
             <p class="subtitle">Mortgage Companies, Lending Institutions & Financial Services</p>
@@ -144,5 +144,5 @@
                 Get Started
             </button>
         </div>
-    </div>
+    </div>-->
 </div>
