@@ -109,42 +109,71 @@ export class LenderStripePaymentComponent implements OnInit {
     });
   }
 
- private processLenderPayment(paymentData: any): void {
+private processLenderPayment(paymentData: any): void {
     console.log('🚀 processLenderPayment starting with data:', paymentData);
     console.log('🚀 lenderData:', this.lenderData);
     
-    // ✅ OPTION A: Don't register user before Stripe - just store data and create checkout
-    try {
-      // Store registration flag and complete lender data for post-payment processing
-      localStorage.setItem('showRegistrationModal', 'true');
-      
-      if (this.lenderData.completeFormData) {
-        // ✅ Store complete lender data WITHOUT userId (will be added after registration)
-        localStorage.setItem('completeLenderData', JSON.stringify({
-          ...this.lenderData.completeFormData,
-          // Add payment interval to the stored data
-          billingInterval: paymentData.interval
-        }));
-      }
-
-      console.log('🔄 Creating Stripe checkout session without user registration');
-      
-      // ✅ Create Stripe checkout session directly - no user registration first
-      this.stripeService.createCheckoutSession({
-        email: this.lenderData.email,
+    this.authService
+      .registerUser(this.lenderData.email, 'defaultPassword123', {
+        firstName: this.lenderData.firstName,
+        lastName: this.lenderData.lastName,
+        company: this.lenderData.companyName,
+        phone: this.lenderData.phone,
+        city: this.lenderData.city,
+        state: this.lenderData.state,
         role: 'lender',
-        interval: paymentData.interval,
-        // ✅ Remove userId requirement - Stripe will track by email
-        userData: {
-          firstName: this.lenderData.firstName,
-          lastName: this.lenderData.lastName,
-          company: this.lenderData.companyName,
-          phone: this.lenderData.phone,
-          city: this.lenderData.city,
-          state: this.lenderData.state,
-        },
+        billingInterval: paymentData.interval,
+        subscriptionStatus: 'pending',
+        registrationCompleted: false,
       })
       .pipe(
+        tap(() => console.log('✅ registerUser completed successfully')),
+        switchMap(() => {
+          console.log('🔄 Starting getCurrentUser call');
+          try {
+            const currentUserObs = this.authService.getCurrentUser().pipe(take(1));
+            console.log('🔄 getCurrentUser observable created');
+            return currentUserObs;
+          } catch (error) {
+            console.error('❌ Error creating getCurrentUser observable:', error);
+            throw error;
+          }
+        }),
+        tap((user) => {
+          console.log('✅ getCurrentUser result:', user);
+          console.log('✅ User UID:', user?.uid);
+        }),
+        switchMap((user) => {
+          console.log('🔄 Starting Stripe checkout session creation');
+          if (!user || !user.uid) {
+            throw new Error('User registration succeeded but user not found');
+          }
+
+          // Store complete lender data in localStorage for post-payment processing
+          localStorage.setItem('showRegistrationModal', 'true');
+          if (this.lenderData.completeFormData) {
+            localStorage.setItem('completeLenderData', JSON.stringify({
+              ...this.lenderData.completeFormData,
+              userId: user.uid
+            }));
+          }
+
+          console.log('🔄 Calling stripeService.createCheckoutSession');
+          return this.stripeService.createCheckoutSession({
+            email: this.lenderData.email,
+            role: 'lender',
+            interval: paymentData.interval,
+            userId: user.uid,
+            userData: {
+              firstName: this.lenderData.firstName,
+              lastName: this.lenderData.lastName,
+              company: this.lenderData.companyName,
+              phone: this.lenderData.phone,
+              city: this.lenderData.city,
+              state: this.lenderData.state,
+            },
+          });
+        }),
         tap((checkoutResponse) => {
           console.log('✅ Stripe checkout session created:', checkoutResponse);
           this.paymentComplete.emit({
@@ -156,18 +185,18 @@ export class LenderStripePaymentComponent implements OnInit {
           window.location.href = checkoutResponse.url;
         }),
         catchError((error) => {
-          console.error('❌ Error creating Stripe checkout session:', error);
+          console.error('❌ Error in processLenderPayment chain:', error);
           this.handlePaymentError(error);
           return of(null);
         })
       )
-      .subscribe();
-
-    } catch (error) {
-      console.error('❌ Error in processLenderPayment:', error);
-      this.handlePaymentError(error);
-    }
+      .subscribe({
+        next: (result) => console.log('🔄 Observable chain completed with result:', result),
+        error: (error) => console.error('❌ Observable chain error:', error),
+        complete: () => console.log('✅ Observable chain completed')
+      });
   }
+ 
 
   private handlePaymentError(error: any): void {
     this.isLoading = false;
