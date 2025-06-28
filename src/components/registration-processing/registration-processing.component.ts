@@ -41,6 +41,13 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private static processingInProgress = false;
   private static processedEmails = new Set<string>();
 
+  constructor() {
+  console.log('RegistrationProcessingComponent created');
+  // ✅ Initialize spinner to true immediately to prevent blank screen
+  this.showProcessingSpinner.set(true);
+  this.processingMessage.set('Loading...');
+}
+
   ngOnInit(): void {
     console.log('🔄 Registration Processing Component - Starting...');
 
@@ -203,51 +210,62 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   /**
-  * ✅ Handle lender payment success - Angular Best Practice: Idempotent operation
-  */
-  private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
-    console.log('🏢 Processing lender payment success');
-    this.processingMessage.set('Finalizing your lender account...');
+ * ✅ Handle lender payment success - CREATE user after payment
+ */
+private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
+  console.log('🏢 Processing lender payment success');
+  this.processingMessage.set('Creating your lender account...');
 
-    try {
-      const lenderData = JSON.parse(rawLenderData);
-      const email = lenderData?.contactInfo?.contactEmail;
-      const userId = lenderData?.userId;
+  try {
+    const lenderData = JSON.parse(rawLenderData);
+    const email = lenderData?.contactInfo?.contactEmail;
 
-      if (!email) {
-        throw new Error('Email is required');
-      }
+    if (!email) {
+      throw new Error('Email is required');
+    }
 
-      // ✅ Check if email was already processed (prevent double processing)
-      if (RegistrationProcessingComponent.processedEmails.has(email)) {
-        console.log(`✅ Email ${email} already processed, showing success modal`);
-        this.userRole = 'lender';
-        this.authService.setRegistrationSuccess(true);
-        setTimeout(() => {
-          this.showModalBasedOnRole();
-        }, 1500);
-        return;
-      }
+    // ✅ Check if email was already processed (prevent double processing)
+    if (RegistrationProcessingComponent.processedEmails.has(email)) {
+      console.log(`✅ Email ${email} already processed, showing success modal`);
+      this.userRole = 'lender';
+      this.authService.setRegistrationSuccess(true);
+      setTimeout(() => {
+        this.showModalBasedOnRole();
+      }, 1500);
+      return;
+    }
 
-      // ✅ Add email to processed set
-      RegistrationProcessingComponent.processedEmails.add(email);
+    // ✅ Add email to processed set
+    RegistrationProcessingComponent.processedEmails.add(email);
 
-      // ✅ Angular Best Practice: Idempotent operation - user should already exist from pre-registration
-      console.log('✅ Updating existing lender subscription status to active');
-      this.processingMessage.set('Activating your subscription...');
+    // ✅ NOW create the lender user after successful payment
+    console.log('🔄 Creating lender user after payment success');
+    this.processingMessage.set('Setting up your account...');
 
-      if (userId) {
-        // Update the pre-registered user to active status
-        const userRef = doc(this.firestore, `lenders/${userId}`);
-        await updateDoc(userRef, {
-          subscriptionStatus: 'active',
-          registrationCompleted: true,
-          paymentPending: false,
-          paidAt: serverTimestamp(),
-          updatedAt: serverTimestamp()
-        });
-
-        console.log('✅ Updated lender subscription status to active');
+    this.authService.registerUser(email, 'defaultPassword123', {
+      firstName: lenderData.contactInfo.firstName,
+      lastName: lenderData.contactInfo.lastName,
+      company: lenderData.contactInfo.company,
+      phone: lenderData.contactInfo.contactPhone,
+      city: lenderData.contactInfo.city,
+      state: lenderData.contactInfo.state,
+      role: 'lender',
+      subscriptionStatus: 'active',        // ✅ Set to active immediately
+      registrationCompleted: true,         // ✅ Registration is complete
+      paymentPending: false,               // ✅ Payment is done
+      // ✅ Add the complete lender form data
+      productInfo: lenderData.productInfo,
+      footprintInfo: lenderData.footprintInfo,
+    })
+    .pipe(
+      take(1),
+      finalize(() => {
+        RegistrationProcessingComponent.processingInProgress = false;
+      })
+    )
+    .subscribe({
+      next: (user) => {
+        console.log('✅ Lender user created successfully:', user);
         this.authService.setRegistrationSuccess(true);
         this.userRole = 'lender';
         this.processingMessage.set('Success! Welcome to your dashboard...');
@@ -255,21 +273,23 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         setTimeout(() => {
           this.showModalBasedOnRole();
         }, 1500);
-
-      } else {
-        throw new Error('User ID not found in stored data');
+      },
+      error: (error) => {
+        console.error('❌ Error creating lender user:', error);
+        this.hasError.set(true);
+        this.showProcessingSpinner.set(false);
+        this.router.navigate(['/register/lender']);
       }
+    });
 
-    } catch (error) {
-      console.error('❌ Error in handleLenderPaymentSuccess:', error);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      RegistrationProcessingComponent.processingInProgress = false;
-      this.router.navigate(['/register/lender']);
-    } finally {
-      RegistrationProcessingComponent.processingInProgress = false;
-    }
+  } catch (error) {
+    console.error('❌ Error in handleLenderPaymentSuccess:', error);
+    this.hasError.set(true);
+    this.showProcessingSpinner.set(false);
+    RegistrationProcessingComponent.processingInProgress = false;
+    this.router.navigate(['/register/lender']);
   }
+}
 
   /**
    * ✅ Check if we should show standard registration processing
