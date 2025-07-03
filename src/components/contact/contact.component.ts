@@ -1,17 +1,21 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import emailjs from '@emailjs/browser';
+import { EmailSuccessModalComponent } from '../../modals/email-success-modal/email-success-modal.component';
 
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
   styleUrls: ['./contact.component.css'],
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule]
+  imports: [ReactiveFormsModule, CommonModule, EmailSuccessModalComponent]
 })
-export class ContactComponent implements OnInit{
+export class ContactComponent implements OnInit {
   contactForm: FormGroup;
+
+  @ViewChild(EmailSuccessModalComponent)
+  emailSuccessModal!: EmailSuccessModalComponent;
 
   constructor(private fb: FormBuilder) {
     this.contactForm = this.fb.group({
@@ -21,6 +25,10 @@ export class ContactComponent implements OnInit{
       phone: ['', [Validators.required]],
       message: ['']
     });
+  }
+
+  ngOnInit(): void {
+    emailjs.init('gQAhly2eeg3OkoEqe');
   }
 
   onPhoneInput(event: any) {
@@ -39,34 +47,34 @@ export class ContactComponent implements OnInit{
 
     this.contactForm.get('phone')?.setValue(event.target.value, { emitEvent: false });
   }
-  ngOnInit(): void {
-  emailjs.init('gQAhly2eeg3OkoEqe');
-}
 
- onSubmit(): void {
-  if (this.contactForm.invalid) {
-    this.contactForm.markAllAsTouched();
-    return;
+  onSubmit(): void {
+    if (this.contactForm.invalid) {
+      this.contactForm.markAllAsTouched();
+      return;
+    }
+
+    const formData = {
+      from_name: `${this.contactForm.value.firstName} ${this.contactForm.value.lastName}`,
+      email: this.contactForm.value.email,
+      phone: this.contactForm.value.phone,
+      message: this.contactForm.value.message,
+      to_name: 'Daily Loan Post'
+    };
+
+    emailjs
+      .send('service_s11ncn3', 'template_s8qovle', formData)
+      .then(() => {
+        this.emailSuccessModal.open();
+
+        setTimeout(() => {
+          this.emailSuccessModal.close();
+          this.contactForm.reset();
+        }, 3000); // Close modal and reset form after 3 seconds
+      })
+      .catch((err) => {
+        console.error('❌ EmailJS error:', err);
+        alert('Something went wrong. Please try again.');
+      });
   }
-
-
-  const formData = {
-    from_name: `${this.contactForm.value.firstName} ${this.contactForm.value.lastName}`,
-    email: this.contactForm.value.email,
-    phone: this.contactForm.value.phone,
-    message: this.contactForm.value.message,
-    to_name: 'Daily Loan Post'
-  };
-
-  emailjs
-   .send('service_s11ncn3', 'template_s8qovle', formData)
-    .then(() => {
-      alert('✅ Message sent!');
-      this.contactForm.reset();
-    })
-    .catch((err) => {
-      console.error('❌ EmailJS error:', err);
-      alert('Something went wrong. Please try again.');
-    });
-}
 }

@@ -8,12 +8,12 @@ import {
 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
 import { CommonModule } from '@angular/common';
-import { LoanService } from '../services/loan.service';
-import { Loan } from '../models/loan-model.model';
-import { AuthService } from '../services/auth.service';
+import { LoanService } from '../../services/loan.service';
+import { Loan } from '../../models/loan-model.model';
+import { AuthService } from '../../services/auth.service';
 import { take } from 'rxjs/operators';
 import { firstValueFrom } from 'rxjs';
-import { LoanTypeService } from '../services/loan-type.service';
+import { LoanTypeService } from '../../services/loan-type.service';
 import {
   Firestore,
   collection,
@@ -26,12 +26,12 @@ import {
   deleteDoc,
   where,
 } from '@angular/fire/firestore';
-import { PropertyFilterComponent } from '../property-filter/property-filter.component';
-import { LOAN_TYPES } from '../shared/constants/loan-constants';
+import { PropertyFilterComponent } from '../../property-filter/property-filter.component';
+import { LOAN_TYPES } from '../../shared/constants/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
-import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
-import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
-import { getStateName } from '../shared/constants/state-mappings';
+import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';
+import { LoanUtils, PropertySubcategoryValue } from '../../models/loan-model.model';
+import { getStateName } from '../../shared/constants/state-mappings';
 
 
 // Property category interface for better type safety
