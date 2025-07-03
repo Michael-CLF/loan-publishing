@@ -59,7 +59,7 @@ openEmailSuccessModal(): void {
 
   setTimeout(() => {
     this.closeModal();
-  }, 3000);
+  }, 4000);
 }
 
 
