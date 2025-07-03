@@ -2,7 +2,7 @@ import { Routes } from '@angular/router';
 import { HomeComponent } from '../home/home.component';
 import { EmailLoginComponent } from '../email-login/email-login.component';
 import { LoanComponent } from '../loan/loan.component';
-import { LoansComponent } from '../loans/loans.component';
+import { LoansComponent } from '../components/loans/loans.component';
 import { DashboardComponent } from '../dashboard/dashboard.component';
 import { authGuard } from '../services/auth.guard';
 import { UserFormComponent } from '../user-form/user-form.component';
