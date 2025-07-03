@@ -1,5 +1,6 @@
-import { Component } from '@angular/core';
+import { Component, EventEmitter, Output } from '@angular/core';
 import { CommonModule } from '@angular/common';
+
 
 @Component({
   selector: 'app-email-success-modal',
@@ -8,14 +9,18 @@ import { CommonModule } from '@angular/common';
   templateUrl: './email-success-modal.component.html',
   styleUrls: ['./email-success-modal.component.css']
 })
-export class EmailSuccessModalComponent {
-  visible = false;
 
-  open(): void {
-    this.visible = true;
+export class EmailSuccessModalComponent {
+  @Output() modalClosed = new EventEmitter<void>();
+
+  isOpen = false;
+
+  open() {
+    this.isOpen = true;
   }
 
-  close(): void {
-    this.visible = false;
+  close() {
+    this.isOpen = false;
+    this.modalClosed.emit();
   }
 }

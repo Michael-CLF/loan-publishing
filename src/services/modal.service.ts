@@ -17,6 +17,8 @@ import { DeleteAccountModalComponent } from '../modals/delete-account-modal/dele
 import { RemoveSavedLoanModalComponent } from '../modals/remove-saved-loan/remove-saved-loan.component';
 import { DeletePublishedLoanModalComponent } from '../modals/delete-published-loan/delete-published-loan.component';
 import { RemoveSavedLenderComponent } from '../modals/remove-saved-lender/remove-saved-lender.component';
+import { EmailSuccessModalComponent } from '../modals/email-success-modal/email-success-modal.component';
+
 
 @Injectable({
   providedIn: 'root',
@@ -37,6 +39,27 @@ export class ModalService implements OnDestroy {
         this.closeModal();
       });
   }
+  openEmailSuccessModal(): void {
+  const componentRef = createComponent(EmailSuccessModalComponent, {
+    environmentInjector: this.injector,
+  });
+
+  this.modalComponentRef = componentRef;
+  this.appRef.attachView(componentRef.hostView);
+
+  const domElement = (componentRef.hostView as any).rootNodes[0];
+  document.body.appendChild(domElement);
+
+  componentRef.instance.open();
+
+  componentRef.instance.modalClosed.subscribe(() => {
+    this.closeModal();
+  });
+
+  // Auto-close in 3 seconds
+  setTimeout(() => this.closeModal(), 3000);
+}
+
 
   openUserRegSuccessModal(): void {
     // Create the component

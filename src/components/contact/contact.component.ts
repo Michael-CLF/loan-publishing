@@ -3,6 +3,8 @@ import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angula
 import { CommonModule } from '@angular/common';
 import emailjs from '@emailjs/browser';
 import { EmailSuccessModalComponent } from '../../modals/email-success-modal/email-success-modal.component';
+import { ModalService } from '../../services/modal.service';
+
 
 @Component({
   selector: 'app-contact',
@@ -17,7 +19,7 @@ export class ContactComponent implements OnInit {
   @ViewChild(EmailSuccessModalComponent)
   emailSuccessModal!: EmailSuccessModalComponent;
 
-  constructor(private fb: FormBuilder) {
+  constructor(private fb: FormBuilder, private modalService: ModalService) {
     this.contactForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2)]],
       lastName: ['', [Validators.required, Validators.minLength(2)]],
@@ -54,18 +56,18 @@ export class ContactComponent implements OnInit {
       return;
     }
 
-    const formData = {
-      from_name: `${this.contactForm.value.firstName} ${this.contactForm.value.lastName}`,
-      email: this.contactForm.value.email,
-      phone: this.contactForm.value.phone,
-      message: this.contactForm.value.message,
-      to_name: 'Daily Loan Post'
-    };
+const formData = {
+  firstName: this.contactForm.value.firstName?.trim(),
+  lastName: this.contactForm.value.lastName?.trim(),
+  email: this.contactForm.value.email,
+  phone: this.contactForm.value.phone,
+  message: this.contactForm.value.message
+};
 
     emailjs
       .send('service_s11ncn3', 'template_s8qovle', formData)
       .then(() => {
-        this.emailSuccessModal.open();
+       this.modalService.openEmailSuccessModal();
 
         setTimeout(() => {
           this.emailSuccessModal.close();
