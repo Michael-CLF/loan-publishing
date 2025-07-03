@@ -34,7 +34,6 @@
 .auth-links,
 .user-menu {
   display: flex;
-  gap: 15px;
   align-items: center;
 }
 .acct-info {
@@ -49,7 +48,7 @@
 .nav-reg-btn {
   color: #fff;
   background-color: #008080;
-  padding: 6px 12px;
+  padding: 5px 12px;
   border-radius: 6px;
   border: 1px solid #fff;
   text-decoration: none;
@@ -58,10 +57,11 @@
 
 .login-btn,
 .dashboard-link,
-.account-link {
+.account-link,
+.contact-btn {
   color: white;
   text-decoration: none;
-  padding: 5px 10px;
+  padding: 5px 25px;
 }
 
 .logout-button {

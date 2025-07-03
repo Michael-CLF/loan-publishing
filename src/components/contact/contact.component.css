@@ -1,0 +1,63 @@
+.headline{
+    color: #0a2463;
+    text-align: center;
+    margin: 20px;
+    font-family: 'roboto', sans-serif;
+}
+
+form {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  font-weight: 500;
+  color: #0a2463;
+  font-family: 'roboto', sans-serif;
+  font-size: 1.2rem;
+}
+
+textarea {
+  min-height: 100px;
+  resize: vertical;
+  padding-left: 8px;
+  border: 1px solid #0a2463;
+}
+
+.full-width {
+  grid-column: 1 / -1;
+}
+
+button {
+  grid-column: 1 / -1;
+  padding: 10px 20px;
+  font-size: 1.3rem;
+  margin-top: 12px;
+  margin-bottom: 30px;
+  justify-self: center;
+  background-color: #0a2463;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #008080;
+}
+
+input.ng-touched.ng-invalid,
+textarea.ng-touched.ng-invalid {
+  border: 2px solid #c00000;
+}
+.field{
+    border-radius: 4px;
+    padding-left: 8px;
+    border-color: #cdcdcd;
+}
+

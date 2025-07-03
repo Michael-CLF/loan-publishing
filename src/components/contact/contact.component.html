@@ -1,0 +1,45 @@
+<div class="headline">
+    <h1>Get In Touch!</h1>
+</div>
+
+<form [formGroup]="contactForm" (ngSubmit)="onSubmit()">
+  <label>
+    First Name:
+    <input formControlName="firstName" class="field" type="text" />
+    <div *ngIf="contactForm.get('firstName')?.invalid && contactForm.get('firstName')?.touched">
+      First name is required and must be at least 2 characters.
+    </div>
+  </label>
+
+  <label>
+    Last Name:
+    <input formControlName="lastName" class="field" type="text" />
+    <div *ngIf="contactForm.get('lastName')?.invalid && contactForm.get('lastName')?.touched">
+      Last name is required and must be at least 2 characters.
+    </div>
+  </label>
+
+  <label>
+    Email:
+    <input formControlName="email" class="field" type="email" />
+    <div *ngIf="contactForm.get('email')?.invalid && contactForm.get('email')?.touched">
+      Valid email is required.
+    </div>
+  </label>
+
+  <label>
+    Phone:
+    <input formControlName="phone" class="field" type="text" (input)="onPhoneInput($event)" />
+    <div *ngIf="contactForm.get('phone')?.invalid && contactForm.get('phone')?.touched">
+      Phone number is required.
+    </div>
+  </label>
+
+  <label class="full-width">
+    Message (optional):
+    <textarea formControlName="message" class="field"></textarea>
+  </label>
+
+  <button type="submit">Submit</button>
+</form>
+
