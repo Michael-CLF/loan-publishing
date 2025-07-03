@@ -1,7 +1,10 @@
-<div class="modal-overlay" *ngIf="visible">
+<!-- src/app/modals/email-success-modal/email-success-modal.component.html -->
+<div class="modal-overlay" *ngIf="isOpen">
   <div class="modal-box">
     <h2>Email Sent!</h2>
-    <p class="content">Your message has been successfully sent. Someone will contact you shortly.</p>
+    <p class="content">
+      Your message has been successfully sent. Someone will contact you shortly.
+    </p>
     <button (click)="close()">Close</button>
   </div>
 </div>

@@ -11,15 +11,15 @@ import { CommonModule } from '@angular/common';
 })
 
 export class EmailSuccessModalComponent {
-  @Output() modalClosed = new EventEmitter<void>();
-
   isOpen = false;
 
-  open() {
+  @Output() modalClosed = new EventEmitter<void>();
+
+  open(): void {
     this.isOpen = true;
   }
 
-  close() {
+  close(): void {
     this.isOpen = false;
     this.modalClosed.emit();
   }

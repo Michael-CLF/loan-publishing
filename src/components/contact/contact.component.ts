@@ -1,23 +1,19 @@
-import { Component, OnInit, ViewChild } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormBuilder, FormGroup, Validators, ReactiveFormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import emailjs from '@emailjs/browser';
-import { EmailSuccessModalComponent } from '../../modals/email-success-modal/email-success-modal.component';
 import { ModalService } from '../../services/modal.service';
-
+import { EmailSuccessModalComponent } from '../../modals/email-success-modal/email-success-modal.component';
 
 @Component({
   selector: 'app-contact',
   templateUrl: './contact.component.html',
   styleUrls: ['./contact.component.css'],
   standalone: true,
-  imports: [ReactiveFormsModule, CommonModule, EmailSuccessModalComponent]
+  imports: [ReactiveFormsModule, CommonModule, EmailSuccessModalComponent],
 })
 export class ContactComponent implements OnInit {
   contactForm: FormGroup;
-
-  @ViewChild(EmailSuccessModalComponent)
-  emailSuccessModal!: EmailSuccessModalComponent;
 
   constructor(private fb: FormBuilder, private modalService: ModalService) {
     this.contactForm = this.fb.group({
@@ -25,7 +21,7 @@ export class ContactComponent implements OnInit {
       lastName: ['', [Validators.required, Validators.minLength(2)]],
       email: ['', [Validators.required, Validators.email]],
       phone: ['', [Validators.required]],
-      message: ['']
+      message: [''],
     });
   }
 
@@ -56,23 +52,19 @@ export class ContactComponent implements OnInit {
       return;
     }
 
-const formData = {
-  firstName: this.contactForm.value.firstName?.trim(),
-  lastName: this.contactForm.value.lastName?.trim(),
-  email: this.contactForm.value.email,
-  phone: this.contactForm.value.phone,
-  message: this.contactForm.value.message
-};
+    const formData = {
+      firstName: this.contactForm.value.firstName?.trim(),
+      lastName: this.contactForm.value.lastName?.trim(),
+      email: this.contactForm.value.email,
+      phone: this.contactForm.value.phone,
+      message: this.contactForm.value.message,
+    };
 
     emailjs
       .send('service_s11ncn3', 'template_s8qovle', formData)
       .then(() => {
-       this.modalService.openEmailSuccessModal();
-
-        setTimeout(() => {
-          this.emailSuccessModal.close();
-          this.contactForm.reset();
-        }, 3000); // Close modal and reset form after 3 seconds
+        this.modalService.openEmailSuccessModal(); // ✅ just this
+        this.contactForm.reset(); // ✅ reset immediately or use modal timeout
       })
       .catch((err) => {
         console.error('❌ EmailJS error:', err);

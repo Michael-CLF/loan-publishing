@@ -39,7 +39,8 @@ export class ModalService implements OnDestroy {
         this.closeModal();
       });
   }
-  openEmailSuccessModal(): void {
+ 
+openEmailSuccessModal(): void {
   const componentRef = createComponent(EmailSuccessModalComponent, {
     environmentInjector: this.injector,
   });
@@ -56,8 +57,9 @@ export class ModalService implements OnDestroy {
     this.closeModal();
   });
 
-  // Auto-close in 3 seconds
-  setTimeout(() => this.closeModal(), 3000);
+  setTimeout(() => {
+    this.closeModal();
+  }, 3000);
 }
 
 
