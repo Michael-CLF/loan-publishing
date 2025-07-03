@@ -21,7 +21,13 @@
 .modal-box h2 {
   color: #0a2463;
   margin-bottom: 12px;
-}
+  font-size: 2.25rem;
+  font-family: 'roboto', sans-serif}
+ 
+ .content{
+  font-size: 1.2rem;
+  font-family: 'roboto', sans-serif
+  }
 
 .modal-box button {
   background-color: #0a2463;
@@ -31,4 +37,7 @@
   border-radius: 6px;
   cursor: pointer;
   margin-top: 20px;
+  font-size: 1.3rem;
+  font-family: 'roboto', sans-serif;
 }
+
