@@ -203,6 +203,54 @@
     </div>
   </div>
 
+  <!-- Coupon Code field -->
+<div class="form-group full-width">
+  <label class="coupon" for="couponCode">Coupon Code: Discount will be applied at checkout</label>
+
+  <div class="coupon-input-container">
+    <input 
+      type="text" 
+      id="couponCode" 
+      formControlName="couponCode" 
+      placeholder="Enter coupon code"
+      [ngClass]="{
+        invalid: userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched,
+        valid: userForm.get('couponCode')?.valid && userForm.get('couponCode')?.value && couponApplied
+      }"
+      (blur)="validateCoupon()" />
+      </div>
+
+      <div class="coupon-button-container">
+    <button 
+      type="button" 
+      class="apply-coupon-btn"
+      [disabled]="!userForm.get('couponCode')?.value || isValidatingCoupon"
+      (click)="applyCoupon()">
+      <span *ngIf="!isValidatingCoupon">Apply</span>
+      <span *ngIf="isValidatingCoupon">Applying...</span>
+    </button>
+  </div>
+  
+  <!-- Success message for applied coupon -->
+  <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
+    ✓ Coupon "{{ appliedCouponDetails.code }}" applied! 
+    {{ appliedCouponDetails.discount }}% off
+  </div>
+  
+  <!-- Error messages -->
+  <div *ngIf="userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched" class="error">
+    <div *ngIf="userForm.get('couponCode')?.errors?.['invalidCoupon']">
+      *Invalid coupon code. Please check and try again.
+    </div>
+    <div *ngIf="userForm.get('couponCode')?.errors?.['expiredCoupon']">
+      *This coupon has expired.
+    </div>
+    <div *ngIf="userForm.get('couponCode')?.errors?.['couponError']">
+      *{{ userForm.get('couponCode')?.errors?.['couponError'] }}
+    </div>
+  </div>
+</div>
+
 
   <!-- Price Summary -->
   <div class="price-summary">
@@ -222,7 +270,6 @@
     </div>
   </div>
 </div>
-
 
             <!-- Button - moved inside form but full width -->
             <div class="button-container full-width">

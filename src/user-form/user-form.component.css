@@ -61,11 +61,6 @@ input[type="checkbox"]:checked {
   margin-bottom: 30px;
 }
 
-/* Fix the button container spacing */
-.button-container {
-  margin-top: 20px;
-}
-
 .form-section,
 .list-section {
   flex: 1;
@@ -97,10 +92,14 @@ select {
   font-weight: 500;
   font-family: "roboto", sans-serif;
 }
+
 .button-container {
   width: 100%;
+  display: block;
   text-align: center;
+  position: relative; /* override any accidental absolute positioning */
 }
+
 
 button {
   padding: 8px 25px;
@@ -306,4 +305,83 @@ button:disabled {
   padding-top: 1rem;
   border-top: 2px solid #dee2e6;
   margin-top: 0.5rem;
+}
+/* Coupon Code Field Styling */
+.coupon-input-container {
+  display: block;
+  text-align: center;
+  margin-bottom: 12px;
+  width: 100%;
+}
+
+.coupon{
+  margin: 0 auto;
+}
+
+.coupon-input-container input[type="text"] {
+  width: 50%;
+  min-width: 200px; /* Prevents field from getting too small on mobile */
+  display: inline-block;
+}
+
+.coupon-button-container {
+  display: block;
+  text-align: center;
+  margin-bottom: 8px;
+  width: 100%;
+}
+
+
+.apply-coupon-btn {
+  padding: 8px 24px;
+  background-color: #008080;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+  white-space: nowrap; /* Prevents button text from wrapping */
+  display: inline-block;
+}
+
+.apply-coupon-btn:hover:not(:disabled) {
+  background-color: #0a2463;
+}
+
+.apply-coupon-btn:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Success message styling */
+.coupon-success {
+  color: #06402b;
+  font-size: 14px;
+  font-weight: 500;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Discount info text */
+.coupon-info {
+  font-size: 12px;
+  color: #6c757d;
+  text-align: center;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .coupon-input-container input[type="text"] {
+    width: 80%;
+    min-width: 250px;
+  }
+  
+  .apply-coupon-btn {
+    padding: 10px 30px;
+  }
 }
