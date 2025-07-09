@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  apiUrl: '',
+  apiUrl: 'http://127.0.1:5801/loanpub/us-central1',
   firebase: {
     apiKey: 'AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas',
     authDomain: 'loanpub.firebaseapp.com',

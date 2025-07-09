@@ -1,7 +1,7 @@
 export const environment = {
   production: true,
   // ✅ Angular 18 Best Practice: Use local emulator for development
-  apiUrl: 'http://127.0.0.1:5001/loanpub/us-central1',
+ apiUrl: 'https://us-central1-loanpub.cloudfunctions.net',
   firebase: {
     // ✅ FIXED: Don't use process.env in browser environment
     apiKey: 'AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas',

@@ -12,12 +12,14 @@ import { getAuth, provideAuth } from '@angular/fire/auth';
 import { getFirestore, provideFirestore } from '@angular/fire/firestore';
 import { getFunctions, provideFunctions } from '@angular/fire/functions';
 import { getStorage, provideStorage } from '@angular/fire/storage';
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 
 // Import environment config
 import { environment } from '../environments/environment';
 
 export const appConfig: ApplicationConfig = {
   providers: [
+    provideHttpClient(withInterceptorsFromDi()),
     provideRouter(routes),
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
