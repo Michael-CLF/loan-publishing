@@ -139,7 +139,7 @@ export class StripeService {
     });
 
     return this.http.post<CheckoutSessionResponse>(
-      `${this.apiUrl}/stripeCheckout`, 
+      `${this.apiUrl}/createStripeCheckout`, 
       checkoutData,
       {
         headers: {
