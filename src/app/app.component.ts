@@ -50,9 +50,14 @@ export class AppComponent implements OnInit {
   private ngZone = inject(NgZone);
   // Do not add destroyRef - it's causing errors
 
-  ngOnInit() {
-    this.appCheckService.initializeAppCheck();
-    // Debug which environment file is being loaded
+ async ngOnInit() {
+
+      try {
+    await this.appCheckService.initializeAppCheck();
+    console.log('App Check ready for Firebase calls');
+  } catch (error) {
+    console.error('App Check initialization failed:', error);
+  }
     console.log(
       'Environment check:',
       environment.production ? 'Production' : 'Development',
