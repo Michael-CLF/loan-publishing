@@ -1,13 +1,134 @@
+<!-- ⚠️ TESTING COMPONENT - REMOVE BEFORE PRODUCTION ⚠️ -->
 <div class="test-container">
-      <h3>Coupon Testing</h3>
+  <div class="test-header">
+    <h3>🧪 Stripe Coupon Testing</h3>
+    <p class="test-warning">
+      ⚠️ This component is for testing only. Remove before production deployment.
+    </p>
+  </div>
+
+  <!-- Test Buttons Section -->
+  <div class="test-buttons-section">
+    <h4>Testing Options</h4>
+    
+    <!-- Primary Test Button: $1 Test Product with Coupon -->
+    <div class="test-button-group">
       <button 
         type="button" 
-        class="test-btn"
+        class="test-btn primary"
         (click)="testCouponCheckout()"
         [disabled]="isLoading">
-        {{ isLoading ? 'Creating Checkout...' : 'Test 3MONTHSTEST Coupon' }}
+        <span class="btn-icon">💳</span>
+        <span class="btn-text">
+          {{ isLoading ? 'Creating Checkout...' : 'Test $1 Product + 3MONTHSTEST Coupon' }}
+        </span>
       </button>
-      <p class="test-note">
-        This will create a test checkout session with the 3MONTHSTEST coupon applied.
+      <p class="btn-description">
+        Creates a checkout session for your $1 test product with the 3MONTHSTEST coupon applied.
       </p>
     </div>
+
+    <!-- Alternative Test: Payment Link -->
+    <div class="test-button-group">
+      <button 
+        type="button" 
+        class="test-btn secondary"
+        (click)="testWithPaymentLink()"
+        [disabled]="isLoading">
+        <span class="btn-icon">🔗</span>
+        <span class="btn-text">
+          {{ isLoading ? 'Creating Link...' : 'Test with Payment Link' }}
+        </span>
+      </button>
+      <p class="btn-description">
+        Uses Stripe Payment Links for immediate testing (requires payment link setup).
+      </p>
+    </div>
+
+    <!-- Coupon Validation Only -->
+    <div class="test-button-group">
+      <button 
+        type="button" 
+        class="test-btn validation"
+        (click)="testCouponValidation()"
+        [disabled]="isLoading">
+        <span class="btn-icon">✅</span>
+        <span class="btn-text">
+          {{ isLoading ? 'Validating...' : 'Validate Coupon Only' }}
+        </span>
+      </button>
+      <p class="btn-description">
+        Tests coupon validation without creating a checkout session.
+      </p>
+    </div>
+  </div>
+
+  <!-- Error Display -->
+  <div *ngIf="errorMessage" class="error-section">
+    <h4>❌ Error</h4>
+    <div class="error-message">
+      {{ errorMessage }}
+    </div>
+    <button 
+      type="button" 
+      class="clear-error-btn"
+      (click)="errorMessage = ''">
+      Clear Error
+    </button>
+  </div>
+
+  <!-- Loading Indicator -->
+  <div *ngIf="isLoading" class="loading-section">
+    <div class="loading-spinner"></div>
+    <p>Processing test request...</p>
+  </div>
+
+  <!-- Testing Information -->
+  <div class="test-info-section">
+    <h4>📋 Testing Information</h4>
+    <div class="info-grid">
+      <div class="info-item">
+        <strong>Test Product:</strong>
+        <span>$1.00 Test Product</span>
+      </div>
+      <div class="info-item">
+        <strong>Coupon Code:</strong>
+        <span>3MONTHSTEST</span>
+      </div>
+      <div class="info-item">
+        <strong>Expected Discount:</strong>
+        <span>100% off (Free)</span>
+      </div>
+      <div class="info-item">
+        <strong>Test Email:</strong>
+      </div>
+    </div>
+  </div>
+
+  <!-- Instructions -->
+  <div class="instructions-section">
+    <h4>📖 How to Test</h4>
+    <ol class="instructions-list">
+      <li>Click "Test $1 Product + 3MONTHSTEST Coupon" button</li>
+      <li>You'll be redirected to Stripe checkout page</li>
+      <li>Verify the coupon is applied and shows $0.00 total</li>
+      <li>Use Stripe test card: <code>4242 4242 4242 4242</code></li>
+      <li>Use any future expiry date and any 3-digit CVC</li>
+      <li>Complete the test checkout</li>
+      <li>Check Stripe dashboard for the test transaction</li>
+    </ol>
+  </div>
+
+  <!-- Debug Information -->
+  <div class="debug-section">
+    <h4>🔧 Debug Info</h4>
+    <div class="debug-info">
+      <div class="debug-item">
+        <strong>Component Status:</strong>
+        <span [class]="isLoading ? 'status-loading' : 'status-ready'">
+          {{ isLoading ? 'Loading...' : 'Ready' }}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
