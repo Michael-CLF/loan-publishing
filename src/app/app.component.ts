@@ -15,7 +15,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
-import { AppCheckService } from '../services/app-check.service'; 
+import { AppCheckService } from '../services/app-check.service';
 
 
 declare let gtag: Function;
@@ -35,12 +35,12 @@ declare let gtag: Function;
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
-   private readonly appCheckService = inject(AppCheckService);
+  private readonly appCheckService = inject(AppCheckService);
   title = 'Daily Loan Post';
   constructor() {
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
-      .subscribe((event: NavigationEnd) => {});
+      .subscribe((event: NavigationEnd) => { });
   }
 
   // Force injection of Auth service
@@ -50,14 +50,14 @@ export class AppComponent implements OnInit {
   private ngZone = inject(NgZone);
   // Do not add destroyRef - it's causing errors
 
- async ngOnInit() {
+  async ngOnInit() {
 
-      try {
-    await this.appCheckService.initializeAppCheck();
-    console.log('App Check ready for Firebase calls');
-  } catch (error) {
-    console.error('App Check initialization failed:', error);
-  }
+    try {
+     // await this.appCheckService.initializeAppCheck();
+      console.log('App Check ready for Firebase calls');
+    } catch (error) {
+      console.error('App Check initialization failed:', error);
+    }
     console.log(
       'Environment check:',
       environment.production ? 'Production' : 'Development',
