@@ -60,64 +60,81 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * ✅ NEW: Handle Stripe success callback - webhook already created user
-   */
   private handleStripeSuccessCallback(sessionId: string): void {
-    console.log('💳 Processing Stripe success callback for session:', sessionId);
-    this.processingMessage.set('Verifying your payment...');
+  console.log('💳 Processing Stripe success callback for session:', sessionId);
+  this.processingMessage.set('Verifying your payment...');
 
-    // ✅ Get user data from localStorage for display purposes
-    const pendingUserData = this.getPendingUserData();
-    
-    if (!pendingUserData?.email) {
-      console.error('❌ No pending user data found');
-      this.handleError('Registration data not found. Please try again.');
-      return;
-    }
-
-    console.log('📧 Processing registration for email:', pendingUserData.email);
-    this.userRole = pendingUserData.role || 'originator';
-
-    // ✅ STEP 1: Verify the Stripe session (optional but good practice)
-    this.processingMessage.set('Confirming payment...');
-    
-    // ✅ STEP 2: Wait for webhook to complete user creation (give it a moment)
-    setTimeout(() => {
-      this.processingMessage.set('Setting up your account...');
-      
-      // ✅ STEP 3: Send sign-in link to the email (webhook already created account)
-      this.authService.sendSignInLink(pendingUserData.email)
-        .pipe(
-          take(1),
-          delay(1000), // Give the email time to send
-          finalize(() => {
-            console.log('🔄 Sign-in link process completed');
-          })
-        )
-        .subscribe({
-          next: (success) => {
-            if (success) {
-              console.log('✅ Sign-in link sent successfully');
-              this.processingMessage.set('Success! Check your email to continue...');
-              
-              // ✅ STEP 4: Show success modal after short delay
-              setTimeout(() => {
-                this.showSuccessModal();
-              }, 1500);
-            } else {
-              console.error('❌ Failed to send sign-in link');
-              this.handleError('Failed to send login email. Please contact support.');
-            }
-          },
-          error: (error) => {
-            console.error('❌ Error sending sign-in link:', error);
-            this.handleError('Registration completed but login email failed. Please try logging in manually.');
-          }
-        });
-    }, 2000); // Give webhook 2 seconds to create user
+  const pendingUserData = this.getPendingUserData();
+  
+  if (!pendingUserData?.email) {
+    console.error('❌ No pending user data found');
+    this.handleError('Registration data not found. Please try again.');
+    return;
   }
 
+  console.log('📧 Processing registration for email:', pendingUserData.email);
+  this.userRole = pendingUserData.role || 'originator';
+
+  // ✅ STEP 1: Wait for webhook to complete user creation
+  this.processingMessage.set('Setting up your account...');
+  
+  setTimeout(() => {
+    // ✅ STEP 2: Log user in directly (no email needed)
+    this.processingMessage.set('Logging you in...');
+    
+    this.authService.sendSignInLink(pendingUserData.email)
+      .pipe(
+        take(1),
+        switchMap(() => {
+          // ✅ STEP 3: Automatically sign in the user
+          return this.authService.signInWithEmailLink(pendingUserData.email);
+        }),
+        finalize(() => {
+          console.log('🔄 Auto sign-in process completed');
+        })
+      )
+      .subscribe({
+        next: (user) => {
+          if (user) {
+            console.log('✅ User automatically signed in:', user.email);
+            this.processingMessage.set('Success! Welcome to your dashboard...');
+            
+            // ✅ STEP 4: Set success flag and redirect to dashboard
+            this.authService.setRegistrationSuccess(true);
+            
+            setTimeout(() => {
+              this.showSuccessModalAndRedirect();
+            }, 1500);
+          } else {
+            console.error('❌ Auto sign-in failed');
+            this.handleError('Registration completed but auto sign-in failed. Please try logging in manually.');
+          }
+        },
+        error: (error) => {
+          console.error('❌ Error during auto sign-in:', error);
+          this.handleError('Registration completed but auto sign-in failed. Please try logging in manually.');
+        }
+      });
+  }, 3000); // Give webhook 3 seconds to create user
+}
+
+/**
+ * ✅ NEW: Show success modal then redirect to dashboard
+ */
+private showSuccessModalAndRedirect(): void {
+  console.log('🎭 Showing success modal for role:', this.userRole);
+  this.showProcessingSpinner.set(false);
+
+  setTimeout(() => {
+    if (this.userRole === 'lender') {
+      this.showLenderRegistrationSuccessModal.set(true);
+    } else {
+      this.showRegistrationSuccessModal.set(true);
+    }
+    this.clearRegistrationFlags();
+  }, 200);
+}
+  
   /**
    * ✅ Get pending user data from localStorage
    */
@@ -244,26 +261,23 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     });
   }
 
-  /**
-   * ✅ Modal close handlers
-   */
-  closeRegistrationSuccessModal(): void {
-    console.log('✅ Originator modal closed - redirecting to login');
-    this.showRegistrationSuccessModal.set(false);
-    setTimeout(() => {
-      // ✅ FIXED: Redirect to login page since user needs to click email link
-      this.router.navigate(['/login']);
-    }, 100);
-  }
+closeRegistrationSuccessModal(): void {
+  console.log('✅ Originator modal closed - redirecting to dashboard');
+  this.showRegistrationSuccessModal.set(false);
+  setTimeout(() => {
+    // ✅ FIXED: Redirect to dashboard instead of login
+    this.router.navigate(['/dashboard']);
+  }, 100);
+}
 
-  closeLenderRegistrationSuccessModal(): void {
-    console.log('✅ Lender modal closed - redirecting to login');
-    this.showLenderRegistrationSuccessModal.set(false);
-    setTimeout(() => {
-      // ✅ FIXED: Redirect to login page since user needs to click email link
-      this.router.navigate(['/login']);
-    }, 100);
-  }
+closeLenderRegistrationSuccessModal(): void {
+  console.log('✅ Lender modal closed - redirecting to dashboard');
+  this.showLenderRegistrationSuccessModal.set(false);
+  setTimeout(() => {
+    // ✅ FIXED: Redirect to dashboard instead of login
+    this.router.navigate(['/dashboard']);
+  }, 100);
+}
 
   /**
    * ✅ Clean up localStorage
