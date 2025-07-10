@@ -5,8 +5,13 @@ import { AuthService } from '../../services/auth.service';
 import { StripeService } from '../../services/stripe.service';
 import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
-import { take, finalize, switchMap, delay } from 'rxjs/operators';
-import { of } from 'rxjs';
+import { from } from 'rxjs';
+import { signInWithCustomToken } from '@angular/fire/auth';
+import { Auth } from '@angular/fire/auth';
+
+import { take, finalize, switchMap, tap } from 'rxjs/operators';
+import { FirestoreService } from '../../services/firestore.service';
+
 
 @Component({
   selector: 'app-registration-processing',
@@ -20,6 +25,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly stripeService = inject(StripeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+  private readonly firestoreService = inject(FirestoreService);
+  private readonly auth = inject(Auth);
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
@@ -60,7 +67,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  private handleStripeSuccessCallback(sessionId: string): void {
+ private handleStripeSuccessCallback(sessionId: string): void {
   console.log('💳 Processing Stripe success callback for session:', sessionId);
   this.processingMessage.set('Verifying your payment...');
 
@@ -79,43 +86,74 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   this.processingMessage.set('Setting up your account...');
   
   setTimeout(() => {
-    // ✅ STEP 2: Log user in directly (no email needed)
-    this.processingMessage.set('Logging you in...');
-    
-    this.authService.sendSignInLink(pendingUserData.email)
-      .pipe(
-        take(1),
-        switchMap(() => {
-          // ✅ STEP 3: Automatically sign in the user
-          return this.authService.signInWithEmailLink(pendingUserData.email);
-        }),
-        finalize(() => {
-          console.log('🔄 Auto sign-in process completed');
-        })
-      )
-      .subscribe({
-        next: (user) => {
-          if (user) {
-            console.log('✅ User automatically signed in:', user.email);
-            this.processingMessage.set('Success! Welcome to your dashboard...');
-            
-            // ✅ STEP 4: Set success flag and redirect to dashboard
-            this.authService.setRegistrationSuccess(true);
-            
-            setTimeout(() => {
-              this.showSuccessModalAndRedirect();
-            }, 1500);
-          } else {
-            console.error('❌ Auto sign-in failed');
-            this.handleError('Registration completed but auto sign-in failed. Please try logging in manually.');
-          }
-        },
-        error: (error) => {
-          console.error('❌ Error during auto sign-in:', error);
-          this.handleError('Registration completed but auto sign-in failed. Please try logging in manually.');
+    // ✅ STEP 2: Retrieve custom token and authenticate properly
+    this.authenticateWithCustomToken(sessionId);
+  }, 3000); // Give webhook 3 seconds to create user and token
+}
+
+/**
+ * ✅ NEW: Proper Angular/Firebase authentication using custom token
+ */
+private authenticateWithCustomToken(sessionId: string): void {
+  this.processingMessage.set('Logging you in...');
+  
+  // ✅ Get custom token from Firestore authTokens collection
+  this.firestoreService.getDocument(`authTokens/${sessionId}`)
+    .pipe(
+      take(1),
+      switchMap((tokenDoc: any) => {
+        if (!tokenDoc?.customToken) {
+          throw new Error('Authentication token not found');
         }
-      });
-  }, 3000); // Give webhook 3 seconds to create user
+        
+        console.log('🔑 Custom token retrieved, authenticating user...');
+        
+        // ✅ Use Firebase Auth signInWithCustomToken (proper approach)
+        return from(signInWithCustomToken(this.auth, tokenDoc.customToken));
+      }),
+      tap(() => {
+        // ✅ Clean up the temporary token after successful auth
+        this.firestoreService.deleteDocument(`authTokens/${sessionId}`)
+          .catch((error: any) => console.warn('Could not clean up auth token:', error));
+      }),
+      finalize(() => {
+        console.log('🔄 Custom token authentication process completed');
+      })
+    )
+    .subscribe({
+      next: (userCredential: any) => {
+        console.log('✅ User properly authenticated via custom token:', userCredential.user.email);
+        this.processingMessage.set('Success! Welcome to your dashboard...');
+        
+        // ✅ Set registration success through proper AuthService
+        this.authService.setRegistrationSuccess(true);
+        
+        setTimeout(() => {
+          this.showSuccessModalAndRedirectToDashboard();
+        }, 1500);
+      },
+      error: (error: any) => {
+        console.error('❌ Custom token authentication failed:', error);
+        this.handleError('Registration completed but authentication failed. Please try logging in manually.');
+      }
+    });
+}
+
+/**
+ * ✅ NEW: Show success modal then redirect to dashboard
+ */
+private showSuccessModalAndRedirectToDashboard(): void {
+  console.log('🎭 Showing success modal and preparing dashboard redirect');
+  this.showProcessingSpinner.set(false);
+
+  setTimeout(() => {
+    if (this.userRole === 'lender') {
+      this.showLenderRegistrationSuccessModal.set(true);
+    } else {
+      this.showRegistrationSuccessModal.set(true);
+    }
+    this.clearRegistrationFlags();
+  }, 200);
 }
 
 /**
