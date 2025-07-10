@@ -15,6 +15,11 @@ export interface CheckoutSessionRequest {
     city: string;
     state: string;
   };
+  coupon?: {
+    code: string;
+    discount: number;
+    discountType: 'percentage' | 'fixed';
+  };
 }
 
 export interface CheckoutSessionResponse {
@@ -34,6 +39,23 @@ export interface StripeMetadata {
   interval: string;
   source: string;
   timestamp: string;
+  couponCode?: string;
+}
+
+export interface PromotionCodeValidationResponse {
+  valid: boolean;
+  promotion_code?: {
+    id: string;
+    code: string;
+    coupon: {
+      id: string;
+      percent_off?: number;
+      amount_off?: number;
+      currency?: string;
+      name?: string;
+    };
+  };
+  error?: string;
 }
 
 @Injectable({
@@ -42,10 +64,27 @@ export interface StripeMetadata {
 export class StripeService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
+  private readonly functionsUrl = 'https://loanpub.cloudfunctions.net';
 
   /**
-   * Create Stripe checkout session with comprehensive metadata
-   * Angular 18 best practice: Strong typing and proper error handling
+   * Validate Stripe promotion code using Firebase Cloud Function
+   */
+  validatePromotionCode(code: string): Observable<PromotionCodeValidationResponse> {
+    console.log('🔵 Validating promotion code:', code);
+    
+    return this.http.post<PromotionCodeValidationResponse>(
+      `${this.functionsUrl}/validatePromotionCode`,
+      { code: code.trim().toUpperCase() },
+      {
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+  }
+
+  /**
+   * Create Stripe checkout session with comprehensive metadata and coupon support
    */
   createCheckoutSession(data: CheckoutSessionRequest): Observable<CheckoutSessionResponse> {
     
@@ -67,14 +106,18 @@ export class StripeService {
       timestamp: new Date().toISOString()
     };
 
-    const checkoutData = {
+    // Add coupon code to metadata if present
+    if (data.coupon?.code) {
+      metadata.couponCode = data.coupon.code;
+    }
+
+    const checkoutData: any = {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       interval: data.interval,
       metadata,
       success_url: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `${window.location.origin}/pricing`,
-      // Additional Stripe configuration
       payment_method_types: ['card'],
       mode: 'subscription',
       allow_promotion_codes: true,
@@ -82,11 +125,17 @@ export class StripeService {
       customer_creation: 'always'
     };
 
+    // Add promotion code if provided
+    if (data.coupon?.code) {
+      checkoutData.promotion_code = data.coupon.code.trim().toUpperCase();
+    }
+
     console.log('🔵 Creating Stripe checkout session with data:', {
       email: checkoutData.email,
       role: checkoutData.role,
       interval: checkoutData.interval,
-      metadataKeys: Object.keys(metadata)
+      metadataKeys: Object.keys(metadata),
+      hasPromotionCode: !!checkoutData.promotion_code
     });
 
     return this.http.post<CheckoutSessionResponse>(
@@ -100,10 +149,6 @@ export class StripeService {
     );
   }
 
-  /**
-   * Validate checkout data before sending to Stripe
-   * Angular 18 best practice: Input validation and sanitization
-   */
   private validateCheckoutData(data: CheckoutSessionRequest): void {
     const errors: string[] = [];
 
@@ -143,66 +188,47 @@ export class StripeService {
       errors.push('Valid role is required');
     }
 
+    if (data.coupon && (!data.coupon.code || data.coupon.code.trim().length === 0)) {
+      errors.push('Coupon code cannot be empty if coupon is provided');
+    }
+
     if (errors.length > 0) {
       throw new Error(`Validation failed: ${errors.join(', ')}`);
     }
   }
 
-  /**
-   * Sanitize string inputs to prevent issues with Stripe metadata
-   * Angular 18 best practice: Data sanitization
-   */
   private sanitizeString(input: string): string {
     if (!input) return '';
     
     return input
       .trim()
-      .replace(/[^\w\s-.']/g, '') // Remove special characters except common ones
-      .substring(0, 100); // Stripe metadata values have 500 char limit, but keep reasonable
+      .replace(/[^\w\s-.']/g, '')
+      .substring(0, 100);
   }
 
-  /**
-   * Sanitize and format phone numbers
-   * Angular 18 best practice: Consistent data formatting
-   */
   private sanitizePhoneNumber(phone: string): string {
     if (!phone) return '';
     
-    // Remove all non-digits
     const digits = phone.replace(/\D/g, '');
     
-    // Format as (XXX) XXX-XXXX if 10 digits
     if (digits.length === 10) {
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
     
-    // Return original if not standard format
     return phone.substring(0, 50);
   }
 
-  /**
-   * Validate email format
-   * Angular 18 best practice: Proper email validation
-   */
   private isValidEmail(email: string): boolean {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return emailRegex.test(email);
   }
 
-  /**
-   * Get checkout session status
-   * Angular 18 best practice: Complete service API
-   */
   getCheckoutSession(sessionId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/get-checkout-session`, {
       params: { session_id: sessionId }
     });
   }
 
-  /**
-   * Cancel checkout session if needed
-   * Angular 18 best practice: Complete CRUD operations
-   */
   cancelCheckoutSession(sessionId: string): Observable<any> {
     return this.http.post(`${this.apiUrl}/cancel-checkout-session`, {
       session_id: sessionId
