@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { map, catchError, retryWhen, scan, delay } from 'rxjs/operators';
+import { catchError, retryWhen, scan, delay } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 
 export interface CheckoutSessionRequest {
@@ -93,22 +93,42 @@ export class StripeService {
   }
 
   /**
-   * Create Stripe checkout session following Angular 18 best practices
-   * Implements proper error handling, retry logic, and type safety
+   * Create Stripe checkout session - send clean data to Cloud Function
+   * Following Angular best practices: frontend sends data, backend handles Stripe
    */
   createCheckoutSession(data: CheckoutSessionRequest): Observable<CheckoutSessionResponse> {
-    // Early validation with detailed error messages
+    // Validate input data
     this.validateCheckoutData(data);
 
-    // Build request payload with proper type safety
-    const requestPayload = this.buildCheckoutRequestPayload(data);
+    // Build clean payload - no Stripe session parameters
+    const requestPayload: Record<string, any> = {
+      email: data.email.toLowerCase().trim(),
+      role: data.role,
+      interval: data.interval,
+      userData: {
+        firstName: data.userData.firstName,
+        lastName: data.userData.lastName,
+        company: data.userData.company,
+        phone: data.userData.phone,
+        city: data.userData.city,
+        state: data.userData.state
+      }
+    };
 
-    console.log('🔵 Creating Stripe checkout session', {
-      email: requestPayload.email,
-      role: requestPayload.role,
-      interval: requestPayload.interval,
-      hasCoupon: !!requestPayload.coupon,
-      timestamp: new Date().toISOString()
+    // Add coupon if provided
+    if (data.coupon?.code?.trim()) {
+      requestPayload['coupon'] = {
+        code: data.coupon.code.trim(),
+        discount: data.coupon.discount,
+        discountType: data.coupon.discountType
+      };
+    }
+
+   console.log('🔵 Sending clean data to Cloud Function:', {
+      email: requestPayload['email'],
+      role: requestPayload['role'], 
+      interval: requestPayload['interval'],
+      hasCoupon: !!requestPayload['coupon']
     });
 
     return this.http.post<CheckoutSessionResponse>(
@@ -116,62 +136,27 @@ export class StripeService {
       requestPayload,
       {
         headers: {
-          'Content-Type': 'application/json',
-          'X-Request-Source': 'angular-registration'
+          'Content-Type': 'application/json'
         }
       }
     ).pipe(
-      // Retry failed requests up to 2 times with exponential backoff
-      retryWhen(errors => 
-        errors.pipe(
-          scan((retryCount: number, error: HttpErrorResponse) => {
-            // Don't retry client errors (4xx)
-            if (error.status >= 400 && error.status < 500) {
-              throw error;
-            }
-            
-            if (retryCount >= 2) {
-              throw error;
-            }
-            
-            console.warn(`🔄 Retrying Stripe checkout creation (attempt ${retryCount + 1})`, error);
-            return retryCount + 1;
-          }, 0),
-          delay(1000) // 1 second delay between retries
-        )
-      ),
-      
-      // Transform response if needed
-      map(response => {
-        if (!response.url) {
-          throw new Error('Invalid response: missing checkout URL');
-        }
-        
-        console.log('✅ Stripe checkout session created successfully', {
-          hasUrl: !!response.url,
-          hasSessionId: !!response.sessionId
-        });
-        
-        return response;
-      }),
-      
-      // Handle errors with proper typing
       catchError((error: HttpErrorResponse) => {
-        console.error('❌ Failed to create Stripe checkout session', {
-          status: error.status,
-          statusText: error.statusText,
-          message: error.message,
-          url: error.url
-        });
-
-        // Transform errors into user-friendly messages
-        const errorMessage = this.getCheckoutErrorMessage(error);
+        console.error('❌ Failed to create checkout session:', error);
+        let errorMessage = 'Failed to create checkout session. Please try again.';
+        
+        if (error.status === 400) {
+          errorMessage = 'Invalid form data. Please check your information.';
+        } else if (error.status === 0) {
+          errorMessage = 'Network error. Please check your connection.';
+        }
         
         return throwError(() => new Error(errorMessage));
       })
     );
   }
 
+
+  
   /**
    * Get checkout session details using session ID
    */
