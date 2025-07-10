@@ -64,7 +64,7 @@ export interface PromotionCodeValidationResponse {
 export class StripeService {
   private readonly http = inject(HttpClient);
   private readonly apiUrl = environment.apiUrl;
-  private readonly functionsUrl = 'https://loanpub.cloudfunctions.net';
+  private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
   /**
    * Validate Stripe promotion code using Firebase Cloud Function
