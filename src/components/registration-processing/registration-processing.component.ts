@@ -2,17 +2,11 @@ import { Component, OnInit, OnDestroy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { StripeService } from '../../services/stripe.service';
 import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
-import { take, finalize } from 'rxjs/operators';
-import {
-  Firestore,
-  doc,
-  updateDoc,
-  serverTimestamp,
-  getDoc,
-} from '@angular/fire/firestore';
-import { Auth } from '@angular/fire/auth';
+import { take, finalize, switchMap, delay } from 'rxjs/operators';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-registration-processing',
@@ -23,54 +17,40 @@ import { Auth } from '@angular/fire/auth';
 })
 export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly authService = inject(AuthService);
+  private readonly stripeService = inject(StripeService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-  private readonly firestore = inject(Firestore);
-  private readonly auth = inject(Auth);
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
   showRegistrationSuccessModal = signal(false);
   showLenderRegistrationSuccessModal = signal(false);
-  processingMessage = signal('Setting up your account...');
+  processingMessage = signal('Processing your payment...');
   hasError = signal(false);
 
   private userRole: 'originator' | 'lender' | undefined = undefined;
 
-  // ✅ Prevent duplicate processing
-  private static processingInProgress = false;
-  private static processedEmails = new Set<string>();
-
   constructor() {
-  console.log('RegistrationProcessingComponent created');
-  // ✅ Initialize spinner to true immediately to prevent blank screen
-  this.showProcessingSpinner.set(true);
-  this.processingMessage.set('Loading...');
-}
+    console.log('RegistrationProcessingComponent created');
+    this.showProcessingSpinner.set(true);
+    this.processingMessage.set('Loading...');
+  }
 
   ngOnInit(): void {
     console.log('🔄 Registration Processing Component - Starting...');
 
-    // ✅ RESET static flags on fresh component load
-    RegistrationProcessingComponent.processingInProgress = false;
-
-    // Add debug logs
-    console.log('🎯 Initial spinner state:', this.showProcessingSpinner());
-    console.log('🎯 Query params:', this.route.snapshot.queryParams);
-    console.log('🎯 localStorage showRegistrationModal:', localStorage.getItem('showRegistrationModal'));
-
-    // ✅ Check URL params to determine if this is a Stripe callback
     const queryParams = this.route.snapshot.queryParams;
+    const sessionId = queryParams['session_id'];
     const paymentStatus = queryParams['payment'];
 
-    if (paymentStatus === 'success') {
-      console.log('💳 Processing Stripe payment success callback');
-      this.handleStripeCallback();
+    console.log('🎯 Query params:', { sessionId, paymentStatus });
+
+    if (sessionId) {
+      console.log('💳 Processing Stripe success callback with session:', sessionId);
+      this.handleStripeSuccessCallback(sessionId);
     } else if (paymentStatus === 'cancel') {
       console.log('❌ Payment was cancelled');
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      this.router.navigate(['/pricing']);
+      this.handlePaymentCancellation();
     } else if (this.shouldShowRegistrationProcessing()) {
       console.log('✅ Registration success detected - starting standard flow');
       this.startStandardRegistrationFlow();
@@ -81,215 +61,143 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * ✅ NEW: Handle Stripe payment callback
+   * ✅ NEW: Handle Stripe success callback - webhook already created user
    */
-  private handleStripeCallback(): void {
-    console.log('💳 Processing Stripe payment callback');
-    this.processingMessage.set('Processing your payment...');
+  private handleStripeSuccessCallback(sessionId: string): void {
+    console.log('💳 Processing Stripe success callback for session:', sessionId);
+    this.processingMessage.set('Verifying your payment...');
 
-    // ✅ Set processing flag
-    RegistrationProcessingComponent.processingInProgress = true;
-
-    const showModal = localStorage.getItem('showRegistrationModal');
-    const rawLenderData = localStorage.getItem('completeLenderData');
-    const rawOriginatorData = localStorage.getItem('completeOriginatorData');  // ✅ NEW: Check for originator data
-
-    // ✅ LENDER FLOW: Complete registration after payment
-    if (showModal === 'true' && rawLenderData) {
-      console.log('🏢 Processing lender payment success');
-      this.handleLenderPaymentSuccess(rawLenderData);
+    // ✅ Get user data from localStorage for display purposes
+    const pendingUserData = this.getPendingUserData();
+    
+    if (!pendingUserData?.email) {
+      console.error('❌ No pending user data found');
+      this.handleError('Registration data not found. Please try again.');
       return;
     }
 
-    // ✅ ORIGINATOR FLOW: Complete registration after payment  
-    if (showModal === 'true' && rawOriginatorData) {
-      console.log('👤 Processing originator payment success');
-      this.handleOriginatorPaymentSuccess();
-      return;
-    }
+    console.log('📧 Processing registration for email:', pendingUserData.email);
+    this.userRole = pendingUserData.role || 'originator';
 
-    // ✅ Fallback: Neither condition met
-    console.error('⚠️ Invalid payment callback state');
-    console.log('showModal:', showModal);
-    console.log('rawLenderData exists:', !!rawLenderData);
-    console.log('rawOriginatorData exists:', !!rawOriginatorData);
-    this.hasError.set(true);
-    this.showProcessingSpinner.set(false);
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.router.navigate(['/pricing']);
-  }
-
-  /**
-  * ✅ Handle originator payment success - CREATE user after payment
-  */
-  private handleOriginatorPaymentSuccess(): void {
-    console.log('👤 Processing originator payment success');
-    this.processingMessage.set('Creating your account...');
-
-    const rawOriginatorData = localStorage.getItem('completeOriginatorData');
-
-    if (!rawOriginatorData) {
-      console.error('❌ No originator data found in localStorage');
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      this.router.navigate(['/register']);
-      return;
-    }
-
-    try {
-      const originatorData = JSON.parse(rawOriginatorData);
-      const email = originatorData.email;
-
-      if (!email) {
-        throw new Error('Email is required');
-      }
-
-      // ✅ Check if email was already processed (prevent double processing)
-      if (RegistrationProcessingComponent.processedEmails.has(email)) {
-        console.log(`✅ Email ${email} already processed, showing success modal`);
-        this.userRole = 'originator';
-        this.authService.setRegistrationSuccess(true);
-        setTimeout(() => {
-          this.showModalBasedOnRole();
-        }, 1500);
-        return;
-      }
-
-      // ✅ Add email to processed set
-      RegistrationProcessingComponent.processedEmails.add(email);
-
-      // ✅ NOW create the originator user after successful payment
-      console.log('🔄 Creating originator user after payment success');
+    // ✅ STEP 1: Verify the Stripe session (optional but good practice)
+    this.processingMessage.set('Confirming payment...');
+    
+    // ✅ STEP 2: Wait for webhook to complete user creation (give it a moment)
+    setTimeout(() => {
       this.processingMessage.set('Setting up your account...');
-
-      this.authService.registerUser(email, 'defaultPassword123', {
-        firstName: originatorData.firstName,
-        lastName: originatorData.lastName,
-        company: originatorData.company,
-        phone: originatorData.phone,
-        city: originatorData.city,
-        state: originatorData.state,
-        role: 'originator',
-        subscriptionStatus: 'active',        // ✅ Set to active immediately
-        registrationCompleted: true,         // ✅ Registration is complete
-        paymentPending: false,               // ✅ Payment is done
-        billingInterval: originatorData.billingInterval,
-      })
+      
+      // ✅ STEP 3: Send sign-in link to the email (webhook already created account)
+      this.authService.sendSignInLink(pendingUserData.email)
         .pipe(
           take(1),
+          delay(1000), // Give the email time to send
           finalize(() => {
-            RegistrationProcessingComponent.processingInProgress = false;
+            console.log('🔄 Sign-in link process completed');
           })
         )
         .subscribe({
-          next: (user) => {
-            console.log('✅ Originator user created successfully:', user);
-            this.authService.setRegistrationSuccess(true);
-            this.userRole = 'originator';
-            this.processingMessage.set('Success! Welcome to your dashboard...');
-
-            setTimeout(() => {
-              this.showModalBasedOnRole();
-            }, 1500);
+          next: (success) => {
+            if (success) {
+              console.log('✅ Sign-in link sent successfully');
+              this.processingMessage.set('Success! Check your email to continue...');
+              
+              // ✅ STEP 4: Show success modal after short delay
+              setTimeout(() => {
+                this.showSuccessModal();
+              }, 1500);
+            } else {
+              console.error('❌ Failed to send sign-in link');
+              this.handleError('Failed to send login email. Please contact support.');
+            }
           },
           error: (error) => {
-            console.error('❌ Error creating originator user:', error);
-            this.hasError.set(true);
-            this.showProcessingSpinner.set(false);
-            this.router.navigate(['/register']);
+            console.error('❌ Error sending sign-in link:', error);
+            this.handleError('Registration completed but login email failed. Please try logging in manually.');
           }
         });
+    }, 2000); // Give webhook 2 seconds to create user
+  }
 
+  /**
+   * ✅ Get pending user data from localStorage
+   */
+  private getPendingUserData(): any {
+    try {
+      // ✅ FIXED: Look for the correct localStorage key
+      const pendingData = localStorage.getItem('pendingUserData');
+      const completeLenderData = localStorage.getItem('completeLenderData');
+      const completeOriginatorData = localStorage.getItem('completeOriginatorData');
+
+      if (pendingData) {
+        return JSON.parse(pendingData);
+      } else if (completeOriginatorData) {
+        // ✅ Fallback for old data format
+        return JSON.parse(completeOriginatorData);
+      } else if (completeLenderData) {
+        // ✅ Fallback for lender data
+        const lenderData = JSON.parse(completeLenderData);
+        return {
+          email: lenderData.contactInfo?.contactEmail,
+          firstName: lenderData.contactInfo?.firstName,
+          lastName: lenderData.contactInfo?.lastName,
+          role: 'lender'
+        };
+      }
+
+      return null;
     } catch (error) {
-      console.error('❌ Error parsing originator data:', error);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      RegistrationProcessingComponent.processingInProgress = false;
-      this.router.navigate(['/register']);
+      console.error('❌ Error parsing user data:', error);
+      return null;
     }
   }
 
   /**
- * ✅ Handle lender payment success - CREATE user after payment
- */
-private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
-  console.log('🏢 Processing lender payment success');
-  this.processingMessage.set('Creating your lender account...');
-
-  try {
-    const lenderData = JSON.parse(rawLenderData);
-    const email = lenderData?.contactInfo?.contactEmail;
-
-    if (!email) {
-      throw new Error('Email is required');
-    }
-
-    // ✅ Check if email was already processed (prevent double processing)
-    if (RegistrationProcessingComponent.processedEmails.has(email)) {
-      console.log(`✅ Email ${email} already processed, showing success modal`);
-      this.userRole = 'lender';
-      this.authService.setRegistrationSuccess(true);
-      setTimeout(() => {
-        this.showModalBasedOnRole();
-      }, 1500);
-      return;
-    }
-
-    // ✅ Add email to processed set
-    RegistrationProcessingComponent.processedEmails.add(email);
-
-    // ✅ NOW create the lender user after successful payment
-    console.log('🔄 Creating lender user after payment success');
-    this.processingMessage.set('Setting up your account...');
-
-    this.authService.registerUser(email, 'defaultPassword123', {
-      firstName: lenderData.contactInfo.firstName,
-      lastName: lenderData.contactInfo.lastName,
-      company: lenderData.contactInfo.company,
-      phone: lenderData.contactInfo.contactPhone,
-      city: lenderData.contactInfo.city,
-      state: lenderData.contactInfo.state,
-      role: 'lender',
-      subscriptionStatus: 'active',        // ✅ Set to active immediately
-      registrationCompleted: true,         // ✅ Registration is complete
-      paymentPending: false,               // ✅ Payment is done
-      // ✅ Add the complete lender form data
-      productInfo: lenderData.productInfo,
-      footprintInfo: lenderData.footprintInfo,
-    })
-    .pipe(
-      take(1),
-      finalize(() => {
-        RegistrationProcessingComponent.processingInProgress = false;
-      })
-    )
-    .subscribe({
-      next: (user) => {
-        console.log('✅ Lender user created successfully:', user);
-        this.authService.setRegistrationSuccess(true);
-        this.userRole = 'lender';
-        this.processingMessage.set('Success! Welcome to your dashboard...');
-
-        setTimeout(() => {
-          this.showModalBasedOnRole();
-        }, 1500);
-      },
-      error: (error) => {
-        console.error('❌ Error creating lender user:', error);
-        this.hasError.set(true);
-        this.showProcessingSpinner.set(false);
-        this.router.navigate(['/register/lender']);
-      }
-    });
-
-  } catch (error) {
-    console.error('❌ Error in handleLenderPaymentSuccess:', error);
+   * ✅ Handle payment cancellation
+   */
+  private handlePaymentCancellation(): void {
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.router.navigate(['/register/lender']);
+    this.processingMessage.set('Payment was cancelled');
+    
+    setTimeout(() => {
+      this.router.navigate(['/pricing']);
+    }, 2000);
   }
-}
+
+  /**
+   * ✅ Handle errors with user-friendly messages
+   */
+  private handleError(message: string): void {
+    this.hasError.set(true);
+    this.showProcessingSpinner.set(false);
+    this.processingMessage.set(message);
+    
+    setTimeout(() => {
+      this.router.navigate(['/pricing']);
+    }, 3000);
+  }
+
+  /**
+   * ✅ Show success modal
+   */
+  private showSuccessModal(): void {
+    console.log('🎭 Showing success modal for role:', this.userRole);
+    this.showProcessingSpinner.set(false);
+
+    // ✅ Set registration success flag
+    this.authService.setRegistrationSuccess(true);
+
+    setTimeout(() => {
+      if (this.userRole === 'lender') {
+        this.showLenderRegistrationSuccessModal.set(true);
+      } else {
+        this.showRegistrationSuccessModal.set(true);
+      }
+
+      // ✅ Clean up localStorage
+      this.clearRegistrationFlags();
+    }, 200);
+  }
 
   /**
    * ✅ Check if we should show standard registration processing
@@ -306,14 +214,12 @@ private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
     console.log('🔄 Starting standard registration processing flow...');
     this.processingMessage.set('Setting up your account...');
 
-    // Step 1: Load user data and determine role
+    // ✅ Load user role
     this.loadUserRole();
 
-    // Step 2: After 1.5 seconds, hide spinner and show modal
+    // ✅ Show modal after delay
     setTimeout(() => {
-      console.log('🔄 Hiding spinner, showing modal...');
-      this.showProcessingSpinner.set(false);
-      this.showModalBasedOnRole();
+      this.showSuccessModal();
     }, 1500);
   }
 
@@ -333,89 +239,44 @@ private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
       },
       error: (error) => {
         console.error('❌ Error loading user role:', error);
-        this.userRole = 'originator'; // Default fallback
+        this.userRole = 'originator';
       }
     });
   }
 
   /**
-   * ✅ Show appropriate modal based on user role
+   * ✅ Modal close handlers
    */
-  private showModalBasedOnRole(): void {
-    const role = this.userRole;
-    console.log('🎭 Showing modal for role:', role);
-    this.showProcessingSpinner.set(false);
-
-    setTimeout(() => {
-      if (role === 'originator') {
-        console.log('👤 Showing originator registration success modal');
-        this.showRegistrationSuccessModal.set(true);
-      } else if (role === 'lender') {
-        console.log('🏢 Showing lender registration success modal');
-        this.showLenderRegistrationSuccessModal.set(true);
-      } else {
-        console.warn('⚠️ Unknown role, showing default originator modal');
-        this.showRegistrationSuccessModal.set(true);
-      }
-
-      // ✅ Clean up flags after modal is shown
-      setTimeout(() => {
-        this.clearRegistrationFlags();
-      }, 100);
-    }, 200);
-  }
-
   closeRegistrationSuccessModal(): void {
-    console.log('✅ Originator modal closed - redirecting to dashboard');
-
-    // ✅ Hide modal first
+    console.log('✅ Originator modal closed - redirecting to login');
     this.showRegistrationSuccessModal.set(false);
-
-    // ✅ Small delay before redirect to allow modal close animation
     setTimeout(() => {
-      this.redirectToDashboard();
+      // ✅ FIXED: Redirect to login page since user needs to click email link
+      this.router.navigate(['/login']);
     }, 100);
   }
 
   closeLenderRegistrationSuccessModal(): void {
-    console.log('✅ Lender modal closed - redirecting to dashboard');
-
-    // ✅ Hide modal first
+    console.log('✅ Lender modal closed - redirecting to login');
     this.showLenderRegistrationSuccessModal.set(false);
-
-    // ✅ Small delay before redirect to allow modal close animation
     setTimeout(() => {
-      this.redirectToDashboard();
+      // ✅ FIXED: Redirect to login page since user needs to click email link
+      this.router.navigate(['/login']);
     }, 100);
   }
 
+  /**
+   * ✅ Clean up localStorage
+   */
   private clearRegistrationFlags(): void {
-    console.log('🧹 Clearing registration success flags');
-    this.authService.clearRegistrationSuccess();
+    console.log('🧹 Clearing registration flags');
     localStorage.removeItem('showRegistrationModal');
+    localStorage.removeItem('pendingUserData');
     localStorage.removeItem('completeLenderData');
     localStorage.removeItem('completeOriginatorData');
   }
 
-  private redirectToDashboard(): void {
-    console.log('🎯 Redirecting to dashboard...');
-
-    try {
-      this.router.navigate(['/dashboard']);
-    } catch (error) {
-      console.error('❌ Error navigating to dashboard:', error);
-      // ✅ Fallback: try direct navigation
-      window.location.href = '/dashboard';
-    }
-  }
-
-  /**
-   * ✅ Clean up static flags when component is destroyed
-   */
   ngOnDestroy(): void {
-    // Only clear flags if no other processing is happening
-    if (!RegistrationProcessingComponent.processingInProgress) {
-      RegistrationProcessingComponent.processedEmails.clear();
-    }
+    // Component cleanup if needed
   }
 }

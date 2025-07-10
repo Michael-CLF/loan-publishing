@@ -3,10 +3,7 @@ import { appConfig } from './app/app.config';
 import { AppComponent } from './app/app.component';
 import { provideClientHydration } from '@angular/platform-browser';
 import { registerLocaleData } from '@angular/common';
-import localeEn from '@angular/common/locales/en';
 
-// Register English locale globally to fix ./en error
-registerLocaleData(localeEn);
 
 // Bootstrap Angular app
 bootstrapApplication(AppComponent, {

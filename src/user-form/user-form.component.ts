@@ -298,7 +298,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     };
 
     try {
-      localStorage.setItem('completeOriginatorData', JSON.stringify(originatorData));
+      localStorage.setItem('pendingUserData', JSON.stringify(originatorData));
       localStorage.setItem('showRegistrationModal', 'true');
     } catch (err) {
       console.error('Failed to store originator data locally', err);
@@ -442,34 +442,70 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
 // Just move your existing checkout code into this method
 private proceedWithExistingCheckout(formData: any): void {
-  // ✅ NEW: Store originator data for post-payment processing
-  const originatorData = {
+  // ✅ SIMPLIFIED: Only store minimal data for frontend display (NOT for user creation)
+  const frontendDisplayData = {
     email: formData.email,
     firstName: formData.firstName,
     lastName: formData.lastName,
     company: formData.company,
-    phone: formData.phone,
-    city: formData.city,
-    state: formData.state,
     role: 'originator',
-    billingInterval: formData.interval,
-    // Include coupon data if applied
-    coupon: this.appliedCouponDetails ? {
-      code: this.appliedCouponDetails.code,
-      discount: this.appliedCouponDetails.discount,
-      discountType: this.appliedCouponDetails.discountType
-    } : null
+    // ✅ REMOVE: Don't store complete registration data
+    // Webhook will handle user creation with complete data
   };
 
   try {
-    localStorage.setItem('completeOriginatorData', JSON.stringify(originatorData));
+    localStorage.setItem('pendingUserData', JSON.stringify(frontendDisplayData));
     localStorage.setItem('showRegistrationModal', 'true');
   } catch (err) {
-    console.error('Failed to store originator data locally', err);
+    console.error('Failed to store display data locally', err);
     this.errorMessage = 'Failed to prepare registration. Please try again.';
     this.isLoading = false;
     return;
   }
+
+  // ✅ CREATE STRIPE SESSION - This is where the real magic happens
+  runInInjectionContext(this.injector, () => {
+    // Prepare checkout session data
+    const checkoutData: any = {
+      email: formData.email,
+      role: 'originator',
+      interval: formData.interval as 'monthly' | 'annually',
+      // ✅ CRITICAL: Pass complete userData to backend for webhook processing
+      userData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+      }
+    };
+
+    // Add coupon data only if coupon is applied
+    if (this.couponApplied && this.appliedCouponDetails) {
+      checkoutData.coupon = {
+        code: this.appliedCouponDetails.code,
+        discount: this.appliedCouponDetails.discount,
+        discountType: this.appliedCouponDetails.discountType
+      };
+    }
+
+    this.stripeService.createCheckoutSession(checkoutData)
+    .pipe(
+      tap((checkoutResponse) => {
+        console.log('✅ Stripe checkout session created:', checkoutResponse);
+        window.location.href = checkoutResponse.url;
+      }),
+      catchError((error) => {
+        this.isLoading = false;
+        console.error('Stripe error:', error);
+        this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
+        return of(null);
+      })
+    )
+    .subscribe();
+  });
+
 
   // ✅ NEW: Create Stripe checkout session directly (no user creation)
   runInInjectionContext(this.injector, () => {
