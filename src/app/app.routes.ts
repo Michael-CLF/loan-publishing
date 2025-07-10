@@ -28,6 +28,7 @@ import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
 import { ContactComponent } from 'src/components/contact/contact.component';
+import { TestCheckoutComponent } from 'src/components/test-checkout/test-checkout.component';
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -130,4 +131,8 @@ export const routes: Routes = [
   
   // ✅ Testing route (can be removed in production)
   { path: 'test-processing', component: RegistrationProcessingComponent },
+
+  // ✅ Testing checkout (can be removed in production)
+  { path: 'test-checkout', component: TestCheckoutComponent  },
+
 ];

@@ -1,0 +1,13 @@
+<div class="test-container">
+      <h3>Coupon Testing</h3>
+      <button 
+        type="button" 
+        class="test-btn"
+        (click)="testCouponCheckout()"
+        [disabled]="isLoading">
+        {{ isLoading ? 'Creating Checkout...' : 'Test 3MONTHSTEST Coupon' }}
+      </button>
+      <p class="test-note">
+        This will create a test checkout session with the 3MONTHSTEST coupon applied.
+      </p>
+    </div>
