@@ -15,17 +15,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
-
-declare global {
-  interface Window {
-    FIREBASE_APPCHECK_DEBUG_TOKEN?: string | boolean;
-  }
-}
-
-if (!environment.production) {
-  // 👇 Only set this in local dev mode
-  window.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-}
+import { AppCheckService } from '../services/app-check.service'; 
 
 
 declare let gtag: Function;
@@ -45,6 +35,7 @@ declare let gtag: Function;
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
+   private readonly appCheckService = inject(AppCheckService);
   title = 'Daily Loan Post';
   constructor() {
     this.router.events
@@ -60,6 +51,7 @@ export class AppComponent implements OnInit {
   // Do not add destroyRef - it's causing errors
 
   ngOnInit() {
+    this.appCheckService.initializeAppCheck();
     // Debug which environment file is being loaded
     console.log(
       'Environment check:',
