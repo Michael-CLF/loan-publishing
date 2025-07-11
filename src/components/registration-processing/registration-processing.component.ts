@@ -75,26 +75,28 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     console.log('💳 Processing Stripe success callback for session:', sessionId);
     this.processingMessage.set('Authenticating user...');
 
-this.firestoreService.getCustomTokenStream(sessionId).subscribe({
-  next: async (token) => {
-    if (!token) return;
+    this.stripeService.getSessionDetails(sessionId).subscribe({
+      next: async (response) => {
+        const firebaseToken = response?.firebaseToken;
+        if (!firebaseToken) {
+          throw new Error('Missing Firebase token');
+        }
 
-    try {
-      await signInWithCustomToken(this.afAuth, token);
-      console.log('✅ Firebase sign-in successful');
-
-     this.modalService.openUserRegSuccessModal();
-      this.router.navigate(['/dashboard']);
-    } catch (error) {
-      console.error('❌ Firebase sign-in failed', error);
-      this.processingMessage.set('Authentication failed. Please try again.');
-    }
-  },
-  error: (err) => {
-    console.error('❌ Failed to retrieve token from Firestore:', err);
-    this.processingMessage.set('Could not verify your session. Please try again.');
-  },
-});
+        try {
+          await signInWithCustomToken(this.afAuth, firebaseToken);
+          console.log('✅ Firebase sign-in successful via backend token');
+          this.authService.setRegistrationSuccess(true);
+          this.showSuccessModalAndRedirectToDashboard();
+        } catch (err) {
+          console.error('❌ Firebase sign-in failed:', err);
+          this.handleError('Authentication failed. Please try logging in again.');
+        }
+      },
+      error: (err) => {
+        console.error('❌ Failed to retrieve session details:', err);
+        this.handleError('Could not verify your session. Please try again.');
+      },
+    });
   }
 
 

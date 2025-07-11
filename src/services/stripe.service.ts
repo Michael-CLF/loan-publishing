@@ -179,6 +179,7 @@ export class StripeService {
    * Cancel checkout session
    */
   cancelCheckoutSession(sessionId: string): Observable<any> {
+    
     if (!sessionId?.trim()) {
       return throwError(() => new Error('Session ID is required'));
     }
@@ -192,6 +193,25 @@ export class StripeService {
       })
     );
   }
+
+  /**
+ * Get session details from backend (used for retrieving Firebase custom token)
+ */
+getSessionDetails(sessionId: string): Observable<any> {
+  if (!sessionId?.trim()) {
+    return throwError(() => new Error('Session ID is required'));
+  }
+
+  return this.http.get(`${this.apiUrl}/get-session-details`, {
+    params: { session_id: sessionId }
+  }).pipe(
+    catchError((error: HttpErrorResponse) => {
+      console.error('❌ Failed to retrieve session details:', error);
+      return throwError(() => new Error('Could not verify your session. Please try again.'));
+    })
+  );
+}
+
 
   /**
    * Build checkout request payload with proper data transformation and sanitization
