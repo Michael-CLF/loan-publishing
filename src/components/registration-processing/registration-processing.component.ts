@@ -8,7 +8,7 @@ import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-
 import { from } from 'rxjs';
 import { signInWithCustomToken } from '@angular/fire/auth';
 import { Auth } from '@angular/fire/auth';
-
+import { ModalService } from '../../services/modal.service';
 import { take, finalize, switchMap, tap } from 'rxjs/operators';
 import { FirestoreService } from '../../services/firestore.service';
 
@@ -27,6 +27,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly firestoreService = inject(FirestoreService);
   private readonly auth = inject(Auth);
+  private afAuth = inject(Auth); // AngularFireAuth
+  private modalService = inject(ModalService); // Reused for success modal
+
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
@@ -36,6 +39,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   hasError = signal(false);
 
   private userRole: 'originator' | 'lender' | undefined = undefined;
+
 
   constructor() {
     console.log('RegistrationProcessingComponent created');
@@ -67,112 +71,115 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
- private handleStripeSuccessCallback(sessionId: string): void {
-  console.log('💳 Processing Stripe success callback for session:', sessionId);
-  this.processingMessage.set('Verifying your payment...');
+  private handleStripeSuccessCallback(sessionId: string): void {
+    console.log('💳 Processing Stripe success callback for session:', sessionId);
+    this.processingMessage.set('Authenticating user...');
 
-  const pendingUserData = this.getPendingUserData();
-  
-  if (!pendingUserData?.email) {
-    console.error('❌ No pending user data found');
-    this.handleError('Registration data not found. Please try again.');
-    return;
+this.firestoreService.getCustomTokenStream(sessionId).subscribe({
+  next: async (token) => {
+    if (!token) return;
+
+    try {
+      await signInWithCustomToken(this.afAuth, token);
+      console.log('✅ Firebase sign-in successful');
+
+     this.modalService.openUserRegSuccessModal();
+      this.router.navigate(['/dashboard']);
+    } catch (error) {
+      console.error('❌ Firebase sign-in failed', error);
+      this.processingMessage.set('Authentication failed. Please try again.');
+    }
+  },
+  error: (err) => {
+    console.error('❌ Failed to retrieve token from Firestore:', err);
+    this.processingMessage.set('Could not verify your session. Please try again.');
+  },
+});
   }
 
-  console.log('📧 Processing registration for email:', pendingUserData.email);
-  this.userRole = pendingUserData.role || 'originator';
 
-  // ✅ STEP 1: Wait for webhook to complete user creation
-  this.processingMessage.set('Setting up your account...');
-  
-  setTimeout(() => {
-    // ✅ STEP 2: Retrieve custom token and authenticate properly
-    this.authenticateWithCustomToken(sessionId);
-  }, 3000); // Give webhook 3 seconds to create user and token
-}
+  /**
+   * ✅ NEW: Proper Angular/Firebase authentication using custom token
+   */
+  private authenticateWithCustomToken(sessionId: string): void {
+    this.processingMessage.set('Logging you in...');
 
-/**
- * ✅ NEW: Proper Angular/Firebase authentication using custom token
- */
-private authenticateWithCustomToken(sessionId: string): void {
-  this.processingMessage.set('Logging you in...');
-  
-  // ✅ Get custom token from Firestore authTokens collection
-  this.firestoreService.getDocument(`authTokens/${sessionId}`)
-    .pipe(
-      take(1),
-      switchMap((tokenDoc: any) => {
-        if (!tokenDoc?.customToken) {
-          throw new Error('Authentication token not found');
+    // ✅ Get custom token from Firestore authTokens collection
+    this.firestoreService.getDocument(`authTokens/${sessionId}`)
+      .pipe(
+        take(1),
+        switchMap((tokenDoc: any) => {
+          if (!tokenDoc?.customToken) {
+            throw new Error('Authentication token not found');
+          }
+
+          console.log('🔑 Custom token retrieved, authenticating user...');
+
+          // ✅ Use Firebase Auth signInWithCustomToken (proper approach)
+          return from(signInWithCustomToken(this.auth, tokenDoc.customToken));
+        }),
+        tap(() => {
+          // ✅ Clean up the temporary token after successful auth
+          this.firestoreService.deleteDocument(`authTokens/${sessionId}`)
+            .catch((error: any) => console.warn('Could not clean up auth token:', error));
+        }),
+        finalize(() => {
+          console.log('🔄 Custom token authentication process completed');
+        })
+      )
+      .subscribe({
+        next: (userCredential: any) => {
+          console.log('✅ User properly authenticated via custom token:', userCredential.user.email);
+          this.processingMessage.set('Success! Welcome to your dashboard...');
+
+          // ✅ Set registration success through proper AuthService
+          this.authService.setRegistrationSuccess(true);
+
+          setTimeout(() => {
+            this.showSuccessModalAndRedirectToDashboard();
+          }, 1500);
+        },
+        error: (error: any) => {
+          console.error('❌ Custom token authentication failed:', error);
+          this.handleError('Registration completed but authentication failed. Please try logging in manually.');
         }
-        
-        console.log('🔑 Custom token retrieved, authenticating user...');
-        
-        // ✅ Use Firebase Auth signInWithCustomToken (proper approach)
-        return from(signInWithCustomToken(this.auth, tokenDoc.customToken));
-      }),
-      tap(() => {
-        // ✅ Clean up the temporary token after successful auth
-        this.firestoreService.deleteDocument(`authTokens/${sessionId}`)
-          .catch((error: any) => console.warn('Could not clean up auth token:', error));
-      }),
-      finalize(() => {
-        console.log('🔄 Custom token authentication process completed');
-      })
-    )
-    .subscribe({
-      next: (userCredential: any) => {
-        console.log('✅ User properly authenticated via custom token:', userCredential.user.email);
-        this.processingMessage.set('Success! Welcome to your dashboard...');
-        
-        // ✅ Set registration success through proper AuthService
-        this.authService.setRegistrationSuccess(true);
-        
-        setTimeout(() => {
-          this.showSuccessModalAndRedirectToDashboard();
-        }, 1500);
-      },
-      error: (error: any) => {
-        console.error('❌ Custom token authentication failed:', error);
-        this.handleError('Registration completed but authentication failed. Please try logging in manually.');
+      });
+  }
+
+  /**
+   * ✅ NEW: Show success modal then redirect to dashboard
+   */
+  private showSuccessModalAndRedirectToDashboard(): void {
+    console.log('🎭 Showing success modal and preparing dashboard redirect');
+    this.showProcessingSpinner.set(false);
+
+    setTimeout(() => {
+      if (this.userRole === 'lender') {
+        this.showLenderRegistrationSuccessModal.set(true);
+      } else {
+        this.showRegistrationSuccessModal.set(true);
       }
-    });
-}
+      this.clearRegistrationFlags();
+    }, 200);
+  }
 
-/**
- * ✅ NEW: Show success modal then redirect to dashboard
- */
-private showSuccessModalAndRedirectToDashboard(): void {
-  console.log('🎭 Showing success modal and preparing dashboard redirect');
-  this.showProcessingSpinner.set(false);
+  /**
+   * ✅ NEW: Show success modal then redirect to dashboard
+   */
+  private showSuccessModalAndRedirect(): void {
+    console.log('🎭 Showing success modal for role:', this.userRole);
+    this.showProcessingSpinner.set(false);
 
-  setTimeout(() => {
-    if (this.userRole === 'lender') {
-      this.showLenderRegistrationSuccessModal.set(true);
-    } else {
-      this.showRegistrationSuccessModal.set(true);
-    }
-    this.clearRegistrationFlags();
-  }, 200);
-}
+    setTimeout(() => {
+      if (this.userRole === 'lender') {
+        this.showLenderRegistrationSuccessModal.set(true);
+      } else {
+        this.showRegistrationSuccessModal.set(true);
+      }
+      this.clearRegistrationFlags();
+    }, 200);
+  }
 
-/**
- * ✅ NEW: Show success modal then redirect to dashboard
- */
-private showSuccessModalAndRedirect(): void {
-  console.log('🎭 Showing success modal for role:', this.userRole);
-  this.showProcessingSpinner.set(false);
-
-  setTimeout(() => {
-    if (this.userRole === 'lender') {
-      this.showLenderRegistrationSuccessModal.set(true);
-    } else {
-      this.showRegistrationSuccessModal.set(true);
-    }
-    this.clearRegistrationFlags();
-  }, 200);
-}
-  
   /**
    * ✅ Get pending user data from localStorage
    */
@@ -213,7 +220,7 @@ private showSuccessModalAndRedirect(): void {
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
     this.processingMessage.set('Payment was cancelled');
-    
+
     setTimeout(() => {
       this.router.navigate(['/pricing']);
     }, 2000);
@@ -226,7 +233,7 @@ private showSuccessModalAndRedirect(): void {
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
     this.processingMessage.set(message);
-    
+
     setTimeout(() => {
       this.router.navigate(['/pricing']);
     }, 3000);
@@ -299,23 +306,23 @@ private showSuccessModalAndRedirect(): void {
     });
   }
 
-closeRegistrationSuccessModal(): void {
-  console.log('✅ Originator modal closed - redirecting to dashboard');
-  this.showRegistrationSuccessModal.set(false);
-  setTimeout(() => {
-    // ✅ FIXED: Redirect to dashboard instead of login
-    this.router.navigate(['/dashboard']);
-  }, 100);
-}
+  closeRegistrationSuccessModal(): void {
+    console.log('✅ Originator modal closed - redirecting to dashboard');
+    this.showRegistrationSuccessModal.set(false);
+    setTimeout(() => {
+      // ✅ FIXED: Redirect to dashboard instead of login
+      this.router.navigate(['/dashboard']);
+    }, 100);
+  }
 
-closeLenderRegistrationSuccessModal(): void {
-  console.log('✅ Lender modal closed - redirecting to dashboard');
-  this.showLenderRegistrationSuccessModal.set(false);
-  setTimeout(() => {
-    // ✅ FIXED: Redirect to dashboard instead of login
-    this.router.navigate(['/dashboard']);
-  }, 100);
-}
+  closeLenderRegistrationSuccessModal(): void {
+    console.log('✅ Lender modal closed - redirecting to dashboard');
+    this.showLenderRegistrationSuccessModal.set(false);
+    setTimeout(() => {
+      // ✅ FIXED: Redirect to dashboard instead of login
+      this.router.navigate(['/dashboard']);
+    }, 100);
+  }
 
   /**
    * ✅ Clean up localStorage
