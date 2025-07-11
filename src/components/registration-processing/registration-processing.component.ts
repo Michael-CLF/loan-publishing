@@ -5,12 +5,11 @@ import { AuthService } from '../../services/auth.service';
 import { StripeService } from '../../services/stripe.service';
 import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
-import { from, of } from 'rxjs';  // ✅ Added 'of' here
+import { of } from 'rxjs';
 import { Auth } from '@angular/fire/auth';
 import { ModalService } from '../../services/modal.service';
-import { take, finalize, switchMap, tap, catchError } from 'rxjs/operators';  // ✅ Added 'catchError' here
+import { take } from 'rxjs/operators';
 import { FirestoreService } from '../../services/firestore.service';
-
 
 @Component({
   selector: 'app-registration-processing',
@@ -26,11 +25,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly firestoreService = inject(FirestoreService);
   private readonly auth = inject(Auth);
-  private afAuth = inject(Auth); // AngularFireAuth
-  private modalService = inject(ModalService); // Reused for success modal
+  private readonly modalService = inject(ModalService);
 
-
-  // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
   showRegistrationSuccessModal = signal(false);
   showLenderRegistrationSuccessModal = signal(false);
@@ -38,7 +34,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   hasError = signal(false);
 
   private userRole: 'originator' | 'lender' | undefined = undefined;
-
 
   constructor() {
     console.log('RegistrationProcessingComponent created');
@@ -70,60 +65,47 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
- private handleStripeSuccessCallback(sessionId: string): void {
-  console.log('💳 Processing Stripe success callback for session:', sessionId);
-  this.processingMessage.set('Verifying payment...');
+  private handleStripeSuccessCallback(sessionId: string): void {
+    console.log('💳 Processing Stripe success callback for session:', sessionId);
+    this.processingMessage.set('Verifying payment...');
 
-  // Try to get user role from stored data
-  const pendingData = this.getPendingUserData();
-  if (pendingData?.role) {
-    this.userRole = pendingData.role as 'originator' | 'lender';
+    const pendingData = this.getPendingUserData();
+    if (pendingData?.role) {
+      this.userRole = pendingData.role as 'originator' | 'lender';
+    }
+
+    this.stripeService.getSessionDetails(sessionId)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.authService.setRegistrationSuccess(true);
+          this.processingMessage.set('Success! Preparing your dashboard...');
+          setTimeout(() => this.showSuccessModalAndRedirect(), 1000);
+        },
+        error: (error) => {
+          console.error('❌ Failed to retrieve session:', error);
+          this.handleError('Could not verify your payment. Please contact support if you were charged.');
+        }
+      });
   }
-
-  this.stripeService.getSessionDetails(sessionId)
-    .pipe(take(1))
-    .subscribe({
-      next: () => {
-        this.authService.setRegistrationSuccess(true);
-        this.processingMessage.set('Success! Preparing your dashboard...');
-        setTimeout(() => this.showSuccessModalAndRedirect(), 1000);
-      },
-      error: (error) => {
-        console.error('❌ Failed to retrieve session:', error);
-        this.handleError('Could not verify your payment. Please contact support if you were charged.');
-      }
-    });
-}
 
   private showSuccessModalAndRedirect(): void {
     console.log('🎭 Showing success modal for role:', this.userRole);
-
-    // Hide spinner
     this.showProcessingSpinner.set(false);
-
-    // Clear any error state
     this.hasError.set(false);
 
-    // Show appropriate modal based on role
     setTimeout(() => {
       if (this.userRole === 'lender') {
         this.showLenderRegistrationSuccessModal.set(true);
       } else {
-        // Default to originator if role not determined
         this.showRegistrationSuccessModal.set(true);
       }
-
-      // Clean up localStorage flags
       this.clearRegistrationFlags();
     }, 200);
   }
 
-  /**
-   * ✅ Get pending user data from localStorage
-   */
   private getPendingUserData(): any {
     try {
-      // ✅ FIXED: Look for the correct localStorage key
       const pendingData = localStorage.getItem('pendingUserData');
       const completeLenderData = localStorage.getItem('completeLenderData');
       const completeOriginatorData = localStorage.getItem('completeOriginatorData');
@@ -131,10 +113,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       if (pendingData) {
         return JSON.parse(pendingData);
       } else if (completeOriginatorData) {
-        // ✅ Fallback for old data format
         return JSON.parse(completeOriginatorData);
       } else if (completeLenderData) {
-        // ✅ Fallback for lender data
         const lenderData = JSON.parse(completeLenderData);
         return {
           email: lenderData.contactInfo?.contactEmail,
@@ -151,9 +131,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * ✅ Handle payment cancellation
-   */
   private handlePaymentCancellation(): void {
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
@@ -164,9 +141,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }, 2000);
   }
 
-  /**
-   * ✅ Handle errors with user-friendly messages
-   */
   private handleError(message: string): void {
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
@@ -177,14 +151,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }, 3000);
   }
 
-  /**
-   * ✅ Show success modal
-   */
   private showSuccessModal(): void {
     console.log('🎭 Showing success modal for role:', this.userRole);
     this.showProcessingSpinner.set(false);
-
-    // ✅ Set registration success flag
     this.authService.setRegistrationSuccess(true);
 
     setTimeout(() => {
@@ -193,39 +162,24 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       } else {
         this.showRegistrationSuccessModal.set(true);
       }
-
-      // ✅ Clean up localStorage
       this.clearRegistrationFlags();
     }, 200);
   }
 
-  /**
-   * ✅ Check if we should show standard registration processing
-   */
   private shouldShowRegistrationProcessing(): boolean {
     return this.authService.getRegistrationSuccess() ||
       localStorage.getItem('showRegistrationModal') === 'true';
   }
 
-  /**
-   * ✅ Start standard registration flow (non-payment)
-   */
   private startStandardRegistrationFlow(): void {
     console.log('🔄 Starting standard registration processing flow...');
     this.processingMessage.set('Setting up your account...');
-
-    // ✅ Load user role
     this.loadUserRole();
-
-    // ✅ Show modal after delay
     setTimeout(() => {
       this.showSuccessModal();
     }, 1500);
   }
 
-  /**
-   * ✅ Load user data to determine role for correct modal
-   */
   private loadUserRole(): void {
     this.authService.getCurrentUser().subscribe({
       next: (user) => {
@@ -248,7 +202,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     console.log('✅ Originator modal closed - redirecting to dashboard');
     this.showRegistrationSuccessModal.set(false);
     setTimeout(() => {
-      // ✅ FIXED: Redirect to dashboard instead of login
       this.router.navigate(['/dashboard']);
     }, 100);
   }
@@ -257,14 +210,10 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     console.log('✅ Lender modal closed - redirecting to dashboard');
     this.showLenderRegistrationSuccessModal.set(false);
     setTimeout(() => {
-      // ✅ FIXED: Redirect to dashboard instead of login
       this.router.navigate(['/dashboard']);
     }, 100);
   }
 
-  /**
-   * ✅ Clean up localStorage
-   */
   private clearRegistrationFlags(): void {
     console.log('🧹 Clearing registration flags');
     localStorage.removeItem('showRegistrationModal');
@@ -274,6 +223,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // Component cleanup if needed
+    // Cleanup logic if needed
   }
 }
