@@ -274,46 +274,42 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
+ /**
    * Proceeds with checkout session creation
+   * Angular 18 Best Practice: Single method, clear responsibility
    */
   private proceedWithCheckout(formData: any): void {
-    // Store originator data for post-payment processing
-    const originatorData = {
+    // Store minimal data for frontend display only
+    const displayData = {
       email: formData.email,
       firstName: formData.firstName,
       lastName: formData.lastName,
       company: formData.company,
-      phone: formData.phone,
-      city: formData.city,
-      state: formData.state,
-      role: 'originator',
-      billingInterval: formData.interval,
-      // Include coupon data if applied
-      coupon: this.appliedCouponDetails ? {
-        code: this.appliedCouponDetails.code,
-        discount: this.appliedCouponDetails.discount,
-        discountType: this.appliedCouponDetails.discountType
-      } : null
+      role: 'originator' as const,
+      billingInterval: formData.interval
     };
 
     try {
-      localStorage.setItem('pendingUserData', JSON.stringify(originatorData));
+      // Store data for post-payment UI display
+      localStorage.setItem('pendingUserData', JSON.stringify(displayData));
       localStorage.setItem('showRegistrationModal', 'true');
+      
+      console.log('📦 Stored display data for post-payment flow');
     } catch (err) {
-      console.error('Failed to store originator data locally', err);
+      console.error('Failed to store display data:', err);
       this.errorMessage = 'Failed to prepare registration. Please try again.';
       this.isLoading = false;
       return;
     }
 
-    // Create Stripe checkout session
+    // Create Stripe checkout session with dependency injection context
     runInInjectionContext(this.injector, () => {
       // Prepare checkout session data
       const checkoutData: any = {
         email: formData.email,
         role: 'originator',
         interval: formData.interval as 'monthly' | 'annually',
+        // Complete user data for webhook processing
         userData: {
           firstName: formData.firstName,
           lastName: formData.lastName,
@@ -324,31 +320,54 @@ export class UserFormComponent implements OnInit, OnDestroy {
         }
       };
 
-      // Add coupon data only if coupon is applied
+      // Add coupon data only if applied
       if (this.couponApplied && this.appliedCouponDetails) {
         checkoutData.coupon = {
           code: this.appliedCouponDetails.code,
           discount: this.appliedCouponDetails.discount,
           discountType: this.appliedCouponDetails.discountType
         };
+        
+        console.log('🎟️ Including coupon in checkout:', this.appliedCouponDetails.code);
       }
 
+      console.log('🚀 Creating Stripe checkout session with data:', {
+        email: checkoutData.email,
+        role: checkoutData.role,
+        interval: checkoutData.interval,
+        hasCoupon: !!checkoutData.coupon
+      });
+
       this.stripeService.createCheckoutSession(checkoutData)
-      .pipe(
-        tap((checkoutResponse) => {
-          console.log('✅ Stripe checkout session created:', checkoutResponse);
-          window.location.href = checkoutResponse.url;
-        }),
-        catchError((error) => {
-          this.isLoading = false;
-          console.error('Stripe error:', error);
-          this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
-          return of(null);
-        })
-      )
-      .subscribe();
+        .pipe(
+          tap((checkoutResponse) => {
+            console.log('✅ Stripe checkout session created successfully');
+            console.log('🔗 Redirecting to:', checkoutResponse.url);
+            
+            // Redirect to Stripe Checkout
+            window.location.href = checkoutResponse.url;
+          }),
+          catchError((error: HttpErrorResponse) => {
+            this.isLoading = false;
+            console.error('❌ Stripe checkout error:', error);
+            
+            // User-friendly error messages
+            if (error.status === 0) {
+              this.errorMessage = 'Network error. Please check your connection and try again.';
+            } else if (error.status === 400) {
+              this.errorMessage = 'Invalid registration data. Please check your information.';
+            } else {
+              this.errorMessage = error.error?.message || 'Failed to initiate payment. Please try again.';
+            }
+            
+            return of(null);
+          }),
+          takeUntil(this.destroy$)
+        )
+        .subscribe();
     });
   }
+      
 
   /**
    * Handles the response from Stripe promotion code validation
@@ -439,114 +458,4 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.proceedWithCheckout(formData);
     }
   }
-
-// Just move your existing checkout code into this method
-private proceedWithExistingCheckout(formData: any): void {
-  // ✅ SIMPLIFIED: Only store minimal data for frontend display (NOT for user creation)
-  const frontendDisplayData = {
-    email: formData.email,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    company: formData.company,
-    role: 'originator',
-    // ✅ REMOVE: Don't store complete registration data
-    // Webhook will handle user creation with complete data
-  };
-
-  try {
-    localStorage.setItem('pendingUserData', JSON.stringify(frontendDisplayData));
-    localStorage.setItem('showRegistrationModal', 'true');
-  } catch (err) {
-    console.error('Failed to store display data locally', err);
-    this.errorMessage = 'Failed to prepare registration. Please try again.';
-    this.isLoading = false;
-    return;
-  }
-
-  // ✅ CREATE STRIPE SESSION - This is where the real magic happens
-  runInInjectionContext(this.injector, () => {
-    // Prepare checkout session data
-    const checkoutData: any = {
-      email: formData.email,
-      role: 'originator',
-      interval: formData.interval as 'monthly' | 'annually',
-      // ✅ CRITICAL: Pass complete userData to backend for webhook processing
-      userData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-      }
-    };
-
-    // Add coupon data only if coupon is applied
-    if (this.couponApplied && this.appliedCouponDetails) {
-      checkoutData.coupon = {
-        code: this.appliedCouponDetails.code,
-        discount: this.appliedCouponDetails.discount,
-        discountType: this.appliedCouponDetails.discountType
-      };
-    }
-
-    this.stripeService.createCheckoutSession(checkoutData)
-    .pipe(
-      tap((checkoutResponse) => {
-        console.log('✅ Stripe checkout session created:', checkoutResponse);
-        window.location.href = checkoutResponse.url;
-      }),
-      catchError((error) => {
-        this.isLoading = false;
-        console.error('Stripe error:', error);
-        this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
-        return of(null);
-      })
-    )
-    .subscribe();
-  });
-
-
-  // ✅ NEW: Create Stripe checkout session directly (no user creation)
-  runInInjectionContext(this.injector, () => {
-    // Prepare checkout session data
-    const checkoutData: any = {
-      email: formData.email,
-      role: 'originator',
-      interval: formData.interval as 'monthly' | 'annually',
-      userData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-      }
-    };
-
-    // Add coupon data only if coupon is applied
-    if (this.couponApplied && this.appliedCouponDetails) {
-      checkoutData.coupon = {
-        code: this.appliedCouponDetails.code,
-        discount: this.appliedCouponDetails.discount,
-        discountType: this.appliedCouponDetails.discountType
-      };
-    }
-
-    this.stripeService.createCheckoutSession(checkoutData)
-    .pipe(
-      tap((checkoutResponse) => {
-        console.log('✅ Stripe checkout session created:', checkoutResponse);
-        window.location.href = checkoutResponse.url;
-      }),
-      catchError((error) => {
-        this.isLoading = false;
-        console.error('Stripe error:', error);
-        this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
-        return of(null);
-      })
-    )
-    .subscribe();
-  });
-}
 }
