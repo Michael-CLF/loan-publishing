@@ -19,7 +19,6 @@ import { LenderListComponent } from 'src/lender/lender-list/lender-list.componen
 import { EditAccountComponent } from 'src/edit-account/edit-account.component';
 import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
 import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
-import { VerificationComponent } from 'src/components/verification/verification.component';
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 import { AdminComponent } from 'src/components/admin/admin.component';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
@@ -119,10 +118,6 @@ export const routes: Routes = [
   { path: 'pricing', component: PricingComponent },
   { path: 'privacy', component: PrivacyComponent },
   { path: 'terms', component: TermsComponent },
-  {
-    path: 'verify',
-    component: VerificationComponent,
-  },
 {
    path: 'contact',
     component: ContactComponent,
