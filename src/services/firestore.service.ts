@@ -48,27 +48,6 @@ export class FirestoreService {
     });
   }
 
-getCustomTokenStream(sessionId: string): Observable<string | null> {
-  return new Observable((observer) => {
-    const docRef = doc(this.firestore, 'authTokens', sessionId);
-    const unsubscribe = onSnapshot(docRef, (docSnap) => {
-      if (docSnap.exists()) {
-        const data = docSnap.data() as { customToken?: string };
-        const token = data?.customToken;
-        if (token) {
-          observer.next(token);
-          observer.complete(); // stop after first match
-        }
-      }
-    }, (error) => {
-      observer.error(error);
-    });
-
-    // Cleanup when unsubscribed
-    return () => unsubscribe();
-  });
-}
-
 
   private sanitizeData<T = Record<string, unknown>>(data: T): Partial<T> {
     if (data === null || data === undefined) return {} as Partial<T>;

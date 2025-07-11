@@ -6,7 +6,6 @@ import { StripeService } from '../../services/stripe.service';
 import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { from, of } from 'rxjs';  // ✅ Added 'of' here
-import { signInWithCustomToken } from '@angular/fire/auth';
 import { Auth } from '@angular/fire/auth';
 import { ModalService } from '../../services/modal.service';
 import { take, finalize, switchMap, tap, catchError } from 'rxjs/operators';  // ✅ Added 'catchError' here
@@ -70,185 +69,38 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       this.router.navigate(['/dashboard']);
     }
   }
-private handleStripeSuccessCallback(sessionId: string): void {
-    console.log('💳 Processing Stripe success callback for session:', sessionId);
-    this.processingMessage.set('Verifying payment...');
 
-    // First, try to get user role from stored data
-    const pendingData = this.getPendingUserData();
-    if (pendingData?.role) {
-      this.userRole = pendingData.role as 'originator' | 'lender';
-    }
+ private handleStripeSuccessCallback(sessionId: string): void {
+  console.log('💳 Processing Stripe success callback for session:', sessionId);
+  this.processingMessage.set('Verifying payment...');
 
-    // Retry logic for webhook race condition
-    let retryCount = 0;
-    const maxRetries = 3;
-    const retryDelay = 2000; // 2 seconds
-
-    const attemptTokenRetrieval = () => {
-      this.stripeService.getSessionDetails(sessionId)
-        .pipe(
-          take(1),
-          tap(() => {
-            this.processingMessage.set('Authenticating user...');
-          }),
-          catchError((error) => {
-            console.error(`❌ Attempt ${retryCount + 1} failed:`, error);
-            
-            if (error.status === 404 && retryCount < maxRetries) {
-              retryCount++;
-              console.log(`🔄 Webhook may not have completed yet. Retrying in ${retryDelay}ms... (${retryCount}/${maxRetries})`);
-              this.processingMessage.set(`Waiting for payment confirmation... (${retryCount}/${maxRetries})`);
-              
-              // Retry after delay
-              setTimeout(() => attemptTokenRetrieval(), retryDelay);
-              return of(null); // Return null to prevent error propagation
-            }
-            
-            throw error; // Propagate error if max retries reached
-          })
-        )
-        .subscribe({
-          next: async (response) => {
-            if (!response) return; // Null response means we're retrying
-            
-            const firebaseToken = (response as any)?.firebaseToken;
-            
-            if (!firebaseToken) {
-              console.error('❌ No Firebase token in response:', response);
-              this.handleError('Authentication token not found. Please try logging in manually.');
-              return;
-            }
-
-            try {
-              console.log('🔐 Signing in with custom token...');
-              this.processingMessage.set('Logging you in...');
-              
-              const userCredential = await signInWithCustomToken(this.auth, firebaseToken);
-              
-              console.log('✅ Firebase authentication successful:', userCredential.user.email);
-              console.log('📧 User email:', userCredential.user.email);
-              console.log('🆔 User UID:', userCredential.user.uid);
-              
-              // Set registration success flag
-              this.authService.setRegistrationSuccess(true);
-              
-              // Update message
-              this.processingMessage.set('Success! Preparing your dashboard...');
-              
-              // Short delay before showing modal
-              setTimeout(() => {
-                this.showSuccessModalAndRedirect();
-              }, 1000);
-              
-            } catch (authError: any) {
-              console.error('❌ Firebase authentication failed:', authError);
-              
-              // More specific error messages
-              if (authError.code === 'auth/invalid-custom-token') {
-                this.handleError('Authentication token is invalid. Please contact support.');
-              } else if (authError.code === 'auth/network-request-failed') {
-                this.handleError('Network error during authentication. Please check your connection.');
-              } else {
-                this.handleError('Authentication failed. Please try logging in manually.');
-              }
-            }
-          },
-          error: (error) => {
-            console.error('❌ Failed to retrieve session after all retries:', error);
-            
-            if (error.status === 404) {
-              this.handleError('Payment verification is taking longer than expected. Please check your email for confirmation and try logging in.');
-            } else if (error.status === 401) {
-              this.handleError('Session expired. Please try registering again.');
-            } else {
-              this.handleError('Could not verify your payment. Please contact support if you were charged.');
-            }
-          }
-        });
-    };
-
-    // Start the token retrieval process
-    attemptTokenRetrieval();
-  }
-  
-
-
-  /**
-   * ✅ NEW: Proper Angular/Firebase authentication using custom token
-   */
-  private authenticateWithCustomToken(sessionId: string): void {
-    this.processingMessage.set('Logging you in...');
-
-    // ✅ Get custom token from Firestore authTokens collection
-    this.firestoreService.getDocument(`authTokens/${sessionId}`)
-      .pipe(
-        take(1),
-        switchMap((tokenDoc: any) => {
-          if (!tokenDoc?.customToken) {
-            throw new Error('Authentication token not found');
-          }
-
-          console.log('🔑 Custom token retrieved, authenticating user...');
-
-          // ✅ Use Firebase Auth signInWithCustomToken (proper approach)
-          return from(signInWithCustomToken(this.auth, tokenDoc.customToken));
-        }),
-        tap(() => {
-          // ✅ Clean up the temporary token after successful auth
-          this.firestoreService.deleteDocument(`authTokens/${sessionId}`)
-            .catch((error: any) => console.warn('Could not clean up auth token:', error));
-        }),
-        finalize(() => {
-          console.log('🔄 Custom token authentication process completed');
-        })
-      )
-      .subscribe({
-        next: (userCredential: any) => {
-          console.log('✅ User properly authenticated via custom token:', userCredential.user.email);
-          this.processingMessage.set('Success! Welcome to your dashboard...');
-
-          // ✅ Set registration success through proper AuthService
-          this.authService.setRegistrationSuccess(true);
-
-          setTimeout(() => {
-            this.showSuccessModalAndRedirectToDashboard();
-          }, 1500);
-        },
-        error: (error: any) => {
-          console.error('❌ Custom token authentication failed:', error);
-          this.handleError('Registration completed but authentication failed. Please try logging in manually.');
-        }
-      });
+  // Try to get user role from stored data
+  const pendingData = this.getPendingUserData();
+  if (pendingData?.role) {
+    this.userRole = pendingData.role as 'originator' | 'lender';
   }
 
-  /**
-   * ✅ NEW: Show success modal then redirect to dashboard
-   */
-  private showSuccessModalAndRedirectToDashboard(): void {
-    console.log('🎭 Showing success modal and preparing dashboard redirect');
-    this.showProcessingSpinner.set(false);
-
-    setTimeout(() => {
-      if (this.userRole === 'lender') {
-        this.showLenderRegistrationSuccessModal.set(true);
-      } else {
-        this.showRegistrationSuccessModal.set(true);
+  this.stripeService.getSessionDetails(sessionId)
+    .pipe(take(1))
+    .subscribe({
+      next: () => {
+        this.authService.setRegistrationSuccess(true);
+        this.processingMessage.set('Success! Preparing your dashboard...');
+        setTimeout(() => this.showSuccessModalAndRedirect(), 1000);
+      },
+      error: (error) => {
+        console.error('❌ Failed to retrieve session:', error);
+        this.handleError('Could not verify your payment. Please contact support if you were charged.');
       }
-      this.clearRegistrationFlags();
-    }, 200);
-  }
+    });
+}
 
-  /**
-   * Show success modal then redirect to dashboard
-   * Angular 18 Best Practice: Clear method naming and signal usage
-   */
   private showSuccessModalAndRedirect(): void {
     console.log('🎭 Showing success modal for role:', this.userRole);
-    
+
     // Hide spinner
     this.showProcessingSpinner.set(false);
-    
+
     // Clear any error state
     this.hasError.set(false);
 
@@ -260,7 +112,7 @@ private handleStripeSuccessCallback(sessionId: string): void {
         // Default to originator if role not determined
         this.showRegistrationSuccessModal.set(true);
       }
-      
+
       // Clean up localStorage flags
       this.clearRegistrationFlags();
     }, 200);
