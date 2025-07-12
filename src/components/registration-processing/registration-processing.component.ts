@@ -75,18 +75,19 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
 
     this.stripeService.getSessionDetails(sessionId)
-      .pipe(take(1))
-      .subscribe({
-        next: () => {
-          this.authService.setRegistrationSuccess(true);
-          this.processingMessage.set('Success! Preparing your dashboard...');
-          setTimeout(() => this.showSuccessModalAndRedirect(), 1000);
-        },
-        error: (error) => {
-          console.error('❌ Failed to retrieve session:', error);
-          this.handleError('Could not verify your payment. Please contact support if you were charged.');
-        }
-      });
+  .pipe(take(1))
+  .subscribe({
+    next: (response) => {
+      console.log('✅ Session details received from backend:', response);
+      this.authService.setRegistrationSuccess(true);
+      this.processingMessage.set('Success! Preparing your dashboard...');
+      setTimeout(() => this.showSuccessModalAndRedirect(), 1000);
+    },
+    error: (error) => {
+      console.error('❌ Failed to retrieve session:', error);
+      this.handleError('Could not verify your payment. Please contact support if you were charged.');
+    }
+  });
   }
 
   private showSuccessModalAndRedirect(): void {
@@ -105,12 +106,14 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   private getPendingUserData(): any {
+    console.log('🔍 Getting pending user data from localStorage...');
     try {
       const pendingData = localStorage.getItem('pendingUserData');
       const completeLenderData = localStorage.getItem('completeLenderData');
       const completeOriginatorData = localStorage.getItem('completeOriginatorData');
 
       if (pendingData) {
+        console.log('🟢 Found pendingUserData:', pendingData);
         return JSON.parse(pendingData);
       } else if (completeOriginatorData) {
         return JSON.parse(completeOriginatorData);
