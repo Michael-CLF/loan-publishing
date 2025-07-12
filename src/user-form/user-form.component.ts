@@ -17,13 +17,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
-import { catchError, tap, takeUntil, finalize } from 'rxjs/operators';
-import { of, Subject } from 'rxjs';
 import { VerificationCodeService } from '../services/verification-code.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
 import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
+import { FirestoreService } from '../services/firestore.service';
+import { catchError, tap, takeUntil, finalize, switchMap, map } from 'rxjs/operators';
+import { of, Subject, Observable } from 'rxjs';
 
 export interface StateOption {
   value: string;
@@ -61,6 +62,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private readonly locationService = inject(LocationService);
   private injector = inject(Injector);
   private stripeService = inject(StripeService);
+  private firestoreService = inject(FirestoreService);
 
   // Component destruction subject for cleanup
   private destroy$ = new Subject<void>();
@@ -181,32 +183,32 @@ export class UserFormComponent implements OnInit, OnDestroy {
    */
   validateCoupon(): void {
     const couponCode = this.userForm.get('couponCode')?.value?.trim();
-    
+
     if (!couponCode) {
       this.resetCouponState();
       return;
     }
 
     this.isValidatingCoupon = true;
-    
+
     // Use StripeService to validate promotion code
     this.stripeService.validatePromotionCode(couponCode)
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => {
-        this.isValidatingCoupon = false;
-      }),
-      catchError((error: HttpErrorResponse) => {
-        console.error('Coupon validation error:', error);
-        this.setCouponError('Unable to validate coupon. Please try again.');
-        return of(null);
-      })
-    )
-    .subscribe(response => {
-      if (response) {
-        this.handlePromotionCodeResponse(response);
-      }
-    });
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isValidatingCoupon = false;
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Coupon validation error:', error);
+          this.setCouponError('Unable to validate coupon. Please try again.');
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handlePromotionCodeResponse(response);
+        }
+      });
   }
 
   /**
@@ -222,7 +224,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
    */
   private validateCouponBeforeSubmission(formData: any): void {
     const couponCode = formData.couponCode.trim();
-    
+
     this.stripeService.validatePromotionCode(couponCode)
       .pipe(
         takeUntil(this.destroy$),
@@ -274,100 +276,161 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
- /**
-   * Proceeds with checkout session creation
-   * Angular 18 Best Practice: Single method, clear responsibility
-   */
-  private proceedWithCheckout(formData: any): void {
-    // Store minimal data for frontend display only
-    const displayData = {
+  /**
+    * Proceeds with checkout session creation
+    * Angular 18 Best Practice: Single method, clear responsibility
+    */
+ 
+  /**
+ * Proceeds with checkout session creation
+ * Angular 18 Best Practice: Passwordless system - create Firestore doc, then checkout
+ */
+private proceedWithCheckout(formData: any): void {
+  console.log('🚀 Starting pre-payment Firestore document creation');
+  
+  // First, create inactive Firestore document
+  this.createInactiveFirestoreDocument(formData)
+    .pipe(
+      tap((success) => {
+        if (success) {
+          console.log('✅ Firestore document created, proceeding to payment');
+        }
+      }),
+      switchMap((success) => {
+        if (!success) {
+          throw new Error('Failed to create user document');
+        }
+        return this.createStripeCheckout(formData);
+      }),
+      takeUntil(this.destroy$),
+      catchError((error) => {
+        console.error('❌ Error in checkout process:', error);
+        this.isLoading = false;
+        this.errorMessage = error.message || 'Failed to process registration. Please try again.';
+        return of(null);
+      })
+    )
+    .subscribe();
+}
+
+/**
+ * Creates inactive Firestore document before payment (passwordless system)
+ */
+private createInactiveFirestoreDocument(formData: any): Observable<boolean> {
+  const email = formData.email.toLowerCase().trim();
+  
+  console.log('📝 Creating inactive Firestore document for:', email);
+  
+  // Generate temporary document ID based on email for webhook to find
+  const tempDocId = 'temp_' + btoa(email).replace(/[^a-zA-Z0-9]/g, '').substring(0, 20);
+  
+  const userData = {
+    id: tempDocId,
+    email: email,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    company: formData.company,
+    phone: formData.phone,
+    city: formData.city,
+    state: formData.state,
+    role: 'originator' as const,
+    subscriptionStatus: 'inactive',
+    registrationCompleted: false,
+    paymentPending: true,
+    billingInterval: formData.interval,
+    isTemporary: true // Flag for webhook to identify pre-payment documents
+  };
+  
+  return this.firestoreService.setDocument(`originators/${tempDocId}`, userData).pipe(
+    tap(() => {
+      console.log('✅ Inactive Firestore document created');
+      // Store email for post-payment webhook processing
+      localStorage.setItem('pendingAuthEmail', email);
+    }),
+    map(() => true),
+    catchError((error) => {
+      console.error('❌ Failed to create Firestore document:', error);
+      this.errorMessage = 'Failed to prepare registration. Please try again.';
+      return of(false);
+    })
+  );
+}
+
+/**
+ * Creates Stripe checkout session (unchanged logic)
+ */
+private createStripeCheckout(formData: any): Observable<boolean> {
+  // Store minimal data for frontend display only
+  const displayData = {
+    email: formData.email,
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    company: formData.company,
+    role: 'originator' as const,
+    billingInterval: formData.interval
+  };
+
+  try {
+    // Store data for post-payment UI display
+    localStorage.setItem('pendingUserData', JSON.stringify(displayData));
+    localStorage.setItem('showRegistrationModal', 'true');
+    
+    console.log('📦 Stored display data for post-payment flow');
+  } catch (err) {
+    console.error('Failed to store display data:', err);
+    throw new Error('Failed to prepare registration. Please try again.');
+  }
+
+  // Create Stripe checkout session
+  return runInInjectionContext(this.injector, () => {
+    const checkoutData: any = {
       email: formData.email,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      company: formData.company,
-      role: 'originator' as const,
-      billingInterval: formData.interval
+      role: 'originator',
+      interval: formData.interval as 'monthly' | 'annually',
+      userData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+      }
     };
 
-    try {
-      // Store data for post-payment UI display
-      localStorage.setItem('pendingUserData', JSON.stringify(displayData));
-      localStorage.setItem('showRegistrationModal', 'true');
-      
-      console.log('📦 Stored display data for post-payment flow');
-    } catch (err) {
-      console.error('Failed to store display data:', err);
-      this.errorMessage = 'Failed to prepare registration. Please try again.';
-      this.isLoading = false;
-      return;
+    // Add coupon data if applied
+    if (this.couponApplied && this.appliedCouponDetails) {
+      checkoutData.coupon = {
+        code: this.appliedCouponDetails.code,
+        discount: this.appliedCouponDetails.discount,
+        discountType: this.appliedCouponDetails.discountType
+      };
     }
 
-    // Create Stripe checkout session with dependency injection context
-    runInInjectionContext(this.injector, () => {
-      // Prepare checkout session data
-      const checkoutData: any = {
-        email: formData.email,
-        role: 'originator',
-        interval: formData.interval as 'monthly' | 'annually',
-        // Complete user data for webhook processing
-        userData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          company: formData.company,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-        }
-      };
-
-      // Add coupon data only if applied
-      if (this.couponApplied && this.appliedCouponDetails) {
-        checkoutData.coupon = {
-          code: this.appliedCouponDetails.code,
-          discount: this.appliedCouponDetails.discount,
-          discountType: this.appliedCouponDetails.discountType
-        };
+    return this.stripeService.createCheckoutSession(checkoutData).pipe(
+      tap((checkoutResponse) => {
+        console.log('✅ Stripe checkout session created, redirecting...');
+        window.location.href = checkoutResponse.url;
+      }),
+      map(() => true),
+      catchError((error: HttpErrorResponse) => {
+        this.isLoading = false;
+        console.error('❌ Stripe checkout error:', error);
         
-        console.log('🎟️ Including coupon in checkout:', this.appliedCouponDetails.code);
-      }
+        if (error.status === 0) {
+          this.errorMessage = 'Network error. Please check your connection and try again.';
+        } else if (error.status === 400) {
+          this.errorMessage = 'Invalid registration data. Please check your information.';
+        } else {
+          this.errorMessage = error.error?.message || 'Failed to initiate payment. Please try again.';
+        }
+        
+        return of(false);
+      })
+    );
+  });
+}
+  
 
-      console.log('🚀 Creating Stripe checkout session with data:', {
-        email: checkoutData.email,
-        role: checkoutData.role,
-        interval: checkoutData.interval,
-        hasCoupon: !!checkoutData.coupon
-      });
-
-      this.stripeService.createCheckoutSession(checkoutData)
-        .pipe(
-          tap((checkoutResponse) => {
-            console.log('✅ Stripe checkout session created successfully');
-            console.log('🔗 Redirecting to:', checkoutResponse.url);
-            
-            // Redirect to Stripe Checkout
-            window.location.href = checkoutResponse.url;
-          }),
-          catchError((error: HttpErrorResponse) => {
-            this.isLoading = false;
-            console.error('❌ Stripe checkout error:', error);
-            
-            // User-friendly error messages
-            if (error.status === 0) {
-              this.errorMessage = 'Network error. Please check your connection and try again.';
-            } else if (error.status === 400) {
-              this.errorMessage = 'Invalid registration data. Please check your information.';
-            } else {
-              this.errorMessage = error.error?.message || 'Failed to initiate payment. Please try again.';
-            }
-            
-            return of(null);
-          }),
-          takeUntil(this.destroy$)
-        )
-        .subscribe();
-    });
-  }
-      
 
   /**
    * Handles the response from Stripe promotion code validation
@@ -375,7 +438,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private handlePromotionCodeResponse(response: any): void {
     if (response.valid && response.promotion_code) {
       const coupon = response.promotion_code.coupon;
-      
+
       // Coupon is valid - apply it
       this.couponApplied = true;
       this.appliedCouponDetails = {
@@ -384,10 +447,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
       };
-      
+
       // Clear any existing errors
       this.clearCouponErrors();
-      
+
       console.log('Promotion code applied successfully:', this.appliedCouponDetails);
     } else {
       // Coupon is invalid
@@ -402,8 +465,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private setCouponError(errorMessage: string): void {
     const couponControl = this.userForm.get('couponCode');
     if (couponControl) {
-      couponControl.setErrors({ 
-        couponError: errorMessage 
+      couponControl.setErrors({
+        couponError: errorMessage
       });
     }
   }
@@ -428,25 +491,25 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-  // Mark form as touched to show validation errors
-  Object.keys(this.userForm.controls).forEach((key) => {
-    const control = this.userForm.get(key);
-    control?.markAsTouched();
-  });
+    // Mark form as touched to show validation errors
+    Object.keys(this.userForm.controls).forEach((key) => {
+      const control = this.userForm.get(key);
+      control?.markAsTouched();
+    });
 
-  if (this.userForm.invalid) {
-    return;
-  }
+    if (this.userForm.invalid) {
+      return;
+    }
 
-  this.isLoading = true;
-  this.errorMessage = '';
-  this.successMessage = '';
+    this.isLoading = true;
+    this.errorMessage = '';
+    this.successMessage = '';
 
-  const formData = this.userForm.value;
+    const formData = this.userForm.value;
 
-   // Handle coupon validation before proceeding
+    // Handle coupon validation before proceeding
     const couponCode = formData.couponCode?.trim();
-    
+
     if (couponCode && !this.couponApplied) {
       // User entered a coupon but didn't apply it - validate it first
       this.validateCouponBeforeSubmission(formData);
