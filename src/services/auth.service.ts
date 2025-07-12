@@ -101,6 +101,9 @@ export class AuthService implements OnDestroy {
 
   // User profile - keep as UserData for backward compatibility
   private userProfileSubject = new BehaviorSubject<UserData | null>(null);
+  private subscriptionStatusSubject = new BehaviorSubject<string | null>(null);
+  public subscriptionStatus$ = this.subscriptionStatusSubject.asObservable();
+
   public userProfile$ = this.userProfileSubject.asObservable();
   private registrationSuccess = signal<boolean>(false);
 
@@ -152,7 +155,7 @@ export class AuthService implements OnDestroy {
     }
   }
 
-   private checkPersistentAuth(): void {
+  private checkPersistentAuth(): void {
     if (localStorage.getItem('isLoggedIn') === 'true') {
       console.log('AuthService: Persistent auth detected in localStorage');
 
@@ -524,9 +527,7 @@ export class AuthService implements OnDestroy {
       console.log(`Attempting to load profile for UID: ${uid}`);
 
       // Add debugging to show the actual collections being checked
-      console.log(
-        `Checking in collections: originators/${uid} and lenders/${uid}`
-      );
+      console.log(`Checking in collections: originators/${uid} and lenders/${uid}`);
 
       // Use runOutsideAngular for Firestore operations
       return this.ngZone.runOutsideAngular(async () => {
@@ -547,9 +548,7 @@ export class AuthService implements OnDestroy {
           }
 
           // Then try lenders collection
-          console.log(
-            'User not found in originators collection, checking lenders'
-          );
+          console.log('User not found in originators collection, checking lenders');
           const lenderDocRef = doc(this.firestore, `lenders/${uid}`);
           const lenderSnap = await getDoc(lenderDocRef);
 
@@ -565,31 +564,29 @@ export class AuthService implements OnDestroy {
           }
 
           // ADDITIONAL FIX: Explicitly check for document ID without using UID
-          // Sometimes the UID in auth may differ from the document ID
           console.log(`Attempting broader search for user profile`);
 
-        // Try to find the user by email if Firebase user has email
+          // Try to find the user by email if Firebase user has email
           if (this.auth.currentUser?.email) {
             const usersRef = collection(this.firestore, 'originators');
             const usersQuery = query(
               usersRef,
               where('email', '==', this.auth.currentUser.email)
             );
+            // NOTE: You may need to add a getDocs(usersQuery) call if needed
           }
 
-         // Try lenders collection by email
-            const lendersRef = collection(this.firestore, 'lenders');
-            const lendersQuery = query(
-              lendersRef,
-              where('contactInfo.contactEmail', '==', this.auth.currentUser?.email)
-            );
+          // Try lenders collection by email
+          const lendersRef = collection(this.firestore, 'lenders');
+          const lendersQuery = query(
+            lendersRef,
+            where('contactInfo.contactEmail', '==', this.auth.currentUser?.email)
+          );
           const lendersSnapshot = await getDocs(lendersQuery);
 
           if (!lendersSnapshot.empty) {
             const lenderDoc = lendersSnapshot.docs[0];
-            console.log(
-              `Found user in lenders collection by email: ${lenderDoc.id}`
-            );
+            console.log(`Found user in lenders collection by email: ${lenderDoc.id}`);
             const lenderData = lenderDoc.data() as DocumentData;
             return {
               id: lenderDoc.id,
@@ -599,39 +596,25 @@ export class AuthService implements OnDestroy {
             } as UserData;
           }
 
-          // If we get here, we didn't find a document
           console.error(`No profile found for user ${uid} in any collection`);
-
-        // IMPORTANT FIX: Since we can see the user document exists, let's just create
-          // a temporary user profile to prevent logout loop
-          console.log('Creating temporary user profile to prevent logout loop');
-          return {
-            id: uid,
-            uid: uid,
-            email: this.auth.currentUser?.email || 'unknown@example.com',
-            role: 'originator',
-            firstName: 'Temporary',
-            lastName: 'User',
-          } as UserData;
+          return null;
         } catch (error) {
-          console.error(`Error in getUserProfile:`, error);
-          // Return a temporary profile to prevent logout
-        // Return a temporary profile to prevent logout
-          return {
-            id: uid,
-            uid: uid,
-            email: this.auth.currentUser?.email || 'unknown@example.com',
-            role: 'originator',
-            firstName: 'Error',
-            lastName: 'Recovery',
-          } as UserData;
+          console.error('Error loading user profile:', error);
+          return null;
         }
-      });
+      }); // <- ✅ this closes runOutsideAngular
     } catch (error) {
-      console.error('Error loading user profile:', error);
+      console.error('Outer error in getUserProfile:', error);
       return null;
     }
   }
+  /**
+ * Returns the current subscription status as an observable
+ */
+  getSubscriptionStatus(): Observable<string | null> {
+    return this.subscriptionStatus$;
+  }
+
 
   /**
    * Load user profile and update subject
@@ -648,57 +631,15 @@ export class AuthService implements OnDestroy {
         if (profile) {
           console.log(`AuthService: Loaded ${profile.role} profile:`, profile);
           this.userProfileSubject.next(profile);
+          this.subscriptionStatusSubject.next(profile?.subscriptionStatus || 'inactive');
           // Clear the attempt flag on success
           localStorage.removeItem('profileLoadAttempt');
         } else {
           console.error('AuthService: No profile found for user:', uid);
-
-        // IMPORTANT: Instead of setting userProfileSubject to null,
-          // create a temporary profile to prevent logout
-          const tempProfile: UserData = {
-            id: uid,
-            uid: uid,
-            email: this.auth.currentUser?.email || 'unknown@example.com',
-            role: 'originator',
-            firstName: 'Temporary',
-            lastName: 'User',
-            createdAt: Timestamp.fromDate(new Date()),
-            updatedAt: Timestamp.fromDate(new Date()),
-          };
-
-          console.log(
-            'Creating temporary profile to prevent logout loop:',
-            tempProfile
-          );
-          this.userProfileSubject.next(tempProfile);
-
-          // Clear the attempt flag even on failure
-          localStorage.removeItem('profileLoadAttempt');
         }
-      })
-      .catch((error) => {
-        console.error('Error in profile loading:', error);
-
-        // On error, still create a temporary profile
-      // On error, still create a temporary profile
-        const tempProfile: UserData = {
-          id: uid,
-          uid: uid,
-          email: this.auth.currentUser?.email || 'unknown@example.com',
-          role: 'originator',
-          firstName: 'Error',
-          lastName: 'Recovery',
-          createdAt: Timestamp.fromDate(new Date()),
-          updatedAt: Timestamp.fromDate(new Date()),
-        };
-
-        console.log('Creating emergency profile after error:', tempProfile);
-        this.userProfileSubject.next(tempProfile);
-
-        // Clear the attempt flag on error
-        localStorage.removeItem('profileLoadAttempt');
       });
   }
+
 
   /**
    * Wait for auth initialization to complete

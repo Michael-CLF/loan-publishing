@@ -21,6 +21,7 @@ export interface BaseUser {
   phone?: string;
   city?: string;
   state?: string;
+  subscriptionStatus?: string;
 
   // User type - mandatory for proper type handling
   role?: 'originator' | 'lender';
