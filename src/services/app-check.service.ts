@@ -12,41 +12,42 @@ export class AppCheckService {
 
   /**
    * Initialize App Check with reCAPTCHA v3 provider
-   * Following Angular 18 best practices with dependency injection
    */
   async initializeAppCheck(): Promise<void> {
     if (this.initialized) {
-      console.log('App Check already initialized');
+      console.log('🟡 App Check already initialized.');
       return;
     }
 
-    // Only initialize in browser environment
     if (!isPlatformBrowser(this.platformId)) {
-      console.log('App Check skipped - not in browser');
+      console.log('⚪ Skipping App Check – not running in browser.');
       return;
     }
 
     try {
-      // Dynamic import to ensure it only runs in browser
-      const { initializeAppCheck, ReCaptchaV3Provider } = await import('firebase/app-check');
+      const { initializeAppCheck, ReCaptchaV3Provider, getToken } = await import('firebase/app-check');
 
-      // Verify we have the Firebase app
       if (!this.app) {
-        throw new Error('Firebase app not available');
+        throw new Error('Firebase app not found.');
       }
 
-      console.log('Initializing App Check with reCAPTCHA...');
+      console.log('🟢 Initializing Firebase App Check with reCAPTCHA V3...');
 
-      initializeAppCheck(this.app, {
-        provider: new ReCaptchaV3Provider('6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw'),
+      const appCheckInstance = initializeAppCheck(this.app, {
+        provider: new ReCaptchaV3Provider('6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw'), // replace if needed
         isTokenAutoRefreshEnabled: true,
       });
 
       this.initialized = true;
-      console.log('✅ App Check initialized with reCAPTCHA v3');
+
+      console.log('✅ App Check initialized.');
+
+      // Optional: manually get a token to confirm
+      const tokenResult = await getToken(appCheckInstance, false);
+      console.log('🔐 App Check token:', tokenResult.token);
+
     } catch (error) {
-      console.error('❌ Failed to initialize App Check:', error);
-      throw error; // Re-throw to handle in component
+      console.error('❌ App Check failed to initialize:', error);
     }
   }
 }
