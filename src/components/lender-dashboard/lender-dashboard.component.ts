@@ -275,84 +275,55 @@ export class LenderDashboardComponent implements OnInit {
     }
   }
 
-  /**
-   * Load user data from Firebase Authentication and Firestore
-   */
-  loadUserData(): void {
-    console.log('Loading user data...');
+async loadUserData(): Promise<void> {
+  try {
     this.loading.set(true);
     this.error.set(null);
 
-    try {
-      // Get the current authenticated user
-      this.authService
-        .getCurrentUser()
-        .pipe(take(1))
-        .subscribe({
-          next: async (userData) => {
-            if (!userData) {
-              console.log('No user logged in');
-              this.error.set('Not logged in');
-              this.loading.set(false);
-              this.router.navigate(['/login']);
-              return;
-            }
+    const fbUser = await this.authService.getCurrentFirebaseUser();
 
-            console.log('Authenticated user:', userData.email);
-            this.userData.set(userData);
-
-            // Also get the Firebase user for auth operations
-            this.authService
-              .getFirebaseUser()
-              .pipe(take(1))
-              .subscribe({
-                next: (fbUser) => {
-                  this.firebaseUser.set(fbUser);
-                  if (fbUser) {
-                    this.accountNumber.set(
-                      this.authService.getShortUid(fbUser.uid)
-                    );
-                  }
-                },
-              });
-
-            // Check if this user is a lender
-            if (userData.role === 'lender') {
-              // If user has a lenderId, load lender data
-              if (userData.lenderId) {
-                this.loadLenderData(userData.lenderId);
-              } else {
-                // Try using user's ID as lenderId
-                this.loadLenderData(userData.id);
-              }
-
-              // Load saved loans
-              this.loadSavedLoans(userData.id);
-            } else {
-              // This user is not a lender, redirect to the appropriate dashboard
-              console.log(
-                'User is not a lender, redirecting to user dashboard'
-              );
-              this.router.navigate(['/dashboard']);
-            }
-
-            this.loading.set(false);
-          },
-          error: (error) => {
-            console.error('Error getting current user:', error);
-            this.error.set('Authentication error');
-            this.loading.set(false);
-          },
-        });
-    } catch (error) {
-      console.error('Error in loadUserData:', error);
-      this.error.set(
-        'Error fetching data: ' +
-          (error instanceof Error ? error.message : String(error))
-      );
-      this.loading.set(false);
+    if (!fbUser) {
+      this.router.navigate(['/login']);
+      return;
     }
+
+    const uid = fbUser.uid;
+    const userDocRef = doc(this.firestore, `lenders/${uid}`);
+    const userSnap = await getDoc(userDocRef);
+
+    if (!userSnap.exists()) {
+      console.error('No user profile found in Firestore for UID:', uid);
+      this.router.navigate(['/login']);
+      return;
+    }
+
+    const userData = userSnap.data() as UserData;
+    this.userData.set(userData);
+    this.firebaseUser.set(fbUser);
+
+    // Optional: create account number
+    const shortId = uid.substring(0, 6);
+    this.accountNumber.set(shortId);
+
+    if (userData.role !== 'lender') {
+      console.log('User is not a lender, redirecting...');
+      this.router.navigate(['/dashboard']);
+      return;
+    }
+
+    const lenderId = userData.lenderId || userData.id;
+    this.loadLenderData(lenderId);
+    this.loadSavedLoans(userData.id);
+
+  } catch (error) {
+    console.error('Error in loadUserData:', error);
+    this.error.set('Authentication error');
+  } finally {
+    this.loading.set(false);
   }
+}
+
+
 
   /**
    * Load saved loans for the lender

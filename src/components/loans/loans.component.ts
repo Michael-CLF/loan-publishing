@@ -12,7 +12,6 @@ import { LoanService } from '../../services/loan.service';
 import { Loan } from '../../models/loan-model.model';
 import { AuthService } from '../../services/auth.service';
 import { take } from 'rxjs/operators';
-import { firstValueFrom } from 'rxjs';
 import { LoanTypeService } from '../../services/loan-type.service';
 import {
   Firestore,
@@ -22,8 +21,6 @@ import {
   getDocs,
   doc,
   getDoc,
-  addDoc,
-  deleteDoc,
   where,
 } from '@angular/fire/firestore';
 import { PropertyFilterComponent } from '../../property-filter/property-filter.component';
@@ -32,20 +29,18 @@ import { FirestoreService } from 'src/services/firestore.service';
 import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../../models/loan-model.model';
 import { getStateName } from '../../shared/constants/state-mappings';
+import { firstValueFrom } from 'rxjs';
 
-
-// Property category interface for better type safety
 interface PropertyCategoryOption {
-  value: string;        // Snake_case for storage/matching
-  displayName: string;  // User-friendly display name
+  value: string;
+  displayName: string;
 }
 
 interface LoanTypeOption {
-  value: string;        // Snake_case for storage/matching  
-  displayName: string;  // User-friendly display name
+  value: string;
+  displayName: string;
 }
 
-// Define the interface here instead of importing it
 interface LoanFilters {
   propertyTypeCategory: string;
   state: string;
@@ -63,7 +58,6 @@ interface LoanFilters {
   styleUrls: ['./loans.component.css'],
 })
 export class LoansComponent implements OnInit {
-  // Services via inject pattern (Angular 14+)
   private loanService = inject(LoanService);
   private router = inject(Router);
   private firestore = inject(Firestore);
@@ -72,7 +66,6 @@ export class LoansComponent implements OnInit {
   private firestoreService = inject(FirestoreService);
   private loanTypeService = inject(LoanTypeService);
 
-  // ✅ CORRECTED: Property categories matching registration exactly
   allPropertyCategoryOptions: PropertyCategoryOption[] = [
     { value: 'commercial', displayName: 'Commercial' },
     { value: 'healthcare', displayName: 'Healthcare' },
@@ -87,7 +80,6 @@ export class LoansComponent implements OnInit {
     { value: 'special_purpose', displayName: 'Special Purpose' },
   ];
 
-  // ✅ CORRECTED: Loan types matching registration exactly
   allLoanTypeOptions: LoanTypeOption[] = [
     { value: 'agency', displayName: 'Agency Loans' },
     { value: 'bridge', displayName: 'Bridge Loans' },
@@ -102,220 +94,126 @@ export class LoansComponent implements OnInit {
     { value: 'usda', displayName: 'USDA Loans' },
   ];
 
+  propertyColorMap: Record<string, string> = {
+    commercial: '#1E90FF',
+    healthcare: '#cb4335',
+    hospitality: '#1b4f72',
+    industrial: '#154360',
+    land: '#023020',
+    mixed_use: '#8A2BE2',
+    multifamily: '#6c3483',
+    office: '#4682B4',
+    residential: '#DC143C',
+    retail: '#660000',
+    special_purpose: '#6e2c00',
+    'Commercial': '#1E90FF',
+    'Healthcare': '#cb4335',
+    'Hospitality': '#1b4f72',
+    'Industrial': '#2c3e50',
+    'Land': '#023020',
+    'Mixed Use': '#8A2BE2',
+    'Multifamily': '#6c3483',
+    'Office': '#4682B4',
+    'Residential': '#DC143C',
+    'Retail': '#660000',
+    'Special Purpose': '#6e2c00',
+  };
 
- // Property colors for visualization - handle both old and new formats
-propertyColorMap: Record<string, string> = {
-  // New standardized format (snake_case)
-  commercial: '#1E90FF',
-  healthcare: '#cb4335',
-  hospitality: '#1b4f72',
-  industrial: '#154360',
-  land: '#023020',
-  mixed_use: '#8A2BE2',
-  multifamily: '#6c3483',
-  office: '#4682B4',
-  residential: '#DC143C',
-  retail: '#660000',
-  special_purpose: '#6e2c00',
-  
-  // Legacy format (Title Case/spaces) - for backward compatibility
-  'Commercial': '#1E90FF',
-  'Healthcare': '#cb4335',
-  'Hospitality': '#1b4f72',
-  'Industrial': '#2c3e50',
-  'Land': '#023020',
-  'Mixed Use': '#8A2BE2',
-  'Multifamily': '#6c3483',
-  'Office': '#4682B4',
-  'Residential': '#DC143C',
-  'Retail': '#660000',
-  'Special Purpose': '#6e2c00',
-};
-
-  // Add this to your LoansComponent class
   loanTypes = LOAN_TYPES;
   getStateName = getStateName;
 
-
-  // Add this method to your component class
-
-  formatPropertyCategory(category: string): string {
-  const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
-  return categoryOption ? categoryOption.displayName : category;
-}
-
-formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
-  return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
-}
-
-  getLoanTypeName(value: string): string {
-    console.log('Dashboard - looking up loan type value:', value);
-    return this.loanTypeService.getLoanTypeName(value);
-  }
-
-  // 👇 Accessor method
-  getColor(propertyType: string): string {
-    return this.propertyColorMap[propertyType] || '#000000'; // fallback to black
-  }
-
-  // State management using signals (Angular 16+)
   loans = signal<Loan[]>([]);
-  allLoans = signal<Loan[]>([]); // Store all loans for filtering
+  allLoans = signal<Loan[]>([]);
   loansLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
 
   ngOnInit() {
-    console.log('LoansComponent initialized');
     this.loadAllLoans();
   }
 
-  /**
-   * Loads all loans directly from Firestore
-   */
   async loadAllLoans(): Promise<void> {
-    console.log('loadAllLoans() called');
     this.loansLoading.set(true);
     this.errorMessage.set(null);
 
     try {
-      // Create a reference to the loans collection
       const loansCollectionRef = collection(this.firestore, 'loans');
-
-      // Create a query for all loans, ordered by creation date
       const q = query(loansCollectionRef, orderBy('createdAt', 'desc'));
-
-      // Execute the query within the injection context
-      const querySnapshot = await runInInjectionContext(this.injector, () =>
-        getDocs(q)
-      );
+      const querySnapshot = await runInInjectionContext(this.injector, () => getDocs(q));
 
       const allLoans: Loan[] = [];
-
-      // Process each loan document
       querySnapshot.forEach((doc) => {
         const loanData = doc.data();
-        allLoans.push({
-          id: doc.id,
-          ...loanData,
-        } as Loan);
+        allLoans.push({ id: doc.id, ...loanData } as Loan);
       });
 
-      console.log(`Found ${allLoans.length} loans`, allLoans);
-
-      // Update the loans signal with the fetched data
       this.loans.set(allLoans);
-      this.allLoans.set(allLoans); // Store all loans for filtering
-
-      // Check favorite status after loading loans
+      this.allLoans.set(allLoans);
       await this.checkFavoriteStatus();
     } catch (error) {
-      console.error('Error loading loans:', error);
       this.errorMessage.set('Failed to load loans. Please try again.');
+      console.error('Error loading loans:', error);
     } finally {
       this.loansLoading.set(false);
     }
   }
 
-  /**
-   * Toggles the favorite status of a loan and saves it to Firestore
-   */
   async toggleFavorite(loan: Loan): Promise<void> {
     try {
-      const user = await firstValueFrom(
-        this.authService.getCurrentUser().pipe(take(1))
-      );
-
-      if (!user) {
+      const firebaseUser = await this.authService.getCurrentFirebaseUser();
+      if (!firebaseUser) {
         alert('Please log in to save favorites');
         this.router.navigate(['/login']);
         return;
       }
-      const userId = user.uid || user.id || '';
 
-      if (!userId) {
-        console.error('User ID is missing from user object:', user);
-        alert('Unable to save favorite: User ID not found');
-        return;
-      }
+      const userId = firebaseUser.uid;
+      const userProfile = await firstValueFrom(this.authService.getUserProfileById(userId));
 
-      // First check if user is a lender
-      if (user.role !== 'lender') {
+      if (!userProfile || userProfile.role !== 'lender') {
         alert('Only lenders can save favorite loans');
         return;
       }
 
-      // Store current favorite state
-      const isFavorite = loan.isFavorite === true;
 
-      // Toggle for UI feedback - using explicit boolean assignment
+      const isFavorite = loan.isFavorite === true;
       loan.isFavorite = !isFavorite;
 
-      let userDocRef = doc(
-        this.firestore,
-        `lenders/${userId}` // Changed from users to lenders since we know it's a lender
-      );
-
-      let userDoc = await runInInjectionContext(this.injector, () =>
-        getDoc(userDocRef)
-      );
+      const userDocRef = doc(this.firestore, `lenders/${userId}`);
+      const userDoc = await runInInjectionContext(this.injector, () => getDoc(userDocRef));
 
       if (!userDoc.exists()) {
-        console.error('Lender profile not found');
-        alert('Lender profile not found');
-
-        // Revert UI state
         loan.isFavorite = isFavorite;
+        alert('Lender profile not found');
         return;
       }
 
-      // Call service with the toggled boolean value
       await runInInjectionContext(this.injector, () =>
-        this.firestoreService.toggleFavoriteLoan(
-          userId,
-          loan,
-          !isFavorite // Pass the toggled boolean directly
-        )
+        this.firestoreService.toggleFavoriteLoan(userId, loan, !isFavorite)
       );
     } catch (error) {
-      console.error('Error toggling favorite:', error);
-
-      // Revert UI state if operation failed - safely toggle back
       const currentState = loan.isFavorite === true;
       loan.isFavorite = !currentState;
-
-      this.errorMessage.set(
-        'Failed to update favorite status. Please try again.'
-      );
+      this.errorMessage.set('Failed to update favorite status. Please try again.');
+      console.error('❌ Error in toggleFavorite:', error);
     }
   }
-  /**
-   * Checks if each loan is favorited by the current user
-   */
+
   async checkFavoriteStatus(): Promise<void> {
     try {
-      const user = await this.authService
-        .getCurrentUser()
-        .pipe(take(1))
-        .toPromise();
-      if (!user) return;
+      const firebaseUser = await this.authService.getCurrentFirebaseUser();
+      if (!firebaseUser) return;
 
+      const userId = firebaseUser.uid;
       const favoritesRef = collection(this.firestore, 'favorites');
-      const q = query(favoritesRef, where('userId', '==', user['uid']));
-
-      const querySnapshot = await runInInjectionContext(this.injector, () =>
-        getDocs(q)
-      );
+      const q = query(favoritesRef, where('userId', '==', userId));
+      const querySnapshot = await runInInjectionContext(this.injector, () => getDocs(q));
 
       const favoriteIds = new Set<string>();
-
-      querySnapshot.forEach((document) => {
-        const favorite = document.data();
-        if (favorite['loanId']) {
-          favoriteIds.add(favorite['loanId']);
-        }
+      querySnapshot.forEach((doc) => {
+        const favorite = doc.data();
+        if (favorite['loanId']) favoriteIds.add(favorite['loanId']);
       });
 
-      // Update favorite status for each loan
       const updatedLoans = this.loans().map((loan) => ({
         ...loan,
         isFavorite: favoriteIds.has(loan.id || ''),
@@ -327,125 +225,79 @@ formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
     }
   }
 
-  /**
-   * ✅ FIXED: Now uses Firebase filtering instead of client-side filtering
-   */
   handleFilterApply(filters: LoanFilters): void {
-    console.log('Applying filters:', filters);
     this.loansLoading.set(true);
     this.errorMessage.set(null);
 
-    // Use the new FirestoreService filterLoans method
-    this.firestoreService.filterLoans(
-      filters.propertyTypeCategory,
-      filters.state, 
-      filters.loanType,
-      filters.minAmount,
-      filters.maxAmount
-    ).subscribe({
-      next: (filteredLoans) => {
-        console.log(`Firebase returned ${filteredLoans.length} filtered loans`);
-        this.loans.set(filteredLoans);
-        this.loansLoading.set(false);
-        
-        // Check favorite status for filtered results
-        this.checkFavoriteStatus();
-      },
-      error: (error) => {
-        console.error('Error filtering loans:', error);
-        this.errorMessage.set('Failed to filter loans. Please try again.');
-        this.loansLoading.set(false);
-        
-        // Fall back to showing all loans
-        this.loans.set(this.allLoans());
-      }
-    });
+    this.firestoreService
+      .filterLoans(filters.propertyTypeCategory, filters.state, filters.loanType, filters.minAmount, filters.maxAmount)
+      .subscribe({
+        next: (filteredLoans) => {
+          this.loans.set(filteredLoans);
+          this.loansLoading.set(false);
+          this.checkFavoriteStatus();
+        },
+        error: (error) => {
+          this.loansLoading.set(false);
+          this.loans.set(this.allLoans());
+          this.errorMessage.set('Failed to filter loans. Please try again.');
+          console.error('Error filtering loans:', error);
+        },
+      });
   }
 
-  /**
-   * Navigate to view a loan's details
-   */
   viewLoanDetails(id: string): void {
-    if (id) {
-      this.router.navigate(['/loans', id]);
-    }
+    if (id) this.router.navigate(['/loans', id]);
   }
 
-  /**
-   * Navigate to edit a loan
-   */
   editLoan(id: string): void {
-    if (id) {
-      this.router.navigate(['/loans/edit', id]);
-    }
+    if (id) this.router.navigate(['/loans/edit', id]);
   }
 
-  /**
-   * Delete a loan
-   */
   deleteLoan(id: string): void {
     if (confirm('Are you sure you want to delete this loan?')) {
       this.loanService.deleteLoan(id).subscribe({
         next: () => {
-          // Update the local state by removing the deleted loan
-          const updatedLoans = this.loans().filter((loan) => loan.id !== id);
-          this.loans.set(updatedLoans);
-
-          // Also update the allLoans signal
-          const updatedAllLoans = this.allLoans().filter(
-            (loan) => loan.id !== id
-          );
-          this.allLoans.set(updatedAllLoans);
+          const updated = this.loans().filter((loan) => loan.id !== id);
+          this.loans.set(updated);
+          this.allLoans.set(updated);
         },
         error: (error) => {
+          this.errorMessage.set('Failed to delete loan. Please try again later.');
           console.error('Error deleting loan:', error);
-          this.errorMessage.set(
-            'Failed to delete loan. Please try again later.'
-          );
         },
       });
     }
   }
 
-  /**
-   * Format currency values
-   */
   formatCurrency(value: string): string {
-    if (!value) return '$0';
-
-    // Remove any existing currency formatting
-    const numericValue =
-      typeof value === 'string' ? value.replace(/[$,]/g, '') : value;
-
-    // Convert string to number and format as currency
-    const amount = Number(numericValue);
-    if (isNaN(amount)) return '$0';
-
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0,
-    }).format(amount);
+    const amount = Number(value?.replace(/[$,]/g, '') || 0);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(amount);
   }
 
-  /**
-   * Format date values
-   */
   getFormattedDate(date: any): string {
-    if (!date) return 'N/A';
-
     try {
-      // If date is a Firebase timestamp, convert to JS Date
-      const jsDate = date.toDate ? date.toDate() : new Date(date);
-
-      return new Intl.DateTimeFormat('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-      }).format(jsDate);
-    } catch (error) {
-      console.error('Error formatting date:', error);
+      const jsDate = date?.toDate ? date.toDate() : new Date(date);
+      return new Intl.DateTimeFormat('en-US', { year: 'numeric', month: 'short', day: 'numeric' }).format(jsDate);
+    } catch {
       return 'Invalid Date';
     }
+  }
+
+  formatPropertyCategory(category: string): string {
+    const match = this.allPropertyCategoryOptions.find(opt => opt.value === category);
+    return match?.displayName || category;
+  }
+
+  formatPropertySubcategory(sub: PropertySubcategoryValue): string {
+    return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(sub));
+  }
+
+  getLoanTypeName(value: string): string {
+    return this.loanTypeService.getLoanTypeName(value);
+  }
+
+  getColor(propertyType: string): string {
+    return this.propertyColorMap[propertyType] || '#000000';
   }
 }

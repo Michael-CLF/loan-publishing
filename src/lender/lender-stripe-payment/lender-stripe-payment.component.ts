@@ -22,6 +22,8 @@ import { AuthService } from '../../services/auth.service';
 import { StripeService } from '../../services/stripe.service';
 import { catchError, tap, switchMap, take } from 'rxjs/operators';
 import { of } from 'rxjs';
+import { CheckoutSessionRequest } from '../../services/stripe.service';
+
 
 interface LenderData {
   companyName: string;
@@ -109,61 +111,35 @@ export class LenderStripePaymentComponent implements OnInit {
     });
   }
 
-  private processLenderPayment(paymentData: any): void {
-  console.log('🚀 processLenderPayment starting with data:', paymentData);
-  console.log('🚀 lenderData:', this.lenderData);
+ private async processLenderPayment(paymentData: CheckoutSessionRequest): Promise<void> {
 
-  // ✅ NEW: Store complete lender data for post-payment processing
-  const completeData = {
-    ...this.lenderData.completeFormData,
-  };
+  this.isLoading = true;
 
   try {
-    localStorage.setItem('completeLenderData', JSON.stringify(completeData));
-    localStorage.setItem('showRegistrationModal', 'true');
-  } catch (err) {
-    console.error('Failed to store lender data locally', err);
-    this.handlePaymentError({ message: 'Failed to prepare registration. Please try again.' });
-    return;
+   const checkoutResponse = await this.stripeService.createCheckoutSession(paymentData);
+
+
+    if (!checkoutResponse || !checkoutResponse.url) {
+      throw new Error('Invalid response from Stripe');
+    }
+
+    console.log('✅ Stripe checkout session created:', checkoutResponse);
+
+    this.paymentComplete.emit({
+      success: true,
+      message: 'Redirecting to payment processor...'
+    });
+
+    console.log('➡️ Redirecting to:', checkoutResponse.url);
+    window.location.href = checkoutResponse.url;
+
+  } catch (error) {
+    console.error('❌ Error in processLenderPayment:', error);
+    this.handlePaymentError(error);
+    this.isLoading = false;
   }
-
-  // ✅ NEW: Create Stripe checkout session directly (no user creation)
-  this.stripeService.createCheckoutSession({
-    email: this.lenderData.email,
-    role: 'lender',
-    interval: paymentData.interval,
-    userData: {
-      firstName: this.lenderData.firstName,
-      lastName: this.lenderData.lastName,
-      company: this.lenderData.companyName,
-      phone: this.lenderData.phone,
-      city: this.lenderData.city,
-      state: this.lenderData.state,
-    },
-  })
-  .pipe(
-    tap((checkoutResponse) => {
-      console.log('✅ Stripe checkout session created:', checkoutResponse);
-      this.paymentComplete.emit({
-        success: true,
-        message: 'Redirecting to payment processor...',
-      });
-
-      console.log('🔄 Redirecting to:', checkoutResponse.url);
-      window.location.href = checkoutResponse.url;
-    }),
-    catchError((error) => {
-      console.error('❌ Error in processLenderPayment:', error);
-      this.handlePaymentError(error);
-      return of(null);
-    })
-  )
-  .subscribe({
-    next: (result) => console.log('🔄 Observable chain completed with result:', result),
-    error: (error) => console.error('❌ Observable chain error:', error),
-    complete: () => console.log('✅ Observable chain completed')
-  });
 }
+
 
   private handlePaymentError(error: any): void {
     this.isLoading = false;

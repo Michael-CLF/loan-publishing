@@ -27,7 +27,7 @@ import { LenderContactComponent } from '../../lender/lender-contact/lender-conta
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
-
+import { from } from 'rxjs';
 import { EmailExistsValidator } from '../../services/email-exists.validator';
 import { AuthService } from '../../services/auth.service';
 import { ModalService } from '../../services/modal.service';
@@ -853,35 +853,29 @@ submitForm(): void {
     return;
   }
 
-  // ✅ NEW: Create Stripe checkout session directly (no user creation)
-  runInInjectionContext(this.injector, () => {
-    this.stripeService.createCheckoutSession({
-      email: email,
-      role: 'lender',
-      interval: formData.interval,
-      userData: {
-        firstName: formData.contactInfo.firstName,
-        lastName: formData.contactInfo.lastName,
-        company: formData.contactInfo.company,
-        phone: formData.contactInfo.contactPhone,
-        city: formData.contactInfo.city,
-        state: formData.contactInfo.state,
-      },
+ // ✅ NEW: Create Stripe checkout session directly (no user creation)
+runInInjectionContext(this.injector, () => {
+  const payload = {
+    email: email,
+    role: 'lender',
+    interval: formData.interval,
+    userData: {
+      firstName: formData.contactInfo.firstName,
+      lastName: formData.contactInfo.lastName,
+      company: formData.contactInfo.company,
+      phone: formData.contactInfo.contactPhone,
+      city: formData.contactInfo.city,
+      state: formData.contactInfo.state
+    }
+  };
+
+  from(this.stripeService.createCheckoutSession(payload)).pipe(
+    tap((checkoutResponse) => {
+      console.log('✅ Stripe checkout session created:', checkoutResponse);
+      // You can do something with checkoutResponse here
     })
-    .pipe(
-      tap((checkoutResponse) => {
-        console.log('✅ Stripe checkout session created:', checkoutResponse);
-        window.location.href = checkoutResponse.url;
-      }),
-      catchError((error) => {
-        this.isLoading = false;
-        console.error('Stripe error:', error);
-        this.errorMessage = error.message || 'Failed to initiate payment.';
-        return of(null);
-      })
-    )
-    .subscribe();
-  });
+  ).subscribe();
+});
 }
  
 
