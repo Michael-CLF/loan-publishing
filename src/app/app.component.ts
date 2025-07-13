@@ -1,4 +1,3 @@
-
 import { Component, OnInit, inject, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -15,8 +14,7 @@ import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
 import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap } from 'rxjs/operators';
-import { AppCheckService } from '../services/app-check.service'; 
-
+import { AppCheckService } from '../services/app-check.service';
 
 declare let gtag: Function;
 
@@ -35,29 +33,54 @@ declare let gtag: Function;
   styleUrl: './app.component.css',
 })
 export class AppComponent implements OnInit {
-   private readonly appCheckService = inject(AppCheckService);
+  // ✅ Angular 18 Best Practice: Use inject() for dependency injection
+  private readonly appCheckService = inject(AppCheckService);
+  private readonly auth = inject(Auth);
+  private readonly authService = inject(AuthService);
+  private readonly router = inject(Router);
+  private readonly ngZone = inject(NgZone);
+
   title = 'Daily Loan Post';
+  isRoleSelectionModalOpen = false;
+
   constructor() {
+    // ✅ Angular 18 Best Practice: Keep constructor minimal
     this.router.events
       .pipe(filter((event) => event instanceof NavigationEnd))
       .subscribe((event: NavigationEnd) => {});
   }
 
-  // Force injection of Auth service
-  private auth = inject(Auth);
-  private authService = inject(AuthService);
-  private router = inject(Router);
-  private ngZone = inject(NgZone);
-  // Do not add destroyRef - it's causing errors
-
- async ngOnInit() {
-
-      try {
-    await this.appCheckService.initializeAppCheck();
-    console.log('App Check ready for Firebase calls');
-  } catch (error) {
-    console.error('App Check initialization failed:', error);
+  async ngOnInit(): Promise<void> {
+    // ✅ Angular 18 Best Practice: Initialize App Check first before any Firebase operations
+    await this.initializeAppCheck();
+    
+    // ✅ Continue with rest of initialization after App Check is ready
+    this.logEnvironmentInfo();
+    this.setupNavigationMonitoring();
+    this.setupAuthStateManagement();
+    this.handleEmailVerification();
+    this.logFirebaseAuthStatus();
   }
+
+  /**
+   * ✅ Angular 18 Best Practice: Separate App Check initialization with proper error handling
+   */
+  private async initializeAppCheck(): Promise<void> {
+    try {
+      console.log('🟡 Initializing Firebase App Check...');
+      await this.appCheckService.initializeAppCheck();
+      console.log('✅ App Check initialized successfully - ready for Firebase calls');
+    } catch (error) {
+      console.error('❌ App Check initialization failed:', error);
+      // ✅ Don't throw - allow app to continue with reduced functionality
+      console.warn('⚠️ App will continue without App Check - some Firebase operations may fail');
+    }
+  }
+
+  /**
+   * ✅ Angular 18 Best Practice: Extract environment logging to separate method
+   */
+  private logEnvironmentInfo(): void {
     console.log(
       'Environment check:',
       environment.production ? 'Production' : 'Development',
@@ -66,7 +89,12 @@ export class AppComponent implements OnInit {
       'API Key length:',
       environment.firebase.apiKey ? environment.firebase.apiKey.length : 0
     );
+  }
 
+  /**
+   * ✅ Angular 18 Best Practice: Extract navigation monitoring to separate method
+   */
+  private setupNavigationMonitoring(): void {
     // Monitor navigation events
     this.router.events
       .pipe(
@@ -85,9 +113,19 @@ export class AppComponent implements OnInit {
         }
         if (event instanceof NavigationEnd) {
           console.log('Navigation completed to:', event.url);
+          // Clear the redirectUrl after successful navigation
+          if (event.url === localStorage.getItem('redirectUrl')) {
+            console.log('Clearing redirect URL from storage');
+            localStorage.removeItem('redirectUrl');
+          }
         }
       });
+  }
 
+  /**
+   * ✅ Angular 18 Best Practice: Extract auth state management to separate method
+   */
+  private setupAuthStateManagement(): void {
     // Check auth state and handle redirects
     this.authService.authReady$
       .pipe(
@@ -130,38 +168,6 @@ export class AppComponent implements OnInit {
         }
       });
 
-    // Monitor navigation for URL cleanup
-    this.router.events
-      .pipe(
-        filter(
-          (event): event is NavigationStart | NavigationEnd =>
-            event instanceof NavigationStart || event instanceof NavigationEnd
-        )
-      )
-      .subscribe((event) => {
-        if (event instanceof NavigationStart) {
-          console.log('Navigation starting to:', event.url);
-          console.log(
-            'Redirect URL in storage:',
-            localStorage.getItem('redirectUrl')
-          );
-        }
-        if (event instanceof NavigationEnd) {
-          console.log('Navigation completed to:', event.url);
-          // Clear the redirectUrl after successful navigation
-          if (event.url === localStorage.getItem('redirectUrl')) {
-            console.log('Clearing redirect URL from storage');
-            localStorage.removeItem('redirectUrl');
-          }
-        }
-      });
-
-    // Force initialization and ensure Firebase Auth is loaded
-    console.log('Firebase Auth initialized:', !!this.auth);
-
-    // Handle email verification links first
-    this.handleEmailVerification();
-
     // Check auth state
     this.authService.isLoggedIn$.subscribe((isLoggedIn) => {
       console.log('Auth state:', isLoggedIn);
@@ -171,13 +177,25 @@ export class AppComponent implements OnInit {
       );
     });
   }
-  isRoleSelectionModalOpen = false;
 
-  openRoleModalFromNavbar() {
-    console.log('NAVBAR: CLICK WORKS'); // ✅ check this!
+  /**
+   * ✅ Angular 18 Best Practice: Extract Firebase auth status logging
+   */
+  private logFirebaseAuthStatus(): void {
+    console.log('Firebase Auth initialized:', !!this.auth);
+  }
+
+  /**
+   * ✅ Angular 18 Best Practice: Keep modal methods concise
+   */
+  openRoleModalFromNavbar(): void {
+    console.log('NAVBAR: CLICK WORKS');
     this.isRoleSelectionModalOpen = true;
   }
 
+  /**
+   * ✅ Angular 18 Best Practice: Email verification as separate method with proper error handling
+   */
   private handleEmailVerification(): void {
     console.log('Checking for email verification link...');
 
