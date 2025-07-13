@@ -115,14 +115,6 @@ export class StripeService {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       interval: data.interval,
-      metadata,
-      success_url: `${window.location.origin}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${window.location.origin}/pricing`,
-      payment_method_types: ['card'],
-      mode: 'subscription',
-      allow_promotion_codes: true,
-      billing_address_collection: 'auto',
-      customer_creation: 'always'
     };
 
     // Add promotion code if provided
