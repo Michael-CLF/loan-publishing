@@ -13,5 +13,4 @@ export const environment = {
     measurementId: 'G-MPD1MG3MVJ',
   },
    redirectUrl: 'https://dailyloanpost.com/',
-  appCheckDebugToken: '198518d3-248d-4b13-a832-d6d51fc99599',
 };

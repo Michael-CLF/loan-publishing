@@ -1,6 +1,7 @@
 import { Injectable, inject, PLATFORM_ID } from '@angular/core';
 import { isPlatformBrowser } from '@angular/common';
 import { FirebaseApp } from '@angular/fire/app';
+import { initializeAppCheck, ReCaptchaV3Provider } from 'firebase/app-check';
 
 @Injectable({
   providedIn: 'root'
@@ -34,7 +35,7 @@ export class AppCheckService {
       console.log('🟢 Initializing Firebase App Check with reCAPTCHA V3...');
 
       const appCheckInstance = initializeAppCheck(this.app, {
-        provider: new ReCaptchaV3Provider('6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw'), // replace if needed
+        provider: new ReCaptchaV3Provider('6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw'),
         isTokenAutoRefreshEnabled: true,
       });
 
