@@ -24,6 +24,7 @@ import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
 import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
+import { FirestoreService } from '../services/firestore.service';
 
 export interface StateOption {
   value: string;
@@ -61,6 +62,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private readonly locationService = inject(LocationService);
   private injector = inject(Injector);
   private stripeService = inject(StripeService);
+  private firestoreService = inject(FirestoreService);
 
   // Component destruction subject for cleanup
   private destroy$ = new Subject<void>();
@@ -177,107 +179,64 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Validates coupon code with Stripe API
-   */
-  validateCoupon(): void {
-    const couponCode = this.userForm.get('couponCode')?.value?.trim();
+ * Save user data to Firestore with inactive status before Stripe checkout
+ */
+private async saveUserToFirestore(formData: any): Promise<void> {
+  try {
+    console.log('🔄 Creating Firebase Auth user and saving to Firestore...');
     
-    if (!couponCode) {
-      this.resetCouponState();
-      return;
-    }
+    // ✅ Create a temporary UID for now, Firebase Auth user will be created by webhook
+const tempUid = `temp_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-    this.isValidatingCoupon = true;
+// Prepare originator data for Firestore
+const originatorData = {
+  uid: tempUid, // Temporary UID, webhook will update with real Firebase UID
+  id: tempUid,
+  email: formData.email.toLowerCase().trim(),
+  firstName: formData.firstName,
+  lastName: formData.lastName,
+  company: formData.company,
+  phone: formData.phone,
+  city: formData.city,
+  state: formData.state,
+  role: 'originator',
+  subscriptionStatus: 'inactive',
+  registrationCompleted: false,
+  paymentPending: true,
+  billingInterval: formData.interval,
+  isTemporary: true, // Mark as temporary until webhook processes
+  contactInfo: {
+    firstName: formData.firstName,
+    lastName: formData.lastName,
+    contactEmail: formData.email.toLowerCase().trim(),
+    contactPhone: formData.phone,
+    company: formData.company,
+    city: formData.city,
+    state: formData.state,
+  }
+};
+
+// Save to Firestore using the FirestoreService
+await this.firestoreService.setDocument(
+  `originators/${tempUid}`, 
+  originatorData
+).toPromise();
+console.log('✅ User saved to Firestore with inactive status');
     
-    // Use StripeService to validate promotion code
-    this.stripeService.validatePromotionCode(couponCode)
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => {
-        this.isValidatingCoupon = false;
-      }),
-      catchError((error: HttpErrorResponse) => {
-        console.error('Coupon validation error:', error);
-        this.setCouponError('Unable to validate coupon. Please try again.');
-        return of(null);
-      })
-    )
-    .subscribe(response => {
-      if (response) {
-        this.handlePromotionCodeResponse(response);
-      }
-    });
+  } catch (error) {
+    console.error('❌ Error saving user to Firestore:', error);
+    throw error;
   }
-
-  /**
-   * Applies the coupon code (triggered by Apply button)
-   */
-  applyCoupon(): void {
-    // For Stripe promotion codes, validation and application are the same
-    this.validateCoupon();
-  }
-
-  /**
-   * Validates coupon before form submission if user didn't click Apply
-   */
-  private validateCouponBeforeSubmission(formData: any): void {
-    const couponCode = formData.couponCode.trim();
+}
+  
+ /**
+ * Proceeds with checkout session creation - UPDATED to save user first
+ */
+private async proceedWithCheckout(formData: any): Promise<void> {
+  try {
+    // ✅ NEW: Save user to Firestore FIRST with inactive status
+    await this.saveUserToFirestore(formData);
     
-    this.stripeService.validatePromotionCode(couponCode)
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError((error: HttpErrorResponse) => {
-          this.isLoading = false;
-          this.errorMessage = 'Invalid promotion code. Please check and try again.';
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response?.valid) {
-          // Auto-apply the valid coupon
-          this.handlePromotionCodeResponse(response);
-          this.proceedWithCheckout(formData);
-        } else {
-          this.isLoading = false;
-          this.errorMessage = 'Invalid promotion code. Please check and try again.';
-        }
-      });
-  }
-
-  /**
-   * Re-validates applied coupon for security before final submission
-   */
-  private revalidateAndProceed(formData: any): void {
-    if (!this.appliedCouponDetails) {
-      this.proceedWithCheckout(formData);
-      return;
-    }
-
-    this.stripeService.validatePromotionCode(this.appliedCouponDetails.code)
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError((error: HttpErrorResponse) => {
-          console.warn('Coupon re-validation failed, proceeding without coupon:', error);
-          this.resetCouponState();
-          this.proceedWithCheckout(formData);
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response?.valid) {
-          this.proceedWithCheckout(formData);
-        } else {
-          // Coupon is no longer valid - reset and proceed without it
-          this.resetCouponState();
-          this.proceedWithCheckout(formData);
-        }
-      });
-  }
-
-  /**
-   * Proceeds with checkout session creation
-   */
-  private proceedWithCheckout(formData: any): void {
     // Store originator data for post-payment processing
     const originatorData = {
       email: formData.email,
@@ -289,7 +248,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
       state: formData.state,
       role: 'originator',
       billingInterval: formData.interval,
-      // Include coupon data if applied
       coupon: this.appliedCouponDetails ? {
         code: this.appliedCouponDetails.code,
         discount: this.appliedCouponDetails.discount,
@@ -302,38 +260,25 @@ export class UserFormComponent implements OnInit, OnDestroy {
       localStorage.setItem('showRegistrationModal', 'true');
     } catch (err) {
       console.error('Failed to store originator data locally', err);
-      this.errorMessage = 'Failed to prepare registration. Please try again.';
-      this.isLoading = false;
-      return;
     }
 
-    // Create Stripe checkout session
-    runInInjectionContext(this.injector, () => {
-      // Prepare checkout session data
-      const checkoutData: any = {
-        email: formData.email,
-        role: 'originator',
-        interval: formData.interval as 'monthly' | 'annually',
-        userData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          company: formData.company,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-        }
+    // Create Stripe checkout session (simplified - no userData needed)
+    const checkoutData: any = {
+      email: formData.email,
+      role: 'originator',
+      interval: formData.interval as 'monthly' | 'annually',
+    };
+
+    // Add coupon if applied
+    if (this.couponApplied && this.appliedCouponDetails) {
+      checkoutData.coupon = {
+        code: this.appliedCouponDetails.code,
+        discount: this.appliedCouponDetails.discount,
+        discountType: this.appliedCouponDetails.discountType
       };
+    }
 
-      // Add coupon data only if coupon is applied
-      if (this.couponApplied && this.appliedCouponDetails) {
-        checkoutData.coupon = {
-          code: this.appliedCouponDetails.code,
-          discount: this.appliedCouponDetails.discount,
-          discountType: this.appliedCouponDetails.discountType
-        };
-      }
-
-      this.stripeService.createCheckoutSession(checkoutData)
+    this.stripeService.createCheckoutSession(checkoutData)
       .pipe(
         tap((checkoutResponse) => {
           console.log('✅ Stripe checkout session created:', checkoutResponse);
@@ -347,8 +292,13 @@ export class UserFormComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe();
-    });
+
+  } catch (error) {
+    this.isLoading = false;
+    this.errorMessage = 'Failed to create account. Please try again.';
+    console.error('Error in registration flow:', error);
   }
+}
 
   /**
    * Handles the response from Stripe promotion code validation
@@ -388,7 +338,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
     }
   }
-
   /**
    * Clears coupon validation errors
    */
@@ -408,8 +357,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.clearCouponErrors();
   }
 
-  onSubmit(): void {
-  // Mark form as touched to show validation errors
+  async onSubmit(): Promise<void> {
   Object.keys(this.userForm.controls).forEach((key) => {
     const control = this.userForm.get(key);
     control?.markAsTouched();
@@ -425,92 +373,16 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
   const formData = this.userForm.value;
 
-   // Handle coupon validation before proceeding
-    const couponCode = formData.couponCode?.trim();
-    
-    if (couponCode && !this.couponApplied) {
-      // User entered a coupon but didn't apply it - validate it first
-      this.validateCouponBeforeSubmission(formData);
-    } else if (couponCode && this.couponApplied) {
-      // Re-validate applied coupon for security before submission
-      this.revalidateAndProceed(formData);
-    } else {
-      // No coupon or empty coupon - proceed directly
-      this.proceedWithCheckout(formData);
-    }
-  }
-
-// Just move your existing checkout code into this method
-private proceedWithExistingCheckout(formData: any): void {
-  // ✅ NEW: Store originator data for post-payment processing
-  const originatorData = {
-    email: formData.email,
-    firstName: formData.firstName,
-    lastName: formData.lastName,
-    company: formData.company,
-    phone: formData.phone,
-    city: formData.city,
-    state: formData.state,
-    role: 'originator',
-    billingInterval: formData.interval,
-    // Include coupon data if applied
-    coupon: this.appliedCouponDetails ? {
-      code: this.appliedCouponDetails.code,
-      discount: this.appliedCouponDetails.discount,
-      discountType: this.appliedCouponDetails.discountType
-    } : null
-  };
-
   try {
-    localStorage.setItem('completeOriginatorData', JSON.stringify(originatorData));
-    localStorage.setItem('showRegistrationModal', 'true');
-  } catch (err) {
-    console.error('Failed to store originator data locally', err);
-    this.errorMessage = 'Failed to prepare registration. Please try again.';
+    // Save user to Firestore first
+    await this.saveUserToFirestore(formData);
+    
+    // Then proceed with Stripe checkout
+    await this.proceedWithCheckout(formData);
+  } catch (error) {
     this.isLoading = false;
-    return;
+    this.errorMessage = 'Registration failed. Please try again.';
+    console.error('Registration error:', error);
   }
-
-  // ✅ NEW: Create Stripe checkout session directly (no user creation)
-  runInInjectionContext(this.injector, () => {
-    // Prepare checkout session data
-    const checkoutData: any = {
-      email: formData.email,
-      role: 'originator',
-      interval: formData.interval as 'monthly' | 'annually',
-      userData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-      }
-    };
-
-    // Add coupon data only if coupon is applied
-    if (this.couponApplied && this.appliedCouponDetails) {
-      checkoutData.coupon = {
-        code: this.appliedCouponDetails.code,
-        discount: this.appliedCouponDetails.discount,
-        discountType: this.appliedCouponDetails.discountType
-      };
-    }
-
-    this.stripeService.createCheckoutSession(checkoutData)
-    .pipe(
-      tap((checkoutResponse) => {
-        console.log('✅ Stripe checkout session created:', checkoutResponse);
-        window.location.href = checkoutResponse.url;
-      }),
-      catchError((error) => {
-        this.isLoading = false;
-        console.error('Stripe error:', error);
-        this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
-        return of(null);
-      })
-    )
-    .subscribe();
-  });
 }
 }
