@@ -7,7 +7,7 @@ export const environment = {
     projectId: 'loanpub',
     storageBucket: 'loanpub.appspot.com',
     messagingSenderId: '837394993537',
-    appId: '1:837394993537:web:dc30221020757e1a74d880',
+    appId: '1:837394993537:web:3f2e4f089386400d74d880',
     measurementId: 'G-MPD1MG3MVJ',
   },
   redirectUrl: 'https://dailyloanpost.com/',
