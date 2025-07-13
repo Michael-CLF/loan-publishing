@@ -71,7 +71,7 @@ export class StripeService {
    */
   validatePromotionCode(code: string): Observable<PromotionCodeValidationResponse> {
     console.log('🔵 Validating promotion code:', code);
-    
+
     return this.http.post<PromotionCodeValidationResponse>(
       `${this.functionsUrl}/validatePromotionCode`,
       { code: code.trim().toUpperCase() },
@@ -87,7 +87,7 @@ export class StripeService {
    * Create Stripe checkout session with comprehensive metadata and coupon support
    */
   createCheckoutSession(data: CheckoutSessionRequest): Observable<CheckoutSessionResponse> {
-    
+
     // Validate input data
     this.validateCheckoutData(data);
 
@@ -115,6 +115,8 @@ export class StripeService {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       interval: data.interval,
+      userData: data.userData,
+      coupon: data.coupon
     };
 
     // Add promotion code if provided
@@ -131,7 +133,7 @@ export class StripeService {
     });
 
     return this.http.post<CheckoutSessionResponse>(
-      `${this.apiUrl}/createStripeCheckout`, 
+      `${this.apiUrl}/createStripeCheckout`,
       checkoutData,
       {
         headers: {
@@ -191,7 +193,7 @@ export class StripeService {
 
   private sanitizeString(input: string): string {
     if (!input) return '';
-    
+
     return input
       .trim()
       .replace(/[^\w\s-.']/g, '')
@@ -200,13 +202,13 @@ export class StripeService {
 
   private sanitizePhoneNumber(phone: string): string {
     if (!phone) return '';
-    
+
     const digits = phone.replace(/\D/g, '');
-    
+
     if (digits.length === 10) {
       return `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`;
     }
-    
+
     return phone.substring(0, 50);
   }
 
