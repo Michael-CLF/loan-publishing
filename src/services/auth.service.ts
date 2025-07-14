@@ -25,6 +25,9 @@ import { Observable, from, of, throwError } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model'; // ✅ make sure this path is correct
+import { BehaviorSubject } from 'rxjs';
+import { authState } from '@angular/fire/auth';
+
 
 @Injectable({
   providedIn: 'root',
@@ -62,41 +65,48 @@ export class AuthService {
     return from(setDoc(userDocRef, newUserData)).pipe(map(() => firebaseUser));
   }
 
-/**
- * Fetch any user profile by UID (used when currentUser not available)
- */
-getUserProfileById(uid: string): Observable<UserData | null> {
-  const originatorRef = doc(this.firestore, `originators/${uid}`);
-  const lenderRef = doc(this.firestore, `lenders/${uid}`);
+  // Emits whether auth has initialized
+  authReady$ = authState(this.auth).pipe(map(user => !!user));
 
-  return from(getDoc(originatorRef)).pipe(
-    switchMap((originatorSnap) => {
-      if (originatorSnap.exists()) {
-        return of({
-          id: originatorSnap.id,
-          ...(originatorSnap.data() as any),
-        } as UserData);
-      }
+  // Emits whether the user is currently logged in
+  isLoggedIn$ = authState(this.auth).pipe(map(user => !!user));
 
-      return from(getDoc(lenderRef)).pipe(
-        map((lenderSnap) => {
-          if (lenderSnap.exists()) {
-            return {
-              id: lenderSnap.id,
-              ...(lenderSnap.data() as any),
-            } as UserData;
-          } else {
-            return null;
-          }
-        })
-      );
-    }),
-    catchError((err) => {
-      console.error('❌ Error fetching user profile by ID:', err);
-      return of(null);
-    })
-  );
-}
+
+  /**
+   * Fetch any user profile by UID (used when currentUser not available)
+   */
+  getUserProfileById(uid: string): Observable<UserData | null> {
+    const originatorRef = doc(this.firestore, `originators/${uid}`);
+    const lenderRef = doc(this.firestore, `lenders/${uid}`);
+
+    return from(getDoc(originatorRef)).pipe(
+      switchMap((originatorSnap) => {
+        if (originatorSnap.exists()) {
+          return of({
+            id: originatorSnap.id,
+            ...(originatorSnap.data() as any),
+          } as UserData);
+        }
+
+        return from(getDoc(lenderRef)).pipe(
+          map((lenderSnap) => {
+            if (lenderSnap.exists()) {
+              return {
+                id: lenderSnap.id,
+                ...(lenderSnap.data() as any),
+              } as UserData;
+            } else {
+              return null;
+            }
+          })
+        );
+      }),
+      catchError((err) => {
+        console.error('❌ Error fetching user profile by ID:', err);
+        return of(null);
+      })
+    );
+  }
 
 
   /**
@@ -145,6 +155,36 @@ getUserProfileById(uid: string): Observable<UserData | null> {
   }
 
   /**
+ * ✅ Check if current URL is a sign-in email link
+ */
+isEmailSignInLink(): Observable<boolean> {
+  const link = window.location.href;
+  return of(isSignInWithEmailLink(this.auth, link));
+}
+
+/**
+ * ✅ Sign in with stored email link
+ */
+signInWithEmailLink(email: string): Observable<User | null> {
+  const link = window.location.href;
+  return from(signInWithEmailLink(this.auth, email, link)).pipe(
+    map(cred => cred.user),
+    catchError(error => {
+      console.error('❌ signInWithEmailLink error:', error);
+      return of(null);
+    })
+  );
+}
+
+/**
+ * ✅ Retrieve stored email from localStorage
+ */
+getStoredEmail(): string | null {
+  return localStorage.getItem('emailForSignIn');
+}
+
+
+  /**
    * ✅ Log out current user
    */
   logout(): Observable<void> {
@@ -162,6 +202,32 @@ getUserProfileById(uid: string): Observable<UserData | null> {
       });
     });
   }
+  /**
+ * ✅ Force reload of the current Firebase user object
+ */
+refreshCurrentUser(): Promise<void> {
+  const user = this.auth.currentUser;
+  if (user) {
+    return user.reload();
+  }
+  return Promise.resolve();
+}
+
+/**
+ * ✅ Get the current Firebase user as an Observable (for use in pipes)
+ */
+getFirebaseUser(): Observable<User | null> {
+  return new Observable((subscriber) => {
+    const unsubscribe = onAuthStateChanged(this.auth, (user) => {
+      subscriber.next(user);
+      subscriber.complete();
+    });
+
+    // Cleanup on unsubscribe
+    return () => unsubscribe();
+  });
+}
+
 
   /**
    * ✅ Modal flow state controller (used after Stripe return)
