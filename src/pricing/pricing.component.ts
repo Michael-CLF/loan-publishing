@@ -66,18 +66,16 @@ export class PricingComponent {
 
     // Check if user is authenticated
     this.authService
-      .getAuthStatus()
-      .pipe(take(1))
-      .subscribe((isLoggedIn) => {
-        if (isLoggedIn) {
-          // User is authenticated, navigate to loan form
-          this.router.navigate(['/loan']);
-        } else {
-          // User is not authenticated, store the redirect URL and navigate to login
-          localStorage.setItem('redirectUrl', '/loan');
-          this.router.navigate(['/login']);
-        }
-      });
+  .getAuthStatus()
+  .pipe(take(1))
+  .subscribe((isLoggedIn: boolean) => {
+    if (isLoggedIn) {
+      this.router.navigate(['/loan']);
+    } else {
+      localStorage.setItem('redirectUrl', '/loan');
+      this.router.navigate(['/login']);
+    }
+  });
   }
 
   /**

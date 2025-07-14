@@ -56,7 +56,7 @@ export class LoanService {
    * @returns Observable with the created document reference ID
    */
   createLoan(loanData: LoanModel): Observable<string> {
-  return this.authService.getCurrentUser().pipe(
+  return this.authService.getCurrentFirebaseUser().pipe(
     takeUntilDestroyed(this.destroyRef),
     switchMap((user) => {
       if (!user) {
@@ -195,7 +195,7 @@ export class LoanService {
    * @returns Observable of Loan array
    */
   getMyLoans(): Observable<LoanModel[]> {
-    return this.authService.getCurrentUser().pipe(
+    return this.authService.getCurrentFirebaseUser().pipe(
       takeUntilDestroyed(this.destroyRef),
       switchMap((user) => {
         if (!user) {

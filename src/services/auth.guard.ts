@@ -78,7 +78,7 @@ function performLenientAuthCheck(
         return of(false);
       }
       
-      return authService.getCurrentUser().pipe(
+      return authService.getCurrentFirebaseUser().pipe(
         take(1),
         switchMap(user => {
           if (!user?.uid) {
@@ -178,7 +178,7 @@ function checkSubscriptionStatus(
   firestore: Firestore, 
   router: Router
 ): Observable<boolean> {
-  return authService.getCurrentUser().pipe(
+  return authService.getCurrentFirebaseUser().pipe(
     take(1),
     switchMap(user => {
       if (!user?.uid) {

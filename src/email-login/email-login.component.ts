@@ -9,6 +9,7 @@ import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
 import { CommonModule } from '@angular/common';
 import { ModalService } from '../services/modal.service';
+import { User } from '@angular/fire/auth';
 
 @Component({
   selector: 'app-email-login',
@@ -29,6 +30,7 @@ export class EmailLoginComponent implements OnInit {
   showLinkSent = false;
   isVerifying = false;
   errorMessage = '';
+  successMessage = '';
   isEmailLink = false;
 
   constructor() {
@@ -44,16 +46,13 @@ export class EmailLoginComponent implements OnInit {
   ngOnInit(): void {
     console.log('Email login component initializing...');
 
-    // Use the service method that safely checks for email sign-in link
     this.authService.isEmailSignInLink().subscribe({
       next: (isSignInLink) => {
         console.log('Is email sign-in link:', isSignInLink);
         this.isEmailLink = isSignInLink;
 
         if (this.isEmailLink) {
-          console.log(
-            'This is an email sign-in link, handling authentication...'
-          );
+          console.log('This is an email sign-in link, handling authentication...');
           this.handleEmailLink();
         } else {
           console.log('This is not an email sign-in link');
@@ -66,54 +65,31 @@ export class EmailLoginComponent implements OnInit {
     });
   }
 
-  // Getter for easy access to form fields
   get emailControl() {
     return this.loginForm.get('email');
   }
 
-  sendLoginLink(): void {
-    if (this.loginForm.invalid) {
-      return;
-    }
-
-    this.isLoading = true;
-    this.errorMessage = '';
-    const email = this.loginForm.value.email.trim().toLowerCase();
-    console.log('Sending login link to:', email);
-
-    this.authService.sendSignInLink(email).subscribe({
-      next: (success) => {
-        this.isLoading = false;
-        if (success) {
-          console.log('Login link sent successfully');
-          // Double-check email was stored
-          console.log(
-            'Email stored in localStorage:',
-            localStorage.getItem('emailForSignIn')
-          );
-          this.showLinkSent = true;
-        } else {
-          console.error('Failed to send login link');
-          this.errorMessage = 'Failed to send login link. Please try again.';
-        }
+  sendLoginLink(email: string): void {
+    this.authService.sendLoginLink(email).subscribe({
+      next: () => {
+        this.successMessage = 'Login link sent!';
       },
       error: (error: Error) => {
         this.isLoading = false;
         this.errorMessage = `Error: ${error.message}`;
         console.error('Error sending login link:', error);
-      },
+      }
     });
   }
 
   loginWithGoogle(): void {
-    this.authService.signInWithGoogle().subscribe({
-      next: (user) => {
+    this.authService.loginWithGoogle().subscribe({
+      next: (user: User | null) => {
         if (user) {
-          console.log('Signed in with Google:', user);
+          console.log('✅ Signed in with Google:', user);
           this.ngZone.run(() => {
             localStorage.setItem('isLoggedIn', 'true');
-            const redirectUrl =
-              localStorage.getItem('redirectUrl') || '/dashboard';
+            const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
             this.router.navigate([redirectUrl]);
             localStorage.removeItem('redirectUrl');
           });
@@ -122,59 +98,44 @@ export class EmailLoginComponent implements OnInit {
         }
       },
       error: (err: Error) => {
-        console.error('Google sign-in error:', err);
-        this.errorMessage = 'An error occurred during Google sign-in.';
-      },
+        console.error('❌ Error during Google login:', err);
+        this.errorMessage = 'Google sign-in failed.';
+      }
     });
   }
 
-  // Update the handleEmailLink method in email-login.component.ts
   private handleEmailLink(): void {
     this.isVerifying = true;
     this.errorMessage = '';
 
-    // Get stored email or ask user for it
     const storedEmail = this.authService.getStoredEmail();
     console.log('Stored email for verification:', storedEmail || 'Not found');
 
     if (!storedEmail) {
-      // If no stored email, show form to enter it
       this.isVerifying = false;
-      this.errorMessage =
-        'Please enter the email you used to request the login link.';
+      this.errorMessage = 'Please enter the email you used to request the login link.';
       return;
     }
 
     console.log('Proceeding with email link sign-in using:', storedEmail);
     console.log('Current URL:', window.location.href);
 
-    // Add a small delay to ensure Firebase is fully initialized
     setTimeout(() => {
       this.authService.signInWithEmailLink(storedEmail).subscribe({
         next: (user) => {
-          console.log(
-            'Sign-in with email link result:',
-            user ? 'Success' : 'Failed'
-          );
+          console.log('Sign-in with email link result:', user ? 'Success' : 'Failed');
           this.isVerifying = false;
 
           if (user) {
-            // Successfully logged in, redirect to dashboard
             console.log('Authentication successful, redirecting to dashboard');
             this.ngZone.run(() => {
-              // Set login state explicitly
               localStorage.setItem('isLoggedIn', 'true');
-
-              // Redirect to dashboard or stored URL
-              const redirectUrl =
-                localStorage.getItem('redirectUrl') || '/dashboard';
-              console.log('Redirecting to:', redirectUrl);
+              const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
               this.router.navigate([redirectUrl]);
               localStorage.removeItem('redirectUrl');
             });
           } else {
-            this.errorMessage =
-              'Invalid or expired login link. Please request a new one.';
+            this.errorMessage = 'Invalid or expired login link. Please request a new one.';
           }
         },
         error: (error: Error) => {
@@ -186,13 +147,11 @@ export class EmailLoginComponent implements OnInit {
     }, 500);
   }
 
-  // Reset the form to request another link
   requestNewLink(): void {
     this.showLinkSent = false;
     this.errorMessage = '';
   }
 
-  // Submit email when user has to manually enter it for a verification link
   submitEmail(): void {
     if (this.loginForm.invalid) {
       return;
@@ -207,27 +166,19 @@ export class EmailLoginComponent implements OnInit {
         this.isVerifying = false;
         if (user) {
           console.log('Verification successful with manual email entry');
-
-          // Successfully logged in, redirect to dashboard
           this.ngZone.run(() => {
-            // Set login state explicitly
             localStorage.setItem('isLoggedIn', 'true');
-
-            // Redirect to dashboard or stored URL
-            const redirectUrl =
-              localStorage.getItem('redirectUrl') || '/dashboard';
+            const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
             this.router.navigate([redirectUrl]);
             localStorage.removeItem('redirectUrl');
           });
         } else {
-          this.errorMessage =
-            'Invalid or expired login link. Please request a new one.';
+          this.errorMessage = 'Invalid or expired login link. Please request a new one.';
         }
       },
       error: (error: Error) => {
         this.isVerifying = false;
-        this.errorMessage =
-          'An error occurred during verification. Please try again.';
+        this.errorMessage = 'An error occurred during verification. Please try again.';
         console.error('Error verifying email link with manual email:', error);
       },
     });

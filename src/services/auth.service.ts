@@ -9,7 +9,9 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  signOut
+  signOut,
+  signInWithPopup,
+  GoogleAuthProvider
 } from '@angular/fire/auth';
 import {
   Firestore,
@@ -27,7 +29,6 @@ import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model'; // ✅ make sure this path is correct
 import { BehaviorSubject } from 'rxjs';
 import { authState } from '@angular/fire/auth';
-
 
 @Injectable({
   providedIn: 'root',
@@ -107,7 +108,24 @@ export class AuthService {
       })
     );
   }
+  updateUserRole(role: 'lender' | 'originator'): Observable<void> {
+  const user = this.auth.currentUser;
+  if (!user) {
+    return throwError(() => new Error('User not authenticated'));
+  }
 
+  const collection = `${role}s`; // results in "lenders" or "originators"
+  const docRef = doc(this.firestore, `${collection}/${user.uid}`);
+
+  return from(setDoc(docRef, { role }, { merge: true })).pipe(map(() => {}));
+}
+
+loginWithGoogle(): Observable<User | null> {
+  const provider = new GoogleAuthProvider();
+  return from(
+    signInWithPopup(this.auth, provider).then(result => result.user)
+  );
+}
 
   /**
    * ✅ Send login email link
@@ -176,6 +194,12 @@ signInWithEmailLink(email: string): Observable<User | null> {
   );
 }
 
+
+getAuthStatus(): Observable<boolean> {
+  return this.isLoggedIn$;
+}
+
+
 /**
  * ✅ Retrieve stored email from localStorage
  */
@@ -191,17 +215,11 @@ getStoredEmail(): string | null {
     return from(signOut(this.auth));
   }
 
-  /**
-   * ✅ Return the current Firebase user (minimal auth object)
-   */
-  getCurrentFirebaseUser(): Promise<User | null> {
-    return new Promise((resolve) => {
-      const unsubscribe = onAuthStateChanged(this.auth, (user) => {
-        unsubscribe();
-        resolve(user);
-      });
-    });
-  }
+  getCurrentFirebaseUser(): Observable<User | null> {
+  return authState(this.auth); // already imported from '@angular/fire/auth'
+}
+
+
   /**
  * ✅ Force reload of the current Firebase user object
  */

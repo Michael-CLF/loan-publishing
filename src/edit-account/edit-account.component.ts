@@ -99,117 +99,67 @@ export class EditAccountComponent implements OnInit {
     });
   }
 
-  private loadUserData(): void {
-    console.log('EditAccountComponent: Loading user data started');
-    this.isLoading = true;
-    this.errorMessage = '';
+  // edit-account.component.ts
+private async loadUserData(): Promise<void> {
+  console.log('EditAccountComponent: Loading user data started');
+  this.isLoading = true;
+  this.errorMessage = '';
 
-    // Get current user as Observable
-    this.authService.getCurrentUser().subscribe({
-      next: (user) => {
-        console.log(
-          'EditAccountComponent: Current user retrieved',
-          user ? 'exists' : 'null'
-        );
+  try {
+    const user = await this.authService.getCurrentFirebaseUser();
 
-        if (!user) {
-          console.log('EditAccountComponent: No authenticated user found');
-          this.errorMessage = 'Not logged in';
-          this.isLoading = false;
-          return;
-        }
+    if (!user) {
+      console.warn('No authenticated user found');
+      this.errorMessage = 'Not logged in';
+      this.isLoading = false;
+      return;
+    }
 
-        this.userId = getUserId(user) || '';
-        console.log('EditAccountComponent: User ID:', this.userId);
+    const uid = user.uid;
+    this.userId = uid;
+    console.log('User ID:', uid);
 
-        const uid = user?.uid || user?.id;
-        if (!uid) {
-          console.error('EditAccountComponent: No UID found');
-          this.isLoading = false;
-          return;
-        }
+    const userProfile = await this.authService.getUserProfileById(uid).toPromise();
+    if (!userProfile) {
+      this.errorMessage = 'User profile not found';
+      this.isLoading = false;
+      return;
+    }
 
-        // Since getUserProfile returns a Promise, handle it properly
-        this.authService
-          .getUserProfile(uid)
-          .then((profile) => {
-            console.log(
-              'EditAccountComponent: Profile retrieved',
-              profile ? 'exists' : 'null'
-            );
+    this.userData = userProfile;
+    this.userRole = userProfile.role === 'lender' ? 'lender' : 'originator';
+    console.log('User role:', this.userRole);
 
-            if (profile) {
-              this.userData = profile;
-              this.userRole =
-                profile.role === 'lender' ? 'lender' : 'originator';
-              console.log('EditAccountComponent: User role:', this.userRole);
+    // Construct name
+    const firstName = userProfile.firstName || '';
+    const lastName = userProfile.lastName || '';
+    this.userFirstName = firstName;
+    this.userFullName = `${firstName} ${lastName}`.trim();
 
-              const contact =
-                this.userRole === 'lender'
-                  ? profile['contactInfo'] || {}
-                  : profile;
-
-              this.userFirstName = contact.firstName || '';
-              this.userFullName = `${contact.firstName || ''} ${
-                contact.lastName || ''
-              }`.trim();
-
-              // Patch basic form values
-              this.accountForm.patchValue({
-                firstName: contact.firstName || '',
-                lastName: contact.lastName || '',
-                email: contact.contactEmail || profile.email || '',
-                company: profile.company || '',
-                phone: contact.contactPhone || '',
-                city: contact.city || '',
-                state: contact.state || '',
-              });
-
-              // Add lender-specific field values if user is a lender
-              if (this.userRole === 'lender') {
-                this.accountForm.patchValue({
-                  licenseNumber: profile['licenseNumber'] || '',
-                  lenderType:
-                    profile['productInfo']?.['lenderTypes']?.[0] || '',
-                  minLoanAmount: profile['productInfo']?.['minLoanAmount'] || 0,
-                  maxLoanAmount: profile['productInfo']?.['maxLoanAmount'] || 0,
-                });
-              }
-
-              this.currentEmail = contact.contactEmail || profile.email || '';
-            } else {
-              console.warn('Profile not found, using auth user fallback');
-              this.currentEmail = user.email || '';
-
-              this.accountForm.patchValue({
-                email: this.currentEmail,
-              });
-
-              this.errorMessage =
-                'Profile data not found. Please complete your profile.';
-            }
-          })
-          .catch((error) => {
-            console.error(
-              'EditAccountComponent: Error loading user profile:',
-              error
-            );
-            this.errorMessage = 'Failed to load profile data';
-          })
-          .finally(() => {
-            this.isLoading = false;
-            console.log(
-              'EditAccountComponent: Loading completed, isLoading set to false'
-            );
-          });
-      },
-      error: (err) => {
-        console.error('EditAccountComponent: Error getting current user:', err);
-        this.errorMessage = 'Authentication error';
-        this.isLoading = false;
-      },
+    // Patch form
+    this.accountForm.patchValue({
+      firstName: firstName,
+      lastName: lastName,
+      email: userProfile.email || '',
+      company: userProfile.company || '',
+      phone: userProfile.phone || '',
+      city: userProfile.city || '',
+      state: userProfile.state || '',
     });
+
+    this.currentEmail = userProfile.email || '';
+
+
+  } catch (error) {
+    console.error('Error loading user data:', error);
+    this.errorMessage = 'Failed to load profile data';
+  } finally {
+    this.isLoading = false;
+    console.log('Loading completed');
   }
+}
+
+
 
   onSubmit(): void {
     if (this.accountForm.invalid || !this.userId) return;
@@ -237,7 +187,6 @@ export class EditAccountComponent implements OnInit {
     if (this.userRole === 'lender') {
       formData = {
         ...formData,
-        licenseNumber: this.accountForm.get('licenseNumber')?.value || '',
         productInfo: {
           lenderTypes: [this.accountForm.get('lenderType')?.value || ''],
           minLoanAmount: this.accountForm.get('minLoanAmount')?.value || 0,

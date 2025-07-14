@@ -68,7 +68,7 @@ export class FavoritesService {
   }
 
   private loadFavoritesFromFirestore(): void {
-    this.authService.getCurrentUser().subscribe((user) => {
+    this.authService.getCurrentFirebaseUser().subscribe((user) => {
       if (!user || !user.uid) {
         this.favoritesSubject.next([]);
         return;
@@ -107,7 +107,7 @@ export class FavoritesService {
     this.processingLenderIds.add(lenderId);
 
     try {
-      const user = await firstValueFrom(this.authService.getCurrentUser());
+      const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
 
       if (!user || !user.uid) {
         console.error('User must be logged in to manage favorites');
@@ -150,7 +150,7 @@ export class FavoritesService {
   }
 
   async isFavorite(lenderId: string): Promise<boolean> {
-    const user = await firstValueFrom(this.authService.getCurrentUser());
+    const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
 
     if (!user || !user.uid) {
       return false;
@@ -190,7 +190,7 @@ export class FavoritesService {
    * Get full favorite objects with their document IDs
    */
   getFullFavorites(): Observable<LenderFavorite[]> {
-    return this.authService.getCurrentUser().pipe(
+    return this.authService.getCurrentFirebaseUser().pipe(
       switchMap((user) => {
         if (!user || !user.uid) {
           return of([]);

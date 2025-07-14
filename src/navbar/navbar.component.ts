@@ -10,7 +10,7 @@ import {
   ViewChild,
 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { Subscription } from 'rxjs';
+import { Subscription, from } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { AuthService } from '../services/auth.service';
@@ -28,6 +28,7 @@ interface UserData {
   state?: string;
   createdAt?: any;
   accountNumber?: string;
+  role?: string;
   [key: string]: any;
 }
 
@@ -58,14 +59,14 @@ export class NavbarComponent implements OnInit, OnDestroy {
   private modalService = inject(ModalService);
 
   private authSubscription!: Subscription;
-  private userDataSubscription: Subscription | null = null;
 
   ngOnInit(): void {
     console.log('NavbarComponent - Initializing');
 
-    this.authService.getCurrentUserProfile().subscribe((userProfile) => {
+    this.authService.getCurrentFirebaseUser().then((userProfile: any) => {
       if (userProfile) {
         this.userRole = userProfile.role || null;
+        this.loadUserData(userProfile);
       }
     });
 
@@ -73,20 +74,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
       (loggedIn) => {
         console.log('NavbarComponent - Auth state changed:', loggedIn);
         this.isLoggedIn = loggedIn;
-
-        if (loggedIn) {
-          this.loadUserData();
-        } else {
-          this.userData = null;
-          this.accountNumber = '';
-        }
       }
     );
   }
 
   ngOnDestroy(): void {
     this.authSubscription?.unsubscribe();
-    this.userDataSubscription?.unsubscribe();
   }
 
   openRoleSelectionModal(): void {
@@ -115,92 +108,62 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  loadUserData(): void {
-    console.log('NavbarComponent - Loading user data...');
+  async loadUserData(user: any): Promise<void> {
     this.loading = true;
     this.error = null;
 
-    this.userDataSubscription = this.authService
-      .getCurrentUser()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(async (user) => {
-        console.log('NavbarComponent - Current Auth User:', user?.email);
+    try {
+      const role = user.role || '';
+      const userDocRef = doc(this.firestore, `${role}s/${user.uid}`);
+      const docSnap = await getDoc(userDocRef);
 
-        if (!user) {
-          this.error = 'Not logged in';
-          this.userData = null;
-          this.loading = false;
-          return;
-        }
+      if (!docSnap.exists()) {
+        throw new Error('User document does not exist');
+      }
 
-        try {
-          this.accountNumber = user?.uid?.substring(0, 8) || '';
-          const uid = user?.uid || user?.id || '';
-          const role = user?.role || 'originator';
-          const collection = role === 'lender' ? 'lenders' : 'originators';
-          const userDocRef = doc(this.firestore, `${collection}/${uid}`);
-          const docSnap = await getDoc(userDocRef);
+      const data = docSnap.data();
+      const contact = data['contactInfo'] || {};
 
-          if (!docSnap.exists()) {
-            console.error(
-              `NavbarComponent - No document at ${collection}/${uid}`
-            );
-            this.error = 'User profile not found';
-            this.userData = {
-              id: uid,
-              email: user.email || 'Unknown email',
-              firstName: 'Account',
-              lastName: 'Needs Setup',
-            };
-            this.loading = false;
-            return;
-          }
+      const toTitleCase = (str: string): string =>
+        str
+          .split(' ')
+          .map(
+            (word) =>
+              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+          )
+          .join(' ');
 
-          const data = docSnap.data();
-          const contact = data['contactInfo'] || {};
+      this.userData = {
+        id: docSnap.id,
+        email: contact.contactEmail || data['email'] || '',
+        firstName: contact.firstName || data['firstName'] || '',
+        lastName: contact.lastName || data['lastName'] || '',
+        phone: contact.contactPhone || data['phone'] || '',
+        city: contact.city || data['city'] || '',
+        state: toTitleCase(contact.state || data['state'] || ''),
+        company: contact.company || data['company'] || '',
+        role: data['role'] || role,
+        accountNumber: this.accountNumber,
+      };
 
-          const toTitleCase = (str: string): string =>
-            str
-              .split(' ')
-              .map(
-                (word) =>
-                  word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-              )
-              .join(' ');
+      console.log('NavbarComponent - Final userData:', this.userData);
 
-          this.userData = {
-            id: docSnap.id,
-            email: contact.contactEmail || data['email'] || '',
-            firstName: contact.firstName || data['firstName'] || '',
-            lastName: contact.lastName || data['lastName'] || '',
-            phone: contact.contactPhone || data['phone'] || '',
-            city: contact.city || data['city'] || '',
-            state: toTitleCase(contact.state || data['state'] || ''),
-            company: contact.company || data['company'] || '',
-            role: data['role'] || role,
-            accountNumber: this.accountNumber,
-          };
-
-          console.log('NavbarComponent - Final userData:', this.userData);
-
-          if (this.userData.email && this.userData.email !== user.email) {
-            console.warn('NavbarComponent - Email mismatch!', {
-              authEmail: user.email,
-              firestoreEmail: this.userData.email,
-            });
-          }
-
-          this.loading = false;
-        } catch (error) {
-          console.error('NavbarComponent - Error loading user:', error);
-          this.error = 'Error loading profile';
-          this.userData = {
-            id: user.uid || '',
-            email: user.email || 'Unknown email',
-          };
-          this.loading = false;
-        }
-      });
+      if (this.userData.email && this.userData.email !== user.email) {
+        console.warn('NavbarComponent - Email mismatch!', {
+          authEmail: user.email,
+          firestoreEmail: this.userData.email,
+        });
+      }
+    } catch (error) {
+      console.error('NavbarComponent - Error loading user:', error);
+      this.error = 'Error loading profile';
+      this.userData = {
+        id: user.uid || '',
+        email: user.email || 'Unknown email',
+      };
+    } finally {
+      this.loading = false;
+    }
   }
 
   formatPhoneNumber(phone?: string): string {

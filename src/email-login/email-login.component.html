@@ -3,7 +3,8 @@
 
     <!-- Email Request Form -->
     @if (!showLinkSent && !isVerifying && !errorMessage) {
-    <form [formGroup]="loginForm" (ngSubmit)="sendLoginLink()">
+    <form [formGroup]="loginForm" (ngSubmit)="sendLoginLink(loginForm.value.email)">
+
         <div class="form-group">
             <label for="email">Email Address</label>
             <input type="email" id="email" formControlName="email" placeholder="Enter your email address">

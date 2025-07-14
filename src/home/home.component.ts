@@ -31,17 +31,15 @@ export class HomeComponent {
 
   openRoleSelectionModal(): void {
     this.modalService.openRoleSelectionModal();
-    this.authService
-      .getAuthStatus()
-      .pipe(take(1))
-      .subscribe((isAuthenticated: boolean) => {
-        if (isAuthenticated) {
-          // User is already authenticated, redirect to dashboard
-          this.router.navigate(['/dashboard']);
-        } else {
-          // User is not authenticated, show role selection modal
-          this.roleModal.open();
-        }
-      });
+    this.authService.isLoggedIn$
+  .pipe(take(1))
+  .subscribe((isAuthenticated: boolean) => {
+    if (isAuthenticated) {
+      this.router.navigate(['/dashboard']);
+    } else {
+      this.roleModal.open();
+    }
+  });
+
   }
 }

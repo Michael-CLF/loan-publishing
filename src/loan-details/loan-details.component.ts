@@ -393,54 +393,41 @@ allLoanTypeOptions: LoanTypeOption[] = [
     return this.loanTypeService.getLoanTypeName(loanType);
   }
 
-  /**
-   * Load the current user's profile data
-   */
-  loadCurrentUserData(): void {
-    // Don't reload user data if we already have it from the loan's creator
-    if (this.loan() && this.loan()?.createdBy && this.user()) {
-      console.log('LOAN DETAILS: User data already loaded from loan creator');
-      return;
-    }
-
-    console.log('LOAN DETAILS: Loading current user data');
-
-    this.userSubscription = this.authService
-      .getCurrentUser()
-      .subscribe((currentUser) => {
-        if (currentUser && currentUser.email) {
-          console.log('LOAN DETAILS: Current user email:', currentUser.email);
-
-          // Use the current user's email to find the user document
-          const usersRef = collection(this.firestore, 'users');
-          const q = query(usersRef, where('email', '==', currentUser.email));
-
-          getDocs(q)
-            .then((snapshot) => {
-              if (!snapshot.empty) {
-                const userDoc = snapshot.docs[0];
-                const userData = userDoc.data() as User;
-                userData.uid = userDoc.id;
-
-                console.log('LOAN DETAILS: Found user data:', userData);
-                this.user.set(userData);
-              } else {
-                console.log(
-                  'LOAN DETAILS: No user found with current user email'
-                );
-              }
-            })
-            .catch((error) => {
-              console.error(
-                'LOAN DETAILS: Error finding user by email:',
-                error
-              );
-            });
-        } else {
-          console.log('LOAN DETAILS: No current user or email available');
-        }
-      });
+async loadCurrentUserData(): Promise<void> {
+  // Don't reload user data if we already have it from the loan's creator
+  if (this.loan() && this.loan()?.createdBy && this.user()) {
+    console.log('LOAN DETAILS: User data already loaded from loan creator');
+    return;
   }
+
+  console.log('LOAN DETAILS: Loading current user data');
+
+  try {
+    const currentUser = await this.authService.getCurrentFirebaseUser();
+
+    if (currentUser && currentUser.email) {
+      console.log('LOAN DETAILS: Current user email:', currentUser.email);
+
+      const usersRef = collection(this.firestore, 'users');
+      const q = query(usersRef, where('email', '==', currentUser.email));
+
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        const userDoc = snapshot.docs[0];
+        const userData = userDoc.data() as User;
+        userData.uid = userDoc.id;
+
+        console.log('LOAN DETAILS: Found user data:', userData);
+        this.user.set(userData);
+      } else {
+        console.log('LOAN DETAILS: No user found with current user email');
+      }
+    }
+  } catch (error) {
+    console.error('LOAN DETAILS: Error finding user by email:', error);
+  }
+}
 
   ngOnDestroy(): void {
     if (this.authSubscription) {

@@ -254,51 +254,40 @@ export class DashboardComponent implements OnInit {
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
-  /**
-   * Load user data from Firestore
-   */
-  loadUserData(): void {
-    console.log('DashboardComponent - Loading user data...');
-    this.loading = true;
-    this.error = null;
+ async loadUserData(): Promise<void> {
+  console.log('DashboardComponent - Loading user data...');
+  this.loading = true;
+  this.error = null;
 
-    this.authService.getCurrentUser().subscribe({
-      next: async (user) => {
-        if (!user) {
-          this.handleNoAuthenticatedUser();
-          return;
-        }
+  try {
+    const user = await this.authService.getCurrentFirebaseUser();
+    if (!user) {
+      this.handleNoAuthenticatedUser();
+      return;
+    }
 
-        this.user = {
-          uid: user.uid || user.id,
-          email: user.email,
-          // Add other necessary FirebaseUser properties
-        } as FirebaseUser;
+    this.user = {
+      uid: user.uid || user.uid,
+      email: user.email,
+    } as FirebaseUser;
 
-        const userId = getUserId(user);
-        console.log('Logged in user ID:', userId);
-        if (userId) {
-          try {
-            await this.fetchUserProfile(this.user);
-            setTimeout(() => {
-              console.log('🎯 User data loaded, checking for registration success...');
-            }, 100);
-          } catch (error: any) {
-            this.handleUserProfileError(error, userId);
-          }
-        } else {
-          console.error('No user ID available');
-          this.handleNoAuthenticatedUser();
-        }
-      },
-      error: (error: any) => {
-        console.error('Error getting current user:', error);
-        this.error = 'Authentication error';
-        this.loading = false;
-      },
-    });
+    const userId = getUserId(user);
+    console.log('Logged in user ID:', userId);
+    if (userId) {
+      await this.fetchUserProfile(this.user);
+      setTimeout(() => {
+        console.log('🎯 User data loaded, checking for registration success...');
+      }, 100);
+    } else {
+      console.error('No user ID available');
+      this.handleNoAuthenticatedUser();
+    }
+  } catch (error: any) {
+    console.error('Error getting current user:', error);
+    this.error = 'Authentication error';
+    this.loading = false;
   }
-
+}
   /**
    * Handle case when no authenticated user is found
    */
@@ -398,16 +387,16 @@ export class DashboardComponent implements OnInit {
    * ✅ FIXED: Load notification preferences with proper error handling and signal updates
    */
   private loadNotificationPreferencesFromService(): void {
-    console.log('🔍 Loading notification preferences...');
+  console.log('🔍 Loading notification preferences...');
 
-    this.authService.waitForAuthInit().pipe(
-      switchMap(() => this.authService.isLoggedIn$),
-      filter(isLoggedIn => isLoggedIn),
-      take(1),
-      switchMap(() => {
-        console.log('🔍 Calling getNotificationPreferences...');
-        return this.notificationPreferencesService.getNotificationPreferences();
-      })
+  this.authService.isLoggedIn$.pipe(
+    filter((isLoggedIn: boolean) => isLoggedIn),
+    take(1),
+    switchMap(() => {
+      console.log('🔍 Calling getNotificationPreferences...');
+      return this.notificationPreferencesService.getNotificationPreferences();
+    })
+
     ).subscribe({
       next: (preferences: any) => {
         console.log('🔍 Raw server response:', preferences);
@@ -442,7 +431,7 @@ export class DashboardComponent implements OnInit {
           });
         }
       },
-      error: (error) => {
+      error: (error: any) => {
         console.error('❌ Error loading notification preferences:', error);
         this.notificationPrefs.set({
           wantsEmailNotifications: false,

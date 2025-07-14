@@ -57,19 +57,18 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
 
-  ngOnInit(): void {
-    this.authService.getCurrentUser().subscribe((user) => {
-      if (user) {
-        this.isAuthenticated = true;
-        this.userRole = user.role || null;
-      } else {
-        this.isAuthenticated = false;
-        this.userRole = null;
-      }
-      this.cdr.markForCheck();
-    });
+ async ngOnInit(): Promise<void> {
+  const user = await this.authService.getCurrentFirebaseUser();
+  if (user) {
+    this.isAuthenticated = true;
+    this.userRole = null;
+    this.isAuthenticated = false;
+    this.userRole = null;
+  }
+  this.cdr.markForCheck();
 
-    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+  this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+  
       const id = params.get('id');
       if (id) {
         this.loadLenderDetails(id);
