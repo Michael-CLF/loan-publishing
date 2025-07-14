@@ -8,7 +8,7 @@ export const environment = {
   appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw',
 
   firebase: {
-    apiKey: 'AIzaSyBFPDQ8QwGr40Mn92bpJiHgHNoZvA6m5pas',
+    apiKey: "AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas",
     authDomain: 'loanpub.firebaseapp.com',
     projectId: 'loanpub',
     storageBucket: 'loanpub.appspot.com',
