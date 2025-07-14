@@ -127,9 +127,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.userForm.get('phone')?.setValue(formatted, { emitEvent: false });
     }
   }
-  
- 
-
   /**
    * Applies the coupon code (triggered by Apply button)
    */
@@ -164,44 +161,47 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-
   validateCoupon(): void {
-    const couponCode = this.userForm.get('couponCode')?.value?.trim();
-    if (!couponCode) return;
+  const couponCode = this.userForm.get('couponCode')?.value?.trim();
+  if (!couponCode) return;
 
-    this.isValidatingCoupon = true;
-    this.http.post<CouponValidationResponse>('/api/validate-coupon', { code: couponCode })
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isValidatingCoupon = false),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Coupon validation error:', error);
-          this.setCouponError('Unable to validate coupon. Please try again.');
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
+  this.isValidatingCoupon = true;
+  
+  // ✅ CORRECT - Use your StripeService
+  this.stripeService.validatePromotionCode(couponCode)
+    .pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.isValidatingCoupon = false),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Coupon validation error:', error);
+        this.setCouponError('Unable to validate coupon. Please try again.');
+        return of(null);
+      })
+    )
+    .subscribe(response => {
+      if (response) {
+        this.handleCouponValidationResponse(response);
+      }
+    });
+}
 
-  private handleCouponValidationResponse(response: CouponValidationResponse): void {
-    if (response.valid && response.coupon) {
-      this.couponApplied = true;
-      this.appliedCouponDetails = {
-        code: response.coupon.code,
-        discount: response.coupon.discount,
-        discountType: response.coupon.discountType,
-        description: response.coupon.description
-      };
-      this.clearCouponErrors();
-    } else {
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid coupon code');
-    }
+ private handleCouponValidationResponse(response: any): void {
+  if (response.valid && response.promotion_code) {
+    this.couponApplied = true;
+    
+    const coupon = response.promotion_code.coupon;
+    this.appliedCouponDetails = {
+      code: response.promotion_code.code,
+      discount: coupon.percent_off || coupon.amount_off || 0,
+      discountType: coupon.percent_off ? 'percentage' : 'fixed',
+      description: coupon.name
+    };
+    this.clearCouponErrors();
+  } else {
+    this.resetCouponState();
+    this.setCouponError(response.error || 'Invalid coupon code');
   }
+}
 
   private setCouponError(errorMessage: string): void {
     const couponControl = this.userForm.get('couponCode');
