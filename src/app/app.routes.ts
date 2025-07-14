@@ -37,7 +37,7 @@ export const routes: Routes = [
     canActivate: [authGuard],
   },
   {
-    path: 'event-registration', 
+    path: 'event-registration',
     component: EventRegistrationComponent,
   },
   { path: '', component: HomeComponent },
@@ -59,13 +59,15 @@ export const routes: Routes = [
   { path: 'loan', component: LoanComponent, canActivate: [authGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
-  
+  { path: 'user-form', component: UserFormComponent },
+  { path: 'lender-registration', component: LenderRegistrationComponent },
+
   // ✅ CONSOLIDATED: Payment callback now goes directly to registration processing
-  { 
-    path: 'payment-callback', 
+  {
+    path: 'payment-callback',
     component: RegistrationProcessingComponent
   },
-  
+
   // ✅ SIMPLIFIED: Remove redundant payment redirects since we handle params directly
   // Old routes for backward compatibility (optional - can remove these)
   {
@@ -78,20 +80,20 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
-  
+
   // ✅ FIXED: Corrected typo in redirect
   {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
     pathMatch: 'full'
   },
-  
+
   // ✅ Main registration processing route
-  { 
-    path: 'registration-processing', 
-    component: RegistrationProcessingComponent 
+  {
+    path: 'registration-processing',
+    component: RegistrationProcessingComponent
   },
-  
+
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
@@ -123,11 +125,11 @@ export const routes: Routes = [
     path: 'verify',
     component: VerificationComponent,
   },
-{
-   path: 'contact',
+  {
+    path: 'contact',
     component: ContactComponent,
   },
-  
+
   // ✅ Testing route (can be removed in production)
   { path: 'test-processing', component: RegistrationProcessingComponent },
 

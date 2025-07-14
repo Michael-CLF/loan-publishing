@@ -1,5 +1,6 @@
-import { Component, EventEmitter, Output } from '@angular/core';
+import { Component, Output, EventEmitter, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { Router } from '@angular/router';
 
 export type UserRole = 'originator' | 'lender';
 
@@ -11,10 +12,12 @@ export type UserRole = 'originator' | 'lender';
   styleUrls: ['./role-selection-modal.component.css'],
 })
 export class RoleSelectionModalComponent {
-  @Output() roleSelected = new EventEmitter<UserRole>();
   @Output() modalClosed = new EventEmitter<void>();
+  @Output() roleSelected = new EventEmitter<UserRole>();
 
   isVisible = false;
+
+  private router = inject(Router);
 
   open(): void {
     this.isVisible = true;
@@ -26,7 +29,16 @@ export class RoleSelectionModalComponent {
   }
 
   selectRole(role: UserRole): void {
-    this.roleSelected.emit(role);
+     console.log('selectRole called with:', role); // Add this
     this.close();
+
+    // Navigate to route based on selected role
+    if (role === 'originator') {
+      console.log('Navigating to user-form'); // Add this
+      this.router.navigate(['/user-form']);
+    } else if (role === 'lender') {
+      console.log('Navigating to lender-registration'); // Add this
+      this.router.navigate(['/lender-registration']);
+    }
   }
 }
