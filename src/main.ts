@@ -8,31 +8,32 @@ import { provideHttpClient } from '@angular/common/http';
 import { environment } from './environments/environment';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
+import { APP_INITIALIZER } from '@angular/core';
+import { AppCheckService } from './services/app-check.service';
 
 bootstrapApplication(AppComponent, {
   providers: [
     // Firebase App initialization
     provideFirebaseApp(() => initializeApp(environment.firebase)),
-    
+
     // Firebase Auth
     provideAuth(() => getAuth()),
-    
+
     // Firebase Firestore
     provideFirestore(() => getFirestore()),
-    
-    // App Check with reCAPTCHA v3
-    provideAppCheck(() => 
-      initializeAppCheck(undefined, {
-        provider: new ReCaptchaV3Provider(environment.appCheckSiteKey),
-        isTokenAutoRefreshEnabled: true,
-      })
-    ),
-    
+
+    {
+      provide: APP_INITIALIZER,
+      useFactory: (appCheckService: AppCheckService) => () => appCheckService.initializeAppCheck(),
+      deps: [AppCheckService],
+      multi: true
+    },
+
     // ✅ SINGLE ROUTER PROVIDER
     provideRouter(routes),
-    
+
     // ✅ SINGLE HTTP CLIENT PROVIDER  
     provideHttpClient(),
   ],
 })
-.catch(err => console.error('Error starting app:', err));
+  .catch(err => console.error('Error starting app:', err));

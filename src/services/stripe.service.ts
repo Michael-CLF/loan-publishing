@@ -5,7 +5,7 @@ import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, firstValueFrom } from 'rxjs';
 import { environment } from '../environments/environment';
 import { getToken } from 'firebase/app-check';
-import { AppCheckInstances } from '@angular/fire/app-check';
+import { AppCheckService } from './app-check.service';
 
 
 export interface CheckoutSessionRequest {
@@ -68,7 +68,7 @@ export interface PromotionCodeValidationResponse {
 })
 export class StripeService {
   private readonly http = inject(HttpClient);
-  private readonly appCheck = inject(AppCheckInstances);
+  private readonly appCheckService = inject(AppCheckService);
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
@@ -120,7 +120,13 @@ export class StripeService {
       checkoutData.promotion_code = data.coupon.code.trim().toUpperCase();
     }
 
-    const tokenResult = await getToken(this.appCheck[0], false);
+    const appCheckInstance = this.appCheckService.getAppCheckInstance();
+    if (!appCheckInstance) {
+      throw new Error('App Check not initialized');
+    }
+    const tokenResult = await getToken(appCheckInstance, false);
+
+
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
       'X-Firebase-AppCheck': tokenResult.token
