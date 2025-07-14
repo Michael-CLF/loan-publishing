@@ -72,7 +72,7 @@ export class VerificationComponent implements OnInit {
 
         // Create user account in Firebase and Firestore
         this.authService
-          .registerUser(userData.email, 'defaultPassword', userData)
+          .registerUser(userData.email, userData)
           .subscribe({
             next: (user) => {
               // Set logged in flag

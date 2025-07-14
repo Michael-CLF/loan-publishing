@@ -13,6 +13,8 @@ import { StateOption } from '../user-form/user-form.component';
 import { Firestore } from '@angular/fire/firestore';
 import { getUserId } from '../utils/user-helpers';
 import { UserData } from '../models/user-data.model';
+import { firstValueFrom } from 'rxjs';
+
 
 @Component({
   selector: 'app-edit-account',
@@ -100,64 +102,69 @@ export class EditAccountComponent implements OnInit {
   }
 
   // edit-account.component.ts
-private async loadUserData(): Promise<void> {
-  console.log('EditAccountComponent: Loading user data started');
-  this.isLoading = true;
-  this.errorMessage = '';
+  private async loadUserData(): Promise<void> {
+    console.log('EditAccountComponent: Loading user data started');
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  try {
-    const user = await this.authService.getCurrentFirebaseUser();
+    try {
+      const user = await this.authService.getCurrentFirebaseUser();
 
-    if (!user) {
-      console.warn('No authenticated user found');
-      this.errorMessage = 'Not logged in';
+      if (!user) {
+        console.warn('No authenticated user found');
+        this.errorMessage = 'Not logged in';
+        this.isLoading = false;
+        return;
+      }
+
+      const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+      if (!firebaseUser) return;
+
+      const uid = firebaseUser.uid;
+
+
+      this.userId = uid;
+      console.log('User ID:', uid);
+
+      const userProfile = await this.authService.getUserProfileById(uid).toPromise();
+      if (!userProfile) {
+        this.errorMessage = 'User profile not found';
+        this.isLoading = false;
+        return;
+      }
+
+      this.userData = userProfile;
+      this.userRole = userProfile.role === 'lender' ? 'lender' : 'originator';
+      console.log('User role:', this.userRole);
+
+      // Construct name
+      const firstName = userProfile.firstName || '';
+      const lastName = userProfile.lastName || '';
+      this.userFirstName = firstName;
+      this.userFullName = `${firstName} ${lastName}`.trim();
+
+      // Patch form
+      this.accountForm.patchValue({
+        firstName: firstName,
+        lastName: lastName,
+        email: userProfile.email || '',
+        company: userProfile.company || '',
+        phone: userProfile.phone || '',
+        city: userProfile.city || '',
+        state: userProfile.state || '',
+      });
+
+      this.currentEmail = userProfile.email || '';
+
+
+    } catch (error) {
+      console.error('Error loading user data:', error);
+      this.errorMessage = 'Failed to load profile data';
+    } finally {
       this.isLoading = false;
-      return;
+      console.log('Loading completed');
     }
-
-    const uid = user.uid;
-    this.userId = uid;
-    console.log('User ID:', uid);
-
-    const userProfile = await this.authService.getUserProfileById(uid).toPromise();
-    if (!userProfile) {
-      this.errorMessage = 'User profile not found';
-      this.isLoading = false;
-      return;
-    }
-
-    this.userData = userProfile;
-    this.userRole = userProfile.role === 'lender' ? 'lender' : 'originator';
-    console.log('User role:', this.userRole);
-
-    // Construct name
-    const firstName = userProfile.firstName || '';
-    const lastName = userProfile.lastName || '';
-    this.userFirstName = firstName;
-    this.userFullName = `${firstName} ${lastName}`.trim();
-
-    // Patch form
-    this.accountForm.patchValue({
-      firstName: firstName,
-      lastName: lastName,
-      email: userProfile.email || '',
-      company: userProfile.company || '',
-      phone: userProfile.phone || '',
-      city: userProfile.city || '',
-      state: userProfile.state || '',
-    });
-
-    this.currentEmail = userProfile.email || '';
-
-
-  } catch (error) {
-    console.error('Error loading user data:', error);
-    this.errorMessage = 'Failed to load profile data';
-  } finally {
-    this.isLoading = false;
-    console.log('Loading completed');
   }
-}
 
 
 

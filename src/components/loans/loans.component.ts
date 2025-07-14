@@ -159,14 +159,17 @@ export class LoansComponent implements OnInit {
 
   async toggleFavorite(loan: Loan): Promise<void> {
     try {
-      const firebaseUser = await this.authService.getCurrentFirebaseUser();
-      if (!firebaseUser) {
+      const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+
+      if (!firebaseUser || !firebaseUser.uid) {
         alert('Please log in to save favorites');
         this.router.navigate(['/login']);
         return;
       }
 
       const userId = firebaseUser.uid;
+
+
       const userProfile = await firstValueFrom(this.authService.getUserProfileById(userId));
 
       if (!userProfile || userProfile.role !== 'lender') {
@@ -200,10 +203,13 @@ export class LoansComponent implements OnInit {
 
   async checkFavoriteStatus(): Promise<void> {
     try {
-      const firebaseUser = await this.authService.getCurrentFirebaseUser();
-      if (!firebaseUser) return;
+      const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+      if (!firebaseUser || !firebaseUser.uid) return;
 
       const userId = firebaseUser.uid;
+
+
+
       const favoritesRef = collection(this.firestore, 'favorites');
       const q = query(favoritesRef, where('userId', '==', userId));
       const querySnapshot = await runInInjectionContext(this.injector, () => getDocs(q));

@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
+import { firstValueFrom } from 'rxjs';
 import {
   NotificationPreferencesService,
 } from '../services/notification-preferences.service';
@@ -254,40 +255,49 @@ export class DashboardComponent implements OnInit {
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
- async loadUserData(): Promise<void> {
-  console.log('DashboardComponent - Loading user data...');
-  this.loading = true;
-  this.error = null;
+  async loadUserData(): Promise<void> {
+    console.log('DashboardComponent - Loading user data...');
+    this.loading = true;
+    this.error = null;
 
-  try {
-    const user = await this.authService.getCurrentFirebaseUser();
-    if (!user) {
-      this.handleNoAuthenticatedUser();
-      return;
+    try {
+      const user = await this.authService.getCurrentFirebaseUser();
+      if (!user) {
+        this.handleNoAuthenticatedUser();
+        return;
+      }
+
+      const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+
+      if (!firebaseUser) return;
+
+      const userData = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email
+      };
+
+      this.user = {
+        uid: firebaseUser.uid,
+        email: firebaseUser.email,
+      } as FirebaseUser;
+
+      const userId = getUserId(user);
+      console.log('Logged in user ID:', userId);
+      if (userId) {
+        await this.fetchUserProfile(this.user);
+        setTimeout(() => {
+          console.log('🎯 User data loaded, checking for registration success...');
+        }, 100);
+      } else {
+        console.error('No user ID available');
+        this.handleNoAuthenticatedUser();
+      }
+    } catch (error: any) {
+      console.error('Error getting current user:', error);
+      this.error = 'Authentication error';
+      this.loading = false;
     }
-
-    this.user = {
-      uid: user.uid || user.uid,
-      email: user.email,
-    } as FirebaseUser;
-
-    const userId = getUserId(user);
-    console.log('Logged in user ID:', userId);
-    if (userId) {
-      await this.fetchUserProfile(this.user);
-      setTimeout(() => {
-        console.log('🎯 User data loaded, checking for registration success...');
-      }, 100);
-    } else {
-      console.error('No user ID available');
-      this.handleNoAuthenticatedUser();
-    }
-  } catch (error: any) {
-    console.error('Error getting current user:', error);
-    this.error = 'Authentication error';
-    this.loading = false;
   }
-}
   /**
    * Handle case when no authenticated user is found
    */
@@ -332,70 +342,70 @@ export class DashboardComponent implements OnInit {
     await this.handleMissingUserProfile(fbUser);
   }
 
- async handleExistingUserProfile(
-  docSnap: any,
-  fbUser: FirebaseUser
-): Promise<void> {
-  console.log('DashboardComponent - User profile found:', docSnap.data());
+  async handleExistingUserProfile(
+    docSnap: any,
+    fbUser: FirebaseUser
+  ): Promise<void> {
+    console.log('DashboardComponent - User profile found:', docSnap.data());
 
-  const data = docSnap.data();
+    const data = docSnap.data();
 
-  if (data.role === 'lender') {
-    this.userData = {
-      id: docSnap.id,
-      company: data.company || (data.contactInfo && data.contactInfo.company) || '',
-      firstName: data.contactInfo?.firstName || '',
-      lastName: data.contactInfo?.lastName || '',
-      phone: data.contactInfo?.contactPhone || '',
-      email: data.contactInfo?.contactEmail || '',
-      city: data.contactInfo?.city || '',
-      state: data.contactInfo?.state || '',
-      role: 'lender',
-    };
-    this.loadNotificationPreferencesFromService();
-  } else if (data.role === 'originator') {
-    this.userData = {
-      id: docSnap.id,
-      email: data.contactInfo?.contactEmail || data.email || '',
-      firstName: data.contactInfo?.firstName || data.firstName || '',
-      lastName: data.contactInfo?.lastName || data.lastName || '',
-      phone: data.contactInfo?.contactPhone || data.phone || '',
-      company: data.contactInfo?.company || data.company || '',
-      city: data.contactInfo?.city || data.city || '',
-      state: data.contactInfo?.state || data.state || '',
-      role: 'originator',
-    };
+    if (data.role === 'lender') {
+      this.userData = {
+        id: docSnap.id,
+        company: data.company || (data.contactInfo && data.contactInfo.company) || '',
+        firstName: data.contactInfo?.firstName || '',
+        lastName: data.contactInfo?.lastName || '',
+        phone: data.contactInfo?.contactPhone || '',
+        email: data.contactInfo?.contactEmail || '',
+        city: data.contactInfo?.city || '',
+        state: data.contactInfo?.state || '',
+        role: 'lender',
+      };
+      this.loadNotificationPreferencesFromService();
+    } else if (data.role === 'originator') {
+      this.userData = {
+        id: docSnap.id,
+        email: data.contactInfo?.contactEmail || data.email || '',
+        firstName: data.contactInfo?.firstName || data.firstName || '',
+        lastName: data.contactInfo?.lastName || data.lastName || '',
+        phone: data.contactInfo?.contactPhone || data.phone || '',
+        company: data.contactInfo?.company || data.company || '',
+        city: data.contactInfo?.city || data.city || '',
+        state: data.contactInfo?.state || data.state || '',
+        role: 'originator',
+      };
+    }
+
+    this.userRole = this.userData.role;
+
+    // Load role-specific data
+    if (this.userRole === 'lender' && fbUser.uid) {
+      await this.loadSavedLoans(fbUser.uid);
+    }
+
+    if (this.userRole === 'originator' && fbUser.uid) {
+      await this.loadSavedLenders(fbUser.uid);
+    }
+
+    if (fbUser.uid) {
+      await this.loadLoans(fbUser.uid);
+    }
+    this.loading = false;
   }
-
-  this.userRole = this.userData.role;
-
-  // Load role-specific data
-  if (this.userRole === 'lender' && fbUser.uid) {
-    await this.loadSavedLoans(fbUser.uid);
-  }
-
-  if (this.userRole === 'originator' && fbUser.uid) {
-    await this.loadSavedLenders(fbUser.uid);
-  }
-
-  if (fbUser.uid) {
-    await this.loadLoans(fbUser.uid);
-  }
-  this.loading = false;
-}
   /**
    * ✅ FIXED: Load notification preferences with proper error handling and signal updates
    */
   private loadNotificationPreferencesFromService(): void {
-  console.log('🔍 Loading notification preferences...');
+    console.log('🔍 Loading notification preferences...');
 
-  this.authService.isLoggedIn$.pipe(
-    filter((isLoggedIn: boolean) => isLoggedIn),
-    take(1),
-    switchMap(() => {
-      console.log('🔍 Calling getNotificationPreferences...');
-      return this.notificationPreferencesService.getNotificationPreferences();
-    })
+    this.authService.isLoggedIn$.pipe(
+      filter((isLoggedIn: boolean) => isLoggedIn),
+      take(1),
+      switchMap(() => {
+        console.log('🔍 Calling getNotificationPreferences...');
+        return this.notificationPreferencesService.getNotificationPreferences();
+      })
 
     ).subscribe({
       next: (preferences: any) => {
