@@ -3,7 +3,9 @@ export const environment = {
   apiUrl: 'https://us-central1-loanpub.cloudfunctions.net',
 
   registerUserUrl: 'https://us-central1-loanpub.cloudfunctions.net/registerUser',
-   frontendUrl: 'https://dailyloanpost.com',
+   frontendUrl: 'https://dailyloanpost.com', 
+
+    appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw', 
 
   firebase: {
     apiKey: 'AIzaSyBFPDQ8QwGr40Mn92bpJiHgHNoZvA6m5pas',
@@ -17,3 +19,4 @@ export const environment = {
 
   redirectUrl: 'https://dailyloanpost.com/',
 };
+
