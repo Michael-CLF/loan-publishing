@@ -20,6 +20,7 @@ import { LoanTypeService } from '../services/loan-type.service';
 import { FirestoreService } from '../services/firestore.service';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
+import { firstValueFrom } from 'rxjs';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -402,32 +403,32 @@ async loadCurrentUserData(): Promise<void> {
 
   console.log('LOAN DETAILS: Loading current user data');
 
-  try {
-    const currentUser = await this.authService.getCurrentFirebaseUser();
+ try {
+  const currentUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
 
-    if (currentUser && currentUser.email) {
-      console.log('LOAN DETAILS: Current user email:', currentUser.email);
+  if (currentUser && currentUser.email) {
+    console.log('LOAN DETAILS: Current user email:', currentUser.email);
 
-      const usersRef = collection(this.firestore, 'users');
-      const q = query(usersRef, where('email', '==', currentUser.email));
+    const usersRef = collection(this.firestore, 'users');
+    const q = query(usersRef, where('email', '==', currentUser.email));
+    const snapshot = await getDocs(q);
 
-      const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const userDoc = snapshot.docs[0];
+      const userData = userDoc.data() as User;
+      userData.uid = userDoc.id;
 
-      if (!snapshot.empty) {
-        const userDoc = snapshot.docs[0];
-        const userData = userDoc.data() as User;
-        userData.uid = userDoc.id;
-
-        console.log('LOAN DETAILS: Found user data:', userData);
-        this.user.set(userData);
-      } else {
-        console.log('LOAN DETAILS: No user found with current user email');
-      }
+      console.log('LOAN DETAILS: Found user data:', userData);
+      this.user.set(userData);
+    } else {
+      console.log('LOAN DETAILS: No user found with current user email');
     }
-  } catch (error) {
-    console.error('LOAN DETAILS: Error finding user by email:', error);
+  } else {
+    console.warn('LOAN DETAILS: No current user or email');
   }
-}
+} catch (error) {
+  console.error('LOAN DETAILS: Error finding user by email:', error);
+}}
 
   ngOnDestroy(): void {
     if (this.authSubscription) {

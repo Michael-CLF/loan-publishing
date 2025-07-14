@@ -10,12 +10,13 @@ import {
   ViewChild,
 } from '@angular/core';
 import { Router, RouterModule } from '@angular/router';
-import { Subscription, from } from 'rxjs';
+import { Subscription, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { AuthService } from '../services/auth.service';
 import { ModalService } from '../services/modal.service';
 import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
+import { User } from '@angular/fire/auth'; // ✅ Make sure User is imported
 
 interface UserData {
   id: string;
@@ -60,15 +61,21 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private authSubscription!: Subscription;
 
-  ngOnInit(): void {
+  async ngOnInit(): Promise<void> {
     console.log('NavbarComponent - Initializing');
 
-    this.authService.getCurrentFirebaseUser().then((userProfile: any) => {
+    try {
+      const userProfile: User | null = await firstValueFrom(
+        this.authService.getCurrentFirebaseUser()
+      );
+
       if (userProfile) {
-        this.userRole = userProfile.role || null;
-        this.loadUserData(userProfile);
+        this.userRole = (userProfile as any).role || null; // 🔁 Only if you're extending User with `role`
+        await this.loadUserData(userProfile);
       }
-    });
+    } catch (err) {
+      console.error('NavbarComponent - Error retrieving user profile:', err);
+    }
 
     this.authSubscription = this.authService.isLoggedIn$.subscribe(
       (loggedIn) => {
@@ -108,12 +115,12 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  async loadUserData(user: any): Promise<void> {
+  async loadUserData(user: User): Promise<void> {
     this.loading = true;
     this.error = null;
 
     try {
-      const role = user.role || '';
+      const role = (user as any).role || ''; // 🔁 Only if you're storing role in Firebase Auth
       const userDocRef = doc(this.firestore, `${role}s/${user.uid}`);
       const docSnap = await getDoc(userDocRef);
 
