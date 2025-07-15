@@ -225,7 +225,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
   onSubmit(): void {
     console.log('🚨 FORM IS INVALID - STOPPING');
-    alert('🚨 FORM SUBMITTED - onSubmit() called!');
     console.log('🚨 FORM SUBMITTED - onSubmit() called!');
     runInInjectionContext(this.injector, () => {
       if (this.userForm.invalid) {
