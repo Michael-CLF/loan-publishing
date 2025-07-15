@@ -85,7 +85,7 @@ registerUserViaAPI(email: string, userData: any): Observable<{success: boolean, 
   };
 
   return this.http.post<{success: boolean, uid: string}>(
-    `${environment.apiUrl}/registerUserUrl`,
+    `${environment.apiUrl}/registerUser`,
     registrationData,
     {
       headers: { 'Content-Type': 'application/json' }
