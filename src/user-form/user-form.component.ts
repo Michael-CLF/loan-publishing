@@ -16,8 +16,8 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
-import { Subject, of } from 'rxjs';
-import { takeUntil, catchError, finalize, tap } from 'rxjs/operators';
+import { Subject, of, from } from 'rxjs';
+import { takeUntil, catchError, finalize, tap, switchMap} from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
@@ -236,9 +236,23 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.isLoading = true;
       this.errorMessage = '';
 
-
       const formData = this.userForm.value;
 
+      // Prepare user registration data for backend
+      const registrationData = {
+        email: formData.email,
+        role: 'originator',
+        userData: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          company: formData.company,
+          phone: formData.phone,
+          city: formData.city,
+          state: formData.state,
+        }
+      };
+
+      // Prepare Stripe checkout data
       const checkoutData: any = {
         email: formData.email,
         role: 'originator',
@@ -262,24 +276,39 @@ export class UserFormComponent implements OnInit, OnDestroy {
         };
       }
 
-      try {
-        this.stripeService.createCheckoutSession(checkoutData).then((checkoutResponse) => {
-          if (checkoutResponse && checkoutResponse.url) {
-            console.log('✅ Stripe checkout session created:', checkoutResponse);
-            window.location.href = checkoutResponse.url;
-          } else {
-            throw new Error('Stripe checkout URL not returned');
+      this.authService.registerUserViaAPI(formData.email, registrationData.userData)
+        .pipe(
+          takeUntil(this.destroy$),
+          switchMap((registrationResponse) => {
+            console.log('✅ User registered successfully:', registrationResponse);
+            // Step 2: Create Stripe checkout session
+            return from(this.stripeService.createCheckoutSession(checkoutData));
+          }),
+          catchError((error: any) => {
+            this.isLoading = false;
+            console.error('❌ Registration or Stripe error:', error);
+            this.errorMessage = error.message || 'Failed to complete registration. Please try again.';
+            return of(null);
+          }),
+          finalize(() => {
+            // Only set loading to false if we're not redirecting to Stripe
+            // (Stripe redirect will happen if successful)
+          })
+        )
+        .subscribe({
+          next: (checkoutResponse) => {
+            if (checkoutResponse && checkoutResponse.url) {
+              console.log('✅ Stripe checkout session created:', checkoutResponse);
+              // Redirect to Stripe (this will navigate away from the app)
+              window.location.href = checkoutResponse.url;
+            }
+          },
+          error: (error) => {
+            this.isLoading = false;
+            console.error('❌ Subscription error:', error);
+            this.errorMessage = 'An unexpected error occurred. Please try again.';
           }
-        }).catch((error: any) => {
-          this.isLoading = false;
-          console.error('Stripe error:', error);
-          this.errorMessage = error.message || 'Failed to initiate payment. Please try again.';
         });
-      } catch (error: any) {
-        this.isLoading = false;
-        console.error('Stripe error (outer try/catch):', error);
-        this.errorMessage = error.message || 'Unexpected error. Please try again.';
-      }
     });
   }
 }

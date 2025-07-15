@@ -26,9 +26,10 @@ import { environment } from '../environments/environment';
 import { Observable, from, of, throwError } from 'rxjs';
 import { switchMap, map, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
-import { UserData } from '../models/user-data.model'; // ✅ make sure this path is correct
+import { UserData } from '../models/user-data.model'; 
 import { BehaviorSubject } from 'rxjs';
 import { authState } from '@angular/fire/auth';
+import { HttpClient } from '@angular/common/http';
 
 @Injectable({
   providedIn: 'root',
@@ -37,7 +38,7 @@ export class AuthService {
   private auth = inject(Auth);
   private firestore = inject(Firestore);
   private router = inject(Router);
-
+  private http = inject(HttpClient);
   private registrationSuccess = false;
 
   /**
@@ -65,6 +66,37 @@ export class AuthService {
 
     return from(setDoc(userDocRef, newUserData)).pipe(map(() => firebaseUser));
   }
+
+  /**
+ * ✅ Register user via HTTP API (for form submissions before Stripe)
+ */
+registerUserViaAPI(email: string, userData: any): Observable<{success: boolean, uid: string}> {
+  const registrationData = {
+    email: email.toLowerCase().trim(),
+    role: userData.role || 'originator',
+    userData: {
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      company: userData.company,
+      phone: userData.phone,
+      city: userData.city,
+      state: userData.state,
+    }
+  };
+
+  return this.http.post<{success: boolean, uid: string}>(
+    `${environment.apiUrl}/registerUserUrl`,
+    registrationData,
+    {
+      headers: { 'Content-Type': 'application/json' }
+    }
+  ).pipe(
+    catchError((error) => {
+      console.error('❌ Error registering user via API:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));
