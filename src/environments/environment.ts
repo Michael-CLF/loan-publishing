@@ -2,7 +2,7 @@ export const environment = {
   production: false,
   apiUrl: 'https://us-central1-loanpub.cloudfunctions.net',
 
-  registerUserUrl: 'https://us-central1-loanpub.cloudfunctions.net/registerUser',
+   registerUserUrl: 'https://us-central1-loanpub.cloudfunctions.net/api/registerUser',
    frontendUrl: 'https://dailyloanpost.com', 
 
   appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw',
