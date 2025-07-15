@@ -224,11 +224,12 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
+    console.log('🚨 FORM IS INVALID - STOPPING');
+    alert('🚨 FORM SUBMITTED - onSubmit() called!');
+    console.log('🚨 FORM SUBMITTED - onSubmit() called!');
     runInInjectionContext(this.injector, () => {
       if (this.userForm.invalid) {
-        console.log('🚨 FORM IS INVALID - STOPPING');
-        alert('🚨 FORM SUBMITTED - onSubmit() called!');
-        console.log('🚨 FORM SUBMITTED - onSubmit() called!');
+
         Object.keys(this.userForm.controls).forEach((key) => {
           const control = this.userForm.get(key);
           control?.markAsTouched();
