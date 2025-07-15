@@ -17,7 +17,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Subject, of, from } from 'rxjs';
-import { takeUntil, catchError, finalize, tap, switchMap} from 'rxjs/operators';
+import { takeUntil, catchError, finalize, tap, switchMap } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
@@ -80,7 +80,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   appliedCouponDetails: AppliedCouponDetails | null = null;
   states: StateOption[] = [];
   successMessage: string = '';
- 
+
 
 
   ngOnInit(): void {
@@ -162,46 +162,46 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   validateCoupon(): void {
-  const couponCode = this.userForm.get('couponCode')?.value?.trim();
-  if (!couponCode) return;
+    const couponCode = this.userForm.get('couponCode')?.value?.trim();
+    if (!couponCode) return;
 
-  this.isValidatingCoupon = true;
-  
-  // ✅ CORRECT - Use your StripeService
-  this.stripeService.validatePromotionCode(couponCode)
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.isValidatingCoupon = false),
-      catchError((error: HttpErrorResponse) => {
-        console.error('Coupon validation error:', error);
-        this.setCouponError('Unable to validate coupon. Please try again.');
-        return of(null);
-      })
-    )
-    .subscribe(response => {
-      if (response) {
-        this.handleCouponValidationResponse(response);
-      }
-    });
-}
+    this.isValidatingCoupon = true;
 
- private handleCouponValidationResponse(response: any): void {
-  if (response.valid && response.promotion_code) {
-    this.couponApplied = true;
-    
-    const coupon = response.promotion_code.coupon;
-    this.appliedCouponDetails = {
-      code: response.promotion_code.code,
-      discount: coupon.percent_off || coupon.amount_off || 0,
-      discountType: coupon.percent_off ? 'percentage' : 'fixed',
-      description: coupon.name
-    };
-    this.clearCouponErrors();
-  } else {
-    this.resetCouponState();
-    this.setCouponError(response.error || 'Invalid coupon code');
+    // ✅ CORRECT - Use your StripeService
+    this.stripeService.validatePromotionCode(couponCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isValidatingCoupon = false),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Coupon validation error:', error);
+          this.setCouponError('Unable to validate coupon. Please try again.');
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handleCouponValidationResponse(response);
+        }
+      });
   }
-}
+
+  private handleCouponValidationResponse(response: any): void {
+    if (response.valid && response.promotion_code) {
+      this.couponApplied = true;
+
+      const coupon = response.promotion_code.coupon;
+      this.appliedCouponDetails = {
+        code: response.promotion_code.code,
+        discount: coupon.percent_off || coupon.amount_off || 0,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        description: coupon.name
+      };
+      this.clearCouponErrors();
+    } else {
+      this.resetCouponState();
+      this.setCouponError(response.error || 'Invalid coupon code');
+    }
+  }
 
   private setCouponError(errorMessage: string): void {
     const couponControl = this.userForm.get('couponCode');
@@ -226,17 +226,21 @@ export class UserFormComponent implements OnInit, OnDestroy {
   onSubmit(): void {
     runInInjectionContext(this.injector, () => {
       if (this.userForm.invalid) {
+        console.log('🚨 FORM IS INVALID - STOPPING');
+        alert('🚨 FORM SUBMITTED - onSubmit() called!');
+        console.log('🚨 FORM SUBMITTED - onSubmit() called!');
         Object.keys(this.userForm.controls).forEach((key) => {
           const control = this.userForm.get(key);
           control?.markAsTouched();
         });
         return;
       }
-
+      console.log('🚨 FORM IS VALID - CONTINUING');
       this.isLoading = true;
       this.errorMessage = '';
 
       const formData = this.userForm.value;
+      console.log('🚨 FORM DATA:', formData);
 
       // Prepare user registration data for backend
       const registrationData = {
@@ -275,7 +279,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
           discountType: this.appliedCouponDetails.discountType,
         };
       }
-
+      console.log('🚨 ABOUT TO CALL AUTH SERVICE');
       this.authService.registerUserViaAPI(formData.email, registrationData.userData)
         .pipe(
           takeUntil(this.destroy$),

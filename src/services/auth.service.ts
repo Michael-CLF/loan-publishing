@@ -75,6 +75,8 @@ export class AuthService {
   registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
     console.log('🔍 Environment registerUserUrl:', environment.registerUserUrl);
     console.log('🔍 Full environment object:', environment);
+    console.log('🔍 FULL ENVIRONMENT OBJECT:', environment);
+    
     const registrationData = {
       email: email.toLowerCase().trim(),
       role: userData.role || 'originator',
