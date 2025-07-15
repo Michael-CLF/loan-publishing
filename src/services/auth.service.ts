@@ -91,7 +91,7 @@ export class AuthService {
     };
 
     return this.http.post<{ success: boolean, uid: string }>(
-      `${environment.apiUrl}/registerUser`,
+     environment.registerUserUrl,
       registrationData,
       {
         headers: { 'Content-Type': 'application/json' }
