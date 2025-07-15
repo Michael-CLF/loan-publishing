@@ -120,16 +120,16 @@ export class StripeService {
       checkoutData.promotion_code = data.coupon.code.trim().toUpperCase();
     }
 
-    const appCheckInstance = this.appCheckService.getAppCheckInstance();
-    if (!appCheckInstance) {
-      throw new Error('App Check not initialized');
-    }
-    const tokenResult = await getToken(appCheckInstance, false);
+    //const appCheckInstance = this.appCheckService.getAppCheckInstance();
+    //if (!appCheckInstance) {
+      //throw new Error('App Check not initialized');
+    //}
+   // const tokenResult = await getToken(appCheckInstance, false);
 
 
     const headers = new HttpHeaders({
       'Content-Type': 'application/json',
-      'X-Firebase-AppCheck': tokenResult.token
+      //'X-Firebase-AppCheck': tokenResult.token
     });
 
     console.log('🔵 Creating Stripe checkout session with App Check token');
