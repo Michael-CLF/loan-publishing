@@ -279,7 +279,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
           discountType: this.appliedCouponDetails.discountType,
         };
       }
-      console.log('🚨 ABOUT TO CALL AUTH SERVICE');
+      console.log('🚨 ABOUT TO CALL registerUserViaAPI with:', registrationData);
       this.authService.registerUserViaAPI(formData.email, registrationData.userData)
         .pipe(
           takeUntil(this.destroy$),
@@ -291,6 +291,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
           catchError((error: any) => {
             this.isLoading = false;
             console.error('❌ Registration or Stripe error:', error);
+            console.error('❌ registerUserViaAPI failed:', error); // ADD THIS
+            console.error('❌ Error details:', error.message, error.status); // ADD THIS
             this.errorMessage = error.message || 'Failed to complete registration. Please try again.';
             return of(null);
           }),

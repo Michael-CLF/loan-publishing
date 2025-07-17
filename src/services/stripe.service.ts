@@ -91,6 +91,7 @@ export class StripeService {
    * Create Stripe checkout session with App Check protection
    */
   async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
+    console.log('🚨 createCheckoutSession method called!');
     this.validateCheckoutData(data);
 
     console.log('🔍 functionsUrl:', this.functionsUrl);
