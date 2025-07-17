@@ -279,42 +279,34 @@ export class UserFormComponent implements OnInit, OnDestroy {
           discountType: this.appliedCouponDetails.discountType,
         };
       }
-      console.log('🚨 ABOUT TO CALL registerUserViaAPI with:', registrationData);
-      this.authService.registerUserViaAPI(formData.email, registrationData.userData)
-        .pipe(
-          takeUntil(this.destroy$),
-          switchMap((registrationResponse) => {
-            console.log('✅ User registered successfully:', registrationResponse);
-            // Step 2: Create Stripe checkout session
-            return from(this.stripeService.createCheckoutSession(checkoutData));
-          }),
-          catchError((error: any) => {
-            this.isLoading = false;
-            console.error('❌ Registration or Stripe error:', error);
-            console.error('❌ registerUserViaAPI failed:', error); // ADD THIS
-            console.error('❌ Error details:', error.message, error.status); // ADD THIS
-            this.errorMessage = error.message || 'Failed to complete registration. Please try again.';
-            return of(null);
-          }),
-          finalize(() => {
-            // Only set loading to false if we're not redirecting to Stripe
-            // (Stripe redirect will happen if successful)
-          })
-        )
-        .subscribe({
-          next: (checkoutResponse) => {
-            if (checkoutResponse && checkoutResponse.url) {
-              console.log('✅ Stripe checkout session created:', checkoutResponse);
-              // Redirect to Stripe (this will navigate away from the app)
-              window.location.href = checkoutResponse.url;
-            }
-          },
-          error: (error) => {
-            this.isLoading = false;
-            console.error('❌ Subscription error:', error);
-            this.errorMessage = 'An unexpected error occurred. Please try again.';
-          }
-        });
-    });
+    // Call Stripe checkout directly (user will be created by webhook after payment)
+from(this.stripeService.createCheckoutSession(checkoutData))
+  .pipe(
+    takeUntil(this.destroy$),
+    catchError((error: any) => {
+      this.isLoading = false;
+      console.error('❌ Stripe checkout error:', error);
+      this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+      return of(null);
+    })
+  )
+  .subscribe({
+    next: (checkoutResponse) => {
+      if (checkoutResponse && checkoutResponse.url) {
+        console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+        // Redirect to Stripe (this will navigate away from the app)
+        window.location.href = checkoutResponse.url;
+      } else {
+        this.isLoading = false;
+        this.errorMessage = 'Invalid checkout response. Please try again.';
+      }
+    },
+    error: (error) => {
+      this.isLoading = false;
+      console.error('❌ Subscription error:', error);
+      this.errorMessage = 'An unexpected error occurred. Please try again.';
+    }
+  });
+});
   }
 }
