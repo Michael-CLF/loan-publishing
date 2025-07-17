@@ -136,7 +136,7 @@ export class StripeService {
 
     return firstValueFrom(
       this.http.post<CheckoutSessionResponse>(
-        `${this.apiUrl}/createStripeCheckout`,
+       `${this.functionsUrl}${environment.registerUserUrl}`,
         checkoutData,
         { headers }
       )
