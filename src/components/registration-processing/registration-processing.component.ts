@@ -83,44 +83,64 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * ✅ NEW: Handle Stripe payment callback
-   */
   private handleStripeCallback(): void {
-    console.log('💳 Processing Stripe payment callback');
-    this.processingMessage.set('Processing your payment...');
+  console.log('💳 Processing Stripe payment callback');
+  this.processingMessage.set('Processing your payment...');
 
-    // ✅ Set processing flag
-    RegistrationProcessingComponent.processingInProgress = true;
-
-    const showModal = localStorage.getItem('showRegistrationModal');
-    const rawLenderData = localStorage.getItem('completeLenderData');
-    const rawOriginatorData = localStorage.getItem('completeOriginatorData');  // ✅ NEW: Check for originator data
-
-    // ✅ LENDER FLOW: Complete registration after payment
-    if (showModal === 'true' && rawLenderData) {
-      console.log('🏢 Processing lender payment success');
-      this.handleLenderPaymentSuccess(rawLenderData);
-      return;
-    }
-
-    // ✅ ORIGINATOR FLOW: Complete registration after payment  
-    if (showModal === 'true' && rawOriginatorData) {
-      console.log('👤 Processing originator payment success');
-      this.handleOriginatorPaymentSuccess();
-      return;
-    }
-
-    // ✅ Fallback: Neither condition met
-    console.error('⚠️ Invalid payment callback state');
-    console.log('showModal:', showModal);
-    console.log('rawLenderData exists:', !!rawLenderData);
-    console.log('rawOriginatorData exists:', !!rawOriginatorData);
+  // ✅ Get user ID from localStorage (saved during registration)
+  const pendingUserId = localStorage.getItem('pendingUserId'); 
+  
+  if (!pendingUserId) {
+    console.error('❌ No pending user ID found');
     this.hasError.set(true);
     this.showProcessingSpinner.set(false);
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.router.navigate(['/pricing']);
+    this.router.navigate(['/register']);
+    return;
   }
+
+  console.log('🔍 Checking payment status for user:', pendingUserId);
+  
+  const checkStatus = () => {
+    // ✅ Check both collections
+    const collections = ['originators', 'lenders'];
+    
+    for (const collection of collections) {
+      getDoc(doc(this.firestore, `${collection}/${pendingUserId}`)).then((docSnap: any) => {
+       if (docSnap.exists()) {
+          const userData = docSnap.data();
+          console.log('📄 User data:', userData);
+          
+          if (userData?.['subscriptionStatus'] === 'active' && !userData?.['paymentPending']) {
+            // ✅ Payment processed successfully
+            console.log('✅ Payment verified - showing success modal');
+            this.userRole = userData?.['role'] || 'originator';
+            this.showProcessingSpinner.set(false);
+            this.showModalBasedOnRole();
+            return;
+          }
+        }
+      });
+    }
+  };
+
+  // ✅ Poll every 2 seconds for up to 2 minutes
+  const interval = setInterval(checkStatus, 2000);
+  
+  // ✅ Timeout after 2 minutes
+  setTimeout(() => {
+    clearInterval(interval);
+    if (this.showProcessingSpinner()) {
+      console.error('❌ Payment verification timeout');
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      this.processingMessage.set('Payment verification timeout. Please contact support.');
+    }
+  }, 120000);
+  
+  // ✅ Start checking immediately
+  checkStatus();
+}
+  
 
  /**
  * ✅ Handle originator payment success - Just show success modal (webhook handles status update)

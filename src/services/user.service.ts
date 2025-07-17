@@ -10,7 +10,7 @@ import {
   updateEmail,
   User,
 } from '@angular/fire/auth';
-import { Observable, from, throwError, switchMap, of } from 'rxjs';
+import { Observable, from, throwError, switchMap, of, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 
@@ -24,17 +24,22 @@ export class UserService {
 
   private readonly registerUserUrl = `${environment.apiUrl}/registerUser`;
 
-  /**
-   * ✅ Registers a new user by sending form data to backend Cloud Function
-   */
   registerUserBackend(userData: any): Observable<any> {
-    return this.http.post(this.registerUserUrl, userData).pipe(
-      catchError((error) => {
-        console.error('UserService: Error registering user via backend:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+  return this.http.post(this.registerUserUrl, userData).pipe(
+    map((response: any) => {
+      // ✅ Save user ID for status checking after payment
+      if (response.success && response.uid) {
+        localStorage.setItem('pendingUserId', response.uid);
+        console.log('✅ Saved pending user ID:', response.uid);
+      }
+      return response;
+    }),
+    catchError((error) => {
+      console.error('UserService: Error registering user via backend:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
   /**
    * 🔁 Updates existing Firestore user document
