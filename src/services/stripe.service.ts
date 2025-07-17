@@ -93,6 +93,11 @@ export class StripeService {
   async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
     this.validateCheckoutData(data);
 
+    console.log('🔍 functionsUrl:', this.functionsUrl);
+    console.log('🔍 environment.registerUserUrl:', environment.registerUserUrl);
+    console.log('🔍 Final URL:', `${this.functionsUrl}${environment.registerUserUrl}`);
+
+
     const metadata: StripeMetadata = {
       email: data.email.toLowerCase().trim(),
       firstName: this.sanitizeString(data.userData.firstName),
@@ -122,7 +127,7 @@ export class StripeService {
 
     const appCheckInstance = this.appCheckService.getAppCheckInstance();
     if (!appCheckInstance) {
-    throw new Error('App Check not initialized');
+      throw new Error('App Check not initialized');
     }
     const tokenResult = await getToken(appCheckInstance, false);
 
@@ -135,13 +140,13 @@ export class StripeService {
     console.log('🔵 Creating Stripe checkout session with App Check token');
 
     return firstValueFrom(
-      this.http.post<CheckoutSessionResponse>(
-       `${this.functionsUrl}${environment.registerUserUrl}`,
-        checkoutData,
-        { headers }
-      )
-    );
-  }
+    this.http.post<CheckoutSessionResponse>(
+      `${this.functionsUrl}${environment.registerUserUrl}`,
+      checkoutData,
+      { headers }
+    )
+  );
+}
 
   getCheckoutSession(sessionId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/get-checkout-session`, {
