@@ -188,31 +188,6 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
   }
 
   /**
-   * ✅ Login using email link
-   */
-  loginWithEmailLink(email?: string): Observable<UserCredential> {
-    const storedEmail = email || localStorage.getItem('emailForSignIn');
-    if (!storedEmail) {
-      return throwError(() => new Error('No email stored for sign-in'));
-    }
-
-    if (!isSignInWithEmailLink(this.auth, window.location.href)) {
-      return throwError(() => new Error('Invalid sign-in link'));
-    }
-
-    return from(signInWithEmailLink(this.auth, storedEmail, window.location.href)).pipe(
-      map((credential) => {
-        localStorage.removeItem('emailForSignIn');
-        return credential;
-      }),
-      catchError((error) => {
-        console.error('❌ Error signing in with email link:', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
-  /**
  * ✅ Check if current URL is a sign-in email link
  */
   isEmailSignInLink(): Observable<boolean> {
@@ -234,11 +209,9 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
     );
   }
 
-
   getAuthStatus(): Observable<boolean> {
     return this.isLoggedIn$;
   }
-
 
   /**
    * ✅ Retrieve stored email from localStorage
@@ -246,7 +219,6 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
   getStoredEmail(): string | null {
     return localStorage.getItem('emailForSignIn');
   }
-
 
   /**
    * ✅ Log out current user
