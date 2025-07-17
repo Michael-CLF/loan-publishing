@@ -279,34 +279,51 @@ export class UserFormComponent implements OnInit, OnDestroy {
           discountType: this.appliedCouponDetails.discountType,
         };
       }
-    // Call Stripe checkout directly (user will be created by webhook after payment)
-from(this.stripeService.createCheckoutSession(checkoutData))
-  .pipe(
-    takeUntil(this.destroy$),
-    catchError((error: any) => {
-      this.isLoading = false;
-      console.error('❌ Stripe checkout error:', error);
-      this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-      return of(null);
-    })
-  )
-  .subscribe({
-    next: (checkoutResponse) => {
-      if (checkoutResponse && checkoutResponse.url) {
-        console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-        // Redirect to Stripe (this will navigate away from the app)
-        window.location.href = checkoutResponse.url;
-      } else {
-        this.isLoading = false;
-        this.errorMessage = 'Invalid checkout response. Please try again.';
-      }
-    },
-    error: (error) => {
-      this.isLoading = false;
-      console.error('❌ Subscription error:', error);
-      this.errorMessage = 'An unexpected error occurred. Please try again.';
-    }
-  });
-});
+
+      console.log('🚨 ABOUT TO CALL registerUserViaAPI');
+
+      // Step 1: Register user in Firebase (creates user with inactive status)
+      this.authService.registerUserViaAPI(formData.email, {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+        role: 'originator'
+      })
+        .pipe(
+          takeUntil(this.destroy$),
+          switchMap((registrationResponse) => {
+            console.log('✅ User registered successfully with inactive status:', registrationResponse);
+
+            // Step 2: Create Stripe checkout session
+            console.log('🔵 Now creating Stripe checkout session');
+            return from(this.stripeService.createCheckoutSession(checkoutData));
+          }),
+          catchError((error: any) => {
+            this.isLoading = false;
+            console.error('❌ Registration or Stripe error:', error);
+            this.errorMessage = error.message || 'Failed to complete registration. Please try again.';
+            return of(null);
+          })
+        )
+        .subscribe({
+          next: (checkoutResponse) => {
+            if (checkoutResponse && checkoutResponse.url) {
+              console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+              window.location.href = checkoutResponse.url;
+            } else {
+              this.isLoading = false;
+              this.errorMessage = 'Invalid checkout response. Please try again.';
+            }
+          },
+          error: (error) => {
+            this.isLoading = false;
+            console.error('❌ Subscription error:', error);
+            this.errorMessage = 'An unexpected error occurred. Please try again.';
+          }
+        });
+    });
   }
 }

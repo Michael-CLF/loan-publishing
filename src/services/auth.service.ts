@@ -68,41 +68,43 @@ export class AuthService {
   }
 
 
-
-  /**
- * ✅ Register user via HTTP API (for form submissions before Stripe)
+/**
+ * ✅ Register user via HTTP API (creates user with inactive status, no App Check required)
  */
-  registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
-    console.log('🔍 Environment registerUserUrl:', environment.registerUserUrl);
-    console.log('🔍 Full environment object:', environment);
-    console.log('🔍 FULL ENVIRONMENT OBJECT:', environment);
-    
-    const registrationData = {
-      email: email.toLowerCase().trim(),
-      role: userData.role || 'originator',
-      userData: {
-        firstName: userData.firstName,
-        lastName: userData.lastName,
-        company: userData.company,
-        phone: userData.phone,
-        city: userData.city,
-        state: userData.state,
-      }
-    };
+registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
+  console.log('🔍 Calling registerUser function');
+  
+  const registrationData = {
+    email: email.toLowerCase().trim(),
+    role: userData.role || 'originator',
+    userData: {
+      firstName: userData.firstName,
+      lastName: userData.lastName,
+      company: userData.company,
+      phone: userData.phone,
+      city: userData.city,
+      state: userData.state,
+    }
+  };
 
-    return this.http.post<{ success: boolean, uid: string }>(
-     environment.registerUserUrl,
-      registrationData,
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    ).pipe(
-      catchError((error) => {
-        console.error('❌ Error registering user via API:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+  // ✅ Call the new registerUser function (no App Check required)
+  const registerUserUrl = 'https://us-central1-loanpub.cloudfunctions.net/registerUser';
+
+  return this.http.post<{ success: boolean, uid: string }>(
+    registerUserUrl,
+    registrationData,
+    {
+      headers: { 'Content-Type': 'application/json' }
+      // ✅ No App Check headers needed for user registration
+    }
+  ).pipe(
+    catchError((error) => {
+      console.error('❌ Error registering user via API:', error);
+      return throwError(() => error);
+    })
+  );
+}
+
 
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));
