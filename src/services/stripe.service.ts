@@ -96,7 +96,7 @@ export class StripeService {
 
     console.log('🔍 functionsUrl:', this.functionsUrl);
     console.log('🔍 environment.registerUserUrl:', environment.registerUserUrl);
-    console.log('🔍 Final URL:', `${this.functionsUrl}${environment.registerUserUrl}`);
+    console.log('🔍 Final URL:', `{environment.registerUserUrl}`);
 
 
     const metadata: StripeMetadata = {
@@ -142,7 +142,7 @@ export class StripeService {
 
     return firstValueFrom(
     this.http.post<CheckoutSessionResponse>(
-      `${this.functionsUrl}${environment.registerUserUrl}`,
+     environment.registerUserUrl,
       checkoutData,
       { headers }
     )
