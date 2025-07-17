@@ -90,7 +90,7 @@ export class AppCheckService {
   /**
    * Force refresh the App Check token
    * @returns Promise that resolves when token is refreshed
-   */
+   *///check
   async refreshToken(): Promise<void> {
     if (!this.initialized || !this.appCheckInstance) {
       throw new Error('App Check not initialized. Call initializeAppCheck() first.');
