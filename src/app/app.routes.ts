@@ -50,7 +50,6 @@ export const routes: Routes = [
   { path: 'lender-reg', component: LenderRegSuccessModalComponent },
   { path: 'user-form', component: UserFormComponent },
   { path: 'login', component: EmailLoginComponent },
-  { path: 'login/verify', component: EmailLoginComponent },
   { path: 'lender-registration', component: LenderRegistrationComponent },
   { path: 'lender-contact', component: LenderContactComponent },
   { path: 'lender-product', component: LenderProductComponent },
@@ -59,8 +58,6 @@ export const routes: Routes = [
   { path: 'loan', component: LoanComponent, canActivate: [authGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
-  { path: 'user-form', component: UserFormComponent },
-  { path: 'lender-registration', component: LenderRegistrationComponent },
 
   // ✅ CONSOLIDATED: Payment callback now goes directly to registration processing
   {
