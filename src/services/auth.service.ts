@@ -190,30 +190,34 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
     );
   }
 
-  /**
-   * ✅ Login using email link
-   */
-  loginWithEmailLink(email?: string): Observable<UserCredential> {
-    const storedEmail = email || localStorage.getItem('emailForSignIn');
-    if (!storedEmail) {
-      return throwError(() => new Error('No email stored for sign-in'));
-    }
-
-    if (!isSignInWithEmailLink(this.auth, window.location.href)) {
-      return throwError(() => new Error('Invalid sign-in link'));
-    }
-
-    return from(signInWithEmailLink(this.auth, storedEmail, window.location.href)).pipe(
-      map((credential) => {
-        localStorage.removeItem('emailForSignIn');
-        return credential;
-      }),
-      catchError((error) => {
-        console.error('❌ Error signing in with email link:', error);
-        return throwError(() => error);
-      })
-    );
+ loginWithEmailLink(email: string): Observable<UserCredential> {
+  const storedEmail = email || localStorage.getItem('emailForSignIn');
+  if (!storedEmail) {
+    return throwError(() => new Error('No email stored for sign-in'));
   }
+
+  const url = window.location.href;
+  if (!isSignInWithEmailLink(this.auth, url)) {
+    throw new Error('Email link is invalid or expired');
+  }
+
+  return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
+    switchMap((userCredential: UserCredential) => {
+      window.localStorage.removeItem('emailForSignIn');
+
+      // ✅ force redirect to dashboard
+      this.router.navigate(['/dashboard']);
+
+      // ✅ RETURN full UserCredential
+      return of(userCredential);
+    }),
+    catchError((err) => {
+      console.error('Email link sign-in failed', err);
+      return throwError(() => err);
+    })
+  );
+}
+
 
   /**
  * ✅ Check if current URL is a sign-in email link

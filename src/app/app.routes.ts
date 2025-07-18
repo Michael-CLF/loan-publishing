@@ -78,7 +78,7 @@ export const routes: Routes = [
     pathMatch: 'full'
   },
    { 
-    path: '__/auth/action', 
+    path: '/login', 
     component: EmailLoginComponent 
   },
 
