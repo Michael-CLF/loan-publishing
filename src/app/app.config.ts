@@ -24,6 +24,7 @@ export const appConfig: ApplicationConfig = {
     provideAnimations(),
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     
+    
     // Auth - production only
     provideAuth(() => getAuth()),
     

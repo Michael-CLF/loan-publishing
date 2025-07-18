@@ -48,6 +48,8 @@ import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model'
 import { getStateName } from '../shared/constants/state-mappings';
 
 
+
+
 // Property category interface for better type safety
 interface PropertyCategoryOption {
   value: string;        // Snake_case for storage/matching
@@ -79,6 +81,7 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
+
 
 
   getPropertySubcategoryName = getPropertySubcategoryName;

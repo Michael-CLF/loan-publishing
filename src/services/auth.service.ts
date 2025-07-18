@@ -28,7 +28,7 @@ import { switchMap, map, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model';
 import { BehaviorSubject } from 'rxjs';
-import { authState } from '@angular/fire/auth';
+import { authState, user } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 
 @Injectable({
@@ -113,41 +113,44 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
   isLoggedIn$ = authState(this.auth).pipe(map(user => !!user));
 
 
-  /**
-   * Fetch any user profile by UID (used when currentUser not available)
-   */
-  getUserProfileById(uid: string): Observable<UserData | null> {
-    const originatorRef = doc(this.firestore, `originators/${uid}`);
-    const lenderRef = doc(this.firestore, `lenders/${uid}`);
+ getUserProfileById(uid: string): Observable<UserData | null> {
+  console.log('🔥 Firebase user authenticated:', uid);
 
-    return from(getDoc(originatorRef)).pipe(
-      switchMap((originatorSnap) => {
-        if (originatorSnap.exists()) {
-          return of({
-            id: originatorSnap.id,
-            ...(originatorSnap.data() as any),
-          } as UserData);
-        }
+  const originatorRef = doc(this.firestore, `originators/${uid}`);
+  const lenderRef = doc(this.firestore, `lenders/${uid}`);
 
-        return from(getDoc(lenderRef)).pipe(
-          map((lenderSnap) => {
-            if (lenderSnap.exists()) {
-              return {
-                id: lenderSnap.id,
-                ...(lenderSnap.data() as any),
-              } as UserData;
-            } else {
-              return null;
-            }
-          })
-        );
-      }),
-      catchError((err) => {
-        console.error('❌ Error fetching user profile by ID:', err);
-        return of(null);
-      })
-    );
-  }
+  return from(getDoc(originatorRef)).pipe(
+    switchMap((originatorSnap) => {
+      if (originatorSnap.exists()) {
+        return of({
+          id: originatorSnap.id,
+          ...(originatorSnap.data() as any),
+        } as UserData);
+      }
+
+      // ⏭️ Originator not found → check lender
+      return from(getDoc(lenderRef)).pipe(
+        map((lenderSnap) => {
+          if (lenderSnap.exists()) {
+            return {
+              id: lenderSnap.id,
+              ...(lenderSnap.data() as any),
+            } as UserData;
+          } else {
+            console.warn('❌ No originator or lender profile found.');
+            return null;
+          }
+        })
+      );
+    }),
+    catchError((err) => {
+      console.error('❌ Error fetching user profile:', err);
+      return of(null);
+    })
+  );
+}
+
+
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
     const user = this.auth.currentUser;
     if (!user) {
