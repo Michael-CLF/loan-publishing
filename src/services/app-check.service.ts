@@ -15,7 +15,7 @@ export class AppCheckService {
   /**
    * Initialize App Check with reCAPTCHA v3 provider
    * Uses environment configuration for the site key
-   */
+   
   async initializeAppCheck(): Promise<void> {
     if (this.initialized) {
       console.log('🟡 App Check already initialized.');

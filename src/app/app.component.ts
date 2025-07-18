@@ -56,7 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     try {
       // ✅ Initialize App Check first for security
-      await this.initializeAppCheck();
+     // await this.initializeAppCheck();
       
       this.logEnvironmentInfo();
       this.setupNavigationMonitoring();
@@ -80,7 +80,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   /**
    * ✅ Angular 18 Best Practice: Initialize App Check with proper error handling
-   */
+   
   private async initializeAppCheck(): Promise<void> {
     if (!isPlatformBrowser(this.platformId)) {
       console.log('⚪ Skipping App Check - not in browser environment');
