@@ -23,7 +23,6 @@ import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
-import { VerificationCodeService } from '../services/verification-code.service';
 
 
 
@@ -68,7 +67,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private locationService = inject(LocationService);
   private stripeService = inject(StripeService);
   private modalService = inject(ModalService);
-  private verificationService = inject(VerificationCodeService);
 
   private destroy$ = new Subject<void>();
 
