@@ -126,6 +126,7 @@ async function checkUserSubscriptionLenient(
         // ✅ Allow active subscriptions
        if (subscriptionStatus === 'grandfathered' || subscriptionStatus === 'active') {
           console.log('✅ Access granted - active subscription');
+          console.log('✅ Access granted - grandfathered user');
           return true;
         }
         

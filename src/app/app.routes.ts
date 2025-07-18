@@ -80,6 +80,10 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
+   { 
+    path: '__/auth/action', 
+    component: EmailLoginComponent 
+  },
 
   // ✅ FIXED: Corrected typo in redirect
   {
