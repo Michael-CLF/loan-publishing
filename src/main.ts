@@ -22,12 +22,12 @@ bootstrapApplication(AppComponent, {
     // Firebase Firestore
     provideFirestore(() => getFirestore()),
 
-    {
+   /* {
       provide: APP_INITIALIZER,
       useFactory: (appCheckService: AppCheckService) => () => appCheckService.initializeAppCheck(),
       deps: [AppCheckService],
       multi: true
-    },
+    },*/
 
     // ✅ SINGLE ROUTER PROVIDER
     provideRouter(routes),
