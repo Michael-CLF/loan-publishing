@@ -120,7 +120,8 @@ async function checkUserSubscriptionLenient(
           subscriptionStatus,
           registrationCompleted,
           paymentPending,
-          collection
+          collection,
+          fullUserData: userData
         });
 
         // ✅ Allow active subscriptions
