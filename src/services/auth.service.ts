@@ -219,9 +219,6 @@ export class AuthService {
     })
   );
 }
-
-
-
   /**
  * ✅ Check if current URL is a sign-in email link
  */
