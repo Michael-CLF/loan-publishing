@@ -271,20 +271,19 @@ export class DashboardComponent implements OnInit {
       }
 
       const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+      if (!firebaseUser) {
+        this.handleNoAuthenticatedUser();
+        return;
+      }
 
-      if (!firebaseUser) return;
-
-      const userData = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email
-      };
+      this.user = firebaseUser;
+      const userId = firebaseUser.uid;  // ✅ Direct access like other components
 
       this.user = {
         uid: firebaseUser.uid,
         email: firebaseUser.email,
       } as FirebaseUser;
 
-      const userId = getUserId(user);
       console.log('Logged in user ID:', userId);
       if (userId) {
         await this.fetchUserProfile(this.user);
