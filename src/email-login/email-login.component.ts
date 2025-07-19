@@ -120,30 +120,39 @@ export class EmailLoginComponent implements OnInit {
   }
 
   private handleEmailLink(): void {
-    this.isVerifying = true;
-    this.errorMessage = '';
+  this.isVerifying = true;
+  this.errorMessage = '';
 
-    const storedEmail = this.authService.getStoredEmail();
-    console.log('Stored email for verification:', storedEmail || 'Not found');
+  const storedEmail = this.authService.getStoredEmail();
+  console.log('Stored email for verification:', storedEmail || 'Not found');
 
-    if (!storedEmail) {
-      this.isVerifying = false;
-      this.errorMessage = 'Please enter the email you used to request the login link.';
-      return;
-    }
-
-    this.authService.loginWithEmailLink(storedEmail).subscribe({
-      next: () => {
-        this.isVerifying = false;
-        // ✅ Already redirected by auth.service.ts
-      },
-      error: (error: Error) => {
-        this.isVerifying = false;
-        this.errorMessage = `Error: ${error.message}`;
-        console.error('Error verifying email link:', error);
-      },
-    });
+  if (!storedEmail) {
+    this.isVerifying = false;
+    this.errorMessage = 'Please enter the email you used to request the login link.';
+    return;
   }
+
+  this.authService.loginWithEmailLink(storedEmail).subscribe({
+    next: () => {
+      this.isVerifying = false;
+      console.log('✅ Email link sign-in successful');
+      // Navigation handled by auth service
+    },
+    error: (error: any) => {
+      this.isVerifying = false;
+      console.error('❌ Email link sign-in error:', error);
+      
+      // ✅ Handle specific Firebase errors
+      if (error.code === 'auth/invalid-action-code') {
+        this.errorMessage = 'This login link has expired or been used already. Please request a new one.';
+      } else if (error.code === 'auth/expired-action-code') {
+        this.errorMessage = 'This login link has expired. Please request a new one.';
+      } else {
+        this.errorMessage = `Login failed: ${error.message}`;
+      }
+    },
+  });
+}
 
   openRoleSelectionModal(): void {
     this.modalService.openRoleSelectionModal();
