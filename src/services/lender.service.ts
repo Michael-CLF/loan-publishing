@@ -38,8 +38,12 @@ export interface Lender {
   providedIn: 'root',
 })
 export class LenderService {
-  private firestore = inject(Firestore);
   private firestoreService = inject(FirestoreService);
+
+private get db() {
+  return this.firestoreService.firestore;
+}
+
 
   // Convert UserData to Lender format
   private mapUserToLender(user: UserData): Lender {

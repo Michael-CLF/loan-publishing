@@ -8,6 +8,11 @@ import { Firestore, collection, getDocs, doc, updateDoc } from '@angular/fire/fi
 export class StateMigrationService {
   private firestore = inject(Firestore);
 
+private get db() {
+  return this.firestore;
+}
+
+
   private stateMapping: Record<string, string> = {
     'Alabama': 'AL', 'Alaska': 'AK', 'Arizona': 'AZ', 'Arkansas': 'AR',
     'California': 'CA', 'Colorado': 'CO', 'Connecticut': 'CT', 'Delaware': 'DE',

@@ -19,6 +19,12 @@ import { environment } from 'src/environments/environment';
 })
 export class UserService {
   private firestore = inject(Firestore);
+
+private get db() {
+  return this.firestore;
+}
+
+
   private auth = inject(Auth);
   private http = inject(HttpClient);
 
@@ -50,7 +56,7 @@ export class UserService {
     userRole: 'lender' | 'originator' | null
   ): Observable<void> {
     const collection = userRole === 'lender' ? 'lenders' : 'originators';
-    const userDocRef = doc(this.firestore, `${collection}/${userId}`);
+    const userDocRef = doc(this.db, `${collection}/${userId}`);
 
     return from(
       updateDoc(userDocRef, {
@@ -70,7 +76,7 @@ export class UserService {
    */
   deleteUserWithRole(userId: string, userRole: 'lender' | 'originator' | null): Observable<void> {
     const collection = userRole === 'lender' ? 'lenders' : 'originators';
-    const userDocRef = doc(this.firestore, `${collection}/${userId}`);
+    const userDocRef = doc(this.db, `${collection}/${userId}`);
     return from(deleteDoc(userDocRef));
   }
 

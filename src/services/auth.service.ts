@@ -30,16 +30,25 @@ import { UserData } from '../models/user-data.model';
 import { BehaviorSubject } from 'rxjs';
 import { authState, user } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
+import { FirestoreService } from './firestore.service';
+
 
 @Injectable({
   providedIn: 'root',
 })
 export class AuthService {
+  constructor(
+    private firestoreService: FirestoreService
+  ) {}
+
   private auth = inject(Auth);
-  private firestore = inject(Firestore);
   private router = inject(Router);
   private http = inject(HttpClient);
   private registrationSuccess = false;
+
+  private get db() {
+    return this.firestoreService.firestore;
+  }
 
   /**
    * ✅ Register and store Firestore user profile
@@ -53,7 +62,7 @@ export class AuthService {
     const uid = firebaseUser.uid;
     const role = userData.role || 'lender'; // fallback if missing
 
-    const userDocRef = doc(this.firestore, `${role}s/${uid}`);
+    const userDocRef = doc(this.db, `${role}s/${uid}`);
 
     const newUserData = {
       uid,
@@ -116,8 +125,8 @@ export class AuthService {
   getUserProfileById(uid: string): Observable<UserData | null> {
     console.log('🔥 Firebase user authenticated:', uid);
 
-    const originatorRef = doc(this.firestore, `originators/${uid}`);
-    const lenderRef = doc(this.firestore, `lenders/${uid}`);
+    const originatorRef = doc(this.db, `originators/${uid}`);
+    const lenderRef = doc(this.db, `lenders/${uid}`);
 
     return from(getDoc(originatorRef)).pipe(
       switchMap((originatorSnap) => {
@@ -158,7 +167,7 @@ export class AuthService {
     }
 
     const collection = `${role}s`; // results in "lenders" or "originators"
-    const docRef = doc(this.firestore, `${collection}/${user.uid}`);
+    const docRef = doc(this.db, `${collection}/${user.uid}`);
 
     return from(setDoc(docRef, { role }, { merge: true })).pipe(map(() => { }));
   }
@@ -191,34 +200,34 @@ export class AuthService {
   }
 
   loginWithEmailLink(email: string): Observable<UserCredential> {
-  const storedEmail = email || localStorage.getItem('emailForSignIn');
-  if (!storedEmail) {
-    return throwError(() => new Error('No email stored for sign-in'));
+    const storedEmail = email || localStorage.getItem('emailForSignIn');
+    if (!storedEmail) {
+      return throwError(() => new Error('No email stored for sign-in'));
+    }
+
+    const url = window.location.href;
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      return throwError(() => new Error('Email link is invalid or expired'));
+    }
+
+    return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
+      switchMap((userCredential: UserCredential) => {
+        window.localStorage.removeItem('emailForSignIn');
+
+        // ✅ Determine redirect URL or fallback to /dashboard
+        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+        this.router.navigate([redirectUrl]);
+        localStorage.removeItem('redirectUrl');
+
+        // ✅ Return the full credential for further handling
+        return of(userCredential);
+      }),
+      catchError((err) => {
+        console.error('Email link sign-in failed', err);
+        return throwError(() => err);
+      })
+    );
   }
-
-  const url = window.location.href;
-  if (!isSignInWithEmailLink(this.auth, url)) {
-    return throwError(() => new Error('Email link is invalid or expired'));
-  }
-
-  return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
-    switchMap((userCredential: UserCredential) => {
-      window.localStorage.removeItem('emailForSignIn');
-
-      // ✅ Determine redirect URL or fallback to /dashboard
-      const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-      this.router.navigate([redirectUrl]);
-      localStorage.removeItem('redirectUrl');
-
-      // ✅ Return the full credential for further handling
-      return of(userCredential);
-    }),
-    catchError((err) => {
-      console.error('Email link sign-in failed', err);
-      return throwError(() => err);
-    })
-  );
-}
   /**
  * ✅ Check if current URL is a sign-in email link
  */

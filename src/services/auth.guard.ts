@@ -5,6 +5,7 @@ import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
 import { filter, map, take, switchMap, catchError, delay } from 'rxjs/operators';
 import { AuthService } from './auth.service';
+import { FirestoreService } from './firestore.service';
 
 export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
@@ -13,7 +14,10 @@ export const authGuard: CanActivateFn = (
   console.log('🛡️ AUTH GUARD TRIGGERED for route:', state.url);
   const router = inject(Router);
   const authService = inject(AuthService);
-  const firestore = inject(Firestore);
+  const firestoreService = inject(FirestoreService);
+  const firestore = firestoreService.firestore;
+
+
 
   // ✅ CRITICAL: Don't block Stripe callback routes
   if (state.url.includes('/payment-callback')) {
