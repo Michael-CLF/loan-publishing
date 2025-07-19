@@ -14,6 +14,7 @@ import {
 } from '../types/notification.types';
 import {
   Firestore,
+  getFirestore,
   doc,
   getDoc,
   getDocs,
@@ -30,7 +31,6 @@ import { ModalService } from '../services/modal.service';
 
 // Services
 import { AuthService } from '../services/auth.service';
-import { FirestoreService } from '../services/firestore.service';
 import { LenderService } from '../services/lender.service';
 import { LoanService } from '../services/loan.service';
 import { EmailNotificationService } from '../services/email-notification.service';
@@ -46,6 +46,7 @@ import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
+import { FirestoreService } from 'src/services/firestore.service';
 
 
 
@@ -72,8 +73,7 @@ export class DashboardComponent implements OnInit {
   // Dependency injection
   private readonly authService = inject(AuthService); 
   private readonly router = inject(Router);
-  private readonly firestore = inject(Firestore);
-  private readonly firestoreService = inject(FirestoreService);
+  public readonly firestoreService = inject(FirestoreService);
   private readonly lenderService = inject(LenderService);
   private readonly loanService = inject(LoanService);
   private readonly modalService = inject(ModalService);
@@ -314,7 +314,7 @@ export class DashboardComponent implements OnInit {
   }
 
   /**
-   * Fetch user profile from Firestore
+   * Fetch user profile from firestoreSService.firestore
    */
   private async fetchUserProfile(fbUser: FirebaseUser): Promise<void> {
     if (!fbUser || !fbUser.uid) {
@@ -325,7 +325,7 @@ export class DashboardComponent implements OnInit {
     this.accountNumber = fbUser.uid.substring(0, 8);
 
     // Try lenders collection first
-    const lenderDocRef = doc(this.firestore, `lenders/${fbUser.uid}`);
+    const lenderDocRef = doc(this.firestoreService.firestore, `lenders/${fbUser.uid}`);
     const lenderSnap = await getDoc(lenderDocRef);
 
     if (lenderSnap.exists()) {
@@ -334,7 +334,7 @@ export class DashboardComponent implements OnInit {
     }
 
     // If not found in lenders, try originators collection
-    const userDocRef = doc(this.firestore, `originators/${fbUser.uid}`);
+    const userDocRef = doc(this.firestoreService.firestore, `originators/${fbUser.uid}`);
     const userSnap = await getDoc(userDocRef);
 
     if (userSnap.exists()) {
@@ -640,7 +640,7 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
-    const savedLoansCollectionRef = collection(this.firestore, 'loanFavorites');
+    const savedLoansCollectionRef = collection(this.firestoreService.firestore, 'loanFavorites');
     const q = query(
       savedLoansCollectionRef,
       where('loanId', '==', loan.id),
@@ -687,7 +687,7 @@ export class DashboardComponent implements OnInit {
     if (confirmed) {
       try {
         const savedLoanDocRef = doc(
-          this.firestore,
+          this.firestoreService.firestore,
           `loanFavorites/${savedLoanId}`
         );
 
@@ -1087,7 +1087,7 @@ export class DashboardComponent implements OnInit {
     if (confirmed) {
       try {
         const docRef = doc(
-          this.firestore,
+          this.firestoreService.firestore,
           `originatorLenderFavorites/${savedFavoriteId}`
         );
         await deleteDoc(docRef);
@@ -1299,7 +1299,7 @@ export class DashboardComponent implements OnInit {
 
     if (confirmed) {
       try {
-        const loanDocRef = doc(this.firestore, `loans/${loanId}`);
+        const loanDocRef = doc(this.firestoreService.firestore, `loans/${loanId}`);
         await deleteDoc(loanDocRef);
 
         const currentLoans = this.loans();
@@ -1366,7 +1366,7 @@ export class DashboardComponent implements OnInit {
     }
 
     const collectionName = this.userRole === 'lender' ? 'lenders' : 'originators';
-    const userDocRef = doc(this.firestore, `${collectionName}/${this.userData.id}`);
+    const userDocRef = doc(this.firestoreService.firestore, `${collectionName}/${this.userData.id}`);
     await deleteDoc(userDocRef);
 
     this.authService.logout().subscribe({

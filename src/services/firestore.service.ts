@@ -36,7 +36,8 @@ import { createTimestamp, createServerTimestamp } from '../utils/firebase.utils'
 
 @Injectable({ providedIn: 'root' })
 export class FirestoreService {
-  private firestore = inject(Firestore);
+  public readonly firestore = inject(Firestore); // ✅ FIX
+
   private ngZone = inject(NgZone);
   private injector = inject(Injector);
   private destroyRef = inject(DestroyRef);
