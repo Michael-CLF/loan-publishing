@@ -210,6 +210,7 @@ export class DashboardComponent implements OnInit {
   ];
 
   ngOnInit(): void {
+    console.log('🏗️ DASHBOARD COMPONENT - ngOnInit started');
     console.log('Dashboard component initializing...');
     this.subscribeToAuthState();
   }
@@ -230,6 +231,7 @@ export class DashboardComponent implements OnInit {
  * Handle logged out state
  */
   private handleLoggedOut(): void {
+    console.log('🚪 DASHBOARD - handleLoggedOut called, redirecting to login');
     this.userData = {} as UserData;
     this.accountNumber = '';
     this.router.navigate(['/login']);
@@ -269,7 +271,7 @@ export class DashboardComponent implements OnInit {
         this.handleNoAuthenticatedUser();
         return;
       }
-      
+
       const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
       if (!firebaseUser) {
         this.handleNoAuthenticatedUser();
