@@ -175,7 +175,7 @@ export class AuthService {
    */
   sendLoginLink(email: string): Observable<void> {
     const actionCodeSettings = {
-      url: `${environment.frontendUrl}`,
+      url: `${environment.frontendUrl}/dashboard`,
       handleCodeInApp: true,
     };
 

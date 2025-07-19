@@ -32,7 +32,7 @@ import { ContactComponent } from 'src/components/contact/contact.component';
 export const routes: Routes = [
    {
     path: '__/auth/action',
-    redirectTo: '/__/auth/action',
+    redirectTo: '/dashboard',
     pathMatch: 'full'
   },
   { path: 'admin', component: AdminComponent },
