@@ -88,7 +88,7 @@ export const routes: Routes = [
     path: 'registration-processing',
     component: RegistrationProcessingComponent
   },
-  { path: '**', redirectTo: '', pathMatch: 'full' },
+  
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
@@ -127,5 +127,6 @@ export const routes: Routes = [
 
   // ✅ Testing route (can be removed in production)
   { path: 'test-processing', component: RegistrationProcessingComponent },
+  { path: '**', redirectTo: '', pathMatch: 'full' },
 
 ];
