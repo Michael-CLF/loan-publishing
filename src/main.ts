@@ -45,6 +45,19 @@ bootstrapApplication(AppComponent, {
 
     // ✅ HTTP Client Provider  
     provideHttpClient(),
+
+    // ✅ ALL APPLICATION SERVICES - This fixes the NullInjectorError
+    AuthService,
+    AppCheckService,
+    NotificationPreferencesService,
+    FirestoreService,
+    LenderService,
+    LoanService,
+    EmailNotificationService,
+    LocationService,
+    ModalService,
+    UserService,
+    LoanTypeService,
   ],
 })
   .catch(err => console.error('Error starting app:', err));

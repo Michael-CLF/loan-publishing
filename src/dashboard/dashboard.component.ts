@@ -70,8 +70,7 @@ interface LoanTypeOption {
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
-  private readonly authService = inject(AuthService);
-  private route = inject(ActivatedRoute);
+  private readonly authService = inject(AuthService); 
   private readonly router = inject(Router);
   private readonly firestore = inject(Firestore);
   private readonly firestoreService = inject(FirestoreService);
@@ -81,6 +80,7 @@ export class DashboardComponent implements OnInit {
   public readonly locationService = inject(LocationService);
   private readonly notificationPreferencesService = inject(NotificationPreferencesService);
   private readonly emailNotificationService = inject(EmailNotificationService);
+  private route = inject(ActivatedRoute);
 
 
 
@@ -212,7 +212,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('🏗️ DASHBOARD COMPONENT - ngOnInit started');
     console.log('Dashboard component initializing...');
-    this.subscribeToAuthState();
+    //this.subscribeToAuthState();
   }
 
   private subscribeToAuthState(): void {
