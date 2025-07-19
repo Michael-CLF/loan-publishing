@@ -55,7 +55,7 @@ export class LoanMatchesComponent implements OnInit {
     }
 
     this.loanService.getLoanById(loanId).subscribe({
-      next: (loanData) => {
+      next: (loanData: Loan | null) => {
         if (!loanData) {
           this.error.set('Loan not found.');
           this.loading.set(false);
@@ -164,7 +164,7 @@ viewLenderDetails(lenderId: string): void {
 
   private loadLendersAndMatch(loan: Loan): void {
     this.lenderService.getAllLenders().subscribe({
-      next: (lenders) => {
+      next: (lenders: Lender[]) => {
         console.log(`\n🏁 Starting matching process for ${lenders.length} total lenders`);
         
         const viableLenders = lenders.filter(lender => 

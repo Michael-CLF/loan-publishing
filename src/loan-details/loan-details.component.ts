@@ -161,7 +161,7 @@ allLoanTypeOptions: LoanTypeOption[] = [
           this.errorMessage.set(null);
 
           return this.loanService.getLoanById(id).pipe(
-            tap((loan) => {
+            tap((loan:Loan | null) => {
               if (loan) {
                 console.log('LOAN DETAILS: Loan loaded:', loan);
                 this.loan.set(loan);

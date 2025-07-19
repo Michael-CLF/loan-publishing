@@ -5,6 +5,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  docData,
   deleteDoc,
   getDoc,
   getDocs,
@@ -15,7 +16,7 @@ import {
 } from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { Loan as LoanModel } from '../models/loan-model.model';
+import { Loan } from '../models/loan-model.model';
 import { Auth } from '@angular/fire/auth';
 
 @Injectable({
@@ -32,7 +33,7 @@ export class LoanService {
   /**
    * 🔁 Get all loans created by current user
    */
-  getMyLoans(): Observable<LoanModel[]> {
+  getMyLoans(): Observable<Loan[]> {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return of([]);
 
@@ -43,7 +44,7 @@ export class LoanService {
 
     return from(getDocs(q)).pipe(
       map((snap) =>
-        snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as LoanModel))
+        snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Loan))
       ),
       catchError((error) => {
         console.error('LoanService: getMyLoans failed', error);
@@ -55,7 +56,7 @@ export class LoanService {
   /**
    * ➕ Create a new loan
    */
-  createLoan(data: Partial<LoanModel>): Observable<string> {
+  createLoan(data: Partial<Loan>): Observable<string> {
     const uid = this.auth.currentUser?.uid;
     if (!uid) return of('');
 
@@ -85,7 +86,7 @@ deleteLoan(id: string): Observable<void> {
   /**
    * ✏️ Update loan
    */
-  updateLoan(id: string, data: Partial<LoanModel>): Observable<void> {
+  updateLoan(id: string, data: Partial<Loan>): Observable<void> {
     return from(
       updateDoc(doc(this.db, 'loans', id), {
         ...data,
@@ -94,21 +95,17 @@ deleteLoan(id: string): Observable<void> {
     );
   }
 
-  /**
-   * 📄 Get one loan by ID
-   */
-  getLoan(id: string): Observable<LoanModel | null> {
-    return from(getDoc(doc(this.db, 'loans', id))).pipe(
-      map((snap) => {
-        if (snap.exists()) {
-          return { id: snap.id, ...snap.data() } as LoanModel;
-        }
-        return null;
-      }),
-      catchError((error) => {
-        console.error('LoanService: getLoan failed', error);
-        return of(null);
-      })
-    );
-  }
+  getLoanById(id: string): Observable<Loan | null> {
+  const loanDocRef = doc(this.db, 'loans', id);
+  return docData(loanDocRef).pipe(
+    map((loanData) => {
+      if (!loanData) return null;
+      return { id, ...loanData } as Loan;
+    }),
+    catchError((error) => {
+      console.error('❌ Error fetching loan by ID:', error);
+      return of(null);
+    })
+  );
+}
 }
