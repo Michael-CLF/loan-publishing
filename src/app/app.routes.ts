@@ -30,6 +30,11 @@ import { RegistrationProcessingComponent } from 'src/components/registration-pro
 import { ContactComponent } from 'src/components/contact/contact.component';
 
 export const routes: Routes = [
+   {
+    path: '__/auth/action',
+    redirectTo: '/__/auth/action',
+    pathMatch: 'full'
+  },
   { path: 'admin', component: AdminComponent },
   {
     path: 'account/edit',
@@ -89,8 +94,6 @@ export const routes: Routes = [
     component: RegistrationProcessingComponent
   },
   { path: '**', redirectTo: '', pathMatch: 'full' },
-
-
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
