@@ -191,35 +191,35 @@ export class AuthService {
   }
 
   loginWithEmailLink(email: string): Observable<UserCredential> {
-    const storedEmail = email || localStorage.getItem('emailForSignIn');
-    if (!storedEmail) {
-      return throwError(() => new Error('No email stored for sign-in'));
-    }
-
-    const url = window.location.href;
-    if (!isSignInWithEmailLink(this.auth, url)) {
-      throw new Error('Email link is invalid or expired');
-    }
-
-    return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
-      switchMap((userCredential: UserCredential) => {
-        window.localStorage.removeItem('emailForSignIn');
-
-        // ✅ Determine redirect URL from localStorage or default to dashboard
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        this.router.navigate([redirectUrl]);
-        localStorage.removeItem('redirectUrl');
-
-
-        // ✅ RETURN full UserCredential
-        return of(userCredential);
-      }),
-      catchError((err) => {
-        console.error('Email link sign-in failed', err);
-        return throwError(() => err);
-      })
-    );
+  const storedEmail = email || localStorage.getItem('emailForSignIn');
+  if (!storedEmail) {
+    return throwError(() => new Error('No email stored for sign-in'));
   }
+
+  const url = window.location.href;
+  if (!isSignInWithEmailLink(this.auth, url)) {
+    return throwError(() => new Error('Email link is invalid or expired'));
+  }
+
+  return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
+    switchMap((userCredential: UserCredential) => {
+      window.localStorage.removeItem('emailForSignIn');
+
+      // ✅ Determine redirect URL or fallback to /dashboard
+      const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+      this.router.navigate([redirectUrl]);
+      localStorage.removeItem('redirectUrl');
+
+      // ✅ Return the full credential for further handling
+      return of(userCredential);
+    }),
+    catchError((err) => {
+      console.error('Email link sign-in failed', err);
+      return throwError(() => err);
+    })
+  );
+}
+
 
 
   /**
