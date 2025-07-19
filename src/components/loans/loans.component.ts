@@ -170,7 +170,9 @@ export class LoansComponent implements OnInit {
       const userId = firebaseUser.uid;
 
 
-      const userProfile = await firstValueFrom(this.authService.getUserProfileById(userId));
+     const userProfile = await firstValueFrom(this.authService.getUserProfile());
+
+
 
       if (!userProfile || userProfile.role !== 'lender') {
         alert('Only lenders can save favorite loans');

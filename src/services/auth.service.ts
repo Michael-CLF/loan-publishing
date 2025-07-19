@@ -122,43 +122,48 @@ export class AuthService {
   isLoggedIn$ = authState(this.auth).pipe(map(user => !!user));
 
 
-  getUserProfileById(uid: string): Observable<UserData | null> {
-    console.log('🔥 Firebase user authenticated:', uid);
+getUserProfile(): Observable<UserData | null> {
+  return this.getCurrentFirebaseUser().pipe(
+    switchMap(user => {
+      if (!user) return of(null);
+      const uid = user.uid;
 
-    const originatorRef = doc(this.db, `originators/${uid}`);
-    const lenderRef = doc(this.db, `lenders/${uid}`);
+      const originatorRef = doc(this.db, `originators/${uid}`);
+      const lenderRef = doc(this.db, `lenders/${uid}`);
 
-    return from(getDoc(originatorRef)).pipe(
-      switchMap((originatorSnap) => {
-        if (originatorSnap.exists()) {
-          return of({
-            id: originatorSnap.id,
-            ...(originatorSnap.data() as any),
-          } as UserData);
-        }
+      return from(getDoc(originatorRef)).pipe(
+        switchMap(originatorSnap => {
+          if (originatorSnap.exists()) {
+            return of({
+              id: originatorSnap.id,
+              ...(originatorSnap.data() as any),
+            } as UserData);
+          }
 
-        // ⏭️ Originator not found → check lender
-        return from(getDoc(lenderRef)).pipe(
-          map((lenderSnap) => {
-            if (lenderSnap.exists()) {
-              return {
-                id: lenderSnap.id,
-                ...(lenderSnap.data() as any),
-              } as UserData;
-            } else {
-              console.warn('❌ No originator or lender profile found.');
-              return null;
-            }
-          })
-        );
-      }),
-      catchError((err) => {
-        console.error('❌ Error fetching user profile:', err);
-        return of(null);
-      })
-    );
-  }
+          return from(getDoc(lenderRef)).pipe(
+            map(lenderSnap => {
+              if (lenderSnap.exists()) {
+                return {
+                  id: lenderSnap.id,
+                  ...(lenderSnap.data() as any),
+                } as UserData;
+              } else {
+                console.warn('❌ No originator or lender profile found.');
+                return null;
+              }
+            })
+          );
+        }),
+        catchError(err => {
+          console.error('❌ Error fetching user profile:', err);
+          return of(null);
+        })
+      );
+    })
+  );
+}
 
+   
 
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
     const user = this.auth.currentUser;

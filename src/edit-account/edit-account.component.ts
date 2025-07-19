@@ -126,7 +126,7 @@ export class EditAccountComponent implements OnInit {
       this.userId = uid;
       console.log('User ID:', uid);
 
-      const userProfile = await this.authService.getUserProfileById(uid).toPromise();
+      const userProfile = await firstValueFrom(this.authService.getUserProfile());
       if (!userProfile) {
         this.errorMessage = 'User profile not found';
         this.isLoading = false;

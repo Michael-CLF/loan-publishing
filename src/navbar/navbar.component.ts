@@ -121,7 +121,8 @@ async loadUserData(user: User): Promise<void> {
 
   try {
     // ✅ Use the existing auth service method that properly checks both collections
-    const userProfile = await firstValueFrom(this.authService.getUserProfileById(user.uid));
+  const userProfile = await firstValueFrom(this.authService.getUserProfile());
+
     
     if (!userProfile) {
       throw new Error('User document does not exist');
