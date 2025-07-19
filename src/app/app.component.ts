@@ -256,11 +256,6 @@ export class AppComponent implements OnInit, OnDestroy {
   private handleEmailVerification(): void {
     console.log('📧 Checking for email verification link...');
 
-    if (window.location.pathname.includes('/__/auth/action')) {
-      console.log('🔥 Firebase auth action detected, letting Firebase handle it');
-      return;
-    }
-
     // Check if the current URL is a sign-in link
     this.authService
       .isEmailSignInLink()
