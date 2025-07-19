@@ -71,7 +71,7 @@ interface LoanTypeOption {
 })
 export class DashboardComponent implements OnInit {
   // Dependency injection
-  private readonly authService = inject(AuthService); 
+  private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
   public readonly firestoreService = inject(FirestoreService);
   private readonly lenderService = inject(LenderService);
@@ -566,20 +566,14 @@ export class DashboardComponent implements OnInit {
     this.loansError.set(null);
 
     this.loanService.getMyLoans().subscribe({
-      next: (serviceLoans) => {
-        // Convert service loans to your component's expected type if needed
-        const loans = serviceLoans.map((loan) => loan as unknown as LoanModel);
-
-        console.log(`Found ${loans.length} loans for user ${userId}`);
-        this.loans.set(loans);
-        this.loansLoading.set(false);
+      next: (serviceLoans: LoanModel[]) => {
+        this.loans.set(serviceLoans);
       },
-      error: (error: Error) => {
-        console.error('Error loading loans:', error);
-        this.loansError.set('Failed to load your loans. Please try again.');
-        this.loansLoading.set(false);
-      },
+      error: (error: any) => {
+        console.error('❌ Error loading loans:', error);
+      }
     });
+
   }
 
   /**

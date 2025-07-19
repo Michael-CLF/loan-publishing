@@ -17,7 +17,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { LoanService } from '../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, tap, catchError, of } from 'rxjs';
-import { Loan, LoanUtils } from '../models/loan-model.model'; // ADDED: Import LoanUtils
+import { Loan, LoanUtils } from '../models/loan-model.model';
 
 
 @Component({
@@ -62,7 +62,6 @@ export class EditLoanComponent implements OnInit {
     // Initialize the form
     this.initForm();
 
-    // Get the loan ID from the route params and load the loan data
     this.route.paramMap
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -75,21 +74,22 @@ export class EditLoanComponent implements OnInit {
             this.loading.set(false);
           }
         }),
-        switchMap(() => {
-          if (!this.loanId) {
-            return of(null);
-          }
-          return this.loanService.getLoanById(this.loanId).pipe(
-            catchError((err) => {
-              console.error('Error fetching loan:', err);
-              this.error.set('Failed to load loan data: ' + err.message);
-              this.loading.set(false);
-              return of(null);
-            })
-          );
-        })
-      )
-      .subscribe((loan) => {
+        switchMap(() =>
+          this.loanId
+            ? this.loanService.getLoan(this.loanId).pipe(
+              catchError((err) => {
+                console.error('❌ Error fetching loan:', err);
+                this.error.set('Failed to load loan data: ' + err.message);
+                this.loading.set(false);
+                return of(null);
+              })
+            )
+            : of(null)
+        )
+      ) // ✅ <--- This was missing
+      .subscribe((loan: Loan | null) => {
+
+
         if (loan) {
           // Store property info in the signal for read-only display
           this.propertyInfo.set({

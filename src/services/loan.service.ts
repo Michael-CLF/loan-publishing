@@ -2,101 +2,112 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Firestore,
-  collection,
-  addDoc,
   doc,
-  deleteDoc,
-  getDocs,
-  getDoc,
+  setDoc,
   updateDoc,
+  deleteDoc,
+  getDoc,
+  getDocs,
+  collection,
   query,
   where,
-  orderBy,
   serverTimestamp,
-  DocumentData,
 } from '@angular/fire/firestore';
 import { Observable, from, of } from 'rxjs';
 import { map, catchError } from 'rxjs/operators';
-import { FirestoreService } from './firestore.service';
-import { Loan } from '../models/loan-model.model'; 
+import { Loan as LoanModel } from '../models/loan-model.model';
+import { Auth } from '@angular/fire/auth';
 
 @Injectable({
   providedIn: 'root',
 })
 export class LoanService {
-  private firestoreService = inject(FirestoreService);
+  private firestore = inject(Firestore);
+  private auth = inject(Auth);
 
   private get db() {
-    return this.firestoreService.firestore;
+    return this.firestore;
   }
 
-  private loansCollection = collection(this.db, 'loans');
+  /**
+   * 🔁 Get all loans created by current user
+   */
+  getMyLoans(): Observable<LoanModel[]> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return of([]);
 
-  getAllLoans(): Observable<Loan[]> {
-    const q = query(this.loansCollection, orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(this.db, 'loans'),
+      where('createdBy', '==', uid)
+    );
 
     return from(getDocs(q)).pipe(
-      map((snapshot) =>
-        snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Loan))
+      map((snap) =>
+        snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as LoanModel))
       ),
       catchError((error) => {
-        console.error('Error fetching loans:', error);
+        console.error('LoanService: getMyLoans failed', error);
         return of([]);
       })
     );
   }
 
-  getLoanById(id: string): Observable<Loan | null> {
-    const docRef = doc(this.db, 'loans', id);
+  /**
+   * ➕ Create a new loan
+   */
+  createLoan(data: Partial<LoanModel>): Observable<string> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) return of('');
 
-    return from(getDoc(docRef)).pipe(
-      map((docSnap) => {
-        if (docSnap.exists()) {
-          return { id: docSnap.id, ...docSnap.data() } as Loan;
+    const newId = doc(collection(this.db, 'loans')).id;
+    const newLoan = {
+      ...data,
+      createdBy: uid,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    return from(setDoc(doc(this.db, 'loans', newId), newLoan)).pipe(
+      map(() => newId),
+      catchError((error) => {
+        console.error('LoanService: createLoan failed', error);
+        return of('');
+      })
+    );
+  }
+
+deleteLoan(id: string): Observable<void> {
+  const loanRef = doc(this.db, 'loans', id);
+  return from(deleteDoc(loanRef));
+}
+
+
+  /**
+   * ✏️ Update loan
+   */
+  updateLoan(id: string, data: Partial<LoanModel>): Observable<void> {
+    return from(
+      updateDoc(doc(this.db, 'loans', id), {
+        ...data,
+        updatedAt: serverTimestamp(),
+      })
+    );
+  }
+
+  /**
+   * 📄 Get one loan by ID
+   */
+  getLoan(id: string): Observable<LoanModel | null> {
+    return from(getDoc(doc(this.db, 'loans', id))).pipe(
+      map((snap) => {
+        if (snap.exists()) {
+          return { id: snap.id, ...snap.data() } as LoanModel;
         }
         return null;
       }),
       catchError((error) => {
-        console.error('Error getting loan by ID:', error);
+        console.error('LoanService: getLoan failed', error);
         return of(null);
-      })
-    );
-  }
-
-  addLoan(loanData: Partial<Loan>): Promise<void> {
-    return addDoc(this.loansCollection, {
-      ...loanData,
-      createdAt: serverTimestamp(),
-    }).then(() => void 0);
-  }
-
-  updateLoan(id: string, data: Partial<Loan>): Promise<void> {
-    const docRef = doc(this.db, 'loans', id);
-    return updateDoc(docRef, {
-      ...data,
-      updatedAt: serverTimestamp(),
-    });
-  }
-
-  deleteLoan(id: string): Promise<void> {
-    const docRef = doc(this.db, 'loans', id);
-    return deleteDoc(docRef);
-  }
-
-  getLoansByOriginator(originatorId: string): Observable<Loan[]> {
-    const q = query(
-      this.loansCollection,
-      where('originatorId', '==', originatorId),
-      orderBy('createdAt', 'desc')
-    );
-
-    return from(getDocs(q)).pipe(
-      map((snapshot) =>
-        snapshot.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Loan))
-      ),
-      catchError((error) => {
-        console.error('Error fetching loans by originator:', error);
-        return of([]);
       })
     );
   }
