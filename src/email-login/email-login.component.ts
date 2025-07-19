@@ -31,15 +31,12 @@ export class EmailLoginComponent implements OnInit {
   errorMessage = '';
   successMessage = '';
   isEmailLink = false;
+  showLinkSent = false;
 
   constructor() {
     this.loginForm = this.fb.group({
       email: ['', [Validators.required, Validators.email]],
     });
-  }
-
-  openRoleSelectionModal(): void {
-    this.modalService.openRoleSelectionModal();
   }
 
   ngOnInit(): void {
@@ -80,6 +77,7 @@ export class EmailLoginComponent implements OnInit {
       next: () => {
         this.isLoading = false;
         this.successMessage = 'Login link sent!';
+        this.showLinkSent = true;
       },
       error: (error: Error) => {
         this.isLoading = false;
@@ -89,6 +87,15 @@ export class EmailLoginComponent implements OnInit {
     });
   }
 
+  requestNewLink(): void {
+    const email = this.emailControl?.value;
+    if (!email || !this.emailControl?.valid) {
+      this.errorMessage = 'Please enter a valid email address.';
+      return;
+    }
+
+    this.sendLoginLink(email);
+  }
 
   loginWithGoogle(): void {
     this.authService.loginWithGoogle().subscribe({
@@ -136,5 +143,9 @@ export class EmailLoginComponent implements OnInit {
         console.error('Error verifying email link:', error);
       },
     });
+  }
+
+  openRoleSelectionModal(): void {
+    this.modalService.openRoleSelectionModal();
   }
 }
