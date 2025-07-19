@@ -16,6 +16,7 @@ import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
+import { authGuard } from '../services/auth.guard';
 
 declare let gtag: Function;
 
@@ -181,14 +182,6 @@ export class AppComponent implements OnInit, OnDestroy {
         if (isLoggedIn && this.router.url.includes('/login')) {
           console.log('🔄 User is authenticated, redirecting from login');
 
-          // ✅ ADD THIS: Give auth guard time to run first
-          setTimeout(() => {
-            const redirectUrl = localStorage.getItem('redirectUrl');
-            // Clear the redirect URL before navigating
-            localStorage.removeItem('redirectUrl');
-            // Navigate to dashboard or home
-            this.router.navigate([redirectUrl || '/dashboard']);
-          }, 100);
         }
         
         // If user is not logged in and needs auth, redirect to login

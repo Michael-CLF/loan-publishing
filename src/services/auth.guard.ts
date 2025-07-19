@@ -10,6 +10,7 @@ export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot
 ): Observable<boolean> => {
+  console.log('🛡️ AUTH GUARD TRIGGERED for route:', state.url);
   const router = inject(Router);
   const authService = inject(AuthService);
   const firestore = inject(Firestore);
