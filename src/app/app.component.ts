@@ -288,18 +288,19 @@ export class AppComponent implements OnInit, OnDestroy {
 
     if (storedEmail) {
       // Attempt to sign in with the email link
-      this.authService.signInWithEmailLink(storedEmail)
+      this.authService.loginWithEmailLink(storedEmail)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-          next: (user: User | null) => {
-            if (user) {
-              console.log('✅ Sign-in with email link successful:', user.email);
-              this.handleSuccessfulAuth();
-            } else {
-              console.log('❌ Sign-in with email link failed, redirecting to login');
-              this.router.navigate(['/login']);
-            }
-          },
+         next: (userCredential) => {
+  const user = userCredential?.user;
+  if (user) {
+    console.log('✅ Sign-in with email link successful:', user.email);
+    this.handleSuccessfulAuth();
+  } else {
+    console.log('❌ Sign-in with email link failed, redirecting to login');
+    this.router.navigate(['/login']);
+  }
+},
           error: (error: Error) => {
             console.error('❌ Error signing in with email link:', error);
             this.router.navigate(['/login']);

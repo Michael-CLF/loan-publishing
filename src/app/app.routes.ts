@@ -77,12 +77,6 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
-   { 
-    path: '/login', 
-    component: EmailLoginComponent 
-  },
-
-  // ✅ FIXED: Corrected typo in redirect
   {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
@@ -94,6 +88,8 @@ export const routes: Routes = [
     path: 'registration-processing',
     component: RegistrationProcessingComponent
   },
+  { path: '**', redirectTo: '', pathMatch: 'full' },
+
 
   {
     path: 'loan-details',

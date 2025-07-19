@@ -68,42 +68,42 @@ export class AuthService {
   }
 
 
-/**
- * ✅ Register user via HTTP API (creates user with inactive status, no App Check required)
- */
-registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
-  console.log('🔍 Calling registerUser function');
-  
-  const registrationData = {
-    email: email.toLowerCase().trim(),
-    role: userData.role || 'originator',
-    userData: {
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      company: userData.company,
-      phone: userData.phone,
-      city: userData.city,
-      state: userData.state,
-    }
-  };
+  /**
+   * ✅ Register user via HTTP API (creates user with inactive status, no App Check required)
+   */
+  registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
+    console.log('🔍 Calling registerUser function');
 
-  // ✅ Call the new registerUser function (no App Check required)
-  const registerUserUrl = 'https://us-central1-loanpub.cloudfunctions.net/registerUser';
+    const registrationData = {
+      email: email.toLowerCase().trim(),
+      role: userData.role || 'originator',
+      userData: {
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        company: userData.company,
+        phone: userData.phone,
+        city: userData.city,
+        state: userData.state,
+      }
+    };
 
-  return this.http.post<{ success: boolean, uid: string }>(
-    registerUserUrl,
-    registrationData,
-    {
-      headers: { 'Content-Type': 'application/json' }
-      // ✅ No App Check headers needed for user registration
-    }
-  ).pipe(
-    catchError((error) => {
-      console.error('❌ Error registering user via API:', error);
-      return throwError(() => error);
-    })
-  );
-}
+    // ✅ Call the new registerUser function (no App Check required)
+    const registerUserUrl = 'https://us-central1-loanpub.cloudfunctions.net/registerUser';
+
+    return this.http.post<{ success: boolean, uid: string }>(
+      registerUserUrl,
+      registrationData,
+      {
+        headers: { 'Content-Type': 'application/json' }
+        // ✅ No App Check headers needed for user registration
+      }
+    ).pipe(
+      catchError((error) => {
+        console.error('❌ Error registering user via API:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 
 
   // Emits whether auth has initialized
@@ -113,42 +113,42 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
   isLoggedIn$ = authState(this.auth).pipe(map(user => !!user));
 
 
- getUserProfileById(uid: string): Observable<UserData | null> {
-  console.log('🔥 Firebase user authenticated:', uid);
+  getUserProfileById(uid: string): Observable<UserData | null> {
+    console.log('🔥 Firebase user authenticated:', uid);
 
-  const originatorRef = doc(this.firestore, `originators/${uid}`);
-  const lenderRef = doc(this.firestore, `lenders/${uid}`);
+    const originatorRef = doc(this.firestore, `originators/${uid}`);
+    const lenderRef = doc(this.firestore, `lenders/${uid}`);
 
-  return from(getDoc(originatorRef)).pipe(
-    switchMap((originatorSnap) => {
-      if (originatorSnap.exists()) {
-        return of({
-          id: originatorSnap.id,
-          ...(originatorSnap.data() as any),
-        } as UserData);
-      }
+    return from(getDoc(originatorRef)).pipe(
+      switchMap((originatorSnap) => {
+        if (originatorSnap.exists()) {
+          return of({
+            id: originatorSnap.id,
+            ...(originatorSnap.data() as any),
+          } as UserData);
+        }
 
-      // ⏭️ Originator not found → check lender
-      return from(getDoc(lenderRef)).pipe(
-        map((lenderSnap) => {
-          if (lenderSnap.exists()) {
-            return {
-              id: lenderSnap.id,
-              ...(lenderSnap.data() as any),
-            } as UserData;
-          } else {
-            console.warn('❌ No originator or lender profile found.');
-            return null;
-          }
-        })
-      );
-    }),
-    catchError((err) => {
-      console.error('❌ Error fetching user profile:', err);
-      return of(null);
-    })
-  );
-}
+        // ⏭️ Originator not found → check lender
+        return from(getDoc(lenderRef)).pipe(
+          map((lenderSnap) => {
+            if (lenderSnap.exists()) {
+              return {
+                id: lenderSnap.id,
+                ...(lenderSnap.data() as any),
+              } as UserData;
+            } else {
+              console.warn('❌ No originator or lender profile found.');
+              return null;
+            }
+          })
+        );
+      }),
+      catchError((err) => {
+        console.error('❌ Error fetching user profile:', err);
+        return of(null);
+      })
+    );
+  }
 
 
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
@@ -190,33 +190,36 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
     );
   }
 
- loginWithEmailLink(email: string): Observable<UserCredential> {
-  const storedEmail = email || localStorage.getItem('emailForSignIn');
-  if (!storedEmail) {
-    return throwError(() => new Error('No email stored for sign-in'));
+  loginWithEmailLink(email: string): Observable<UserCredential> {
+    const storedEmail = email || localStorage.getItem('emailForSignIn');
+    if (!storedEmail) {
+      return throwError(() => new Error('No email stored for sign-in'));
+    }
+
+    const url = window.location.href;
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      throw new Error('Email link is invalid or expired');
+    }
+
+    return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
+      switchMap((userCredential: UserCredential) => {
+        window.localStorage.removeItem('emailForSignIn');
+
+        // ✅ Determine redirect URL from localStorage or default to dashboard
+        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+        this.router.navigate([redirectUrl]);
+        localStorage.removeItem('redirectUrl');
+
+
+        // ✅ RETURN full UserCredential
+        return of(userCredential);
+      }),
+      catchError((err) => {
+        console.error('Email link sign-in failed', err);
+        return throwError(() => err);
+      })
+    );
   }
-
-  const url = window.location.href;
-  if (!isSignInWithEmailLink(this.auth, url)) {
-    throw new Error('Email link is invalid or expired');
-  }
-
-  return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
-    switchMap((userCredential: UserCredential) => {
-      window.localStorage.removeItem('emailForSignIn');
-
-      // ✅ force redirect to dashboard
-      this.router.navigate(['/dashboard']);
-
-      // ✅ RETURN full UserCredential
-      return of(userCredential);
-    }),
-    catchError((err) => {
-      console.error('Email link sign-in failed', err);
-      return throwError(() => err);
-    })
-  );
-}
 
 
   /**
@@ -227,19 +230,6 @@ registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean,
     return of(isSignInWithEmailLink(this.auth, link));
   }
 
-  /**
-   * ✅ Sign in with stored email link
-   */
-  signInWithEmailLink(email: string): Observable<User | null> {
-    const link = window.location.href;
-    return from(signInWithEmailLink(this.auth, email, link)).pipe(
-      map(cred => cred.user),
-      catchError(error => {
-        console.error('❌ signInWithEmailLink error:', error);
-        return of(null);
-      })
-    );
-  }
 
   getAuthStatus(): Observable<boolean> {
     return this.isLoggedIn$;
