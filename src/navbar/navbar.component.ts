@@ -115,63 +115,50 @@ export class NavbarComponent implements OnInit, OnDestroy {
     }
   }
 
-  async loadUserData(user: User): Promise<void> {
-    this.loading = true;
-    this.error = null;
+async loadUserData(user: User): Promise<void> {
+  this.loading = true;
+  this.error = null;
 
-    try {
-      const role = (user as any).role || ''; // 🔁 Only if you're storing role in Firebase Auth
-      const userDocRef = doc(this.firestore, `${role}s/${user.uid}`);
-      const docSnap = await getDoc(userDocRef);
-
-      if (!docSnap.exists()) {
-        throw new Error('User document does not exist');
-      }
-
-      const data = docSnap.data();
-      const contact = data['contactInfo'] || {};
-
-      const toTitleCase = (str: string): string =>
-        str
-          .split(' ')
-          .map(
-            (word) =>
-              word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
-          )
-          .join(' ');
-
-      this.userData = {
-        id: docSnap.id,
-        email: contact.contactEmail || data['email'] || '',
-        firstName: contact.firstName || data['firstName'] || '',
-        lastName: contact.lastName || data['lastName'] || '',
-        phone: contact.contactPhone || data['phone'] || '',
-        city: contact.city || data['city'] || '',
-        state: toTitleCase(contact.state || data['state'] || ''),
-        company: contact.company || data['company'] || '',
-        role: data['role'] || role,
-        accountNumber: this.accountNumber,
-      };
-
-      console.log('NavbarComponent - Final userData:', this.userData);
-
-      if (this.userData.email && this.userData.email !== user.email) {
-        console.warn('NavbarComponent - Email mismatch!', {
-          authEmail: user.email,
-          firestoreEmail: this.userData.email,
-        });
-      }
-    } catch (error) {
-      console.error('NavbarComponent - Error loading user:', error);
-      this.error = 'Error loading profile';
-      this.userData = {
-        id: user.uid || '',
-        email: user.email || 'Unknown email',
-      };
-    } finally {
-      this.loading = false;
+  try {
+    // ✅ Use the existing auth service method that properly checks both collections
+    const userProfile = await firstValueFrom(this.authService.getUserProfileById(user.uid));
+    
+    if (!userProfile) {
+      throw new Error('User document does not exist');
     }
+
+    // ✅ Set account number
+    this.accountNumber = user.uid.substring(0, 8);
+
+    // ✅ Use the data from auth service
+    this.userData = {
+      id: userProfile.id,
+      email: userProfile.email || user.email || '',
+      firstName: userProfile.firstName || '',
+      lastName: userProfile.lastName || '',
+      phone: userProfile.phone || '',
+      city: userProfile.city || '',
+      state: userProfile.state || '',
+      company: userProfile.company || '',
+      role: userProfile.role || '',
+      accountNumber: this.accountNumber,
+    };
+
+    console.log('NavbarComponent - Final userData:', this.userData);
+
+  } catch (error) {
+    console.error('NavbarComponent - Error loading user:', error);
+    this.error = 'Error loading profile';
+    this.userData = {
+      id: user.uid || '',
+      email: user.email || 'Unknown email',
+      accountNumber: user.uid?.substring(0, 8) || '',
+    };
+  } finally {
+    this.loading = false;
   }
+}
+       
 
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';

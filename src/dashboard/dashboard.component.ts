@@ -277,7 +277,7 @@ export class DashboardComponent implements OnInit {
       }
 
       this.user = firebaseUser;
-      const userId = firebaseUser.uid;  // ✅ Direct access like other components
+      const userId = firebaseUser.uid;
 
       this.user = {
         uid: firebaseUser.uid,
