@@ -76,7 +76,7 @@ export class EditLoanComponent implements OnInit {
         }),
         switchMap(() =>
           this.loanId
-            ? this.loanService.getLoan(this.loanId).pipe(
+            ? this.loanService.getLoanById(this.loanId).pipe(
               catchError((err) => {
                 console.error('❌ Error fetching loan:', err);
                 this.error.set('Failed to load loan data: ' + err.message);
