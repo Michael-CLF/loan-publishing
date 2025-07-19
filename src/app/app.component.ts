@@ -56,14 +56,14 @@ export class AppComponent implements OnInit, OnDestroy {
   async ngOnInit(): Promise<void> {
     try {
       // ✅ Initialize App Check first for security
-     // await this.initializeAppCheck();
-      
+      // await this.initializeAppCheck();
+
       this.logEnvironmentInfo();
       this.setupNavigationMonitoring();
       this.setupAuthStateManagement();
       this.handleEmailVerification();
       this.logFirebaseAuthStatus();
-      
+
       this.isAppInitialized = true;
     } catch (error) {
       console.error('Error during app initialization:', error);
@@ -137,10 +137,10 @@ export class AppComponent implements OnInit, OnDestroy {
             );
           }
         }
-        
+
         if (event instanceof NavigationEnd) {
           console.log('✅ Navigation completed to:', event.url);
-          
+
           if (isPlatformBrowser(this.platformId)) {
             // Clear the redirectUrl after successful navigation
             const storedRedirectUrl = localStorage.getItem('redirectUrl');
@@ -180,14 +180,17 @@ export class AppComponent implements OnInit, OnDestroy {
         // If user is logged in but on login page, redirect to dashboard/home
         if (isLoggedIn && this.router.url.includes('/login')) {
           console.log('🔄 User is authenticated, redirecting from login');
-          const redirectUrl = localStorage.getItem('redirectUrl');
 
-          // Clear the redirect URL before navigating
-          localStorage.removeItem('redirectUrl');
-
-          // Navigate to dashboard or home
-          this.router.navigate([redirectUrl || '/dashboard']);
+          // ✅ ADD THIS: Give auth guard time to run first
+          setTimeout(() => {
+            const redirectUrl = localStorage.getItem('redirectUrl');
+            // Clear the redirect URL before navigating
+            localStorage.removeItem('redirectUrl');
+            // Navigate to dashboard or home
+            this.router.navigate([redirectUrl || '/dashboard']);
+          }, 100);
         }
+        
         // If user is not logged in and needs auth, redirect to login
         else if (
           !isLoggedIn &&
@@ -204,7 +207,7 @@ export class AppComponent implements OnInit, OnDestroy {
       .pipe(takeUntil(this.destroy$))
       .subscribe((isLoggedIn) => {
         console.log('🔄 Auth state changed:', isLoggedIn);
-        
+
         if (isPlatformBrowser(this.platformId)) {
           console.log(
             '💾 localStorage isLoggedIn:',
@@ -253,10 +256,10 @@ export class AppComponent implements OnInit, OnDestroy {
   private handleEmailVerification(): void {
     console.log('📧 Checking for email verification link...');
 
-     if (window.location.pathname.includes('/__/auth/action')) {
-    console.log('🔥 Firebase auth action detected, letting Firebase handle it');
-    return;
-  }
+    if (window.location.pathname.includes('/__/auth/action')) {
+      console.log('🔥 Firebase auth action detected, letting Firebase handle it');
+      return;
+    }
 
     // Check if the current URL is a sign-in link
     this.authService
@@ -296,16 +299,16 @@ export class AppComponent implements OnInit, OnDestroy {
       this.authService.loginWithEmailLink(storedEmail)
         .pipe(takeUntil(this.destroy$))
         .subscribe({
-         next: (userCredential) => {
-  const user = userCredential?.user;
-  if (user) {
-    console.log('✅ Sign-in with email link successful:', user.email);
-    this.handleSuccessfulAuth();
-  } else {
-    console.log('❌ Sign-in with email link failed, redirecting to login');
-    this.router.navigate(['/login']);
-  }
-},
+          next: (userCredential) => {
+            const user = userCredential?.user;
+            if (user) {
+              console.log('✅ Sign-in with email link successful:', user.email);
+              this.handleSuccessfulAuth();
+            } else {
+              console.log('❌ Sign-in with email link failed, redirecting to login');
+              this.router.navigate(['/login']);
+            }
+          },
           error: (error: Error) => {
             console.error('❌ Error signing in with email link:', error);
             this.router.navigate(['/login']);
@@ -329,17 +332,17 @@ export class AppComponent implements OnInit, OnDestroy {
     // Navigate to dashboard
     this.ngZone.run(() => {
       console.log('🏠 Navigating to dashboard after successful auth');
-      
+
       if (
         this.router.url === '/login' ||
         this.router.url.includes('/login/verify')
       ) {
-        const redirectUrl = isPlatformBrowser(this.platformId) 
+        const redirectUrl = isPlatformBrowser(this.platformId)
           ? localStorage.getItem('redirectUrl') || '/dashboard'
           : '/dashboard';
-          
+
         this.router.navigate([redirectUrl]);
-        
+
         if (isPlatformBrowser(this.platformId)) {
           localStorage.removeItem('redirectUrl');
         }

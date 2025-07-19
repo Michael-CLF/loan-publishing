@@ -269,7 +269,7 @@ export class DashboardComponent implements OnInit {
         this.handleNoAuthenticatedUser();
         return;
       }
-
+      
       const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
       if (!firebaseUser) {
         this.handleNoAuthenticatedUser();
