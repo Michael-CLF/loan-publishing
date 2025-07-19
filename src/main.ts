@@ -20,6 +20,19 @@ import { ModalService } from './services/modal.service';
 import { UserService } from './services/user.service';
 import { LoanTypeService } from './services/loan-type.service';
 import { AuthService } from './services/auth.service';
+import { provideFunctions, getFunctions } from '@angular/fire/functions';
+
+
+bootstrapApplication(AppComponent, {
+  providers: [
+    provideFirebaseApp(() => initializeApp(environment.firebase)),
+    provideAuth(() => getAuth()),
+    provideFirestore(() => getFirestore()),
+    provideFunctions(() => getFunctions()), 
+
+  ]
+});
+
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -31,6 +44,7 @@ bootstrapApplication(AppComponent, {
 
     // ✅ Firebase Firestore
     provideFirestore(() => getFirestore()),
+    provideFunctions(() => getFunctions()),
 
     // ✅ App Check (commented out but available)
     /* {
