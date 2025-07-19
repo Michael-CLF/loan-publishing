@@ -126,7 +126,7 @@ async function checkUserSubscriptionLenient(
 
         // ✅ Allow active subscriptions
         if (subscriptionStatus === 'grandfathered' || subscriptionStatus === 'active') {
-          console.log('✅ Access granted - grandfathered or active subscription'); 
+          console.log('✅ Access granted - grandfathered or active subscription');
           return true;
         }
 
@@ -224,8 +224,8 @@ async function checkUserSubscription(
           collection
         });
 
-        // ✅ Active subscription grants access
-        if (subscriptionStatus === 'active') {
+        // ✅ Active or grandfathered subscription grants access  
+        if (subscriptionStatus === 'active' || subscriptionStatus === 'grandfathered') {
           console.log('✅ Access granted - active subscription');
           return true;
         }
