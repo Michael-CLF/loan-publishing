@@ -16,7 +16,6 @@ import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
-import { authGuard } from '../services/auth.guard';
 
 declare let gtag: Function;
 
