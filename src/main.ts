@@ -2,6 +2,7 @@ import { bootstrapApplication } from '@angular/platform-browser';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
+import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { provideAppCheck, ReCaptchaV3Provider, initializeAppCheck } from '@angular/fire/app-check';
 import { provideRouter } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
@@ -9,6 +10,8 @@ import { environment } from './environments/environment';
 import { AppComponent } from './app/app.component';
 import { routes } from './app/app.routes';
 import { APP_INITIALIZER } from '@angular/core';
+
+// ✅ Services
 import { AppCheckService } from './services/app-check.service';
 import { NotificationPreferencesService } from './services/notification-preferences.service';
 import { FirestoreService } from './services/firestore.service';
@@ -20,47 +23,22 @@ import { ModalService } from './services/modal.service';
 import { UserService } from './services/user.service';
 import { LoanTypeService } from './services/loan-type.service';
 import { AuthService } from './services/auth.service';
-import { provideFunctions, getFunctions } from '@angular/fire/functions';
-
 
 bootstrapApplication(AppComponent, {
   providers: [
+    // ✅ Firebase core
     provideFirebaseApp(() => initializeApp(environment.firebase)),
     provideAuth(() => getAuth()),
-    provideFirestore(() => getFirestore()),
-    provideFunctions(() => getFunctions()), 
-
-  ]
-});
-
-
-bootstrapApplication(AppComponent, {
-  providers: [
-    // ✅ Firebase App initialization
-    provideFirebaseApp(() => initializeApp(environment.firebase)),
-
-    // ✅ Firebase Auth
-    provideAuth(() => getAuth()),
-
-    // ✅ Firebase Firestore
     provideFirestore(() => getFirestore()),
     provideFunctions(() => getFunctions()),
 
-    // ✅ App Check (commented out but available)
-    /* {
-      provide: APP_INITIALIZER,
-      useFactory: (appCheckService: AppCheckService) => () => appCheckService.initializeAppCheck(),
-      deps: [AppCheckService],
-      multi: true
-    },*/
-
-    // ✅ Router Provider
+    // ✅ Router
     provideRouter(routes),
 
-    // ✅ HTTP Client Provider  
+    // ✅ HttpClient
     provideHttpClient(),
 
-    // ✅ ALL APPLICATION SERVICES - This fixes the NullInjectorError
+    // ✅ All services
     AuthService,
     AppCheckService,
     NotificationPreferencesService,
@@ -73,5 +51,4 @@ bootstrapApplication(AppComponent, {
     UserService,
     LoanTypeService,
   ],
-})
-  .catch(err => console.error('Error starting app:', err));
+}).catch(err => console.error('Error starting app:', err));

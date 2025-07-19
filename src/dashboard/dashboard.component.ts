@@ -39,7 +39,6 @@ import { EmailNotificationService } from '../services/email-notification.service
 import { Loan as LoanModel } from '../models/loan-model.model';
 import { SavedLoan } from '../models/saved-loan.model';
 import { Loan } from '../models/loan-model.model';
-import { getUserId } from '../utils/user-helpers';
 import { UserData } from '../models';
 import { LocationService } from '../services/location.service';
 import { createTimestamp } from '../utils/firebase.utils';
@@ -47,9 +46,6 @@ import { getPropertySubcategoryName } from '../shared/constants/property-mapping
 import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
 import { FirestoreService } from 'src/services/firestore.service';
-
-
-
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -61,6 +57,14 @@ interface LoanTypeOption {
   value: string;        // Snake_case for storage/matching  
   displayName: string;  // User-friendly display name
 }
+
+interface SimpleUser {
+  uid: string;
+  displayName: string;
+  email: string;
+}
+
+
 
 @Component({
   selector: 'app-dashboard',
@@ -90,7 +94,7 @@ export class DashboardComponent implements OnInit {
   // State properties
   isLoggedIn = false;
   role: string | undefined;
-  user: FirebaseUser | null = null;
+  user: SimpleUser | null = null;
   userData: UserData = {} as UserData;
   userRole: 'originator' | 'lender' | undefined = undefined;
   loading = true;
@@ -260,48 +264,36 @@ export class DashboardComponent implements OnInit {
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
-  async loadUserData(): Promise<void> {
-    console.log('DashboardComponent - Loading user data...');
-    this.loading = true;
-    this.error = null;
+ async loadUserData(): Promise<void> {
+  console.log('🟡 DashboardComponent - Loading user data...');
+  this.loading = true;
+  this.error = null;
 
-    try {
-      const user = await this.authService.getCurrentFirebaseUser();
-      if (!user) {
-        this.handleNoAuthenticatedUser();
-        return;
-      }
+  try {
+    const userProfile = await this.authService.getUserProfile().pipe(take(1)).toPromise();
 
-      const firebaseUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
-      if (!firebaseUser) {
-        this.handleNoAuthenticatedUser();
-        return;
-      }
-
-      this.user = firebaseUser;
-      const userId = firebaseUser.uid;
-
-      this.user = {
-        uid: firebaseUser.uid,
-        email: firebaseUser.email,
-      } as FirebaseUser;
-
-      console.log('Logged in user ID:', userId);
-      if (userId) {
-        await this.fetchUserProfile(this.user);
-        setTimeout(() => {
-          console.log('🎯 User data loaded, checking for registration success...');
-        }, 100);
-      } else {
-        console.error('No user ID available');
-        this.handleNoAuthenticatedUser();
-      }
-    } catch (error: any) {
-      console.error('Error getting current user:', error);
-      this.error = 'Authentication error';
-      this.loading = false;
+    if (!userProfile) {
+      this.handleNoAuthenticatedUser();
+      return;
     }
+
+    this.user = {
+      uid: userProfile.id,
+      displayName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`,
+      email: userProfile.email || '',
+    };
+
+    console.log('✅ User profile loaded:', this.user);
+
+  } catch (error) {
+    console.error('❌ Error loading user profile:', error);
+    this.error = 'Unable to load user profile.';
+    this.handleNoAuthenticatedUser();
+  } finally {
+    this.loading = false;
   }
+}
+
   /**
    * Handle case when no authenticated user is found
    */
