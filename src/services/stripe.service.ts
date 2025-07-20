@@ -2,7 +2,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, firstValueFrom } from 'rxjs';
+import { Observable, firstValueFrom, catchError } from 'rxjs';
 import { environment } from '../environments/environment';
 import { getToken } from 'firebase/app-check';
 import { AppCheckService } from './app-check.service';
@@ -143,14 +143,19 @@ export class StripeService {
 
     console.log('🔵 Creating Stripe checkout session with App Check token');
 
-    return firstValueFrom(
-    this.http.post<CheckoutSessionResponse>(
-     environment.registerUserUrl,
-      checkoutData,
-      { headers }
-    )
-  );
-}
+   return firstValueFrom(
+  this.http.post<CheckoutSessionResponse>(
+    environment.stripeCheckoutUrl, // ← Fixed endpoint
+    checkoutData,
+    { headers }
+  ).pipe(
+    catchError((error) => {
+      console.error('❌ Stripe checkout failed:', error);
+      throw new Error('Failed to create checkout session. Please try again.');
+    })
+  )
+);
+  }
 
   getCheckoutSession(sessionId: string): Observable<any> {
     return this.http.get(`${this.apiUrl}/get-checkout-session`, {
