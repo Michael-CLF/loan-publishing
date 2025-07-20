@@ -278,7 +278,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
         };
       }
 
-      console.log('🚨 ABOUT TO CALL registerUserViaAPI');
+      console.log('🚨 ABOUT TO CALL registerUser');
 
       // Step 1: Register user in Firebase (creates user with inactive status)
       this.authService.registerUserViaAPI(formData.email, {
