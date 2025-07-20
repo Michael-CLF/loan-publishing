@@ -35,9 +35,6 @@
             <span>Continue with Google</span>
         </button>
 
-
-
-
         <div class="login-options">
             <p>Don't have an account? <a (click)="openRoleSelectionModal()" style="cursor: pointer;">Sign up</a></p>
         </div>
@@ -67,7 +64,7 @@
     @if (errorMessage) {
     <div class="error-container">
         <h3>Login Error</h3>
-        <p class="login-text">{{ errorMessage }}</p>
+        <p class="login-text" [innerHTML]="errorMessage"></p>
         <div>
             <p class="login-text">Don't have an account? <a routerLink="/user-form">Sign up</a></p>
         </div>

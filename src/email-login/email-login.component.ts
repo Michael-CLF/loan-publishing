@@ -130,7 +130,6 @@ requestNewLink(): void {
     this.errorMessage = 'Please enter a valid email address.';
     return;
   }
-
   this.sendLoginLink(email);
 }
 
@@ -231,7 +230,6 @@ loginWithGoogle(): void {
     },
   });
 }
-
   openRoleSelectionModal(): void {
     this.modalService.openRoleSelectionModal();
   }
