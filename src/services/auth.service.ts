@@ -79,8 +79,6 @@ export class AuthService {
 
     return from(setDoc(userDocRef, newUserData)).pipe(map(() => firebaseUser));
   }
-
-
   /**
    * ✅ Register user via HTTP API (creates user with inactive status, no App Check required)
    */

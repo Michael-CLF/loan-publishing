@@ -224,26 +224,31 @@ private handleLenderPaymentSuccess(rawLenderData: string): void {
     }, 1500);
   }
 
-  /**
-   * ✅ Load user data to determine role for correct modal
-   */
   private async loadUserRole(): Promise<void> {
-   try {
-  const user = await this.authService.getCurrentFirebaseUser();
-  console.log('✅ Lender user created successfully:', user);
-  this.authService.setRegistrationSuccess(true);
-  this.userRole = 'lender';
-  this.processingMessage.set('Success! Welcome to your dashboard...');
+  try {
+    // ✅ Since backend creates users but doesn't log them in,
+    // we'll determine role from localStorage or default to originator
+    const pendingUserId = localStorage.getItem('pendingUserId');
+    
+    if (pendingUserId) {
+      // User just registered, assume originator for now
+      this.userRole = 'originator';
+    } else {
+      // Fallback 
+      this.userRole = 'originator';
+    }
+    
+    this.authService.setRegistrationSuccess(true);
+    this.processingMessage.set('Success! Welcome to your dashboard...');
 
-  setTimeout(() => {
-    this.showModalBasedOnRole();
-  }, 1500);
-} catch (error) {
-  console.error('❌ Error during registration:', error);
-  this.processingMessage.set('Failed to create user. Please try again.');
-}
+    setTimeout(() => {
+      this.showModalBasedOnRole();
+    }, 1500);
+  } catch (error) {
+    console.error('❌ Error during registration:', error);
+    this.processingMessage.set('Failed to create user. Please try again.');
   }
-
+}
   /**
    * ✅ Show appropriate modal based on user role
    */
