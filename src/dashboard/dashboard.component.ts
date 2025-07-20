@@ -216,7 +216,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('🏗️ DASHBOARD COMPONENT - ngOnInit started');
     console.log('Dashboard component initializing...');
-    //this.subscribeToAuthState();
+    this.subscribeToAuthState();
   }
 
   private subscribeToAuthState(): void {
