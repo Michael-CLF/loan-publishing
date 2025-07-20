@@ -162,7 +162,6 @@ export class EmailLoginComponent implements OnInit {
   }
 
 requestNewLink(): void {
-  // Clear any existing errors first
   this.clearError();
   
   const email = this.emailControl?.value;
