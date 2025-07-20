@@ -57,7 +57,7 @@ export class AuthService {
   /**
    * ✅ Register and store Firestore user profile
    */
-  registerUser(email: string, userData: any): Observable<User> {
+  registerUserViaApi(email: string, userData: any): Observable<User> {
     const firebaseUser = this.auth.currentUser;
     if (!firebaseUser) {
       return throwError(() => new Error('User not authenticated'));
