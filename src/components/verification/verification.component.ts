@@ -65,7 +65,7 @@ export class VerificationComponent implements OnInit {
 
     const userData = JSON.parse(localStorage.getItem('registrationData') || '{}');
 
-    this.authService.registerUser(email, userData).subscribe({
+    this.authService.registerUserViaAPI(email, userData).subscribe({
       next: (user: any) => {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.removeItem('pendingVerificationEmail');
