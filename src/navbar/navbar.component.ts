@@ -121,9 +121,8 @@ async loadUserData(user: User): Promise<void> {
 
   try {
     // ✅ Use the existing auth service method that properly checks both collections
-  const userProfile = await firstValueFrom(this.authService.getUserProfile());
+    const userProfile = await firstValueFrom(this.authService.getUserProfile());
 
-    
     if (!userProfile) {
       throw new Error('User document does not exist');
     }
@@ -131,21 +130,22 @@ async loadUserData(user: User): Promise<void> {
     // ✅ Set account number
     this.accountNumber = user.uid.substring(0, 8);
 
-    // ✅ Use the data from auth service
+    // ✅ Handle nested contactInfo structure like we did in dashboard
     this.userData = {
       id: userProfile.id,
-      email: userProfile.email || user.email || '',
-      firstName: userProfile.firstName || '',
-      lastName: userProfile.lastName || '',
-      phone: userProfile.phone || '',
-      city: userProfile.city || '',
-      state: userProfile.state || '',
-      company: userProfile.company || '',
+      email: userProfile['contactInfo']?.contactEmail || userProfile.email || user.email || '',
+      firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
+      lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+      phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+      city: userProfile['contactInfo']?.city || userProfile.city || '',
+      state: userProfile['contactInfo']?.state || userProfile.state || '',
+      company: userProfile['contactInfo']?.company || userProfile.company || '',
       role: userProfile.role || '',
       accountNumber: this.accountNumber,
     };
 
     console.log('NavbarComponent - Final userData:', this.userData);
+    console.log('NavbarComponent - Original userProfile:', userProfile);
 
   } catch (error) {
     console.error('NavbarComponent - Error loading user:', error);

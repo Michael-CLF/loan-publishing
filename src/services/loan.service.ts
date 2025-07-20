@@ -33,25 +33,41 @@ export class LoanService {
   /**
    * 🔁 Get all loans created by current user
    */
-  getMyLoans(): Observable<Loan[]> {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) return of([]);
-
-    const q = query(
-      collection(this.db, 'loans'),
-      where('createdBy', '==', uid)
-    );
-
-    return from(getDocs(q)).pipe(
-      map((snap) =>
-        snap.docs.map((docSnap) => ({ id: docSnap.id, ...docSnap.data() } as Loan))
-      ),
-      catchError((error) => {
-        console.error('LoanService: getMyLoans failed', error);
-        return of([]);
-      })
-    );
+  /**
+ * 🔁 Load all loans created by specified user
+ */
+loadLoans(userId?: string): Observable<Loan[]> {
+  // ✅ Use passed userId or fallback to current user
+  const uid = userId || this.auth.currentUser?.uid;
+  
+  if (!uid) {
+    console.warn('LoanService: No user ID available for loadLoans');
+    return of([]);
   }
+
+  console.log('LoanService: Loading loans for user:', uid);
+
+  const q = query(
+    collection(this.db, 'loans'),
+    where('createdBy', '==', uid)
+  );
+
+  return from(getDocs(q)).pipe(
+    map((snap) => {
+      const loans = snap.docs.map((docSnap) => ({ 
+        id: docSnap.id, 
+        ...docSnap.data() 
+      } as Loan));
+      
+      console.log(`LoanService: Found ${loans.length} loans for user ${uid}`);
+      return loans;
+    }),
+    catchError((error) => {
+      console.error('LoanService: loadLoans failed for user:', uid, error);
+      return of([]);
+    })
+  );
+}
 
   /**
    * ➕ Create a new loan

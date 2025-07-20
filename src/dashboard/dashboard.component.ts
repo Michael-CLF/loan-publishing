@@ -86,8 +86,6 @@ export class DashboardComponent implements OnInit {
   private readonly emailNotificationService = inject(EmailNotificationService);
   private route = inject(ActivatedRoute);
 
-
-
   getPropertySubcategoryName = getPropertySubcategoryName;
   getStateName = getStateName;
 
@@ -216,7 +214,7 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('🏗️ DASHBOARD COMPONENT - ngOnInit started');
     console.log('Dashboard component initializing...');
-    this.subscribeToAuthState();
+    this.loadUserData();
   }
 
   private subscribeToAuthState(): void {
@@ -613,7 +611,7 @@ async loadUserData(): Promise<void> {
     this.loansLoading.set(true);
     this.loansError.set(null);
 
-    this.loanService.getMyLoans().subscribe({
+    this.loanService.loadLoans().subscribe({
       next: (serviceLoans: LoanModel[]) => {
         this.loans.set(serviceLoans);
       },
