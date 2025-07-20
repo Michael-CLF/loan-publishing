@@ -27,7 +27,9 @@ import { OriginatorDetailsComponent } from 'src/components/originator-details/or
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
-import { ContactComponent } from 'src/components/contact/contact.component';
+import { ContactComponent } from 'src/components/contact/contact.component'
+import { CompletePaymentComponent } from 'src/components/complete-payment/complete-payment.component';
+
 
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
@@ -58,6 +60,7 @@ export const routes: Routes = [
   { path: 'loan', component: LoanComponent, canActivate: [authGuard] },
   { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
+  { path: 'complete-payment', component: CompletePaymentComponent },
 
   // ✅ CONSOLIDATED: Payment callback now goes directly to registration processing
   {
@@ -77,7 +80,7 @@ export const routes: Routes = [
     redirectTo: '/payment-callback?payment=cancel',
     pathMatch: 'full'
   },
-  {
+    {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
     pathMatch: 'full'

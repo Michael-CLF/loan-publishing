@@ -16,9 +16,13 @@ import {
 import {
   Firestore,
   doc,
+  getDocs,
   setDoc,
   getDoc,
   serverTimestamp,
+  collection,
+  query,
+  where,
   DocumentReference
 } from '@angular/fire/firestore';
 import { Router } from '@angular/router';
@@ -162,6 +166,96 @@ getUserProfile(): Observable<UserData | null> {
     })
   );
 }
+
+/**
+ * ✅ NEW: Check if user account exists in our system before sending login links
+ * Returns account status to determine appropriate action
+ */
+checkAccountExists(email: string): Observable<{ 
+  exists: boolean; 
+  userType?: 'originator' | 'lender'; 
+  userId?: string;
+  subscriptionStatus?: string;
+  needsPayment?: boolean;
+}> {
+  const normalizedEmail = email.toLowerCase().trim();
+  
+  console.log('🔍 Checking if account exists for:', normalizedEmail);
+
+  // Check both collections for the email
+  const originatorQuery = query(
+    collection(this.db, 'originators'),
+    where('contactInfo.contactEmail', '==', normalizedEmail)
+  );
+
+  const lenderQuery = query(
+    collection(this.db, 'lenders'),
+    where('contactInfo.contactEmail', '==', normalizedEmail)
+  );
+
+  // Check originators first
+  return from(getDocs(originatorQuery)).pipe(
+    switchMap(originatorSnap => {
+      if (!originatorSnap.empty) {
+        const doc = originatorSnap.docs[0];
+        const data = doc.data();
+        const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
+        
+        console.log('✅ Found originator account:', {
+          userId: doc.id,
+          subscriptionStatus,
+          email: normalizedEmail
+        });
+
+        return of({
+          exists: true,
+          userType: 'originator' as const,
+          userId: doc.id,
+          subscriptionStatus,
+          needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
+        });
+      }
+
+      // If not found in originators, check lenders
+      return from(getDocs(lenderQuery)).pipe(
+        map(lenderSnap => {
+          if (!lenderSnap.empty) {
+            const doc = lenderSnap.docs[0];
+            const data = doc.data();
+            const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
+            
+            console.log('✅ Found lender account:', {
+              userId: doc.id,
+              subscriptionStatus,
+              email: normalizedEmail
+            });
+
+            return {
+              exists: true,
+              userType: 'lender' as const,
+              userId: doc.id,
+              subscriptionStatus,
+              needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
+            };
+          }
+
+          console.log('❌ No account found for:', normalizedEmail);
+          return {
+            exists: false
+          };
+        })
+      );
+    }),
+    catchError(error => {
+      console.error('❌ Error checking account existence:', error);
+      return of({
+        exists: false,
+        error: 'Unable to verify account status'
+      });
+    })
+  );
+}
+
 
    
 

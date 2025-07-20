@@ -1,0 +1,150 @@
+<!-- pricing.component.html -->
+<h2 class="free">Complete Your Registration - Choose Your Payment Plan</h2>
+<div class="card-container">
+
+    <!-- Originators/Mortgage Brokers Card -->
+    <div class="card">
+        <div class="card-section header originators-header">
+            <h3 class="title">For Originators</h3>
+            <p class="subtitle">Mortgage Brokers, Loan Officers and Originators</p>
+        </div>
+        <div class="card-section content">
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
+                               [checked]="isOriginatorAnnual" 
+                               (change)="toggleOriginatorBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isOriginatorAnnual ? 'monthly' : 'annual') + ' billing for originators'">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isOriginatorAnnual">$99/month</h4>
+            <h4 class="price" [class.hidden]="!isOriginatorAnnual">$1,070/year</h4>
+            <p class="savings-text" [class.hidden]="!isOriginatorAnnual">Save 10% with annual billing</p>
+            <p class="free">* Get your loans funded faster</p>
+            <ul class="feature-list">
+                <li>Post unlimited loan requests</li>
+                <li>AI-powered lender matching</li>
+                <li>Loan count view</li>
+                <li>Access to 1000+ verified lenders</li>
+                <li>Advanced lender filtering & search</li>
+                <li>Compare multiple loan offers</li>
+                <li>Save favorite lenders for future deals</li>
+                <li>Analytics dashboard</li>
+                <li>No exclusivity or commitments</li>
+                <li>Cancel anytime</li>
+            </ul>
+        </div>
+       <div class="card-section footer">
+    <button class="card-button login-btn" 
+            type="button"
+           (click)="navigateToPayment('originators')"
+            [attr.aria-label]="'Get started with originators plan'">
+        Get Started
+    </button>
+</div>
+    </div>
+
+    <!-- Lenders Card -->
+    <div class="card">
+        <div class="card-section header lenders-header">
+            <h3 class="title">For Lenders</h3>
+            <p class="subtitle">Banks, Credit Unions & Private Lenders and all other Lenders</p>
+        </div>
+        <div class="card-section content">
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
+                               [checked]="isLenderAnnual" 
+                               (change)="toggleLenderBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isLenderAnnual ? 'monthly' : 'annual') + ' billing for lenders'">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 10%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isLenderAnnual">$149/month</h4>
+            <h4 class="price" [class.hidden]="!isLenderAnnual">$1,610/year</h4>
+            <p class="savings-text" [class.hidden]="!isLenderAnnual">Save 10% with annual billing</p>
+            <p class="free">* Discover pre-screened opportunities</p>
+            <ul class="feature-list">
+                <li>Browse all pre-screened loan requests</li>
+                <li>Email notifications for matching loans</li>
+                <li>Advanced loan filtering by criteria</li>
+                <li>Set your lending parameters & preferences</li>
+                <li>Direct access to verified originators</li>
+                <li>Detailed loan criteria</li>
+                <li>Lead generation dashboard</li>
+                <li>Dashboard for saving Loans</li>
+                <li>Cancel anytime</li>
+            </ul>
+        </div>
+       <div class="card-section footer">
+    <button class="card-button login-btn" 
+            type="button"
+            (click)="navigateToPayment('lenders')"
+            [attr.aria-label]="'Get started with lenders plan'">
+        Get Started
+    </button>
+</div>
+    </div>
+
+    
+
+    <!-- Mortgage Companies Card -->
+    <!--<div class="card">
+        <div class="card-section header mortgage-companies-header">
+            <h3 class="title">Mortgage Companies</h3>
+            <p class="subtitle">Mortgage Companies, Lending Institutions & Financial Services</p>
+        </div>
+        <div class="card-section content">
+            <div class="pricing-options">
+                <div class="pricing-toggle">
+                    <span class="toggle-label">Monthly</span>
+                    <label class="switch">
+                        <input type="checkbox" 
+                               class="pricing-checkbox" 
+                               [checked]="isMortgageCompanyAnnual" 
+                               (change)="toggleMortgageCompanyBilling()"
+                               [attr.aria-label]="'Toggle to ' + (isMortgageCompanyAnnual ? 'monthly' : 'annual') + ' billing for mortgage companies'">
+                        <span class="slider"></span>
+                    </label>
+                    <span class="toggle-label">Annual <span class="discount-badge">Save 15%</span></span>
+                </div>
+            </div>
+            <h4 class="price" [class.hidden]="isMortgageCompanyAnnual">$299/month</h4>
+            <h4 class="price" [class.hidden]="!isMortgageCompanyAnnual">$3,060/year</h4>
+            <p class="savings-text" [class.hidden]="!isMortgageCompanyAnnual">Save $529 with annual billing</p>
+            <p class="free">* Team Solution</p>
+            <ul class="feature-list">
+                <li>Multi-user access (up to 10 users)</li>
+                <li>Advanced Analytics Dashboard</li>
+                <li>Priority customer support</li>
+                <li>Post unlimited loan requests</li>
+                <li>AI-powered lender matching</li>
+                <li>Loan count view</li>
+                <li>Access to 1000+ verified lenders</li>
+                <li>Advanced lender filtering & search</li>
+                <li>Compare multiple loan offers</li>
+                <li>Save favorite lenders for future deals</li>
+                <li>Cancel anytime</li>
+            </ul>
+        </div>
+        <div class="card-section footer">
+            <button class="card-button login-btn" 
+                    type="button"
+                    (click)="onGetStarted('mortgage-companies')"
+                    [attr.aria-label]="'Get started with mortgage companies plan'">
+                Get Started
+            </button>
+        </div>
+    </div>-->
+</div>

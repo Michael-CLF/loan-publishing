@@ -60,64 +60,142 @@ export class EmailLoginComponent implements OnInit {
       },
     });
   }
-
   get emailControl() {
     return this.loginForm.get('email');
   }
 
   sendLoginLink(email: string): void {
-    this.isLoading = true;
-    this.successMessage = '';
-    this.errorMessage = '';
+  this.isLoading = true;
+  this.successMessage = '';
+  this.errorMessage = '';
 
-    // ✅ Store redirect URL before sending link
-    localStorage.setItem('redirectUrl', '/dashboard');
+  console.log('🔍 Validating account before sending login link...');
 
-    this.authService.sendLoginLink(email).subscribe({
-      next: () => {
+  // ✅ First check if account exists
+  this.authService.checkAccountExists(email).subscribe({
+    next: (accountInfo) => {
+      if (!accountInfo.exists) {
+        // Account doesn't exist
         this.isLoading = false;
-        this.successMessage = 'Login link sent!';
-        this.showLinkSent = true;
-      },
-      error: (error: Error) => {
-        this.isLoading = false;
-        this.errorMessage = `Error: ${error.message}`;
-        console.error('Error sending login link:', error);
+        this.errorMessage = 'Account not found. Please check your email address or contact support to create an account.';
+        console.log('❌ Account not found for:', email);
+        return;
       }
-    });
-  }
 
-  requestNewLink(): void {
-    const email = this.emailControl?.value;
-    if (!email || !this.emailControl?.valid) {
-      this.errorMessage = 'Please enter a valid email address.';
-      return;
+      if (accountInfo.needsPayment) {
+        // Account exists but needs payment
+        this.isLoading = false;
+        this.errorMessage = `Account found but payment required. Please complete your registration to access your account.`;
+        console.log('💳 Account needs payment:', accountInfo);
+        
+        // ✅ TODO: Add payment link here once Stripe integration is ready
+        // For now, just show the message
+        return;
+      }
+
+      // ✅ Account exists and is active - send login link
+      console.log('✅ Account validated, sending login link...');
+      this.sendValidatedLoginLink(email);
+    },
+    error: (error) => {
+      this.isLoading = false;
+      this.errorMessage = 'Unable to verify account status. Please try again.';
+      console.error('❌ Error checking account:', error);
     }
+  });
+}
 
-    this.sendLoginLink(email);
+private sendValidatedLoginLink(email: string): void {
+  // ✅ Store redirect URL before sending link
+  localStorage.setItem('redirectUrl', '/dashboard');
+
+  this.authService.sendLoginLink(email).subscribe({
+    next: () => {
+      this.isLoading = false;
+      this.successMessage = 'Login link sent to your email!';
+      this.showLinkSent = true;
+      console.log('✅ Login link sent successfully');
+    },
+    error: (error: Error) => {
+      this.isLoading = false;
+      this.errorMessage = `Error sending login link: ${error.message}`;
+      console.error('❌ Error sending login link:', error);
+    }
+  });
+}
+
+requestNewLink(): void {
+  const email = this.emailControl?.value;
+  if (!email || !this.emailControl?.valid) {
+    this.errorMessage = 'Please enter a valid email address.';
+    return;
   }
 
-  loginWithGoogle(): void {
-    this.authService.loginWithGoogle().subscribe({
-      next: (user: User | null) => {
-        if (user) {
-          console.log('✅ Signed in with Google:', user);
+  this.sendLoginLink(email);
+}
+
+loginWithGoogle(): void {
+  this.isLoading = true;
+  this.errorMessage = '';
+
+  console.log('🔍 Attempting Google login...');
+
+  this.authService.loginWithGoogle().subscribe({
+    next: (user: User | null) => {
+      if (!user || !user.email) {
+        this.isLoading = false;
+        this.errorMessage = 'Google sign-in failed. Please try again.';
+        return;
+      }
+
+      console.log('🔍 Google login successful, validating account...');
+
+      // ✅ Check if account exists in our system
+      this.authService.checkAccountExists(user.email).subscribe({
+        next: (accountInfo) => {
+          if (!accountInfo.exists) {
+            // Account doesn't exist in our system
+            this.isLoading = false;
+            this.errorMessage = 'No account found for this Google email. Please contact support or register first.';
+            console.log('❌ Google account not found in system:', user.email);
+            return;
+          }
+
+          if (accountInfo.needsPayment) {
+            // Account exists but needs payment
+            this.isLoading = false;
+            this.errorMessage = `Account found but payment required. Please complete your registration to access your account.`;
+            console.log('💳 Google account needs payment:', accountInfo);
+            
+            // ✅ TODO: Add payment link here once Stripe integration is ready
+            return;
+          }
+
+          // ✅ Account exists and is active - proceed with login
+          console.log('✅ Google account validated, proceeding to dashboard...');
+          this.isLoading = false;
+          
           this.ngZone.run(() => {
             localStorage.setItem('isLoggedIn', 'true');
             const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
             this.router.navigate([redirectUrl]);
             localStorage.removeItem('redirectUrl');
           });
-        } else {
-          this.errorMessage = 'Google sign-in failed. Please try again.';
+        },
+        error: (error) => {
+          this.isLoading = false;
+          this.errorMessage = 'Unable to verify account status. Please try again.';
+          console.error('❌ Error validating Google account:', error);
         }
-      },
-      error: (err: Error) => {
-        console.error('❌ Error during Google login:', err);
-        this.errorMessage = 'Google sign-in failed.';
-      }
-    });
-  }
+      });
+    },
+    error: (err: Error) => {
+      this.isLoading = false;
+      console.error('❌ Error during Google login:', err);
+      this.errorMessage = 'Google sign-in failed. Please try again.';
+    }
+  });
+}
 
   private handleEmailLink(): void {
   this.isVerifying = true;
