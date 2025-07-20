@@ -604,23 +604,26 @@ async loadUserData(): Promise<void> {
   }
 
   /**
-   * Load loans created by the user (primarily for originators)
-   */
-  async loadLoans(userId: string): Promise<void> {
-    console.log('Loading loans for user:', userId);
-    this.loansLoading.set(true);
-    this.loansError.set(null);
+ * Load loans created by the user (primarily for originators)
+ */
+async loadLoans(userId: string): Promise<void> {
+  console.log('Loading loans for user:', userId);
+  this.loansLoading.set(true);
+  this.loansError.set(null);
 
-    this.loanService.loadLoans().subscribe({
-      next: (serviceLoans: LoanModel[]) => {
-        this.loans.set(serviceLoans);
-      },
-      error: (error: any) => {
-        console.error('❌ Error loading loans:', error);
-      }
-    });
-
-  }
+  this.loanService.loadLoans(userId).subscribe({
+    next: (serviceLoans: LoanModel[]) => {
+      console.log(`✅ Dashboard: Loaded ${serviceLoans.length} loans`);
+      this.loans.set(serviceLoans);
+      this.loansLoading.set(false); // ✅ Reset loading state
+    },
+    error: (error: any) => {
+      console.error('❌ Error loading loans:', error);
+      this.loansError.set('Failed to load your loans. Please try again.');
+      this.loansLoading.set(false); // ✅ Reset loading state on error
+    }
+  });
+}
 
   /**
    * Load saved loans for lenders
