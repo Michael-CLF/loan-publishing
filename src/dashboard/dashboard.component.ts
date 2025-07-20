@@ -214,8 +214,30 @@ export class DashboardComponent implements OnInit {
   ngOnInit(): void {
     console.log('🏗️ DASHBOARD COMPONENT - ngOnInit started');
     console.log('Dashboard component initializing...');
-    this.loadUserData();
+    this.waitForAuthAndLoadData();
   }
+
+  private waitForAuthAndLoadData(): void {
+  console.log('⏳ Dashboard - Waiting for auth to be ready...');
+  
+  this.authService.authReady$
+    .pipe(
+      filter(ready => ready),
+      take(1)
+    )
+    .subscribe({
+      next: () => {
+        console.log('✅ Dashboard - Auth is ready, loading user data');
+        this.loadUserData();
+      },
+      error: (error) => {
+        console.error('❌ Dashboard - Auth ready check failed:', error);
+        this.error = 'Authentication service not available';
+        this.loading = false;
+        this.handleNoAuthenticatedUser();
+      }
+    });
+}
 
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
@@ -268,6 +290,7 @@ async loadUserData(): Promise<void> {
   this.error = null;
 
   try {
+    // ✅ Auth service should now be ready
     const userProfile = await this.authService.getUserProfile().pipe(take(1)).toPromise();
 
     if (!userProfile) {
@@ -341,7 +364,7 @@ async loadUserData(): Promise<void> {
 
   } catch (error) {
     console.error('❌ Error loading user profile:', error);
-    this.error = 'Unable to load user profile.';
+    this.error = 'Unable to load user profile. Please try refreshing the page.';
     this.handleNoAuthenticatedUser();
   } finally {
     this.loading = false;

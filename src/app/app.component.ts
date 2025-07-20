@@ -153,61 +153,92 @@ export class AppComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Extract auth state management with proper cleanup
-   */
-  private setupAuthStateManagement(): void {
-    // Check auth state and handle redirects
-    this.authService.authReady$
-      .pipe(
-        filter((ready) => ready),
-        take(1),
-        switchMap(() => this.authService.isLoggedIn$),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((isLoggedIn) => {
-        console.log('🔐 Auth initialization complete, user logged in:', isLoggedIn);
+ /**
+ * ✅ Angular 18 Best Practice: Extract auth state management with proper cleanup
+ */
+private setupAuthStateManagement(): void {
+  // Check auth state and handle redirects
+  this.authService.authReady$
+    .pipe(
+      filter((ready) => ready),
+      take(1),
+      switchMap(() => this.authService.isLoggedIn$),
+      takeUntil(this.destroy$)
+    )
+    .subscribe((isLoggedIn) => {
+      console.log('🔐 Auth initialization complete, user logged in:', isLoggedIn);
 
-        if (!isPlatformBrowser(this.platformId)) {
-          return; // Skip localStorage operations on server
-        }
+      if (!isPlatformBrowser(this.platformId)) {
+        return; // Skip localStorage operations on server
+      }
 
-        // Clear any URL if on home page
-        if (this.router.url === '/') {
-          localStorage.removeItem('redirectUrl');
-        }
+      // Clear any URL if on home page
+      if (this.router.url === '/') {
+        localStorage.removeItem('redirectUrl');
+      }
 
-        // If user is logged in but on login page, redirect to dashboard/home
-        if (isLoggedIn && this.router.url.includes('/login')) {
+      // ✅ FIXED: Complete redirect logic for authenticated users
+      if (isLoggedIn) {
+        // If user is on login page, redirect to dashboard
+        if (this.router.url.includes('/login')) {
           console.log('🔄 User is authenticated, redirecting from login');
-
+          this.router.navigate(['/dashboard']);
         }
-        
-        // If user is not logged in and needs auth, redirect to login
-        else if (
-          !isLoggedIn &&
-          !this.isPublicRoute(this.router.url)
-        ) {
-          console.log('🚫 User not authenticated, redirecting to login');
-          localStorage.setItem('redirectUrl', this.router.url);
-          this.router.navigate(['/login']);
+        // ✅ NEW: If user is on homepage, redirect to dashboard  
+        else if (this.router.url === '/') {
+          console.log('🔄 Authenticated user on homepage, redirecting to dashboard');
+          this.router.navigate(['/dashboard']);
         }
-      });
+      }
+      // If user is not logged in and needs auth, redirect to login
+      else if (
+        !isLoggedIn &&
+        !this.isPublicRoute(this.router.url)
+      ) {
+        console.log('🚫 User not authenticated, redirecting to login');
+        localStorage.setItem('redirectUrl', this.router.url);
+        this.router.navigate(['/login']);
+      }
+    });
 
-    // Monitor auth state changes
-    this.authService.isLoggedIn$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((isLoggedIn) => {
-        console.log('🔄 Auth state changed:', isLoggedIn);
+  // Monitor auth state changes
+  this.authService.isLoggedIn$
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((isLoggedIn) => {
+      console.log('🔄 Auth state changed:', isLoggedIn);
 
-        if (isPlatformBrowser(this.platformId)) {
-          console.log(
-            '💾 localStorage isLoggedIn:',
-            localStorage.getItem('isLoggedIn')
-          );
-        }
-      });
+      if (isPlatformBrowser(this.platformId)) {
+        console.log(
+          '💾 localStorage isLoggedIn:',
+          localStorage.getItem('isLoggedIn')
+        );
+      }
+    });
+}
+
+/**
+ * ✅ FIXED: Always redirect to dashboard after successful email auth
+ */
+private handleSuccessfulAuth(): void {
+  if (isPlatformBrowser(this.platformId)) {
+    // Set login state explicitly
+    localStorage.setItem('isLoggedIn', 'true');
   }
+
+  // ✅ FIXED: Always navigate to dashboard after email auth, regardless of current page
+  this.ngZone.run(() => {
+    console.log('🏠 Navigating to dashboard after successful email auth');
+    
+    // Always go to dashboard after email authentication
+    this.router.navigate(['/dashboard']);
+
+    // Clean up stored redirect URL
+    if (isPlatformBrowser(this.platformId)) {
+      localStorage.removeItem('redirectUrl');
+    }
+  });
+}
+
 
   /**
    * ✅ Angular 18 Best Practice: Helper method for route checking
@@ -307,35 +338,6 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Extract successful auth handling
-   */
-  private handleSuccessfulAuth(): void {
-    if (isPlatformBrowser(this.platformId)) {
-      // Set login state explicitly
-      localStorage.setItem('isLoggedIn', 'true');
-    }
-
-    // Navigate to dashboard
-    this.ngZone.run(() => {
-      console.log('🏠 Navigating to dashboard after successful auth');
-
-      if (
-        this.router.url === '/login' ||
-        this.router.url.includes('/login/verify')
-      ) {
-        const redirectUrl = isPlatformBrowser(this.platformId)
-          ? localStorage.getItem('redirectUrl') || '/dashboard'
-          : '/dashboard';
-
-        this.router.navigate([redirectUrl]);
-
-        if (isPlatformBrowser(this.platformId)) {
-          localStorage.removeItem('redirectUrl');
-        }
-      }
-    });
-  }
 
   /**
    * ✅ Angular 18 Best Practice: Extract home page auth handling
