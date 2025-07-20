@@ -264,7 +264,7 @@ export class DashboardComponent implements OnInit {
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
- async loadUserData(): Promise<void> {
+async loadUserData(): Promise<void> {
   console.log('🟡 DashboardComponent - Loading user data...');
   this.loading = true;
   this.error = null;
@@ -277,13 +277,69 @@ export class DashboardComponent implements OnInit {
       return;
     }
 
+    // ✅ Set basic user info for internal use
     this.user = {
       uid: userProfile.id,
-      displayName: `${userProfile.firstName || ''} ${userProfile.lastName || ''}`,
-      email: userProfile.email || '',
+      displayName: `${userProfile['contactInfo']?.firstName || userProfile.firstName || ''} ${userProfile['contactInfo']?.lastName || userProfile.lastName || ''}`.trim(),
+      email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
     };
 
-    console.log('✅ User profile loaded:', this.user);
+    // ✅ Generate account number
+    this.accountNumber = userProfile.id.substring(0, 8);
+
+    // ✅ Map the user profile to flat userData structure based on role
+    if (userProfile.role === 'lender') {
+      this.userData = {
+        id: userProfile.id,
+        company: userProfile.company || userProfile['contactInfo']?.company || '',
+        firstName: userProfile['contactInfo']?.firstName || '',
+        lastName: userProfile['contactInfo']?.lastName || '',
+        phone: userProfile['contactInfo']?.contactPhone || '',
+        email: userProfile['contactInfo']?.contactEmail || '',
+        city: userProfile['contactInfo']?.city || '',
+        state: userProfile['contactInfo']?.state || '',
+        role: 'lender',
+      };
+      
+      // ✅ Load notification preferences for lenders
+      this.loadNotificationPreferencesFromService();
+      
+    } else if (userProfile.role === 'originator') {
+      this.userData = {
+        id: userProfile.id,
+        email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
+        firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
+        lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+        phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+        company: userProfile['contactInfo']?.company || userProfile.company || '',
+        city: userProfile['contactInfo']?.city || userProfile.city || '',
+        state: userProfile['contactInfo']?.state || userProfile.state || '',
+        role: 'originator',
+      };
+    }
+
+    // ✅ Set user role for template conditionals
+    this.userRole = this.userData.role;
+
+    console.log('✅ User profile loaded and mapped:', {
+      user: this.user,
+      userData: this.userData,
+      userRole: this.userRole
+    });
+
+    // ✅ Load role-specific data
+    if (this.userRole === 'lender' && this.user.uid) {
+      await this.loadSavedLoans(this.user.uid);
+    }
+
+    if (this.userRole === 'originator' && this.user.uid) {
+      await this.loadSavedLenders(this.user.uid);
+    }
+
+    // ✅ Load loans for both roles
+    if (this.user.uid) {
+      await this.loadLoans(this.user.uid);
+    }
 
   } catch (error) {
     console.error('❌ Error loading user profile:', error);
