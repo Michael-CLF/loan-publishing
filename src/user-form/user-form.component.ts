@@ -269,13 +269,11 @@ export class UserFormComponent implements OnInit, OnDestroy {
         },
       };
 
-      // Add coupon data if applied
       if (this.couponApplied && this.appliedCouponDetails) {
-        checkoutData.coupon = {
-          code: this.appliedCouponDetails.code,
-          discount: this.appliedCouponDetails.discount,
-          discountType: this.appliedCouponDetails.discountType,
-        };
+        const couponDetails = this.appliedCouponDetails;
+        checkoutData.promotion_code = couponDetails.code;
+        checkoutData.discount = couponDetails.discount;
+        checkoutData.discountType = couponDetails.discountType;
       }
 
       console.log('🚨 ABOUT TO CALL registerUser');

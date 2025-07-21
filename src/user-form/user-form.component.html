@@ -231,11 +231,10 @@
     </button>
   </div>
   
-  <!-- Success message for applied coupon -->
-  <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
-    ✓ Coupon "{{ appliedCouponDetails.code }}" applied! 
-    {{ appliedCouponDetails.discount }}% off
-  </div>
+ <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
+  ✓ Coupon "{{ appliedCouponDetails.code }}" applied! 
+  {{ appliedCouponDetails.discount }}% off
+</div>
   
   <!-- Error messages -->
   <div *ngIf="userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched" class="error">
