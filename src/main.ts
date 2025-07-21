@@ -24,6 +24,34 @@ import { UserService } from './services/user.service';
 import { LoanTypeService } from './services/loan-type.service';
 import { AuthService } from './services/auth.service';
 
+// ✅ Email link authentication initializer (updated for modern RxJS)
+function initializeEmailAuth(authService: AuthService): () => Promise<void> {
+  return async () => {
+    try {
+      // ✅ Use firstValueFrom instead of deprecated toPromise()
+      const { firstValueFrom } = await import('rxjs');
+      
+      const isEmailLink = await firstValueFrom(authService.isEmailSignInLink());
+      
+      if (isEmailLink) {
+        console.log('🔗 Email sign-in link detected, processing authentication...');
+        const storedEmail = authService.getStoredEmail();
+        
+        if (storedEmail) {
+          await firstValueFrom(authService.loginWithEmailLink(storedEmail));
+          console.log('✅ Email authentication completed');
+        } else {
+          console.warn('⚠️ No stored email found for email link sign-in');
+          // TODO: Could prompt user for email here if needed
+        }
+      }
+    } catch (error) {
+      console.error('❌ Error during email auth initialization:', error);
+      // Don't block app startup on auth errors
+    }
+  };
+}
+
 bootstrapApplication(AppComponent, {
   providers: [
     // ✅ Firebase core
@@ -37,6 +65,13 @@ bootstrapApplication(AppComponent, {
 
     // ✅ HttpClient
     provideHttpClient(),
+
+     {
+      provide: APP_INITIALIZER,
+      useFactory: initializeEmailAuth,
+      deps: [AuthService],
+      multi: true
+    },
 
     // ✅ All services
     AuthService,

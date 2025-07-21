@@ -10,7 +10,7 @@ import { FirestoreService } from './firestore.service';
 export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot
-): Observable<boolean> => {
+): Observable<boolean> | Promise<boolean> => {
   console.log('🛡️ AUTH GUARD TRIGGERED for route:', state.url);
   const router = inject(Router);
   const authService = inject(AuthService);
@@ -40,13 +40,10 @@ export const authGuard: CanActivateFn = (
     );
   }
 
-  // ✅ Store the attempted URL for redirecting
+ // ✅ Store the attempted URL for redirecting
   localStorage.setItem('redirectUrl', state.url);
 
-  return authService.authReady$.pipe(
-    filter(ready => ready),
-    take(1),
-    switchMap(() => authService.isLoggedIn$),
+  return authService.isLoggedIn$.pipe(
     take(1),
     switchMap(isLoggedIn => {
       if (!isLoggedIn) {
@@ -62,7 +59,6 @@ export const authGuard: CanActivateFn = (
       return of(false);
     })
   );
-};
 
 /**
  * ✅ NEW: Lenient auth check for post-payment flows
@@ -268,4 +264,5 @@ async function checkUserSubscription(
   // ✅ User document not found - allow access with warning
   console.warn('⚠️ User document not found in Firestore, allowing access');
   return true;
+}
 }

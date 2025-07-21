@@ -116,7 +116,6 @@ export class AuthService {
     );
   }
 
-
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));
 
@@ -252,10 +251,7 @@ checkAccountExists(email: string): Observable<{
       });
     })
   );
-}
-
-
-   
+}   
 
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
     const user = this.auth.currentUser;
@@ -310,11 +306,6 @@ checkAccountExists(email: string): Observable<{
     return from(signInWithEmailLink(this.auth, storedEmail, url)).pipe(
       switchMap((userCredential: UserCredential) => {
         window.localStorage.removeItem('emailForSignIn');
-
-        // ✅ Determine redirect URL or fallback to /dashboard
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        this.router.navigate([redirectUrl]);
-        localStorage.removeItem('redirectUrl');
 
         // ✅ Return the full credential for further handling
         return of(userCredential);
