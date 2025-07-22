@@ -115,7 +115,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   return;
 }
 
-
   console.log('🔍 Verifying payment for session:', sessionId);
 
   let attempts = 0;
