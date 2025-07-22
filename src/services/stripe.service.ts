@@ -25,6 +25,7 @@ export interface CheckoutSessionRequest {
     discount: number;
     discountType: 'percentage' | 'fixed';
   };
+  promotion_code: string;
 }
 
 export interface CheckoutSessionResponse {
@@ -111,7 +112,7 @@ export class StripeService {
       interval: data.interval,
       source: 'registration_form',
       timestamp: new Date().toISOString(),
-      couponCode: data.coupon?.code
+      couponCode: data.promotion_code,
     };
 
     const checkoutData: any = {
@@ -119,11 +120,11 @@ export class StripeService {
       role: data.role,
       interval: data.interval,
       userData: data.userData,
-      coupon: data.coupon
+      promotion_code: data.promotion_code,
     };
 
-    if (data.coupon?.code) {
-      checkoutData.promotion_code = data.coupon.code.trim().toUpperCase();
+    if (data.promotion_code) {
+      checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
     }
 
     console.log('🔵 Creating Stripe checkout session (App Check disabled)');
@@ -143,18 +144,18 @@ export class StripeService {
 
     console.log('🔵 Creating Stripe checkout session with App Check token');
 
-   return firstValueFrom(
-  this.http.post<CheckoutSessionResponse>(
-    environment.stripeCheckoutUrl, // ← Fixed endpoint
-    checkoutData,
-    { headers }
-  ).pipe(
-    catchError((error) => {
-      console.error('❌ Stripe checkout failed:', error);
-      throw new Error('Failed to create checkout session. Please try again.');
-    })
-  )
-);
+    return firstValueFrom(
+      this.http.post<CheckoutSessionResponse>(
+        environment.stripeCheckoutUrl, // ← Fixed endpoint
+        checkoutData,
+        { headers }
+      ).pipe(
+        catchError((error) => {
+          console.error('❌ Stripe checkout failed:', error);
+          throw new Error('Failed to create checkout session. Please try again.');
+        })
+      )
+    );
   }
 
   getCheckoutSession(sessionId: string): Observable<any> {
@@ -181,7 +182,7 @@ export class StripeService {
     if (!data.userData.state?.trim()) errors.push('State is required');
     if (!['monthly', 'annually'].includes(data.interval)) errors.push('Valid billing interval is required');
     if (!['originator', 'lender'].includes(data.role)) errors.push('Valid role is required');
-    if (data.coupon && !data.coupon.code?.trim()) errors.push('Coupon code cannot be empty if coupon is provided');
+    if (data.promotion_code && !data.promotion_code.trim()) errors.push('Promotion code cannot be empty if provided');
 
     if (errors.length > 0) throw new Error(`Validation failed: ${errors.join(', ')}`);
   }
