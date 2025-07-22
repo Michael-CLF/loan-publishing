@@ -32,7 +32,7 @@ import { switchMap, map, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model';
 import { BehaviorSubject } from 'rxjs';
-import { authState, user } from '@angular/fire/auth';
+import { authState, signInWithCustomToken } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 import { FirestoreService } from './firestore.service';
 
@@ -90,21 +90,31 @@ export class AuthService {
       })
     );
   }
-
-  /**
- * ✅ NEW: Authenticate user after webhook creates account
- * This method can be called from the success page to log in a newly created user
+/**
+ * ✅ NEW: Generate custom token and authenticate user immediately
  */
-authenticateNewUser(email: string): Observable<void> {
-  console.log('🔍 Authenticating newly created user:', email);
+authenticateNewUser(email: string, sessionId: string): Observable<void> {
+  console.log('🔍 Generating custom token for user:', email);
   
-  // Send login link to the user who just completed payment
-  return this.sendLoginLink(email).pipe(
+  const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
+  
+  return this.http.post<{ token: string, user: any }>(
+    tokenUrl,
+    { email: email.toLowerCase().trim(), sessionId },
+    { headers: { 'Content-Type': 'application/json' } }
+  ).pipe(
+    switchMap((response) => {
+      console.log('✅ Custom token received, signing in user...');
+      
+      // Use the custom token to sign in
+      return from(signInWithCustomToken(this.auth, response.token));
+    }),
     map(() => {
-      console.log('✅ Login link sent to newly registered user');
+      console.log('✅ User authenticated successfully with custom token');
+      localStorage.setItem('isLoggedIn', 'true');
     }),
     catchError((error) => {
-      console.error('❌ Error sending login link to new user:', error);
+      console.error('❌ Error authenticating with custom token:', error);
       return throwError(() => error);
     })
   );

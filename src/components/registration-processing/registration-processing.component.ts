@@ -87,20 +87,20 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  private authenticateNewUser(email: string): void {
-  this.authService.authenticateNewUser(email).subscribe({
-    next: () => {
-      console.log('✅ Authentication link sent, showing success modal');
-      this.showProcessingSpinner.set(false);
-      this.showModalBasedOnRole();
-    },
-    error: (error) => {
-      console.error('❌ Failed to authenticate user:', error);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-    }
-  });
-}
+  private authenticateNewUser(email: string, sessionId: string): void {
+    this.authService.authenticateNewUser(email, sessionId).subscribe({
+      next: () => {
+        console.log('✅ User authenticated successfully, showing success modal');
+        this.showProcessingSpinner.set(false);
+        this.showModalBasedOnRole();
+      },
+      error: (error) => {
+        console.error('❌ Failed to authenticate user:', error);
+        this.hasError.set(true);
+        this.showProcessingSpinner.set(false);
+      }
+    });
+  }
 
   private handleStripeCallback(): void {
     console.log('💳 Processing Stripe payment callback');
@@ -141,7 +141,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
             // ✅ Now authenticate the user
             const userEmail = userData?.['email'];
             if (userEmail) {
-              this.authenticateNewUser(userEmail);
+              this.authenticateNewUser(userEmail, sessionId);
             } else {
               console.error('❌ No email found for authentication');
               this.hasError.set(true);
