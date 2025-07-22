@@ -8,6 +8,10 @@ import { take, finalize } from 'rxjs/operators';
 import {
   Firestore,
   doc,
+  query,
+  where,
+  collection,
+  getDocs,
   updateDoc,
   serverTimestamp,
   getDoc,
@@ -83,120 +87,145 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  private handleStripeCallback(): void {
-  console.log('💳 Processing Stripe payment callback');
-  this.processingMessage.set('Processing your payment...');
-
-  // ✅ Get user ID from localStorage (saved during registration)
-  const pendingUserId = localStorage.getItem('pendingUserId'); 
-  
-  if (!pendingUserId) {
-    console.error('❌ No pending user ID found');
-    this.hasError.set(true);
-    this.showProcessingSpinner.set(false);
-    this.router.navigate(['/register']);
-    return;
-  }
-
-  console.log('🔍 Checking payment status for user:', pendingUserId);
-  
-  const checkStatus = () => {
-    // ✅ Check both collections
-    const collections = ['originators', 'lenders'];
-    
-    for (const collection of collections) {
-      getDoc(doc(this.firestore, `${collection}/${pendingUserId}`)).then((docSnap: any) => {
-       if (docSnap.exists()) {
-          const userData = docSnap.data();
-          console.log('📄 User data:', userData);
-          
-          if (userData?.['subscriptionStatus'] === 'active' && !userData?.['paymentPending']) {
-            // ✅ Payment processed successfully
-            console.log('✅ Payment verified - showing success modal');
-            this.userRole = userData?.['role'] || 'originator';
-            this.showProcessingSpinner.set(false);
-            this.showModalBasedOnRole();
-            return;
-          }
-        }
-      });
-    }
-  };
-
-  // ✅ Poll every 2 seconds for up to 2 minutes
-  const interval = setInterval(checkStatus, 2000);
-  
-  // ✅ Timeout after 2 minutes
-  setTimeout(() => {
-    clearInterval(interval);
-    if (this.showProcessingSpinner()) {
-      console.error('❌ Payment verification timeout');
+  private authenticateNewUser(email: string): void {
+  this.authService.authenticateNewUser(email).subscribe({
+    next: () => {
+      console.log('✅ Authentication link sent, showing success modal');
+      this.showProcessingSpinner.set(false);
+      this.showModalBasedOnRole();
+    },
+    error: (error) => {
+      console.error('❌ Failed to authenticate user:', error);
       this.hasError.set(true);
       this.showProcessingSpinner.set(false);
-      this.processingMessage.set('Payment verification timeout. Please contact support.');
     }
-  }, 120000);
-  
-  // ✅ Start checking immediately
-  checkStatus();
+  });
 }
-  
 
- /**
- * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
- */
-private handleOriginatorPaymentSuccess(): void {
-  console.log('👤 Processing originator payment success');
-  this.processingMessage.set('Payment successful! Finalizing your account...');
+  private handleStripeCallback(): void {
+    console.log('💳 Processing Stripe payment callback');
+    this.processingMessage.set('Verifying your payment...');
 
-  // ✅ Set processing flag
-  RegistrationProcessingComponent.processingInProgress = true;
+    // ✅ Get session ID from URL params
+    const sessionId = this.route.snapshot.queryParams['session_id'];
 
-  // ✅ Simple success flow - webhook already updated user status
-  this.userRole = 'originator';
-  this.authService.setRegistrationSuccess(true);
-  
-  setTimeout(() => {
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.showModalBasedOnRole();
-  }, 1500);
-}
+    if (!sessionId) {
+      console.error('❌ No session ID found in URL');
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      this.router.navigate(['/register']);
+      return;
+    }
+
+    console.log('🔍 Verifying payment for session:', sessionId);
+
+    // ✅ Poll for user creation (webhook should have created user by now)
+    const checkUserCreated = () => {
+      const collections = ['originators', 'lenders'];
+
+      collections.forEach(collectionName => {
+        getDocs(query(
+          collection(this.firestore, collectionName),
+          where('source', '==', 'stripe_checkout'),
+          where('subscriptionStatus', '==', 'active')
+        )).then((querySnapshot) => {
+          if (!querySnapshot.empty) {
+            // ✅ User found - payment successful
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
+
+            console.log('✅ Payment verified - user created successfully');
+            this.userRole = userData?.['role'] || 'originator';
+            this.processingMessage.set('Logging you in...');
+
+            // ✅ Now authenticate the user
+            const userEmail = userData?.['email'];
+            if (userEmail) {
+              this.authenticateNewUser(userEmail);
+            } else {
+              console.error('❌ No email found for authentication');
+              this.hasError.set(true);
+              this.showProcessingSpinner.set(false);
+            }
+            return;
+          }
+        });
+      });
+    };
+
+    // ✅ Poll every 3 seconds for up to 2 minutes
+    const interval = setInterval(checkUserCreated, 3000);
+
+    // ✅ Timeout after 2 minutes
+    setTimeout(() => {
+      clearInterval(interval);
+      if (this.showProcessingSpinner()) {
+        console.error('❌ Payment verification timeout');
+        this.hasError.set(true);
+        this.showProcessingSpinner.set(false);
+        this.processingMessage.set('Payment verification timeout. Please contact support.');
+      }
+    }, 120000);
+
+    // ✅ Start checking immediately
+    checkUserCreated();
+  }
 
   /**
- * ✅ Handle lender payment success - Just show success modal (webhook handles status update)  
- */
-private handleLenderPaymentSuccess(rawLenderData: string): void {
-  console.log('🏢 Processing lender payment success');
-  this.processingMessage.set('Payment successful! Finalizing your account...');
-
-  try {
-    const lenderData = JSON.parse(rawLenderData);
-    const email = lenderData?.contactInfo?.contactEmail;
-
-    if (!email) {
-      throw new Error('Email is required');
-    }
+  * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
+  */
+  private handleOriginatorPaymentSuccess(): void {
+    console.log('👤 Processing originator payment success');
+    this.processingMessage.set('Payment successful! Finalizing your account...');
 
     // ✅ Set processing flag
     RegistrationProcessingComponent.processingInProgress = true;
 
     // ✅ Simple success flow - webhook already updated user status
-    this.userRole = 'lender';
+    this.userRole = 'originator';
     this.authService.setRegistrationSuccess(true);
-    
+
     setTimeout(() => {
       RegistrationProcessingComponent.processingInProgress = false;
       this.showModalBasedOnRole();
     }, 1500);
-
-  } catch (error) {
-    console.error('❌ Error in handleLenderPaymentSuccess:', error);
-    this.hasError.set(true);
-    this.showProcessingSpinner.set(false);
-    RegistrationProcessingComponent.processingInProgress = false;
-    this.router.navigate(['/register/lender']);
   }
-}
+
+  /**
+ * ✅ Handle lender payment success - Just show success modal (webhook handles status update)  
+ */
+  private handleLenderPaymentSuccess(rawLenderData: string): void {
+    console.log('🏢 Processing lender payment success');
+    this.processingMessage.set('Payment successful! Finalizing your account...');
+
+    try {
+      const lenderData = JSON.parse(rawLenderData);
+      const email = lenderData?.contactInfo?.contactEmail;
+
+      if (!email) {
+        throw new Error('Email is required');
+      }
+
+      // ✅ Set processing flag
+      RegistrationProcessingComponent.processingInProgress = true;
+
+      // ✅ Simple success flow - webhook already updated user status
+      this.userRole = 'lender';
+      this.authService.setRegistrationSuccess(true);
+
+      setTimeout(() => {
+        RegistrationProcessingComponent.processingInProgress = false;
+        this.showModalBasedOnRole();
+      }, 1500);
+
+    } catch (error) {
+      console.error('❌ Error in handleLenderPaymentSuccess:', error);
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      RegistrationProcessingComponent.processingInProgress = false;
+      this.router.navigate(['/register/lender']);
+    }
+  }
 
   /**
    * ✅ Check if we should show standard registration processing
@@ -225,30 +254,30 @@ private handleLenderPaymentSuccess(rawLenderData: string): void {
   }
 
   private async loadUserRole(): Promise<void> {
-  try {
-    // ✅ Since backend creates users but doesn't log them in,
-    // we'll determine role from localStorage or default to originator
-    const pendingUserId = localStorage.getItem('pendingUserId');
-    
-    if (pendingUserId) {
-      // User just registered, assume originator for now
-      this.userRole = 'originator';
-    } else {
-      // Fallback 
-      this.userRole = 'originator';
-    }
-    
-    this.authService.setRegistrationSuccess(true);
-    this.processingMessage.set('Success! Welcome to your dashboard...');
+    try {
+      // ✅ Since backend creates users but doesn't log them in,
+      // we'll determine role from localStorage or default to originator
+      const pendingUserId = localStorage.getItem('pendingUserId');
 
-    setTimeout(() => {
-      this.showModalBasedOnRole();
-    }, 1500);
-  } catch (error) {
-    console.error('❌ Error during registration:', error);
-    this.processingMessage.set('Failed to create user. Please try again.');
+      if (pendingUserId) {
+        // User just registered, assume originator for now
+        this.userRole = 'originator';
+      } else {
+        // Fallback 
+        this.userRole = 'originator';
+      }
+
+      this.authService.setRegistrationSuccess(true);
+      this.processingMessage.set('Success! Welcome to your dashboard...');
+
+      setTimeout(() => {
+        this.showModalBasedOnRole();
+      }, 1500);
+    } catch (error) {
+      console.error('❌ Error during registration:', error);
+      this.processingMessage.set('Failed to create user. Please try again.');
+    }
   }
-}
   /**
    * ✅ Show appropriate modal based on user role
    */

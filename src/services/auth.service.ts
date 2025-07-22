@@ -55,31 +55,6 @@ export class AuthService {
   }
 
   /**
-   * ✅ Register and store Firestore user profile
-   */
-  registerUserViaApi(email: string, userData: any): Observable<User> {
-    const firebaseUser = this.auth.currentUser;
-    if (!firebaseUser) {
-      return throwError(() => new Error('User not authenticated'));
-    }
-
-    const uid = firebaseUser.uid;
-    const role = userData.role || 'lender'; // fallback if missing
-
-    const userDocRef = doc(this.db, `${role}s/${uid}`);
-
-    const newUserData = {
-      uid,
-      email,
-      ...userData,
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      subscriptionStatus: 'inactive' // ✅ Default until webhook updates it
-    };
-
-    return from(setDoc(userDocRef, newUserData)).pipe(map(() => firebaseUser));
-  }
-  /**
    * ✅ Register user via HTTP API (creates user with inactive status, no App Check required)
    */
   registerUserViaAPI(email: string, userData: any): Observable<{ success: boolean, uid: string }> {
@@ -115,6 +90,25 @@ export class AuthService {
       })
     );
   }
+
+  /**
+ * ✅ NEW: Authenticate user after webhook creates account
+ * This method can be called from the success page to log in a newly created user
+ */
+authenticateNewUser(email: string): Observable<void> {
+  console.log('🔍 Authenticating newly created user:', email);
+  
+  // Send login link to the user who just completed payment
+  return this.sendLoginLink(email).pipe(
+    map(() => {
+      console.log('✅ Login link sent to newly registered user');
+    }),
+    catchError((error) => {
+      console.error('❌ Error sending login link to new user:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));

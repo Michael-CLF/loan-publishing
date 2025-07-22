@@ -65,24 +65,34 @@ export class VerificationComponent implements OnInit {
 
     const userData = JSON.parse(localStorage.getItem('registrationData') || '{}');
 
-    this.authService.registerUserViaAPI(email, userData).subscribe({
-      next: (user: any) => {
-        localStorage.setItem('isLoggedIn', 'true');
-        localStorage.removeItem('pendingVerificationEmail');
-        localStorage.removeItem('registrationData');
+  // ✅ Authenticate via email link (same as email-login component)
+const storedEmail = this.authService.getStoredEmail();
 
-        this.successMessage = 'Verification successful! Redirecting...';
+if (!storedEmail) {
+  this.isLoading = false;
+  this.errorMessage = 'No email found for verification. Please try logging in again.';
+  return;
+}
 
-        setTimeout(() => {
-          this.router.navigate(['/dashboard']);
-        }, 1500);
-      },
-      error: (error: any) => {
-        console.error('Error creating user account:', error);
-        this.isLoading = false;
-        this.errorMessage = 'Failed to create user account. Please try again.';
-      },
-    });
+this.authService.loginWithEmailLink(storedEmail).subscribe({
+  next: () => {
+    this.isLoading = false;
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.removeItem('pendingVerificationEmail');
+    localStorage.removeItem('registrationData');
+    
+    this.successMessage = 'Login successful! Redirecting...';
+    
+    setTimeout(() => {
+      this.router.navigate(['/dashboard']);
+    }, 1500);
+  },
+  error: (error: any) => {
+    this.isLoading = false;
+    console.error('Error during email link authentication:', error);
+    this.errorMessage = 'Authentication failed. Please try again or request a new login link.';
+  }
+});
   }
 
   resendCode(): void {

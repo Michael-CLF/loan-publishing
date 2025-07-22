@@ -276,31 +276,14 @@ export class UserFormComponent implements OnInit, OnDestroy {
         checkoutData.discountType = couponDetails.discountType;
       }
 
-      console.log('🚨 ABOUT TO CALL registerUser');
-
-      // Step 1: Register user in Firebase (creates user with inactive status)
-      this.authService.registerUserViaAPI(formData.email, {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-        role: 'originator'
-      })
+      console.log('🔵 Creating Stripe checkout session with registration data');
+      from(this.stripeService.createCheckoutSession(checkoutData))
         .pipe(
           takeUntil(this.destroy$),
-          switchMap((registrationResponse) => {
-            console.log('✅ User registered successfully with inactive status:', registrationResponse);
-
-            // Step 2: Create Stripe checkout session
-            console.log('🔵 Now creating Stripe checkout session');
-            return from(this.stripeService.createCheckoutSession(checkoutData));
-          }),
           catchError((error: any) => {
             this.isLoading = false;
-            console.error('❌ Registration or Stripe error:', error);
-            this.errorMessage = error.message || 'Failed to complete registration. Please try again.';
+            console.error('❌ Stripe checkout error:', error);
+            this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
             return of(null);
           })
         )
@@ -308,6 +291,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
           next: (checkoutResponse) => {
             if (checkoutResponse && checkoutResponse.url) {
               console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+              // ✅ Store registration data in localStorage for webhook to use later
+              localStorage.setItem('pendingRegistration', JSON.stringify(formData));
               window.location.href = checkoutResponse.url;
             } else {
               this.isLoading = false;
@@ -316,10 +301,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
           },
           error: (error) => {
             this.isLoading = false;
-            console.error('❌ Subscription error:', error);
+            console.error('❌ Checkout error:', error);
             this.errorMessage = 'An unexpected error occurred. Please try again.';
           }
         });
-    });
+      });
+    }
   }
-}
