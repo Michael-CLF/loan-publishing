@@ -45,6 +45,7 @@ interface CouponValidationResponse {
 
 interface AppliedCouponDetails {
   code: string;
+  displayCode?: string;
   discount: number;
   discountType: 'percentage' | 'fixed';
   description?: string;
@@ -189,7 +190,8 @@ private handleCouponValidationResponse(response: any): void {
 
     const coupon = response.promotion_code.coupon;
     this.appliedCouponDetails = {
-      code: response.promotion_code.id, // <-- ✅ Use Stripe's promo ID here
+      code: response.promotion_code.id, 
+      displayCode: response.promotion_code.code, 
       discount: coupon.percent_off || coupon.amount_off || 0,
       discountType: coupon.percent_off ? 'percentage' : 'fixed',
       description: coupon.name

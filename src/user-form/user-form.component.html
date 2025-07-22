@@ -232,8 +232,7 @@
   </div>
   
  <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
-  ✓ Coupon "{{ appliedCouponDetails.code }}" applied! 
-  {{ appliedCouponDetails.discount }}% off
+  ✓ Coupon "{{ appliedCouponDetails.displayCode || 'promotion code' }}" applied!
 </div>
   
   <!-- Error messages -->
