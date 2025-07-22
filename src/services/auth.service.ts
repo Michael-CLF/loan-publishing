@@ -35,6 +35,9 @@ import { BehaviorSubject } from 'rxjs';
 import { authState, signInWithCustomToken } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 import { FirestoreService } from './firestore.service';
+import { httpsCallable } from '@angular/fire/functions';
+import { Functions } from '@angular/fire/functions';
+
 
 
 @Injectable({
