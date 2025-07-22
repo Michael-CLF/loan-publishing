@@ -103,74 +103,75 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   private handleStripeCallback(): void {
-    console.log('💳 Processing Stripe payment callback');
-    this.processingMessage.set('Verifying your payment...');
+  console.log('💳 Processing Stripe payment callback');
+  this.processingMessage.set('Verifying your payment...');
 
-    // ✅ Get session ID from URL params
-    const sessionId = this.route.snapshot.queryParams['session_id'];
+  const sessionId = this.route.snapshot.queryParams['session_id'];
 
-    if (!sessionId) {
-      console.error('❌ No session ID found in URL');
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      this.router.navigate(['/register']);
-      return;
-    }
+  if (!sessionId) {
+  console.error('❌ No session ID found in URL – retrying...');
+  this.processingMessage.set('Waiting for payment session...');
+  // Just skip this run and let it retry – don't show error yet
+  return;
+}
 
-    console.log('🔍 Verifying payment for session:', sessionId);
 
-    // ✅ Poll for user creation (webhook should have created user by now)
-    const checkUserCreated = () => {
-      const collections = ['originators', 'lenders'];
+  console.log('🔍 Verifying payment for session:', sessionId);
 
-      collections.forEach(collectionName => {
-        getDocs(query(
+  let attempts = 0;
+  const maxAttempts = 40; // 2 minutes if interval is 3s
+  const intervalTime = 3000;
+
+  const interval = setInterval(async () => {
+    attempts++;
+
+    for (const collectionName of ['originators', 'lenders']) {
+      try {
+        const q = query(
           collection(this.firestore, collectionName),
           where('source', '==', 'stripe_checkout'),
           where('subscriptionStatus', '==', 'active')
-        )).then((querySnapshot) => {
-          if (!querySnapshot.empty) {
-            // ✅ User found - payment successful
-            const userDoc = querySnapshot.docs[0];
-            const userData = userDoc.data();
+        );
 
-            console.log('✅ Payment verified - user created successfully');
-            this.userRole = userData?.['role'] || 'originator';
-            this.processingMessage.set('Logging you in...');
+        const querySnapshot = await getDocs(q);
 
-            // ✅ Now authenticate the user
-            const userEmail = userData?.['email'];
-            if (userEmail) {
-              this.authenticateNewUser(userEmail, sessionId);
-            } else {
-              console.error('❌ No email found for authentication');
-              this.hasError.set(true);
-              this.showProcessingSpinner.set(false);
-            }
-            return;
+        if (!querySnapshot.empty) {
+          const userDoc = querySnapshot.docs[0];
+          const userData = userDoc.data();
+          const userEmail = userData?.['email'];
+
+          console.log('✅ Stripe verified. Found user:', userEmail);
+
+          clearInterval(interval);
+          this.userRole = userData?.['role'] || 'originator';
+          this.processingMessage.set('Logging you in...');
+
+          if (userEmail) {
+            this.authenticateNewUser(userEmail, sessionId);
+          } else {
+            console.error('❌ No email found in user data');
+            this.hasError.set(true);
+            this.showProcessingSpinner.set(false);
           }
-        });
-      });
-    };
 
-    // ✅ Poll every 3 seconds for up to 2 minutes
-    const interval = setInterval(checkUserCreated, 3000);
-
-    // ✅ Timeout after 2 minutes
-    setTimeout(() => {
-      clearInterval(interval);
-      if (this.showProcessingSpinner()) {
-        console.error('❌ Payment verification timeout');
-        this.hasError.set(true);
-        this.showProcessingSpinner.set(false);
-        this.processingMessage.set('Payment verification timeout. Please contact support.');
+          return; // ⛔ Exit both polling and loop
+        }
+      } catch (err) {
+        console.error(`⚠️ Error checking ${collectionName}:`, err);
       }
-    }, 120000);
+    }
 
-    // ✅ Start checking immediately
-    checkUserCreated();
-  }
+    if (attempts >= maxAttempts) {
+      clearInterval(interval);
+      this.hasError.set(true);
+      this.showProcessingSpinner.set(false);
+      this.processingMessage.set('Payment verification timeout. Please contact support.');
+      console.error('❌ Stripe verification timeout after 2 minutes');
+    }
 
+  }, intervalTime);
+}
+  
   /**
   * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
   */
