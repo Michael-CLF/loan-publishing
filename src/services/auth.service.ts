@@ -28,7 +28,7 @@ import {
 import { Router } from '@angular/router';
 import { environment } from '../environments/environment';
 import { Observable, from, of, throwError } from 'rxjs';
-import { switchMap, map, catchError } from 'rxjs/operators';
+import { switchMap, map, tap, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model';
 import { BehaviorSubject } from 'rxjs';
@@ -43,12 +43,14 @@ import { FirestoreService } from './firestore.service';
 export class AuthService {
   constructor(
     private firestoreService: FirestoreService
-  ) {}
+  ) { }
 
   private auth = inject(Auth);
   private router = inject(Router);
   private http = inject(HttpClient);
   private registrationSuccess = false;
+  private firestore = inject(Firestore);
+
 
   private get db() {
     return this.firestoreService.firestore;
@@ -90,14 +92,14 @@ export class AuthService {
       })
     );
   }
-/**
+  /**
  * ✅ NEW: Generate custom token and authenticate user immediately
  */
 authenticateNewUser(email: string, sessionId: string): Observable<void> {
   console.log('🔍 Generating custom token for user:', email);
-  
+
   const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
-  
+
   return this.http.post<{ token: string, user: any }>(
     tokenUrl,
     { email: email.toLowerCase().trim(), sessionId },
@@ -105,13 +107,31 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
   ).pipe(
     switchMap((response) => {
       console.log('✅ Custom token received, signing in user...');
-      
-      // Use the custom token to sign in
-      return from(signInWithCustomToken(this.auth, response.token));
-    }),
-    map(() => {
-      console.log('✅ User authenticated successfully with custom token');
-      localStorage.setItem('isLoggedIn', 'true');
+
+      return from(signInWithCustomToken(this.auth, response.token)).pipe(
+        switchMap((userCredential) => {
+          const user = userCredential.user;
+          const uid = user.uid;
+
+          const userData = {
+            id: uid,
+            uid: uid,
+            email: user.email ?? '',
+            role: 'originator',
+            source: 'stripe_checkout',
+            subscriptionStatus: 'active',
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp()
+          };
+
+          const userRef = doc(this.firestore, `originators/${uid}`);
+          return from(setDoc(userRef, userData, { merge: true }));
+        }),
+        tap(() => {
+          console.log('✅ User authenticated and Firestore document created');
+          localStorage.setItem('isLoggedIn', 'true');
+        })
+      );
     }),
     catchError((error) => {
       console.error('❌ Error authenticating with custom token:', error);
@@ -127,135 +147,135 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
   isLoggedIn$ = authState(this.auth).pipe(map(user => !!user));
 
 
-getUserProfile(): Observable<UserData | null> {
-  return this.getCurrentFirebaseUser().pipe(
-    switchMap(user => {
-      if (!user) return of(null);
-      const uid = user.uid;
+  getUserProfile(): Observable<UserData | null> {
+    return this.getCurrentFirebaseUser().pipe(
+      switchMap(user => {
+        if (!user) return of(null);
+        const uid = user.uid;
 
-      const originatorRef = doc(this.db, `originators/${uid}`);
-      const lenderRef = doc(this.db, `lenders/${uid}`);
+        const originatorRef = doc(this.db, `originators/${uid}`);
+        const lenderRef = doc(this.db, `lenders/${uid}`);
 
-      return from(getDoc(originatorRef)).pipe(
-        switchMap(originatorSnap => {
-          if (originatorSnap.exists()) {
-            return of({
-              id: originatorSnap.id,
-              ...(originatorSnap.data() as any),
-            } as UserData);
-          }
+        return from(getDoc(originatorRef)).pipe(
+          switchMap(originatorSnap => {
+            if (originatorSnap.exists()) {
+              return of({
+                id: originatorSnap.id,
+                ...(originatorSnap.data() as any),
+              } as UserData);
+            }
 
-          return from(getDoc(lenderRef)).pipe(
-            map(lenderSnap => {
-              if (lenderSnap.exists()) {
-                return {
-                  id: lenderSnap.id,
-                  ...(lenderSnap.data() as any),
-                } as UserData;
-              } else {
-                console.warn('❌ No originator or lender profile found.');
-                return null;
-              }
-            })
-          );
-        }),
-        catchError(err => {
-          console.error('❌ Error fetching user profile:', err);
-          return of(null);
-        })
-      );
-    })
-  );
-}
+            return from(getDoc(lenderRef)).pipe(
+              map(lenderSnap => {
+                if (lenderSnap.exists()) {
+                  return {
+                    id: lenderSnap.id,
+                    ...(lenderSnap.data() as any),
+                  } as UserData;
+                } else {
+                  console.warn('❌ No originator or lender profile found.');
+                  return null;
+                }
+              })
+            );
+          }),
+          catchError(err => {
+            console.error('❌ Error fetching user profile:', err);
+            return of(null);
+          })
+        );
+      })
+    );
+  }
 
-/**
- * ✅ NEW: Check if user account exists in our system before sending login links
- * Returns account status to determine appropriate action
- */
-checkAccountExists(email: string): Observable<{ 
-  exists: boolean; 
-  userType?: 'originator' | 'lender'; 
-  userId?: string;
-  subscriptionStatus?: string;
-  needsPayment?: boolean;
-}> {
-  const normalizedEmail = email.toLowerCase().trim();
-  
-  console.log('🔍 Checking if account exists for:', normalizedEmail);
+  /**
+   * ✅ NEW: Check if user account exists in our system before sending login links
+   * Returns account status to determine appropriate action
+   */
+  checkAccountExists(email: string): Observable<{
+    exists: boolean;
+    userType?: 'originator' | 'lender';
+    userId?: string;
+    subscriptionStatus?: string;
+    needsPayment?: boolean;
+  }> {
+    const normalizedEmail = email.toLowerCase().trim();
 
-  // Check both collections for the email
-  const originatorQuery = query(
-    collection(this.db, 'originators'),
-    where('contactInfo.contactEmail', '==', normalizedEmail)
-  );
+    console.log('🔍 Checking if account exists for:', normalizedEmail);
 
-  const lenderQuery = query(
-    collection(this.db, 'lenders'),
-    where('contactInfo.contactEmail', '==', normalizedEmail)
-  );
+    // Check both collections for the email
+    const originatorQuery = query(
+      collection(this.db, 'originators'),
+      where('contactInfo.contactEmail', '==', normalizedEmail)
+    );
 
-  // Check originators first
-  return from(getDocs(originatorQuery)).pipe(
-    switchMap(originatorSnap => {
-      if (!originatorSnap.empty) {
-        const doc = originatorSnap.docs[0];
-        const data = doc.data();
-        const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
-        
-        console.log('✅ Found originator account:', {
-          userId: doc.id,
-          subscriptionStatus,
-          email: normalizedEmail
-        });
+    const lenderQuery = query(
+      collection(this.db, 'lenders'),
+      where('contactInfo.contactEmail', '==', normalizedEmail)
+    );
 
-        return of({
-          exists: true,
-          userType: 'originator' as const,
-          userId: doc.id,
-          subscriptionStatus,
-          needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
-        });
-      }
+    // Check originators first
+    return from(getDocs(originatorQuery)).pipe(
+      switchMap(originatorSnap => {
+        if (!originatorSnap.empty) {
+          const doc = originatorSnap.docs[0];
+          const data = doc.data();
+          const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
 
-      // If not found in originators, check lenders
-      return from(getDocs(lenderQuery)).pipe(
-        map(lenderSnap => {
-          if (!lenderSnap.empty) {
-            const doc = lenderSnap.docs[0];
-            const data = doc.data();
-            const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
-            
-            console.log('✅ Found lender account:', {
-              userId: doc.id,
-              subscriptionStatus,
-              email: normalizedEmail
-            });
+          console.log('✅ Found originator account:', {
+            userId: doc.id,
+            subscriptionStatus,
+            email: normalizedEmail
+          });
 
+          return of({
+            exists: true,
+            userType: 'originator' as const,
+            userId: doc.id,
+            subscriptionStatus,
+            needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
+          });
+        }
+
+        // If not found in originators, check lenders
+        return from(getDocs(lenderQuery)).pipe(
+          map(lenderSnap => {
+            if (!lenderSnap.empty) {
+              const doc = lenderSnap.docs[0];
+              const data = doc.data();
+              const subscriptionStatus = (data as any).subscriptionStatus || 'inactive';
+
+              console.log('✅ Found lender account:', {
+                userId: doc.id,
+                subscriptionStatus,
+                email: normalizedEmail
+              });
+
+              return {
+                exists: true,
+                userType: 'lender' as const,
+                userId: doc.id,
+                subscriptionStatus,
+                needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
+              };
+            }
+
+            console.log('❌ No account found for:', normalizedEmail);
             return {
-              exists: true,
-              userType: 'lender' as const,
-              userId: doc.id,
-              subscriptionStatus,
-              needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus)
+              exists: false
             };
-          }
-
-          console.log('❌ No account found for:', normalizedEmail);
-          return {
-            exists: false
-          };
-        })
-      );
-    }),
-    catchError(error => {
-      console.error('❌ Error checking account existence:', error);
-      return of({
-        exists: false,
-        error: 'Unable to verify account status'
-      });
-    })
-  );
-}   
+          })
+        );
+      }),
+      catchError(error => {
+        console.error('❌ Error checking account existence:', error);
+        return of({
+          exists: false,
+          error: 'Unable to verify account status'
+        });
+      })
+    );
+  }
 
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
     const user = this.auth.currentUser;
