@@ -120,12 +120,12 @@ export class StripeService {
       role: data.role,
       interval: data.interval,
       userData: data.userData,
-      promotion_code: data.promotion_code,
     };
 
-    if (data.promotion_code) {
-      checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
+    if (data.promotion_code && typeof data.promotion_code === 'string') {
+      checkoutData.promotion_code = data.promotion_code.trim();
     }
+
 
     console.log('🔵 Creating Stripe checkout session (App Check disabled)');
 

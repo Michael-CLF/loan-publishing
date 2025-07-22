@@ -183,23 +183,24 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  private handleCouponValidationResponse(response: any): void {
-    if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
+private handleCouponValidationResponse(response: any): void {
+  if (response.valid && response.promotion_code) {
+    this.couponApplied = true;
 
-      const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
-        code: response.promotion_code.code,
-        discount: coupon.percent_off || coupon.amount_off || 0,
-        discountType: coupon.percent_off ? 'percentage' : 'fixed',
-        description: coupon.name
-      };
-      this.clearCouponErrors();
-    } else {
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid coupon code');
-    }
+    const coupon = response.promotion_code.coupon;
+    this.appliedCouponDetails = {
+      code: response.promotion_code.id, // <-- ✅ Use Stripe's promo ID here
+      discount: coupon.percent_off || coupon.amount_off || 0,
+      discountType: coupon.percent_off ? 'percentage' : 'fixed',
+      description: coupon.name
+    };
+    this.clearCouponErrors();
+  } else {
+    this.resetCouponState();
+    this.setCouponError(response.error || 'Invalid coupon code');
   }
+}
+
 
   private setCouponError(errorMessage: string): void {
     const couponControl = this.userForm.get('couponCode');
