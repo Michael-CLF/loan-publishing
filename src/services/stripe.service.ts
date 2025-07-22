@@ -25,7 +25,7 @@ export interface CheckoutSessionRequest {
     discount: number;
     discountType: 'percentage' | 'fixed';
   };
-  promotion_code: string;
+  promotion_code?: string;
 }
 
 export interface CheckoutSessionResponse {
