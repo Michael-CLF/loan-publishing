@@ -870,14 +870,32 @@ runInInjectionContext(this.injector, () => {
   };
 
   from(this.stripeService.createCheckoutSession(payload)).pipe(
-    tap((checkoutResponse) => {
-      console.log('✅ Stripe checkout session created:', checkoutResponse);
-      // You can do something with checkoutResponse here
-    })
-  ).subscribe();
+  catchError((error: any) => {
+    this.isLoading = false;
+    console.error('❌ Stripe checkout error:', error);
+    this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+    return of(null);
+  })
+).subscribe({
+  next: (checkoutResponse) => {
+    if (checkoutResponse && checkoutResponse.url) {
+      console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+      // ✅ Store registration data in localStorage for webhook to use later
+      localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+      window.location.href = checkoutResponse.url;
+    } else {
+      this.isLoading = false;
+      this.errorMessage = 'Invalid checkout response. Please try again.';
+    }
+  },
+  error: (error) => {
+    this.isLoading = false;
+    console.error('❌ Checkout error:', error);
+    this.errorMessage = 'An unexpected error occurred. Please try again.';
+  }
 });
-}
- 
+});
+} 
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
