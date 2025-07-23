@@ -1,90 +1,99 @@
-<!-- src/app/lender-registration/lender-registration.component.html -->
-
 <div class="registration-container">
-    <h2 class="title">Lender Registration</h2>
+  <h2 class="title">Lender Registration</h2>
 
-    <div class="steps-container">
-        <div class="step" [ngClass]="{'active': currentStep === 0, 'completed': currentStep > 0}">
-            Contact Information
-        </div>
-        <div class="step" [ngClass]="{'active': currentStep === 1, 'completed': currentStep > 1}">
-            Product Details
-        </div>
-        <div class="step" [ngClass]="{'active': currentStep === 2, 'completed': currentStep > 2}">
-            Lending Footprint
-        </div>
-        <div class="step" [ngClass]="{'active': currentStep === 3, 'completed': currentStep > 3}">
-            Review
-        </div>
-        <div class="step" [ngClass]="{'active': currentStep === 4}">
-            Payment
-        </div>
+  <div class="steps-container">
+    <div class="step" [ngClass]="{'active': currentStep === 0, 'completed': currentStep > 0}">
+      Contact Information
     </div>
-
-    <div class="form-container">
-        <form [formGroup]="lenderForm">
-            @if (currentStep === 0) {
-                <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
-            } @else if (currentStep === 1) {
-                <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
-                    [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes">
-                </app-lender-product>
-            } @else if (currentStep === 2) {
-                <app-lender-footprint [lenderForm]="lenderForm" [footprintLocation]="states">
-                </app-lender-footprint>
-            } @else if (currentStep === 3) {
-                <app-lender-review [lenderForm]="lenderForm" [states]="states" [lenderTypes]="lenderTypes"
-                    [propertyCategories]="propertyCategories" [loanTypes]="loanTypes">
-                </app-lender-review>
-            } @else if (currentStep === 4) {
-                <app-lender-stripe-payment [lenderData]="getLenderData()" 
-                                           (paymentComplete)="handlePaymentComplete($event)"
-                                           (paymentError)="handlePaymentError($event)">
-                </app-lender-stripe-payment>
-            }
-
-            @if (errorMessage) {
-                <div class="error-message">{{ errorMessage }}</div>
-            }
-
-            @if (successMessage) {
-                <div class="success-message">{{ successMessage }}</div>
-            }
-
-            <div class="button-container">
-                <!-- Previous button for steps 1-4 -->
-                @if (currentStep > 0) {
-                    <button type="button" class="btn btn-secondary" (click)="prevStep()">
-                        Previous
-                    </button>
-                }
-
-                <!-- Next button for steps 0-2 -->
-                @if (currentStep >= 0 && currentStep <= 2) {
-                    <button type="button" class="btn btn-primary" id="next-btn" (click)="nextStep()">
-                        Next
-                    </button>
-                }
-
-                <!-- Proceed to Payment button for step 3 (Review) -->
-                @if (currentStep === 3) {
-                    <button type="button" class="btn btn-success" id="proceed-to-payment-btn" 
-                        [disabled]="!lenderForm.get('termsAccepted')?.value"
-                        (click)="nextStep()">
-                        Proceed to Payment
-                    </button>
-                }
-
-                <!-- Complete Registration button for step 4 (Payment) -->
-                @if (currentStep === 4) {
-                    <button type="submit" class="btn btn-success" 
-                        [disabled]="!lenderForm.get('interval')?.value || isLoading"
-                        (click)="submitForm()">
-                        <span *ngIf="!isLoading">Complete Registration</span>
-                        <span *ngIf="isLoading">Processing...</span>
-                    </button>
-                }
-            </div>
-        </form>
+    <div class="step" [ngClass]="{'active': currentStep === 1, 'completed': currentStep > 1}">
+      Product Details
     </div>
+    <div class="step" [ngClass]="{'active': currentStep === 2, 'completed': currentStep > 2}">
+      Lending Footprint
+    </div>
+    <div class="step" [ngClass]="{'active': currentStep === 3, 'completed': currentStep > 3}">
+      Review
+    </div>
+    <div class="step" [ngClass]="{'active': currentStep === 4}">
+      Payment
+    </div>
+  </div>
+
+  <div class="form-container">
+    <form [formGroup]="lenderForm">
+      @if (currentStep === 0) {
+        <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
+      } @else if (currentStep === 1) {
+        <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
+                            [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes">
+        </app-lender-product>
+      } @else if (currentStep === 2) {
+        <app-lender-footprint [lenderForm]="lenderForm" [footprintLocation]="states">
+        </app-lender-footprint>
+      } @else if (currentStep === 3) {
+        <app-lender-review [lenderForm]="lenderForm" [states]="states" [lenderTypes]="lenderTypes"
+                           [propertyCategories]="propertyCategories" [loanTypes]="loanTypes">
+        </app-lender-review>
+      } @else if (currentStep === 4) {
+        <app-lender-stripe-payment [lenderData]="getLenderData()" 
+                                   (paymentComplete)="handlePaymentComplete($event)"
+                                   (paymentError)="handlePaymentError($event)">
+        </app-lender-stripe-payment>
+      }
+
+      @if (errorMessage) {
+        <div class="error-message">{{ errorMessage }}</div>
+      }
+
+      @if (successMessage) {
+        <div class="success-message">{{ successMessage }}</div>
+      }
+
+      <div class="button-container">
+        <!-- Previous button for steps 1-4 -->
+        @if (currentStep > 0) {
+          <button type="button" class="btn btn-secondary" (click)="prevStep()">
+            Previous
+          </button>
+        }
+
+        <!-- Next button for steps 0-2 -->
+        @if (currentStep >= 0 && currentStep <= 2) {
+          <button type="button"
+                  class="btn btn-primary"
+                  id="next-btn"
+                  (click)="nextStep()"
+                  [disabled]="
+                    (currentStep === 0 && contactForm.invalid) ||
+                    (currentStep === 1 && productForm.invalid) ||
+                    (currentStep === 2 && footprintForm.invalid)
+                  ">
+            Next
+          </button>
+        }
+
+        <!-- Proceed to Payment button for step 3 -->
+        @if (currentStep === 3) {
+          <button type="button"
+                  class="btn btn-success"
+                  id="proceed-to-payment-btn"
+                  [disabled]="!lenderForm.get('termsAccepted')?.value"
+                  (click)="nextStep()">
+            Proceed to Payment
+          </button>
+        }
+
+        <!-- Complete Registration button for step 4 -->
+        @if (currentStep === 4) {
+          <button type="submit"
+                  class="btn btn-success"
+                  [disabled]="!lenderForm.get('interval')?.value || isLoading"
+                  (click)="submitForm()">
+            <span *ngIf="!isLoading">Complete Registration</span>
+            <span *ngIf="isLoading">Processing...</span>
+          </button>
+        }
+      </div>
+    </form>
+  </div>
 </div>
