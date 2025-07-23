@@ -853,53 +853,63 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
- // ✅ NEW: Create Stripe checkout session directly (no user creation)
-runInInjectionContext(this.injector, () => {
-  const payload = {
-    email: email,
-    role: 'lender',
-    interval: formData.interval,
-    userData: {
-      firstName: formData.contactInfo.firstName,
-      lastName: formData.contactInfo.lastName,
-      company: formData.contactInfo.company,
-      phone: formData.contactInfo.contactPhone,
-      city: formData.contactInfo.city,
-      state: formData.contactInfo.state
-    }
-  };
+    // ✅ NEW: Create Stripe checkout session directly (no user creation)
+    runInInjectionContext(this.injector, () => {
+      const payload = {
+        email: email,
+        role: 'lender',
+        interval: formData.interval,
+        userData: {
+          firstName: formData.contactInfo.firstName,
+          lastName: formData.contactInfo.lastName,
+          company: formData.contactInfo.company,
+          phone: formData.contactInfo.contactPhone,
+          city: formData.contactInfo.city,
+          state: formData.contactInfo.state
+        }
+      };
 
-  from(this.stripeService.createCheckoutSession(payload)).pipe(
-    catchError((error: any) => {
-      this.isLoading = false;
-      console.error('❌ Stripe checkout error:', error);
-      this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-      return of(null);
-    })
-  ).subscribe({
-    next: (checkoutResponse) => {
-      console.log('🔍 Full checkoutResponse object:', checkoutResponse);
-      console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
-      console.log('🔍 Type of response:', typeof checkoutResponse);
-      
-      if (checkoutResponse && checkoutResponse.url) {
-        console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-        localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-        console.log('🚀 About to redirect...');
-        window.location.href = checkoutResponse.url;
-      } else {
-        console.log('❌ No URL in response or invalid response');
-        this.isLoading = false;
-        this.errorMessage = 'Invalid checkout response. Please try again.';
-      }
-    },
-    error: (error) => {
-      this.isLoading = false;
-      console.error('❌ Checkout error:', error);
-      this.errorMessage = 'An unexpected error occurred. Please try again.';
-    }
-  });
-});
+      from(this.stripeService.createCheckoutSession(payload)).pipe(
+        catchError((error: any) => {
+          this.isLoading = false;
+          console.error('❌ Stripe checkout error:', error);
+          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+          return of(null);
+        })
+      ).subscribe({
+        next: (checkoutResponse) => {
+            console.log('🔥 CALLBACK EXECUTED - WE ARE HERE!');
+            console.log('🔍 Full checkoutResponse object:', checkoutResponse);
+            console.log('🔍 Full checkoutResponse object:', checkoutResponse);
+            console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
+            console.log('🔍 Type of response:', typeof checkoutResponse);
+
+            if (checkoutResponse && checkoutResponse.url) {
+              console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+              localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+              console.log('🚀 About to redirect...');
+              console.log('🚀 About to redirect...');
+              try {
+                window.location.href = checkoutResponse.url;
+                console.log('✅ Redirect initiated');
+              } catch (err) {
+                console.error('❌ Redirect failed:', err);
+                // Fallback redirect method
+                window.open(checkoutResponse.url, '_self');
+              }
+            } else {
+              console.log('❌ No URL in response or invalid response');
+              this.isLoading = false;
+              this.errorMessage = 'Invalid checkout response. Please try again.';
+            }
+          },
+            error: (error) => {
+              this.isLoading = false;
+              console.error('❌ Checkout error:', error);
+              this.errorMessage = 'An unexpected error occurred. Please try again.';
+            }
+        });
+    });
   }
 
   private extractStringValues(input: any[]): string[] {
