@@ -20,14 +20,14 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { catchError, tap } from 'rxjs/operators';
+import { catchError, tap, takeUntil, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
-
+import { HttpErrorResponse } from '@angular/common/http';
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
 import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
-import { from } from 'rxjs';
+import { from, Subject } from 'rxjs';
 import { EmailExistsValidator } from '../../services/email-exists.validator';
 import { AuthService } from '../../services/auth.service';
 import { ModalService } from '../../services/modal.service';
@@ -43,8 +43,6 @@ import {
   PropertyCategory,
   PropertySubcategory
 } from '../../shared/constants/property-mappings';
-
-
 
 export interface LenderTypeOption {
   value: string;
@@ -66,6 +64,25 @@ export interface StateOption {
   name: string;
 }
 
+interface CouponValidationResponse {
+  valid: boolean;
+  coupon?: {
+    id: string;
+    code: string;
+    discount: number;
+    discountType: 'percentage' | 'fixed';
+    description?: string;
+  };
+  error?: string;
+}
+
+interface AppliedCouponDetails {
+  code: string;
+  displayCode?: string;
+  discount: number;
+  discountType: 'percentage' | 'fixed';
+  description?: string;
+}
 
 @Component({
   selector: 'app-lender-registration',
@@ -101,7 +118,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   submitted = false;
   successMessage = '';
   errorMessage = '';
+  isValidatingCoupon = false;
+  couponApplied = false;
+  appliedCouponDetails: AppliedCouponDetails | null = null;
   private subscriptions: Subscription[] = [];
+  private destroy$ = new Subject<void>();
 
   lenderTypes: LenderTypeOption[] = [
     { value: 'agency', name: 'Agency Lender' },
@@ -835,38 +856,37 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-  // ✅ Store registration data for webhook (same pattern as originator)
-try {
-  localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-  console.log('✅ Lender registration data stored for webhook processing');
-} catch (err) {
-  console.error('Failed to store lender data locally', err);
-  this.errorMessage = 'Failed to prepare registration. Please try again.';
-  this.isLoading = false;
-  return;
-}
+    // ✅ Store registration data for webhook (same pattern as originator)
+    try {
+      localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+      console.log('✅ Lender registration data stored for webhook processing');
+    } catch (err) {
+      console.error('Failed to store lender data locally', err);
+      this.errorMessage = 'Failed to prepare registration. Please try again.';
+      this.isLoading = false;
+      return;
+    }
 
     // ✅ NEW: Create Stripe checkout session directly (no user creation)
     runInInjectionContext(this.injector, () => {
       const payload: CheckoutSessionRequest = {
-  email: email,
-  role: 'lender',
-  interval: formData.interval,
-  userData: {
-    firstName: formData.contactInfo.firstName,
-    lastName: formData.contactInfo.lastName,
-    company: formData.contactInfo.company,
-    phone: formData.contactInfo.contactPhone,
-    city: formData.contactInfo.city,
-    state: formData.contactInfo.state
-  }
-};
+        email: email,
+        role: 'lender',
+        interval: formData.interval,
+        userData: {
+          firstName: formData.contactInfo.firstName,
+          lastName: formData.contactInfo.lastName,
+          company: formData.contactInfo.company,
+          phone: formData.contactInfo.contactPhone,
+          city: formData.contactInfo.city,
+          state: formData.contactInfo.state
+        }
+      };
 
-// ✅ Add promotion code if present
-const couponCode = formData.contactInfo.couponCode;
-if (couponCode && couponCode.trim()) {
-  payload.promotion_code = couponCode.trim();
-}
+      // ✅ Add validated promotion code if present
+      if (this.couponApplied && this.appliedCouponDetails) {
+        payload.promotion_code = this.appliedCouponDetails.code;
+      }
 
       from(this.stripeService.createCheckoutSession(payload)).pipe(
         catchError((error: any) => {
@@ -921,6 +941,68 @@ if (couponCode && couponCode.trim()) {
     return Object.keys(statesData || {}).filter(
       (key) => !key.includes('_counties') && statesData[key] === true
     );
+  }
+
+  validateCoupon(): void {
+    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
+    if (!couponCode) return;
+
+    this.isValidatingCoupon = true;
+
+    this.stripeService.validatePromotionCode(couponCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isValidatingCoupon = false),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Coupon validation error:', error);
+          this.setCouponError('Unable to validate coupon. Please try again.');
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handleCouponValidationResponse(response);
+        }
+      });
+  }
+
+  private handleCouponValidationResponse(response: any): void {
+    if (response.valid && response.promotion_code) {
+      this.couponApplied = true;
+
+      const coupon = response.promotion_code.coupon;
+      this.appliedCouponDetails = {
+        code: response.promotion_code.id,
+        displayCode: response.promotion_code.code,
+        discount: coupon.percent_off || coupon.amount_off || 0,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        description: coupon.name
+      };
+      this.clearCouponErrors();
+    } else {
+      this.resetCouponState();
+      this.setCouponError(response.error || 'Invalid coupon code');
+    }
+  }
+
+  private setCouponError(errorMessage: string): void {
+    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    if (couponControl) {
+      couponControl.setErrors({ couponError: errorMessage });
+    }
+  }
+
+  private clearCouponErrors(): void {
+    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    if (couponControl) {
+      couponControl.setErrors(null);
+    }
+  }
+
+  private resetCouponState(): void {
+    this.couponApplied = false;
+    this.appliedCouponDetails = null;
+    this.clearCouponErrors();
   }
 
   private parseNumericValue(value: any): number {
