@@ -835,24 +835,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // ✅ NEW: Save complete form data for post-payment processing (no user creation)
-    const completeData = {
-      contactInfo: formData.contactInfo,
-      productInfo: formData.productInfo,
-      footprintInfo: {
-        lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
-      },
-    };
-
-    try {
-      localStorage.setItem('completeLenderData', JSON.stringify(completeData));
-      localStorage.setItem('showRegistrationModal', 'true');
-    } catch (err) {
-      console.error('Failed to store lender data locally', err);
-      this.errorMessage = 'Failed to prepare registration. Please try again.';
-      this.isLoading = false;
-      return;
-    }
+  // ✅ Store registration data for webhook (same pattern as originator)
+try {
+  localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+  console.log('✅ Lender registration data stored for webhook processing');
+} catch (err) {
+  console.error('Failed to store lender data locally', err);
+  this.errorMessage = 'Failed to prepare registration. Please try again.';
+  this.isLoading = false;
+  return;
+}
 
     // ✅ NEW: Create Stripe checkout session directly (no user creation)
     runInInjectionContext(this.injector, () => {
@@ -892,7 +884,6 @@ if (couponCode && couponCode.trim()) {
 
           if (checkoutResponse && checkoutResponse.url) {
             console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-            localStorage.setItem('pendingRegistration', JSON.stringify(formData));
             console.log('🚀 About to redirect...');
             console.log('🚀 About to redirect...');
             try {
