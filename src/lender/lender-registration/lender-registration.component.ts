@@ -949,73 +949,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
-  validateCoupon(): void {
-    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
-    if (!couponCode) return;
-
-    this.isValidatingCoupon = true;
-
-    this.stripeService.validatePromotionCode(couponCode)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isValidatingCoupon = false),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Coupon validation error:', error);
-          this.setCouponError('Unable to validate coupon. Please try again.');
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
-
-  private handleCouponValidationResponse(response: any): void {
-    if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
-
-      const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
-        code: response.promotion_code.id,
-        displayCode: response.promotion_code.code,
-        discount: coupon.percent_off || coupon.amount_off || 0,
-        discountType: coupon.percent_off ? 'percentage' : 'fixed',
-        description: coupon.name
-      };
-      console.log('🎫 LENDER: Coupon validation successful:', {
-        promotionCodeId: response.promotion_code.id,
-        displayCode: response.promotion_code.code,
-        appliedCouponDetails: this.appliedCouponDetails,
-        couponApplied: this.couponApplied
-      });
-      this.clearCouponErrors();
-    } else {
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid coupon code');
-    }
-  }
-
-  private setCouponError(errorMessage: string): void {
-    const couponControl = this.lenderForm.get('contactInfo.couponCode');
-    if (couponControl) {
-      couponControl.setErrors({ couponError: errorMessage });
-    }
-  }
-
-  private clearCouponErrors(): void {
-    const couponControl = this.lenderForm.get('contactInfo.couponCode');
-    if (couponControl) {
-      couponControl.setErrors(null);
-    }
-  }
-
-  private resetCouponState(): void {
-    this.couponApplied = false;
-    this.appliedCouponDetails = null;
-    this.clearCouponErrors();
-  }
+ onCouponValidated(event: any): void {
+  console.log('🎫 PARENT: Received coupon validation event:', event);
+  this.couponApplied = event.applied;
+  this.appliedCouponDetails = event.details;
+  
+  console.log('🎫 PARENT: Updated state:', {
+    couponApplied: this.couponApplied,
+    appliedCouponDetails: this.appliedCouponDetails
+  });
+}
 
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;

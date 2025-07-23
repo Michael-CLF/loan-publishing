@@ -1,4 +1,4 @@
-import { Component, inject, Input, OnDestroy } from '@angular/core';
+import { Component, inject, Input, OnDestroy, Output, EventEmitter } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
@@ -6,6 +6,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, finalize, catchError } from 'rxjs/operators';
 import { StripeService } from '../../services/stripe.service';
+
 
 interface StateOption {
   value: string;
@@ -30,7 +31,8 @@ interface AppliedCouponDetails {
 export class LenderContactComponent implements OnDestroy {
   @Input() lenderForm!: FormGroup;
   @Input() states: StateOption[] = [];
-  
+  @Output() couponValidated = new EventEmitter<any>();
+
   private stripeService = inject(StripeService);
   private destroy$ = new Subject<void>();
 
@@ -159,8 +161,8 @@ export class LenderContactComponent implements OnDestroy {
 
       const coupon = response.promotion_code.coupon;
       this.appliedCouponDetails = {
-        code: response.promotion_code.id, 
-        displayCode: response.promotion_code.code, 
+        code: response.promotion_code.id,
+        displayCode: response.promotion_code.code,
         discount: coupon.percent_off || coupon.amount_off || 0,
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
@@ -186,6 +188,11 @@ export class LenderContactComponent implements OnDestroy {
    * ✅ Clear coupon errors
    */
   private clearCouponErrors(): void {
+    // ✅ Tell parent component about successful validation
+    this.couponValidated.emit({
+      applied: true,
+      details: this.appliedCouponDetails
+    });
     const couponControl = this.lenderForm.get('couponCode');
     if (couponControl) {
       couponControl.setErrors(null);
@@ -199,5 +206,10 @@ export class LenderContactComponent implements OnDestroy {
     this.couponApplied = false;
     this.appliedCouponDetails = null;
     this.clearCouponErrors();
+    // ✅ Tell parent component validation was reset
+    this.couponValidated.emit({
+      applied: false,
+      details: null
+    });
   }
 }

@@ -22,7 +22,7 @@
   <div class="form-container">
     <form [formGroup]="lenderForm">
       @if (currentStep === 0) {
-        <app-lender-contact [lenderForm]="contactForm" [states]="states"></app-lender-contact>
+        <app-lender-contact [lenderForm]="contactForm" [states]="states" (couponValidated)="onCouponValidated($event)"></app-lender-contact>
       } @else if (currentStep === 1) {
         <app-lender-product [lenderForm]="productForm" [lenderTypes]="lenderTypes"
                             [propertyCategories]="propertyCategories" [states]="states" [loanTypes]="loanTypes">
