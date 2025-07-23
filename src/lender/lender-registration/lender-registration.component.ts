@@ -140,19 +140,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   ];
 
   propertyCategories: PropertyCategory[] = Object.entries(PROPERTY_CATEGORIES).map(([categoryValue, categoryName]) => {
-  const subcategories: PropertySubcategory[] = Object.entries(PROPERTY_SUBCATEGORIES)
-    .filter(([key]) => key.startsWith(`${categoryValue}:`))
-    .map(([key, name]) => ({
-      value: key,
-      name,
-    }));
+    const subcategories: PropertySubcategory[] = Object.entries(PROPERTY_SUBCATEGORIES)
+      .filter(([key]) => key.startsWith(`${categoryValue}:`))
+      .map(([key, name]) => ({
+        value: key,
+        name,
+      }));
 
-  return {
-    value: categoryValue,
-    name: categoryName,
-    subcategories,
-  };
-});
+    return {
+      value: categoryValue,
+      name: categoryName,
+      subcategories,
+    };
+  });
 
 
   ngOnInit(): void {
@@ -220,48 +220,48 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   getLenderData() {
-  return {
-    companyName: this.lenderForm.get('contactInfo.company')?.value || '',
-    firstName: this.lenderForm.get('contactInfo.firstName')?.value || '',
-    lastName: this.lenderForm.get('contactInfo.lastName')?.value || '',
-    email: this.lenderForm.get('contactInfo.contactEmail')?.value || '',
-    phone: this.lenderForm.get('contactInfo.contactPhone')?.value || '',
-    city: this.lenderForm.get('contactInfo.city')?.value || '',
-    state: this.lenderForm.get('contactInfo.state')?.value || '',
-    completeFormData: {
-      contactInfo: this.lenderForm.get('contactInfo')?.value,
-      productInfo: this.lenderForm.get('productInfo')?.value,
-      footprintInfo: this.lenderForm.get('footprintInfo')?.value
-    }
-  };
-}
+    return {
+      companyName: this.lenderForm.get('contactInfo.company')?.value || '',
+      firstName: this.lenderForm.get('contactInfo.firstName')?.value || '',
+      lastName: this.lenderForm.get('contactInfo.lastName')?.value || '',
+      email: this.lenderForm.get('contactInfo.contactEmail')?.value || '',
+      phone: this.lenderForm.get('contactInfo.contactPhone')?.value || '',
+      city: this.lenderForm.get('contactInfo.city')?.value || '',
+      state: this.lenderForm.get('contactInfo.state')?.value || '',
+      completeFormData: {
+        contactInfo: this.lenderForm.get('contactInfo')?.value,
+        productInfo: this.lenderForm.get('productInfo')?.value,
+        footprintInfo: this.lenderForm.get('footprintInfo')?.value
+      }
+    };
+  }
 
-handlePaymentComplete(event: any) {
-  console.log('Payment completed:', event);
-  this.successMessage = event.message || 'Payment completed successfully!';
-}
+  handlePaymentComplete(event: any) {
+    console.log('Payment completed:', event);
+    this.successMessage = event.message || 'Payment completed successfully!';
+  }
 
-handlePaymentError(event: any) {
-  console.log('Payment error:', event);
-  this.errorMessage = event.error || 'Payment failed. Please try again.';
-}
+  handlePaymentError(event: any) {
+    console.log('Payment error:', event);
+    this.errorMessage = event.error || 'Payment failed. Please try again.';
+  }
 
   public getStepFormGroup(): FormGroup {
-  // Get appropriate form group based on current step (1-based)
-  switch (this.currentStep) {
-    case 0:
-      return this.contactForm;     // Step 1: Contact
-    case 1:
-      return this.productForm;     // Step 2: Product
-    case 2:
-      return this.footprintForm;   // Step 3: Footprint
-    case 3:
-    case 4:
-      return this.lenderForm;      // Step 4: Review, Step 5: Payment
-    default:
-      return this.contactForm;     // Default fallback
+    // Get appropriate form group based on current step (1-based)
+    switch (this.currentStep) {
+      case 0:
+        return this.contactForm;     // Step 1: Contact
+      case 1:
+        return this.productForm;     // Step 2: Product
+      case 2:
+        return this.footprintForm;   // Step 3: Footprint
+      case 3:
+      case 4:
+        return this.lenderForm;      // Step 4: Review, Step 5: Payment
+      default:
+        return this.contactForm;     // Default fallback
+    }
   }
-}
 
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.lenderForm.patchValue({ interval });
@@ -410,37 +410,37 @@ handlePaymentError(event: any) {
 
     // First, disable all validators that should only be active in specific steps
     this.disableAllValidators();
-switch (this.currentStep) {
-  case 0:
-    this.enableContactValidators();
-    break;
-  case 1:
-    this.enableProductValidators();
-    break;
-  case 2:
-    this.enableFootprintValidators();
-    break;
-  case 3:
-    // Enable all validators for review
-    this.enableContactValidators();
-    this.enableProductValidators();
-    this.enableFootprintValidators();
-    // Terms acceptance only required at review step
-    const termsControl = this.lenderForm.get('termsAccepted');
-    if (termsControl) {
-      termsControl.setValidators(Validators.requiredTrue);
-      termsControl.updateValueAndValidity({ emitEvent: false });
+    switch (this.currentStep) {
+      case 0:
+        this.enableContactValidators();
+        break;
+      case 1:
+        this.enableProductValidators();
+        break;
+      case 2:
+        this.enableFootprintValidators();
+        break;
+      case 3:
+        // Enable all validators for review
+        this.enableContactValidators();
+        this.enableProductValidators();
+        this.enableFootprintValidators();
+        // Terms acceptance only required at review step
+        const termsControl = this.lenderForm.get('termsAccepted');
+        if (termsControl) {
+          termsControl.setValidators(Validators.requiredTrue);
+          termsControl.updateValueAndValidity({ emitEvent: false });
+        }
+        break;
+      case 5:
+        // Payment step - require billing interval
+        const intervalControl = this.lenderForm.get('interval');
+        if (intervalControl) {
+          intervalControl.setValidators(Validators.required);
+          intervalControl.updateValueAndValidity({ emitEvent: false });
+        }
+        break;
     }
-    break;
-  case 5:
-    // Payment step - require billing interval
-    const intervalControl = this.lenderForm.get('interval');
-    if (intervalControl) {
-      intervalControl.setValidators(Validators.required);
-      intervalControl.updateValueAndValidity({ emitEvent: false });
-    }
-    break;
-}
 
     // Force update validation status on all form groups
     this.contactForm.updateValueAndValidity({ emitEvent: false });
@@ -786,21 +786,21 @@ switch (this.currentStep) {
   }
 
   private getStepErrorMessage(): string {
-  switch (this.currentStep) {
-    case 0:
-      return 'Please complete all required fields in the contact section';
-    case 1:
-      return 'Please complete all required fields in the product section';
-    case 2:
-      return 'Please select at least one state for your lending footprint';
-    case 3:
-      return 'Please review all information and agree to the terms';
-    case 4:
-      return 'Please select a billing option and complete payment';
-    default:
-      return 'Please complete all required fields';
+    switch (this.currentStep) {
+      case 0:
+        return 'Please complete all required fields in the contact section';
+      case 1:
+        return 'Please complete all required fields in the product section';
+      case 2:
+        return 'Please select at least one state for your lending footprint';
+      case 3:
+        return 'Please review all information and agree to the terms';
+      case 4:
+        return 'Please select a billing option and complete payment';
+      default:
+        return 'Please complete all required fields';
+    }
   }
-}
 
   isCurrentStepValid(): boolean {
     const currentForm = this.getStepFormGroup();
@@ -808,50 +808,50 @@ switch (this.currentStep) {
   }
 
   // MODIFIED: Combined submit and payment processing
-submitForm(): void {
-  this.submitted = true;
-  this.markAllAsTouched(this.lenderForm);
-  this.errorMessage = '';
-  this.successMessage = '';
-  this.footprintForm.get('states')?.updateValueAndValidity();
-  console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
-  console.log('Form valid:', this.lenderForm.valid);
+  submitForm(): void {
+    this.submitted = true;
+    this.markAllAsTouched(this.lenderForm);
+    this.errorMessage = '';
+    this.successMessage = '';
+    this.footprintForm.get('states')?.updateValueAndValidity();
+    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
+    console.log('Form valid:', this.lenderForm.valid);
 
-  if (!this.lenderForm.valid) {
-    this.isLoading = false;
-    this.errorMessage = this.getStepErrorMessage();
-    return;
-  }
+    if (!this.lenderForm.valid) {
+      this.isLoading = false;
+      this.errorMessage = this.getStepErrorMessage();
+      return;
+    }
 
-  this.isLoading = true;
+    this.isLoading = true;
 
-  const formData = this.lenderForm.value;
-  const email = formData.contactInfo?.contactEmail;
+    const formData = this.lenderForm.value;
+    const email = formData.contactInfo?.contactEmail;
 
-  if (!email) {
-    this.errorMessage = 'Email is required';
-    this.isLoading = false;
-    return;
-  }
+    if (!email) {
+      this.errorMessage = 'Email is required';
+      this.isLoading = false;
+      return;
+    }
 
-  // ✅ NEW: Save complete form data for post-payment processing (no user creation)
-  const completeData = {
-    contactInfo: formData.contactInfo,
-    productInfo: formData.productInfo,
-    footprintInfo: {
-      lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
-    },
-  };
+    // ✅ NEW: Save complete form data for post-payment processing (no user creation)
+    const completeData = {
+      contactInfo: formData.contactInfo,
+      productInfo: formData.productInfo,
+      footprintInfo: {
+        lendingFootprint: this.extractSelectedStatesArray(formData.footprintInfo.states),
+      },
+    };
 
-  try {
-    localStorage.setItem('completeLenderData', JSON.stringify(completeData));
-    localStorage.setItem('showRegistrationModal', 'true');
-  } catch (err) {
-    console.error('Failed to store lender data locally', err);
-    this.errorMessage = 'Failed to prepare registration. Please try again.';
-    this.isLoading = false;
-    return;
-  }
+    try {
+      localStorage.setItem('completeLenderData', JSON.stringify(completeData));
+      localStorage.setItem('showRegistrationModal', 'true');
+    } catch (err) {
+      console.error('Failed to store lender data locally', err);
+      this.errorMessage = 'Failed to prepare registration. Please try again.';
+      this.isLoading = false;
+      return;
+    }
 
  // ✅ NEW: Create Stripe checkout session directly (no user creation)
 runInInjectionContext(this.injector, () => {
@@ -870,32 +870,37 @@ runInInjectionContext(this.injector, () => {
   };
 
   from(this.stripeService.createCheckoutSession(payload)).pipe(
-  catchError((error: any) => {
-    this.isLoading = false;
-    console.error('❌ Stripe checkout error:', error);
-    this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-    return of(null);
-  })
-).subscribe({
-  next: (checkoutResponse) => {
-    if (checkoutResponse && checkoutResponse.url) {
-      console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-      // ✅ Store registration data in localStorage for webhook to use later
-      localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-      window.location.href = checkoutResponse.url;
-    } else {
+    catchError((error: any) => {
       this.isLoading = false;
-      this.errorMessage = 'Invalid checkout response. Please try again.';
+      console.error('❌ Stripe checkout error:', error);
+      this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+      return of(null);
+    })
+  ).subscribe({
+    next: (checkoutResponse) => {
+      console.log('🔍 Full checkoutResponse object:', checkoutResponse);
+      console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
+      console.log('🔍 Type of response:', typeof checkoutResponse);
+      
+      if (checkoutResponse && checkoutResponse.url) {
+        console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+        localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+        console.log('🚀 About to redirect...');
+        window.location.href = checkoutResponse.url;
+      } else {
+        console.log('❌ No URL in response or invalid response');
+        this.isLoading = false;
+        this.errorMessage = 'Invalid checkout response. Please try again.';
+      }
+    },
+    error: (error) => {
+      this.isLoading = false;
+      console.error('❌ Checkout error:', error);
+      this.errorMessage = 'An unexpected error occurred. Please try again.';
     }
-  },
-  error: (error) => {
-    this.isLoading = false;
-    console.error('❌ Checkout error:', error);
-    this.errorMessage = 'An unexpected error occurred. Please try again.';
+  });
+});
   }
-});
-});
-} 
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
