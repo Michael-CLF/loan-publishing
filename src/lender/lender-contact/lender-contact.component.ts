@@ -1,11 +1,23 @@
-import { Component, Input } from '@angular/core';
+import { Component, inject, Input, OnDestroy } from '@angular/core';
 import { FormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Subject, of } from 'rxjs';
+import { takeUntil, finalize, catchError } from 'rxjs/operators';
+import { StripeService } from '../../services/stripe.service';
 
 interface StateOption {
   value: string;
   name: string;
+}
+
+interface AppliedCouponDetails {
+  code: string;
+  displayCode?: string;
+  discount: number;
+  discountType: 'percentage' | 'fixed';
+  description?: string;
 }
 
 @Component({
@@ -15,14 +27,27 @@ interface StateOption {
   templateUrl: './lender-contact.component.html',
   styleUrls: ['./lender-contact.component.css'],
 })
-export class LenderContactComponent {
+export class LenderContactComponent implements OnDestroy {
   @Input() lenderForm!: FormGroup;
   @Input() states: StateOption[] = [];
+  
+  private stripeService = inject(StripeService);
+  private destroy$ = new Subject<void>();
+
+  // ✅ Promotion code properties
+  isValidatingCoupon = false;
+  couponApplied = false;
+  appliedCouponDetails: AppliedCouponDetails | null = null;
+
+  ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
 
   // Format phone number as the user types
   formatPhoneNumberOnInput(event: any): void {
     const input = event.target.value.replace(/\D/g, '');
-    const phoneControl = this.lenderForm.get('contactPhone');
+    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
 
     if (input.length <= 10) {
       let formattedNumber = input;
@@ -52,7 +77,7 @@ export class LenderContactComponent {
 
   // Keep the blur handler for cases where the user pastes a number
   formatPhoneNumber(): void {
-    const phoneControl = this.lenderForm.get('contactPhone');
+    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
     if (phoneControl?.value) {
       let phoneNumber = phoneControl.value.replace(/\D/g, '');
       if (phoneNumber.length === 10) {
@@ -66,5 +91,113 @@ export class LenderContactComponent {
         phoneControl.setErrors({ invalidLength: true });
       }
     }
+  }
+
+  /**
+   * ✅ Applies the promotion code (triggered by Apply button)
+   */
+  applyCoupon(): void {
+    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
+
+    if (!couponCode) {
+      return;
+    }
+
+    this.isValidatingCoupon = true;
+
+    this.stripeService.validatePromotionCode(couponCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isValidatingCoupon = false;
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Promotion code application error:', error);
+          this.setCouponError('Unable to apply promotion code. Please try again.');
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handleCouponValidationResponse(response);
+        }
+      });
+  }
+
+  /**
+   * ✅ Validates promotion code on blur
+   */
+  validateCoupon(): void {
+    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
+    if (!couponCode) return;
+
+    this.isValidatingCoupon = true;
+
+    this.stripeService.validatePromotionCode(couponCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isValidatingCoupon = false),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Coupon validation error:', error);
+          this.setCouponError('Unable to validate promotion code. Please try again.');
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handleCouponValidationResponse(response);
+        }
+      });
+  }
+
+  /**
+   * ✅ Handle promotion code validation response
+   */
+  private handleCouponValidationResponse(response: any): void {
+    if (response.valid && response.promotion_code) {
+      this.couponApplied = true;
+
+      const coupon = response.promotion_code.coupon;
+      this.appliedCouponDetails = {
+        code: response.promotion_code.id, 
+        displayCode: response.promotion_code.code, 
+        discount: coupon.percent_off || coupon.amount_off || 0,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        description: coupon.name
+      };
+      this.clearCouponErrors();
+    } else {
+      this.resetCouponState();
+      this.setCouponError(response.error || 'Invalid promotion code');
+    }
+  }
+
+  /**
+   * ✅ Set coupon error on form control
+   */
+  private setCouponError(errorMessage: string): void {
+    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    if (couponControl) {
+      couponControl.setErrors({ couponError: errorMessage });
+    }
+  }
+
+  /**
+   * ✅ Clear coupon errors
+   */
+  private clearCouponErrors(): void {
+    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    if (couponControl) {
+      couponControl.setErrors(null);
+    }
+  }
+
+  /**
+   * ✅ Reset coupon state
+   */
+  private resetCouponState(): void {
+    this.couponApplied = false;
+    this.appliedCouponDetails = null;
+    this.clearCouponErrors();
   }
 }

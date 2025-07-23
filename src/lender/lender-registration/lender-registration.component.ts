@@ -34,7 +34,7 @@ import { ModalService } from '../../services/modal.service';
 import { StepManagementService } from './step-management';
 import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
-import { StripeService } from '../../services/stripe.service';
+import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import {
@@ -327,6 +327,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         ],
       ],
       state: ['', Validators.required],
+      couponCode: ['']
     });
 
     // Create form arrays with explicit debug names
@@ -855,19 +856,25 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // ✅ NEW: Create Stripe checkout session directly (no user creation)
     runInInjectionContext(this.injector, () => {
-      const payload = {
-        email: email,
-        role: 'lender',
-        interval: formData.interval,
-        userData: {
-          firstName: formData.contactInfo.firstName,
-          lastName: formData.contactInfo.lastName,
-          company: formData.contactInfo.company,
-          phone: formData.contactInfo.contactPhone,
-          city: formData.contactInfo.city,
-          state: formData.contactInfo.state
-        }
-      };
+      const payload: CheckoutSessionRequest = {
+  email: email,
+  role: 'lender',
+  interval: formData.interval,
+  userData: {
+    firstName: formData.contactInfo.firstName,
+    lastName: formData.contactInfo.lastName,
+    company: formData.contactInfo.company,
+    phone: formData.contactInfo.contactPhone,
+    city: formData.contactInfo.city,
+    state: formData.contactInfo.state
+  }
+};
+
+// ✅ Add promotion code if present
+const couponCode = formData.contactInfo.couponCode;
+if (couponCode && couponCode.trim()) {
+  payload.promotion_code = couponCode.trim();
+}
 
       from(this.stripeService.createCheckoutSession(payload)).pipe(
         catchError((error: any) => {
@@ -878,37 +885,36 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         })
       ).subscribe({
         next: (checkoutResponse) => {
-            console.log('🔥 CALLBACK EXECUTED - WE ARE HERE!');
-            console.log('🔍 Full checkoutResponse object:', checkoutResponse);
-            console.log('🔍 Full checkoutResponse object:', checkoutResponse);
-            console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
-            console.log('🔍 Type of response:', typeof checkoutResponse);
+          console.log('🔥 CALLBACK EXECUTED - WE ARE HERE!');
+          console.log('🔍 Full checkoutResponse object:', checkoutResponse);
+          console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
+          console.log('🔍 Type of response:', typeof checkoutResponse);
 
-            if (checkoutResponse && checkoutResponse.url) {
-              console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-              localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-              console.log('🚀 About to redirect...');
-              console.log('🚀 About to redirect...');
-              try {
-                window.location.href = checkoutResponse.url;
-                console.log('✅ Redirect initiated');
-              } catch (err) {
-                console.error('❌ Redirect failed:', err);
-                // Fallback redirect method
-                window.open(checkoutResponse.url, '_self');
-              }
-            } else {
-              console.log('❌ No URL in response or invalid response');
-              this.isLoading = false;
-              this.errorMessage = 'Invalid checkout response. Please try again.';
+          if (checkoutResponse && checkoutResponse.url) {
+            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+            localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+            console.log('🚀 About to redirect...');
+            console.log('🚀 About to redirect...');
+            try {
+              window.location.href = checkoutResponse.url;
+              console.log('✅ Redirect initiated');
+            } catch (err) {
+              console.error('❌ Redirect failed:', err);
+              // Fallback redirect method
+              window.open(checkoutResponse.url, '_self');
             }
-          },
-            error: (error) => {
-              this.isLoading = false;
-              console.error('❌ Checkout error:', error);
-              this.errorMessage = 'An unexpected error occurred. Please try again.';
-            }
-        });
+          } else {
+            console.log('❌ No URL in response or invalid response');
+            this.isLoading = false;
+            this.errorMessage = 'Invalid checkout response. Please try again.';
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          console.error('❌ Checkout error:', error);
+          this.errorMessage = 'An unexpected error occurred. Please try again.';
+        }
+      });
     });
   }
 
