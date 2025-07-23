@@ -330,8 +330,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         '',
         [
           Validators.required,
-          Validators.pattern(/^[\d\(\)\-\+\s]*$/),
-          Validators.minLength(14),
+          Validators.pattern(/^\d{10}$/),
         ],
       ],
       contactEmail: [
@@ -887,6 +886,13 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       if (this.couponApplied && this.appliedCouponDetails) {
         payload.promotion_code = this.appliedCouponDetails.code;
       }
+      console.log('🚀 LENDER: Payload being sent to Stripe:', {
+        hasPromotionCode: !!payload.promotion_code,
+        promotionCode: payload.promotion_code,
+        couponApplied: this.couponApplied,
+        appliedCouponDetails: this.appliedCouponDetails,
+        fullPayload: payload
+      });
 
       from(this.stripeService.createCheckoutSession(payload)).pipe(
         catchError((error: any) => {
@@ -978,6 +984,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
       };
+      console.log('🎫 LENDER: Coupon validation successful:', {
+        promotionCodeId: response.promotion_code.id,
+        displayCode: response.promotion_code.code,
+        appliedCouponDetails: this.appliedCouponDetails,
+        couponApplied: this.couponApplied
+      });
       this.clearCouponErrors();
     } else {
       this.resetCouponState();
