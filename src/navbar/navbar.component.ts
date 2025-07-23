@@ -61,29 +61,42 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private authSubscription!: Subscription;
 
-  async ngOnInit(): Promise<void> {
-    console.log('NavbarComponent - Initializing');
+async ngOnInit(): Promise<void> {
+  console.log('NavbarComponent - Initializing');
+  
+  // ✅ Set initial loading state
+  this.loading = true;
 
-    try {
-      const userProfile: User | null = await firstValueFrom(
-        this.authService.getCurrentFirebaseUser()
-      );
+  // ✅ Subscribe to auth state changes first - same structure you have
+  this.authSubscription = this.authService.isLoggedIn$.subscribe(
+    async (loggedIn) => {
+      console.log('NavbarComponent - Auth state changed:', loggedIn);
+      this.isLoggedIn = loggedIn;
+      
+      if (loggedIn) {
+        // ✅ User is logged in, load their data using your existing method
+        try {
+          const userProfile: User | null = await firstValueFrom(
+            this.authService.getCurrentFirebaseUser()
+          );
 
-      if (userProfile) {
-        this.userRole = (userProfile as any).role || null; // 🔁 Only if you're extending User with `role`
-        await this.loadUserData(userProfile);
+          if (userProfile) {
+            this.userRole = (userProfile as any).role || null; // 🔁 Keep your existing logic
+            await this.loadUserData(userProfile); // ✅ Use your existing method
+          }
+        } catch (err) {
+          console.error('NavbarComponent - Error retrieving user profile:', err);
+          this.loading = false;
+        }
+      } else {
+        // ✅ User is not logged in, clear data
+        this.userData = null;
+        this.accountNumber = '';
+        this.loading = false;
       }
-    } catch (err) {
-      console.error('NavbarComponent - Error retrieving user profile:', err);
     }
-
-    this.authSubscription = this.authService.isLoggedIn$.subscribe(
-      (loggedIn) => {
-        console.log('NavbarComponent - Auth state changed:', loggedIn);
-        this.isLoggedIn = loggedIn;
-      }
-    );
-  }
+  );
+}
 
   ngOnDestroy(): void {
     this.authSubscription?.unsubscribe();
