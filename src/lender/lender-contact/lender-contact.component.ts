@@ -47,7 +47,7 @@ export class LenderContactComponent implements OnDestroy {
   // Format phone number as the user types
   formatPhoneNumberOnInput(event: any): void {
     const input = event.target.value.replace(/\D/g, '');
-    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
+    const phoneControl = this.lenderForm.get('.contactPhone');
 
     if (input.length <= 10) {
       let formattedNumber = input;
@@ -77,7 +77,7 @@ export class LenderContactComponent implements OnDestroy {
 
   // Keep the blur handler for cases where the user pastes a number
   formatPhoneNumber(): void {
-    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
+    const phoneControl = this.lenderForm.get('.contactPhone');
     if (phoneControl?.value) {
       let phoneNumber = phoneControl.value.replace(/\D/g, '');
       if (phoneNumber.length === 10) {
@@ -97,7 +97,7 @@ export class LenderContactComponent implements OnDestroy {
    * ✅ Applies the promotion code (triggered by Apply button)
    */
   applyCoupon(): void {
-    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
+    const couponCode = this.lenderForm.get('couponCode')?.value?.trim();
 
     if (!couponCode) {
       return;
@@ -128,7 +128,7 @@ export class LenderContactComponent implements OnDestroy {
    * ✅ Validates promotion code on blur
    */
   validateCoupon(): void {
-    const couponCode = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
+    const couponCode = this.lenderForm.get('couponCode')?.value?.trim();
     if (!couponCode) return;
 
     this.isValidatingCoupon = true;
@@ -176,7 +176,7 @@ export class LenderContactComponent implements OnDestroy {
    * ✅ Set coupon error on form control
    */
   private setCouponError(errorMessage: string): void {
-    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    const couponControl = this.lenderForm.get('couponCode');
     if (couponControl) {
       couponControl.setErrors({ couponError: errorMessage });
     }
@@ -186,7 +186,7 @@ export class LenderContactComponent implements OnDestroy {
    * ✅ Clear coupon errors
    */
   private clearCouponErrors(): void {
-    const couponControl = this.lenderForm.get('contactInfo.couponCode');
+    const couponControl = this.lenderForm.get('couponCode');
     if (couponControl) {
       couponControl.setErrors(null);
     }
