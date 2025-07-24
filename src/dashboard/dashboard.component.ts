@@ -64,8 +64,6 @@ interface SimpleUser {
   email: string;
 }
 
-
-
 @Component({
   selector: 'app-dashboard',
   templateUrl: './dashboard.component.html',
@@ -371,6 +369,31 @@ async loadUserData(): Promise<void> {
   }
 }
 
+/**
+   * Load complete lender data including product and footprint info
+   */
+  private async loadLenderCompleteData(): Promise<void> {
+    if (this.userRole !== 'lender' || !this.user?.uid) {
+      return;
+    }
+
+    try {
+      const lenderRef = doc(this.firestoreService.firestore, `lenders/${this.user.uid}`);
+      const lenderSnap = await getDoc(lenderRef);
+      
+      if (lenderSnap.exists()) {
+        this.lenderData = lenderSnap.data();
+        console.log('✅ Complete lender data loaded:', this.lenderData);
+        
+        // Log specific sections for debugging
+        console.log('Product Info:', this.lenderData.productInfo);
+        console.log('Footprint Info:', this.lenderData.footprintInfo);
+      }
+    } catch (error) {
+      console.error('❌ Error loading complete lender data:', error);
+    }
+  }
+
   /**
    * Handle case when no authenticated user is found
    */
@@ -454,6 +477,7 @@ async loadUserData(): Promise<void> {
 
     // Load role-specific data
     if (this.userRole === 'lender' && fbUser.uid) {
+      await this.loadLenderCompleteData();
       await this.loadSavedLoans(fbUser.uid);
     }
 
@@ -871,7 +895,23 @@ async loadLoans(userId: string): Promise<void> {
     return loanType ? loanType.displayName : loanTypeValue;
   }
 
-  // ✅ Angular 18 Best Practice: Computed values for template
+  getLenderProductInfo(): any {
+    return this.lenderData?.productInfo || null;
+  }
+
+  /**
+   * Get lender footprint info for display
+   */
+  getLenderFootprintInfo(): any {
+    return this.lenderData?.footprintInfo || null;
+  }
+
+  /**
+   * Check if lender has complete profile
+   */
+  lenderHasCompleteProfile(): boolean {
+    return !!(this.lenderData?.productInfo && this.lenderData?.footprintInfo);
+  }
   get formattedPropertyTypes(): string {
     return this.notificationPrefs().propertyCategories
       .map(cat => this.getCategoryDisplayName(cat))
