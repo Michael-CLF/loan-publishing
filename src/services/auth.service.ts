@@ -151,45 +151,48 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
 
 
   getUserProfile(): Observable<UserData | null> {
-    return this.getCurrentFirebaseUser().pipe(
-      switchMap(user => {
-        if (!user) return of(null);
-        const uid = user.uid;
+  return this.getCurrentFirebaseUser().pipe(
+    switchMap(user => {
+      if (!user) return of(null);
+      const uid = user.uid;
 
-        const originatorRef = doc(this.db, `originators/${uid}`);
-        const lenderRef = doc(this.db, `lenders/${uid}`);
+      const lenderRef = doc(this.db, `lenders/${uid}`);
+      const originatorRef = doc(this.db, `originators/${uid}`);
 
-        return from(getDoc(originatorRef)).pipe(
-          switchMap(originatorSnap => {
-            if (originatorSnap.exists()) {
-              return of({
-                id: originatorSnap.id,
-                ...(originatorSnap.data() as any),
-              } as UserData);
-            }
+      // Check lenders first
+      return from(getDoc(lenderRef)).pipe(
+        switchMap(lenderSnap => {
+          if (lenderSnap.exists()) {
+            return of({
+              id: lenderSnap.id,
+              ...(lenderSnap.data() as any),
+            } as UserData);
+          }
 
-            return from(getDoc(lenderRef)).pipe(
-              map(lenderSnap => {
-                if (lenderSnap.exists()) {
-                  return {
-                    id: lenderSnap.id,
-                    ...(lenderSnap.data() as any),
-                  } as UserData;
-                } else {
-                  console.warn('❌ No originator or lender profile found.');
-                  return null;
-                }
-              })
-            );
-          }),
-          catchError(err => {
-            console.error('❌ Error fetching user profile:', err);
-            return of(null);
-          })
-        );
-      })
-    );
-  }
+          // Fallback to originators
+          return from(getDoc(originatorRef)).pipe(
+            map(originatorSnap => {
+              if (originatorSnap.exists()) {
+                return {
+                  id: originatorSnap.id,
+                  ...(originatorSnap.data() as any),
+                } as UserData;
+              } else {
+                console.warn('❌ No lender or originator profile found.');
+                return null;
+              }
+            })
+          );
+        })
+      );
+    }),
+    catchError(err => {
+      console.error('❌ Error fetching user profile:', err);
+      return of(null);
+    })
+  );
+}
+
 
   /**
    * ✅ NEW: Check if user account exists in our system before sending login links
