@@ -308,17 +308,19 @@ async loadUserData(): Promise<void> {
 
     // ✅ Map the user profile to flat userData structure based on role
     if (userProfile.role === 'lender') {
-      this.userData = {
-        id: userProfile.id,
-        company: userProfile.company || userProfile['contactInfo']?.company || '',
-        firstName: userProfile['contactInfo']?.firstName || '',
-        lastName: userProfile['contactInfo']?.lastName || '',
-        phone: userProfile['contactInfo']?.contactPhone || '',
-        email: userProfile['contactInfo']?.contactEmail || '',
-        city: userProfile['contactInfo']?.city || '',
-        state: userProfile['contactInfo']?.state || '',
-        role: 'lender',
-      };
+     this.userData = {
+  id: userProfile.id,
+  email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
+  firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
+  lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+  phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+  city: userProfile['contactInfo']?.city || userProfile.city || '',
+  state: userProfile['contactInfo']?.state || userProfile.state || '',
+  company: userProfile['contactInfo']?.company || userProfile.company || '',
+  role: 'lender',
+  accountNumber: this.accountNumber
+};
+
       
       // ✅ Load notification preferences for lenders
       this.loadNotificationPreferencesFromService();
