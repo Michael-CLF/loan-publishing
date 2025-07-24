@@ -5,6 +5,7 @@ import { AuthService } from '../../services/auth.service';
 import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { take, finalize } from 'rxjs/operators';
+import { LenderFormService } from '../../services/lender-registration.service';
 import {
   Firestore,
   doc,
@@ -31,6 +32,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
+  private readonly lenderFormService = inject(LenderFormService); 
+
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
@@ -102,20 +105,21 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     });
   }
 
-  private handleStripeCallback(): void {
+ private handleStripeCallback(): void {
   console.log('💳 Processing Stripe payment callback');
   this.processingMessage.set('Verifying your payment...');
 
   const sessionId = this.route.snapshot.queryParams['session_id'];
+  const draftId = localStorage.getItem('lenderDraftId'); // Check for draft ID
 
   if (!sessionId) {
-  console.error('❌ No session ID found in URL – retrying...');
-  this.processingMessage.set('Waiting for payment session...');
-  // Just skip this run and let it retry – don't show error yet
-  return;
-}
+    console.error('❌ No session ID found in URL – retrying...');
+    this.processingMessage.set('Waiting for payment session...');
+    return;
+  }
 
   console.log('🔍 Verifying payment for session:', sessionId);
+  console.log('🔍 Draft ID found:', draftId);
 
   let attempts = 0;
   const maxAttempts = 40; // 2 minutes if interval is 3s
@@ -145,6 +149,11 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
           this.userRole = userData?.['role'] || 'originator';
           this.processingMessage.set('Logging you in...');
 
+          // ✅ If this is a lender with a draft, update their document
+          if (this.userRole === 'lender' && draftId) {
+            await this.updateLenderFromDraft(userDoc.id, draftId);
+          }
+
           if (userEmail) {
             this.authenticateNewUser(userEmail, sessionId);
           } else {
@@ -171,6 +180,50 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }, intervalTime);
 }
   
+/**
+ * ✅ Update lender document with complete data from draft
+ */
+private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
+  console.log('📝 Updating lender from draft:', { lenderId, draftId });
+  
+  try {
+    // Load draft data
+    const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
+    const draftSnap = await getDoc(draftRef);
+    
+    if (draftSnap.exists()) {
+      const draftData = draftSnap.data();
+      console.log('✅ Draft data found:', draftData);
+      
+      // Update lender document with complete data
+      const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
+      await updateDoc(lenderRef, {
+        productInfo: draftData['product'] || {},
+        footprintInfo: draftData['footprint'] || {},
+        termsAccepted: draftData['termsAccepted'] || false,
+        updatedAt: serverTimestamp(),
+        registrationCompleted: true
+      });
+      
+      console.log('✅ Lender document updated with draft data');
+      
+      // Mark draft as completed
+      await updateDoc(draftRef, {
+        status: 'completed',
+        completedAt: serverTimestamp()
+      });
+      
+      // Clear draft from localStorage
+      localStorage.removeItem('lenderDraftId');
+      this.lenderFormService.clearDraft();
+    } else {
+      console.warn('⚠️ No draft found with ID:', draftId);
+    }
+  } catch (error) {
+    console.error('❌ Error updating lender from draft:', error);
+  }
+}
+
   /**
   * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
   */
@@ -305,29 +358,29 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
-  closeRegistrationSuccessModal(): void {
-    console.log('✅ Originator modal closed - redirecting to dashboard');
+ closeRegistrationSuccessModal(): void {
+  console.log('✅ Originator modal closed - redirecting to dashboard');
 
-    // ✅ Hide modal first
-    this.showRegistrationSuccessModal.set(false);
+  // ✅ Hide modal first
+  this.showRegistrationSuccessModal.set(false);
 
-    // ✅ Small delay before redirect to allow modal close animation
-    setTimeout(() => {
-      this.redirectToDashboard();
-    }, 100);
-  }
+  // ✅ Small delay before redirect to allow modal close animation
+  setTimeout(() => {
+    this.redirectToDashboard('originator'); // Pass role
+  }, 100);
+}
 
-  closeLenderRegistrationSuccessModal(): void {
-    console.log('✅ Lender modal closed - redirecting to dashboard');
+closeLenderRegistrationSuccessModal(): void {
+  console.log('✅ Lender modal closed - redirecting to dashboard');
 
-    // ✅ Hide modal first
-    this.showLenderRegistrationSuccessModal.set(false);
+  // ✅ Hide modal first
+  this.showLenderRegistrationSuccessModal.set(false);
 
-    // ✅ Small delay before redirect to allow modal close animation
-    setTimeout(() => {
-      this.redirectToDashboard();
-    }, 100);
-  }
+  // ✅ Small delay before redirect to allow modal close animation
+  setTimeout(() => {
+    this.redirectToDashboard('lender'); // Pass role
+  }, 100);
+}
 
   private clearRegistrationFlags(): void {
     console.log('🧹 Clearing registration success flags');
@@ -337,17 +390,22 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     localStorage.removeItem('completeOriginatorData');
   }
 
-  private redirectToDashboard(): void {
-    console.log('🎯 Redirecting to dashboard...');
+ private redirectToDashboard(role?: string): void {
+  console.log('🎯 Redirecting to dashboard for role:', role || this.userRole);
 
-    try {
+  try {
+    // ✅ Route based on user role
+    if (role === 'lender' || this.userRole === 'lender') {
+      this.router.navigate(['/dashboard']); // Same route but dashboard component will handle the role
+    } else {
       this.router.navigate(['/dashboard']);
-    } catch (error) {
-      console.error('❌ Error navigating to dashboard:', error);
-      // ✅ Fallback: try direct navigation
-      window.location.href = '/dashboard';
     }
+  } catch (error) {
+    console.error('❌ Error navigating to dashboard:', error);
+    // ✅ Fallback: try direct navigation
+    window.location.href = '/dashboard';
   }
+}
 
   /**
    * ✅ Clean up static flags when component is destroyed

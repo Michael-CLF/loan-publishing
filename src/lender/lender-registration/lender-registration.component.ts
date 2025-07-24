@@ -37,6 +37,7 @@ import { LocationService } from '../../services/location.service';
 import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
+import { LenderFormService } from '../../services/lender-registration.service';
 import {
   PROPERTY_CATEGORIES,
   PROPERTY_SUBCATEGORIES,
@@ -110,6 +111,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private emailExistsValidator = inject(EmailExistsValidator);
   public stepService = inject(StepManagementService);
   private formCoordination = inject(FormCoordinationService);
+  private lenderFormService = inject(LenderFormService);
 
   states: FootprintLocation[] = [];
   lenderForm!: FormGroup;
@@ -176,22 +178,83 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   });
 
 
-  ngOnInit(): void {
+ ngOnInit(): void {
     this.initializeForm();
     this.states = this.locationService.getFootprintLocations();
     this.initializeStateCountiesStructure();
+
+    // Check for existing draft
+    const draftId = this.lenderFormService.getCurrentDraftId();
+    if (draftId) {
+      console.log('Found existing draft:', draftId);
+      this.loadDraftData(draftId);
+    }
 
     this.subscriptions.push(
       this.stepService.currentStep$.subscribe((step) => {
         this.currentStep = step;
         this.toggleStepValidation();
         this.errorMessage = '';
+        
+        // Save form data to service when step changes
+        this.saveCurrentStepData();
       })
     );
   }
 
   ngOnDestroy(): void {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
+  }
+
+   private loadDraftData(draftId: string): void {
+    this.lenderFormService.loadDraft(draftId).subscribe({
+      next: (draftData) => {
+        if (draftData) {
+          console.log('Loading draft data:', draftData);
+          
+          // Populate form with draft data
+          if (draftData.contact) {
+            this.contactForm.patchValue(draftData.contact);
+          }
+          if (draftData.product) {
+            this.productForm.patchValue(draftData.product);
+          }
+          if (draftData.footprint) {
+            this.footprintForm.patchValue(draftData.footprint);
+          }
+          if (draftData.termsAccepted !== undefined) {
+            this.lenderForm.get('termsAccepted')?.setValue(draftData.termsAccepted);
+          }
+        }
+      },
+      error: (error) => {
+        console.error('Error loading draft:', error);
+      }
+    });
+  }
+
+  private saveCurrentStepData(): void {
+    // Save the current step's data to the service
+    switch (this.currentStep) {
+      case 0:
+        if (this.contactForm.valid) {
+          this.lenderFormService.setFormSection('contact', this.contactForm.value);
+        }
+        break;
+      case 1:
+        if (this.productForm.valid) {
+          this.lenderFormService.setFormSection('product', this.productForm.value);
+        }
+        break;
+      case 2:
+        if (this.footprintForm.valid) {
+          this.lenderFormService.setFormSection('footprint', this.footprintForm.value);
+        }
+        break;
+      case 3:
+        this.lenderFormService.setFormSection('termsAccepted', this.lenderForm.get('termsAccepted')?.value);
+        break;
+    }
   }
 
   // Type-safe getters for form groups
@@ -777,18 +840,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // If form is valid, proceed
     if (currentForm.valid) {
-      // If completing contact info step, save to localStorage as backup
-      if (this.currentStep === 0) {
-        try {
-          localStorage.setItem(
-            'lenderContactData',
-            JSON.stringify(this.contactForm.value)
-          );
-          console.log('Contact data saved to localStorage');
-        } catch (error) {
-          console.error('Error saving to localStorage:', error);
-        }
-      }
+     // Save current step data to service (which handles drafts)
+      this.saveCurrentStepData();      
 
       // For all steps, just proceed to next step
       if (this.currentStep < 5) {
@@ -828,7 +881,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     return currentForm.valid;
   }
 
-  // MODIFIED: Combined submit and payment processing
   submitForm(): void {
     this.submitted = true;
     this.markAllAsTouched(this.lenderForm);
@@ -855,18 +907,44 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // ✅ Store registration data for webhook (same pattern as originator)
-    try {
-      localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-      console.log('✅ Lender registration data stored for webhook processing');
-    } catch (err) {
-      console.error('Failed to store lender data locally', err);
-      this.errorMessage = 'Failed to prepare registration. Please try again.';
-      this.isLoading = false;
-      return;
+    // ✅ Save final form data and get draft ID
+    this.lenderFormService.setFormSection('termsAccepted', true);
+    
+    // ✅ Get or create draft ID
+    const draftId = this.lenderFormService.getCurrentDraftId();
+    if (!draftId) {
+      // Create draft if somehow we don't have one
+      this.lenderFormService.createOrUpdateDraft(email).subscribe({
+        next: (newDraftId) => {
+          this.proceedToStripe(email, formData, newDraftId);
+        },
+        error: (error) => {
+          console.error('Failed to create draft:', error);
+          this.errorMessage = 'Failed to save registration data. Please try again.';
+          this.isLoading = false;
+        }
+      });
+    } else {
+      // Update existing draft one final time
+      this.lenderFormService.createOrUpdateDraft(email).subscribe({
+        next: () => {
+          this.proceedToStripe(email, formData, draftId);
+        },
+        error: (error) => {
+          console.error('Failed to update draft:', error);
+          this.proceedToStripe(email, formData, draftId); // Proceed anyway with existing draft
+        }
+      });
     }
+  }
 
-    // ✅ NEW: Create Stripe checkout session directly (no user creation)
+  private proceedToStripe(email: string, formData: any, draftId: string): void {
+    console.log('✅ Proceeding to Stripe with draft ID:', draftId);
+
+    // ✅ Store draft ID for recovery (but not all the form data)
+    localStorage.setItem('lenderDraftId', draftId);
+    localStorage.setItem('lenderRegistrationEmail', email);
+
     runInInjectionContext(this.injector, () => {
       const payload: CheckoutSessionRequest = {
         email: email,
@@ -878,7 +956,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           company: formData.contactInfo.company,
           phone: formData.contactInfo.contactPhone,
           city: formData.contactInfo.city,
-          state: formData.contactInfo.state
+          state: formData.contactInfo.state,
+          draftId: draftId  // ✅ ADD DRAFT ID HERE
         }
       };
 
@@ -886,11 +965,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       if (this.couponApplied && this.appliedCouponDetails) {
         payload.promotion_code = this.appliedCouponDetails.code;
       }
+
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
-        promotionCode: payload.promotion_code,
-        couponApplied: this.couponApplied,
-        appliedCouponDetails: this.appliedCouponDetails,
+        draftId: draftId,
+        email: email,
         fullPayload: payload
       });
 
@@ -903,15 +982,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         })
       ).subscribe({
         next: (checkoutResponse) => {
-          console.log('🔥 CALLBACK EXECUTED - WE ARE HERE!');
-          console.log('🔍 Full checkoutResponse object:', checkoutResponse);
-          console.log('🔍 checkoutResponse.url:', checkoutResponse?.url);
-          console.log('🔍 Type of response:', typeof checkoutResponse);
-
           if (checkoutResponse && checkoutResponse.url) {
             console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-            console.log('🚀 About to redirect...');
-            console.log('🚀 About to redirect...');
+            
             try {
               window.location.href = checkoutResponse.url;
               console.log('✅ Redirect initiated');
@@ -933,7 +1006,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         }
       });
     });
-  }
+  } 
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];

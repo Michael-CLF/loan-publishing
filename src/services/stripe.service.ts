@@ -19,6 +19,7 @@ export interface CheckoutSessionRequest {
     phone: string;
     city: string;
     state: string;
+    draftId: string,
   };
   coupon?: {
     code: string;
@@ -46,6 +47,7 @@ export interface StripeMetadata {
   source: string;
   timestamp: string;
   couponCode?: string;
+  draftId?: string;
 }
 
 export interface PromotionCodeValidationResponse {
@@ -113,6 +115,7 @@ export class StripeService {
       source: 'registration_form',
       timestamp: new Date().toISOString(),
       couponCode: data.promotion_code,
+      draftId: data.userData.draftId,
     };
 
     const checkoutData: any = {
