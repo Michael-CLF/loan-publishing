@@ -95,15 +95,12 @@ export class AuthService {
       })
     );
   }
-  /**
- * ✅ NEW: Generate custom token and authenticate user immediately
- */
 authenticateNewUser(email: string, sessionId: string): Observable<void> {
   console.log('🔍 Generating custom token for user:', email);
 
   const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
 
-  return this.http.post<{ token: string, user: any }>(
+  return this.http.post<{ token: string }>(
     tokenUrl,
     { email: email.toLowerCase().trim(), sessionId },
     { headers: { 'Content-Type': 'application/json' } }
@@ -112,28 +109,11 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
       console.log('✅ Custom token received, signing in user...');
 
       return from(signInWithCustomToken(this.auth, response.token)).pipe(
-        switchMap((userCredential) => {
-          const user = userCredential.user;
-          const uid = user.uid;
-
-          const userData = {
-            id: uid,
-            uid: uid,
-            email: user.email ?? '',
-            role: 'originator',
-            source: 'stripe_checkout',
-            subscriptionStatus: 'active',
-            createdAt: serverTimestamp(),
-            updatedAt: serverTimestamp()
-          };
-
-          const userRef = doc(this.firestore, `originators/${uid}`);
-          return from(setDoc(userRef, userData, { merge: true }));
-        }),
         tap(() => {
-          console.log('✅ User authenticated and Firestore document created');
+          console.log('✅ User authenticated with custom token');
           localStorage.setItem('isLoggedIn', 'true');
-        })
+        }),
+        map(() => void 0) // Return void
       );
     }),
     catchError((error) => {
