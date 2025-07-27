@@ -167,7 +167,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.isValidatingCoupon = true;
 
     // ✅ CORRECT - Use your StripeService
-    this.stripeService.validatePromotionCode(couponCode)
+   this.stripeService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -202,14 +202,17 @@ private handleCouponValidationResponse(response: any): void {
     this.setCouponError(response.error || 'Invalid coupon code');
   }
 }
-
-
   private setCouponError(errorMessage: string): void {
-    const couponControl = this.userForm.get('couponCode');
-    if (couponControl) {
+  const couponControl = this.userForm.get('couponCode');
+  if (couponControl) {
+    // Check if it's a plan mismatch error
+    if (errorMessage.includes('not valid for the selected plan')) {
+      couponControl.setErrors({ planMismatchError: true });
+    } else {
       couponControl.setErrors({ couponError: errorMessage });
     }
   }
+}
 
   private clearCouponErrors(): void {
     const couponControl = this.userForm.get('couponCode');

@@ -78,17 +78,22 @@ export class StripeService {
   /**
    * Validate Stripe promotion code using Firebase Cloud Function
    */
-  validatePromotionCode(code: string): Observable<PromotionCodeValidationResponse> {
+  validatePromotionCode(code: string, role: string, interval: 'monthly' | 'annually'): Observable<PromotionCodeValidationResponse> { {
     console.log('🔵 Validating promotion code:', code);
 
-    return this.http.post<PromotionCodeValidationResponse>(
+   return this.http.post<PromotionCodeValidationResponse>(
       `${this.functionsUrl}/validatePromotionCode`,
-      { code: code.trim().toUpperCase() },
+      { 
+        code: code.trim().toUpperCase(),
+        role: role,
+        interval: interval
+      },
       {
         headers: { 'Content-Type': 'application/json' }
       }
     );
   }
+}
 
   /**
    * Create Stripe checkout session with App Check protection
