@@ -86,59 +86,76 @@ export class StripeService {
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
   validatePromotionCode(code: string, role: 'originator' | 'lender', interval: 'monthly' | 'annually'): Observable<CouponValidationResponse> {
-    console.log('🔵 Validating promotion code:', code);
+  console.log('🔵 Validating promotion code:', code);
 
-    if (!code?.trim()) {
-      throw new Error('Promotion code cannot be empty');
-    }
-
-    return this.http.post<PromotionCodeValidationResponse>(
-      `${this.functionsUrl}/validatePromotionCode`,
-      {
-        code: code.trim().toUpperCase(),
-        role,
-        interval
-      },
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    ).pipe(
-      map(response => {
-        // Transform backend response to frontend format
-        if (!response.valid || !response.promotion_code) {
-          return {
-            valid: false,
-            error: response.error || 'Invalid promotion code'
-          };
-        }
-
-        const { promotion_code } = response;
-        const coupon = promotion_code.coupon;
-
-        const discount = coupon.percent_off || (coupon.amount_off ? coupon.amount_off / 100 : 0);
-        const discountType: 'percentage' | 'fixed' = coupon.percent_off ? 'percentage' : 'fixed';
-
-        return {
-          valid: true,
-          coupon: {
-            id: coupon.id,
-            code: promotion_code.code,
-            discount,
-            discountType,
-            description: coupon.name || `${discount}${discountType === 'percentage' ? '%' : ''} off`
-          }
-        };
-      }),
-      catchError((error) => {
-        console.error('❌ Promotion code validation failed:', error);
-        return of({
-          valid: false,
-          error: 'Failed to validate promotion code. Please try again.'
-        });
-      })
-    );
+  if (!code?.trim()) {
+    throw new Error('Promotion code cannot be empty');
   }
 
+  return this.http.post<any>(
+    `${this.functionsUrl}/validatePromotionCode`,
+    {
+      code: code.trim().toUpperCase(),
+      role,
+      interval
+    },
+    {
+      headers: { 'Content-Type': 'application/json' }
+    }
+  ).pipe(
+    map(response => {
+      console.log('🎯 Raw backend response:', response);
+      
+      // Handle the response structure from your backend
+      if (!response || !response.valid) {
+        console.log('❌ Response invalid or not valid');
+        return {
+          valid: false,
+          error: response?.error || 'Invalid promotion code'
+        };
+      }
+
+      // Check if we have promotion_code data
+      if (!response.promotion_code) {
+        console.log('❌ No promotion_code in response');
+        return {
+          valid: false,
+          error: 'Invalid response format'
+        };
+      }
+
+      const { promotion_code } = response;
+      const coupon = promotion_code.coupon;
+      
+      console.log('✅ Processing valid promotion code:', promotion_code.code);
+      
+      const discount = coupon.percent_off || (coupon.amount_off ? coupon.amount_off / 100 : 0);
+      const discountType: 'percentage' | 'fixed' = coupon.percent_off ? 'percentage' : 'fixed';
+      
+      const result = {
+        valid: true,
+        coupon: {
+          id: coupon.id,
+          code: promotion_code.code,
+          discount,
+          discountType,
+          description: coupon.name || `${discount}${discountType === 'percentage' ? '%' : ''} off`
+        }
+      };
+      
+      console.log('🎯 Transformed response:', result);
+      return result;
+    }),
+    catchError((error) => {
+      console.error('❌ Promotion code validation failed:', error);
+      console.error('❌ Error details:', error.error);
+      return of({
+        valid: false,
+        error: 'Failed to validate promotion code. Please try again.'
+      });
+    })
+  );
+}
   /**
    * Create Stripe checkout session with App Check protection
    */
