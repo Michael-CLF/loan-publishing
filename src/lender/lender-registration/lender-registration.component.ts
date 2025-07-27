@@ -34,7 +34,7 @@ import { ModalService } from '../../services/modal.service';
 import { StepManagementService } from './step-management';
 import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
-import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
+import { StripeService } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import { LenderFormService } from '../../services/lender-registration.service';
@@ -72,6 +72,25 @@ interface AppliedCouponDetails {
   discountType: 'percentage' | 'fixed';
   description?: string;
 }
+
+export interface CheckoutSessionRequest {
+  email: string;
+  role: string;
+  interval: 'monthly' | 'annually';
+  userData: {
+    firstName: string;
+    lastName: string;
+    company: string;
+    phone: string;
+    city: string;
+    state: string;
+    draftId?: string;
+  };
+  promotion_code?: string;
+  discount?: number;
+  discountType?: 'percentage' | 'fixed';
+}
+
 
 @Component({
   selector: 'app-lender-registration',
@@ -682,55 +701,55 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
-validatePromotionCode(): void {
-  const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
-  
-  if (!code) {
-    this.errorMessage = 'Please enter a promotion code.';
-    return;
-  }
+  validatePromotionCode(): void {
+    const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
 
-  this.isValidatingCoupon = true;
-  this.errorMessage = '';
-  this.successMessage = '';
+    if (!code) {
+      this.errorMessage = 'Please enter a promotion code.';
+      return;
+    }
 
-  this.stripeService.validatePromotionCode(code, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.isValidatingCoupon = false),
-      catchError((error: HttpErrorResponse) => {
-        console.error('Coupon validation error:', error);
-        this.errorMessage = 'Unable to validate coupon. Please try again.';
-        return of(null);
-      })
-    )
-    .subscribe(response => {
-      if (response) {
-        this.handleCouponValidationResponse(response);
-      }
-    });
-}
-
-private handleCouponValidationResponse(response: any): void {
-  if (response.valid && response.promotion_code) {
-    this.couponApplied = true;
-
-    const coupon = response.promotion_code.coupon;
-    this.appliedCouponDetails = {
-      code: response.promotion_code.code,
-      displayCode: response.promotion_code.code,
-      discount: coupon.percent_off || coupon.amount_off || 0,
-      discountType: coupon.percent_off ? 'percentage' : 'fixed',
-      description: coupon.name
-    };
+    this.isValidatingCoupon = true;
     this.errorMessage = '';
-    this.successMessage = '✅ Promotion code applied successfully.';
-  } else {
-    this.couponApplied = false;
-    this.appliedCouponDetails = null;
-    this.errorMessage = response?.error || 'Invalid coupon code';
+    this.successMessage = '';
+
+    this.stripeService.validatePromotionCode(code, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isValidatingCoupon = false),
+        catchError((error: HttpErrorResponse) => {
+          console.error('Coupon validation error:', error);
+          this.errorMessage = 'Unable to validate coupon. Please try again.';
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response) {
+          this.handleCouponValidationResponse(response);
+        }
+      });
   }
-}
+
+  private handleCouponValidationResponse(response: any): void {
+    if (response.valid && response.promotion_code) {
+      this.couponApplied = true;
+
+      const coupon = response.promotion_code.coupon;
+      this.appliedCouponDetails = {
+        code: response.promotion_code.code,
+        displayCode: response.promotion_code.code,
+        discount: coupon.percent_off || coupon.amount_off || 0,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        description: coupon.name
+      };
+      this.errorMessage = '';
+      this.successMessage = '✅ Promotion code applied successfully.';
+    } else {
+      this.couponApplied = false;
+      this.appliedCouponDetails = null;
+      this.errorMessage = response?.error || 'Invalid coupon code';
+    }
+  }
 
   // Add this helper method for deep form inspection
   private debugFormStructure(form: FormGroup, prefix = ''): void {
@@ -985,27 +1004,32 @@ private handleCouponValidationResponse(response: any): void {
     localStorage.setItem('lenderRegistrationEmail', email);
 
     runInInjectionContext(this.injector, () => {
-      const payload: CheckoutSessionRequest = {
-        email: email,
-        role: 'lender',
-        interval: formData.interval,
-        userData: {
-          firstName: formData.contactInfo.firstName,
-          lastName: formData.contactInfo.lastName,
-          company: formData.contactInfo.company,
-          phone: formData.contactInfo.contactPhone,
-          city: formData.contactInfo.city,
-          state: formData.contactInfo.state,
-          draftId: draftId,
-        },
-        promotion_code: this.validatedCouponCode
-      };
+    const payload: any = {
+  email,
+  role: 'lender',
+  interval: formData.interval,
+  userData: {
+    firstName: formData.contactInfo.firstName,
+    lastName: formData.contactInfo.lastName,
+    company: formData.contactInfo.company,
+    phone: formData.contactInfo.contactPhone,
+    city: formData.contactInfo.city,
+    state: formData.contactInfo.state,
+    draftId: draftId,
+  }
+};
+
+if (this.couponApplied && this.appliedCouponDetails) {
+  const couponDetails = this.appliedCouponDetails;
+  payload.promotion_code = couponDetails.code;
+  payload.discount = couponDetails.discount;
+  payload.discountType = couponDetails.discountType;
+}
 
 
-      // ✅ Add validated promotion code if present
-      if (this.couponApplied && this.appliedCouponDetails) {
-        payload.promotion_code = this.appliedCouponDetails.code;
-      }
+
+     
+
 
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
@@ -1014,38 +1038,35 @@ private handleCouponValidationResponse(response: any): void {
         fullPayload: payload
       });
 
-      from(this.stripeService.createCheckoutSession(payload)).pipe(
-        catchError((error: any) => {
-          this.isLoading = false;
-          console.error('❌ Stripe checkout error:', error);
-          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-          return of(null);
-        })
-      ).subscribe({
-        next: (checkoutResponse) => {
-          if (checkoutResponse && checkoutResponse.url) {
-            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+     from(this.stripeService.createCheckoutSession(payload)).pipe(
+  catchError((error: any) => {
+    this.isLoading = false;
+    console.error('❌ Stripe checkout error:', error);
+    this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+    return of(null);
+  })
+).subscribe({
+  next: (checkoutResponse) => {
+    if (checkoutResponse && checkoutResponse.url) {
+      console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+      try {
+        window.location.href = checkoutResponse.url;
+      } catch (err) {
+        console.error('❌ Redirect failed:', err);
+        window.open(checkoutResponse.url, '_self');
+      }
+    } else {
+      this.isLoading = false;
+      this.errorMessage = 'Invalid checkout response. Please try again.';
+    }
+  },
+  error: (error) => {
+    this.isLoading = false;
+    console.error('❌ Checkout error:', error);
+    this.errorMessage = 'An unexpected error occurred. Please try again.';
+  }
+});
 
-            try {
-              window.location.href = checkoutResponse.url;
-              console.log('✅ Redirect initiated');
-            } catch (err) {
-              console.error('❌ Redirect failed:', err);
-              // Fallback redirect method
-              window.open(checkoutResponse.url, '_self');
-            }
-          } else {
-            console.log('❌ No URL in response or invalid response');
-            this.isLoading = false;
-            this.errorMessage = 'Invalid checkout response. Please try again.';
-          }
-        },
-        error: (error) => {
-          this.isLoading = false;
-          console.error('❌ Checkout error:', error);
-          this.errorMessage = 'An unexpected error occurred. Please try again.';
-        }
-      });
     });
   }
 
