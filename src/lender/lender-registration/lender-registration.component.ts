@@ -34,7 +34,7 @@ import { ModalService } from '../../services/modal.service';
 import { StepManagementService } from './step-management';
 import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
-import { StripeService, CheckoutSessionRequest, CouponValidationResponse } from '../../services/stripe.service';
+import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import { LenderFormService } from '../../services/lender-registration.service';
@@ -682,58 +682,53 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
-validatePromotionCode(): void {
-  const code = this.validatedCouponCode.trim().toUpperCase();
+  validatePromotionCode(): void {
+    const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
 
-  if (!code) {
-    this.errorMessage = 'Please enter a promotion code.';
-    return;
-  }
+    if (!code) {
+      this.errorMessage = 'Please enter a promotion code.';
+      return;
+    }
 
-  this.isValidatingCoupon = true;
-  this.errorMessage = '';
-  this.successMessage = '';
+    this.isValidatingCoupon = true;
+    this.errorMessage = '';
+    this.successMessage = '';
 
-  const interval = this.lenderForm.get('interval')?.value || 'monthly';
+    const interval = this.lenderForm.get('interval')?.value || 'monthly';
 
-  this.stripeService.validatePromotionCode(code, 'lender', interval)
-    .pipe(take(1))
-    .subscribe({
-      next: (response: CouponValidationResponse) => {
-        if (response && response.valid && response.coupon) {
-          const {
-            code: couponCode,
-            discount,
-            discountType,
-            description
-          } = response.coupon;
+    this.stripeService.validatePromotionCode(code, 'lender', interval)
+      .pipe(take(1))
+      .subscribe({
+        next: (response: any) => {
+          if (response && response.valid && response.promotion_code) {
+            const coupon = response.promotion_code.coupon;
 
-          this.appliedCouponDetails = {
-            code: couponCode,
-            discount,
-            discountType,
-            description
-          };
+            this.appliedCouponDetails = {
+              code: response.promotion_code.code,
+              discount: coupon.percent_off || coupon.amount_off || 0,
+              discountType: coupon.percent_off ? 'percentage' : 'fixed',
+              description: coupon.name
+            };
 
-          this.couponApplied = true;
-          this.successMessage = '✅ Promotion code applied successfully.';
-        } else {
-          this.errorMessage = response.error || '❌ Invalid or expired promotion code.';
+            this.couponApplied = true;
+            this.successMessage = '✅ Promotion code applied successfully.';
+          } else {
+            this.errorMessage = response.error || '❌ Invalid or expired promotion code.';
+            this.couponApplied = false;
+            this.appliedCouponDetails = null;
+          }
+
+          this.isValidatingCoupon = false;
+        },
+        error: (error) => {
+          console.error('❌ Validation error:', error);
+          this.errorMessage = '⚠️ Error validating the code. Please try again.';
           this.couponApplied = false;
           this.appliedCouponDetails = null;
+          this.isValidatingCoupon = false;
         }
-
-        this.isValidatingCoupon = false;
-      },
-      error: (error) => {
-        console.error('❌ Validation error:', error);
-        this.errorMessage = '⚠️ Error validating the code. Please try again.';
-        this.couponApplied = false;
-        this.appliedCouponDetails = null;
-        this.isValidatingCoupon = false;
-      }
-    });
-}
+      });
+  }
 
   // Add this helper method for deep form inspection
   private debugFormStructure(form: FormGroup, prefix = ''): void {
