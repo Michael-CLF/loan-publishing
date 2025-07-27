@@ -20,7 +20,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { catchError, tap, takeUntil, finalize } from 'rxjs/operators';
+import { catchError, tap, takeUntil, take, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
@@ -122,6 +122,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   errorMessage = '';
   isValidatingCoupon = false;
   couponApplied = false;
+  validatedCouponCode: string = '';
   appliedCouponDetails: AppliedCouponDetails | null = null;
   private subscriptions: Subscription[] = [];
   private destroy$ = new Subject<void>();
@@ -178,7 +179,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   });
 
 
- ngOnInit(): void {
+  ngOnInit(): void {
     this.initializeForm();
     this.states = this.locationService.getFootprintLocations();
     this.initializeStateCountiesStructure();
@@ -195,7 +196,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         this.currentStep = step;
         this.toggleStepValidation();
         this.errorMessage = '';
-        
+
         // Save form data to service when step changes
         this.saveCurrentStepData();
       })
@@ -206,12 +207,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-   private loadDraftData(draftId: string): void {
+  private loadDraftData(draftId: string): void {
     this.lenderFormService.loadDraft(draftId).subscribe({
       next: (draftData) => {
         if (draftData) {
           console.log('Loading draft data:', draftData);
-          
+
           // Populate form with draft data
           if (draftData.contact) {
             this.contactForm.patchValue(draftData.contact);
@@ -693,6 +694,56 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
+  validatePromotionCode(): void {
+  const code = this.validatedCouponCode.trim().toUpperCase();
+
+  if (!code) {
+    this.errorMessage = 'Please enter a promotion code.';
+    return;
+  }
+
+  this.isValidatingCoupon = true;
+  this.errorMessage = '';
+  this.successMessage = '';
+
+  const interval = this.lenderForm.get('interval')?.value || 'annual';
+
+  this.stripeService.validatePromotionCode(code, 'lender', interval)
+    .pipe(take(1))
+    .subscribe({
+      next: (response: CouponValidationResponse) => {
+        if (response && response.valid && response.coupon) {
+          const {
+            code: couponCode,
+            discount,
+            discountType,
+            description
+          } = response.coupon;
+
+          this.appliedCouponDetails = {
+            code: couponCode,
+            discount,
+            discountType,
+            description
+          };
+
+          this.couponApplied = true;
+          this.successMessage = '✅ Promotion code applied successfully.';
+        } else {
+          this.errorMessage = '❌ Invalid or expired promotion code.';
+          this.couponApplied = false;
+        }
+
+        this.isValidatingCoupon = false;
+      },
+      error: () => {
+        this.errorMessage = '⚠️ Error validating the code. Please try again.';
+        this.couponApplied = false;
+        this.isValidatingCoupon = false;
+      }
+    });
+}
+
   // Add this helper method for deep form inspection
   private debugFormStructure(form: FormGroup, prefix = ''): void {
     Object.keys(form.controls).forEach((key) => {
@@ -840,8 +891,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // If form is valid, proceed
     if (currentForm.valid) {
-     // Save current step data to service (which handles drafts)
-      this.saveCurrentStepData();      
+      // Save current step data to service (which handles drafts)
+      this.saveCurrentStepData();
 
       // For all steps, just proceed to next step
       if (this.currentStep < 5) {
@@ -909,7 +960,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // ✅ Save final form data and get draft ID
     this.lenderFormService.setFormSection('termsAccepted', true);
-    
+
     // ✅ Get or create draft ID
     const draftId = this.lenderFormService.getCurrentDraftId();
     if (!draftId) {
@@ -957,9 +1008,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           phone: formData.contactInfo.contactPhone,
           city: formData.contactInfo.city,
           state: formData.contactInfo.state,
-          draftId: draftId  // ✅ ADD DRAFT ID HERE
-        }
+          draftId: draftId,
+        },
+        promotion_code: this.validatedCouponCode
       };
+
 
       // ✅ Add validated promotion code if present
       if (this.couponApplied && this.appliedCouponDetails) {
@@ -984,7 +1037,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         next: (checkoutResponse) => {
           if (checkoutResponse && checkoutResponse.url) {
             console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-            
+
             try {
               window.location.href = checkoutResponse.url;
               console.log('✅ Redirect initiated');
@@ -1006,7 +1059,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         }
       });
     });
-  } 
+  }
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
@@ -1022,16 +1075,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
- onCouponValidated(event: any): void {
-  console.log('🎫 PARENT: Received coupon validation event:', event);
-  this.couponApplied = event.applied;
-  this.appliedCouponDetails = event.details;
-  
-  console.log('🎫 PARENT: Updated state:', {
-    couponApplied: this.couponApplied,
-    appliedCouponDetails: this.appliedCouponDetails
-  });
-}
+  onCouponValidated(event: any): void {
+    console.log('🎫 PARENT: Received coupon validation event:', event);
+    this.couponApplied = event.applied;
+    this.appliedCouponDetails = event.details;
+
+    console.log('🎫 PARENT: Updated state:', {
+      couponApplied: this.couponApplied,
+      appliedCouponDetails: this.appliedCouponDetails
+    });
+  }
 
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
