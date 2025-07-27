@@ -250,8 +250,8 @@
   <div *ngIf="userForm.get('couponCode')?.errors?.['couponError']">
       *{{ userForm.get('couponCode')?.errors?.['couponError'] }}
     </div>
-    <div *ngIf="userForm.get('couponCode')?.errors?.['planMismatchError']">
-      *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan. Please select the correct billing option or use a different code.
+    <div class="wrong-plan" *ngIf="userForm.get('couponCode')?.errors?.['planMismatchError']">
+      *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan. Please select the correct plan or use a different code.
     </div>
 </div>
 
