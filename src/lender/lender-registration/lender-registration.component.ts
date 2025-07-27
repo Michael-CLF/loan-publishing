@@ -20,7 +20,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { catchError, tap, take } from 'rxjs/operators';
+import { catchError, takeUntil, finalize } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
@@ -683,10 +683,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
 validatePromotionCode(): void {
-  console.log('🚨🚨🚨 LENDER COMPONENT METHOD EXECUTING 🚨🚨🚨');
+  const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
   
-  const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
-
   if (!code) {
     this.errorMessage = 'Please enter a promotion code.';
     return;
@@ -696,52 +694,42 @@ validatePromotionCode(): void {
   this.errorMessage = '';
   this.successMessage = '';
 
-  const interval = this.lenderForm.get('interval')?.value || 'monthly';
-  
-  console.log('🎯 LENDER: About to call validation service with:', { code, interval });
-
-  this.stripeService.validatePromotionCode(code, 'lender', interval)
-    .pipe(take(1))
-    .subscribe({
-      next: (response: any) => {
-        console.log('🎯 LENDER: Raw validation response:', response);
-        
-        if (response && response.valid && response.promotion_code) {
-          console.log('🎯 LENDER: SUCCESS - Processing valid promotion code');
-          const coupon = response.promotion_code.coupon;
-
-          this.appliedCouponDetails = {
-            code: response.promotion_code.code,
-            discount: coupon.percent_off || coupon.amount_off || 0,
-            discountType: coupon.percent_off ? 'percentage' : 'fixed',
-            description: coupon.name
-          };
-
-          this.couponApplied = true;
-          this.successMessage = '✅ Promotion code applied successfully.';
-          
-          console.log('🎯 LENDER: Component state updated:', {
-            couponApplied: this.couponApplied,
-            appliedCouponDetails: this.appliedCouponDetails
-          });
-        } else {
-          console.log('🎯 LENDER: FAILED - Invalid response structure');
-          this.errorMessage = response?.error || '❌ Invalid or expired promotion code.';
-          this.couponApplied = false;
-          this.appliedCouponDetails = null;
-        }
-
-        this.isValidatingCoupon = false;
-      },
-      error: (error) => {
-        console.log('🎯 LENDER: Subscribe ERROR executed');
-        console.error('❌ LENDER: Validation error:', error);
-        this.errorMessage = '⚠️ Error validating the code. Please try again.';
-        this.couponApplied = false;
-        this.appliedCouponDetails = null;
-        this.isValidatingCoupon = false;
+  this.stripeService.validatePromotionCode(code, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
+    .pipe(
+      takeUntil(this.destroy$),
+      finalize(() => this.isValidatingCoupon = false),
+      catchError((error: HttpErrorResponse) => {
+        console.error('Coupon validation error:', error);
+        this.errorMessage = 'Unable to validate coupon. Please try again.';
+        return of(null);
+      })
+    )
+    .subscribe(response => {
+      if (response) {
+        this.handleCouponValidationResponse(response);
       }
     });
+}
+
+private handleCouponValidationResponse(response: any): void {
+  if (response.valid && response.promotion_code) {
+    this.couponApplied = true;
+
+    const coupon = response.promotion_code.coupon;
+    this.appliedCouponDetails = {
+      code: response.promotion_code.code,
+      displayCode: response.promotion_code.code,
+      discount: coupon.percent_off || coupon.amount_off || 0,
+      discountType: coupon.percent_off ? 'percentage' : 'fixed',
+      description: coupon.name
+    };
+    this.errorMessage = '';
+    this.successMessage = '✅ Promotion code applied successfully.';
+  } else {
+    this.couponApplied = false;
+    this.appliedCouponDetails = null;
+    this.errorMessage = response?.error || 'Invalid coupon code';
+  }
 }
 
   // Add this helper method for deep form inspection
