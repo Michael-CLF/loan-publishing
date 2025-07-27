@@ -20,7 +20,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subscription } from 'rxjs';
-import { catchError, tap, takeUntil, take, finalize } from 'rxjs/operators';
+import { catchError, tap, take } from 'rxjs/operators';
 import { of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
@@ -684,6 +684,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   validatePromotionCode(): void {
   const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
+  console.log('🚨🚨🚨 LENDER COMPONENT METHOD EXECUTING 🚨🚨🚨');
 
   if (!code) {
     this.errorMessage = 'Please enter a promotion code.';
