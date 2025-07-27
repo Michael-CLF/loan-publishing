@@ -89,8 +89,7 @@ export class StripeService {
   console.log('🔵 Validating promotion code:', code);
 
   if (!code?.trim()) {
-    throw new Error('Promotion code cannot be empty');
-  }
+    throw new Error('Promotion code cannot be empty');  }
 
   return this.http.post<any>(
     `${this.functionsUrl}/validatePromotionCode`,

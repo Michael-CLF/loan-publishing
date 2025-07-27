@@ -700,8 +700,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       .pipe(take(1))
       .subscribe({
         next: (response: any) => {
+          console.log('🎯 LENDER: Validation response received:', response);
+          console.log('🎯 LENDER: Component state before update:', {
+            couponApplied: this.couponApplied,
+            appliedCouponDetails: this.appliedCouponDetails
+          });
           if (response && response.valid && response.promotion_code) {
             const coupon = response.promotion_code.coupon;
+            console.log('🎯 LENDER: Setting couponApplied = true');
 
             this.appliedCouponDetails = {
               code: response.promotion_code.code,
