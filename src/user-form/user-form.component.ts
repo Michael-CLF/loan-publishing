@@ -109,17 +109,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
           this.clearCouponErrors();
         }
       });
-    this.userForm.get('couponCode')?.valueChanges
-      .pipe(
-        debounceTime(1000),
-        distinctUntilChanged(),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((value) => {
-        if (value && value.trim()) {
-          this.validateCoupon();
-        }
-      });
   }
 
   ngOnDestroy(): void {
