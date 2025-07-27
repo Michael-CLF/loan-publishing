@@ -10,7 +10,7 @@ import { AppCheckService } from './app-check.service';
 
 export interface CheckoutSessionRequest {
   email: string;
-  role: string;
+  role: 'originator' | 'lender';
   interval: 'monthly' | 'annually';
   userData: {
     firstName: string;
@@ -19,12 +19,7 @@ export interface CheckoutSessionRequest {
     phone: string;
     city: string;
     state: string;
-    draftId: string,
-  };
-  coupon?: {
-    code: string;
-    discount: number;
-    discountType: 'percentage' | 'fixed';
+    draftId: string;
   };
   promotion_code?: string;
 }
@@ -75,25 +70,30 @@ export class StripeService {
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
-  /**
-   * Validate Stripe promotion code using Firebase Cloud Function
-   */
-  validatePromotionCode(code: string, role: string, interval: 'monthly' | 'annually'): Observable<PromotionCodeValidationResponse> { {
+  validatePromotionCode(code: string, role: 'originator' | 'lender', interval: 'monthly' | 'annually'): Observable<PromotionCodeValidationResponse> {
     console.log('🔵 Validating promotion code:', code);
 
-   return this.http.post<PromotionCodeValidationResponse>(
+    if (!code?.trim()) {
+      throw new Error('Promotion code cannot be empty');
+    }
+
+    return this.http.post<PromotionCodeValidationResponse>(
       `${this.functionsUrl}/validatePromotionCode`,
-      { 
+      {
         code: code.trim().toUpperCase(),
-        role: role,
-        interval: interval
+        role,
+        interval
       },
       {
         headers: { 'Content-Type': 'application/json' }
       }
+    ).pipe(
+      catchError((error) => {
+        console.error('❌ Promotion code validation failed:', error);
+        throw new Error('Failed to validate promotion code. Please try again.');
+      })
     );
   }
-}
 
   /**
    * Create Stripe checkout session with App Check protection
@@ -105,25 +105,10 @@ export class StripeService {
     console.log('🔍 functionsUrl:', this.functionsUrl);
     console.log('🔍 environment.registerUserUrl:', environment.registerUserUrl);
     console.log('🔍 Final URL:', `{environment.registerUserUrl}`);
+    console.log('🔵 Creating Stripe checkout session');
+    this.validateCheckoutData(data);
 
-
-    const metadata: StripeMetadata = {
-      email: data.email.toLowerCase().trim(),
-      firstName: this.sanitizeString(data.userData.firstName),
-      lastName: this.sanitizeString(data.userData.lastName),
-      company: this.sanitizeString(data.userData.company),
-      phone: this.sanitizePhoneNumber(data.userData.phone),
-      city: this.sanitizeString(data.userData.city),
-      state: data.userData.state,
-      role: data.role,
-      interval: data.interval,
-      source: 'registration_form',
-      timestamp: new Date().toISOString(),
-      couponCode: data.promotion_code,
-      draftId: data.userData.draftId,
-    };
-
-    const checkoutData: any = {
+       const checkoutData: any = {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       interval: data.interval,
@@ -131,24 +116,16 @@ export class StripeService {
     };
 
     if (data.promotion_code && typeof data.promotion_code === 'string') {
-      checkoutData.promotion_code = data.promotion_code.trim();
+      checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
     }
 
 
     console.log('🔵 Creating Stripe checkout session (App Check disabled)');
 
-    /*
-    const appCheckInstance = this.appCheckService.getAppCheckInstance();
-    if (!appCheckInstance) {
-      throw new Error('App Check not initialized');
-    }
-    const tokenResult = await getToken(appCheckInstance, false);*/
-
-
     const headers = new HttpHeaders({
-      'Content-Type': 'application/json',
-      //'X-Firebase-AppCheck': tokenResult.token
+      'Content-Type': 'application/json'
     });
+
 
     console.log('🔵 Creating Stripe checkout session with App Check token');
 
