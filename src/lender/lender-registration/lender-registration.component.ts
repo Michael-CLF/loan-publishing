@@ -682,7 +682,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
-  validatePromotionCode(): void {
+validatePromotionCode(): void {
   console.log('🚨🚨🚨 LENDER COMPONENT METHOD EXECUTING 🚨🚨🚨');
   
   const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
