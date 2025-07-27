@@ -17,14 +17,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Subject, of, from } from 'rxjs';
-import { takeUntil, catchError, finalize, tap, switchMap } from 'rxjs/operators';
+import { takeUntil, catchError, finalize, tap, switchMap, debounceTime, distinctUntilChanged } from 'rxjs/operators';
 import { AuthService } from '../services/auth.service';
 import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
-
-
 
 export interface StateOption {
   value: string;
@@ -77,6 +75,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   isValidatingCoupon = false;
   couponApplied = false;
   appliedCouponDetails: AppliedCouponDetails | null = null;
+  private isResettingCoupon = false;
   states: StateOption[] = [];
   successMessage: string = '';
 
@@ -102,6 +101,25 @@ export class UserFormComponent implements OnInit, OnDestroy {
       applyTrial: [false],
       couponCode: ['']
     });
+    // Clear coupon errors when user starts typing
+    this.userForm.get('couponCode')?.valueChanges
+      .pipe(takeUntil(this.destroy$))
+      .subscribe(() => {
+        if (this.userForm.get('couponCode')?.errors) {
+          this.clearCouponErrors();
+        }
+      });
+    this.userForm.get('couponCode')?.valueChanges
+      .pipe(
+        debounceTime(1000),
+        distinctUntilChanged(),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((value) => {
+        if (value && value.trim()) {
+          this.validateCoupon();
+        }
+      });
   }
 
   ngOnDestroy(): void {
@@ -111,6 +129,11 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.userForm.patchValue({ interval });
+
+    // If a coupon is applied, revalidate it for the new plan
+    if (this.couponApplied && this.userForm.get('couponCode')?.value) {
+      this.validateCoupon();
+    }
   }
 
   formatPhoneNumber(): void {
@@ -126,48 +149,30 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.userForm.get('phone')?.setValue(formatted, { emitEvent: false });
     }
   }
-  /**
-   * Applies the coupon code (triggered by Apply button)
-   */
-  applyCoupon(): void {
+
+  validateCoupon(): void {
+    // Don't validate if we're in the middle of resetting
+    if (this.isResettingCoupon) {
+      return;
+    }
+
     const couponCode = this.userForm.get('couponCode')?.value?.trim();
 
+    // If no code entered, reset state and return
     if (!couponCode) {
+      this.resetCouponState();
+      return;
+    }
+
+    // Prevent duplicate validation calls
+    if (this.isValidatingCoupon) {
       return;
     }
 
     this.isValidatingCoupon = true;
 
-    // Make API call to apply coupon
-    this.http.post<CouponValidationResponse>('/api/apply-coupon', {
-      code: couponCode
-    })
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          this.isValidatingCoupon = false;
-        }),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Coupon application error:', error);
-          this.setCouponError('Unable to apply coupon. Please try again.');
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
-
-  validateCoupon(): void {
-    const couponCode = this.userForm.get('couponCode')?.value?.trim();
-    if (!couponCode) return;
-
-    this.isValidatingCoupon = true;
-
     // ✅ CORRECT - Use your StripeService
-   this.stripeService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
+    this.stripeService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -184,35 +189,35 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-private handleCouponValidationResponse(response: any): void {
-  if (response.valid && response.promotion_code) {
-    this.couponApplied = true;
+  private handleCouponValidationResponse(response: any): void {
+    if (response.valid && response.promotion_code) {
+      this.couponApplied = true;
 
-    const coupon = response.promotion_code.coupon;
-    this.appliedCouponDetails = {
-      code: response.promotion_code.code,
-      displayCode: response.promotion_code.code, 
-      discount: coupon.percent_off || coupon.amount_off || 0,
-      discountType: coupon.percent_off ? 'percentage' : 'fixed',
-      description: coupon.name
-    };
-    this.clearCouponErrors();
-  } else {
-    this.resetCouponState();
-    this.setCouponError(response.error || 'Invalid coupon code');
-  }
-}
-  private setCouponError(errorMessage: string): void {
-  const couponControl = this.userForm.get('couponCode');
-  if (couponControl) {
-    // Check if it's a plan mismatch error
-    if (errorMessage.includes('not valid for the selected plan')) {
-      couponControl.setErrors({ planMismatchError: true });
+      const coupon = response.promotion_code.coupon;
+      this.appliedCouponDetails = {
+        code: response.promotion_code.code,
+        displayCode: response.promotion_code.code,
+        discount: coupon.percent_off || coupon.amount_off || 0,
+        discountType: coupon.percent_off ? 'percentage' : 'fixed',
+        description: coupon.name
+      };
+      this.clearCouponErrors();
     } else {
-      couponControl.setErrors({ couponError: errorMessage });
+      this.resetCouponState();
+      this.setCouponError(response.error || 'Invalid coupon code');
     }
   }
-}
+  private setCouponError(errorMessage: string): void {
+    const couponControl = this.userForm.get('couponCode');
+    if (couponControl) {
+      // Check if it's a plan mismatch error
+      if (errorMessage.includes('not valid for the selected plan')) {
+        couponControl.setErrors({ planMismatchError: true });
+      } else {
+        couponControl.setErrors({ couponError: errorMessage });
+      }
+    }
+  }
 
   private clearCouponErrors(): void {
     const couponControl = this.userForm.get('couponCode');
@@ -222,9 +227,17 @@ private handleCouponValidationResponse(response: any): void {
   }
 
   private resetCouponState(): void {
+    this.isResettingCoupon = true;
     this.couponApplied = false;
     this.appliedCouponDetails = null;
     this.clearCouponErrors();
+
+    // Clear the coupon input field
+    this.userForm.get('couponCode')?.setValue('', { emitEvent: false });
+
+    setTimeout(() => {
+      this.isResettingCoupon = false;
+    }, 100);
   }
 
   onSubmit(): void {
@@ -311,6 +324,6 @@ private handleCouponValidationResponse(response: any): void {
             this.errorMessage = 'An unexpected error occurred. Please try again.';
           }
         });
-      });
-    }
+    });
   }
+}

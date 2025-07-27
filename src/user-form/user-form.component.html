@@ -208,24 +208,25 @@
   <label class="coupon" for="couponCode">Coupon Code: Discount will be applied at checkout</label>
 
   <div class="coupon-input-container">
-    <input 
-      type="text" 
-      id="couponCode" 
-      formControlName="couponCode" 
-      placeholder="Enter coupon code"
-      [ngClass]="{
-        invalid: userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched,
-        valid: userForm.get('couponCode')?.valid && userForm.get('couponCode')?.value && couponApplied
-      }"
-      (blur)="validateCoupon()" />
+   <input 
+    type="text" 
+    id="couponCode" 
+    formControlName="couponCode" 
+    placeholder="Enter coupon code"
+    [ngClass]="{
+      invalid: userForm.get('couponCode')?.errors && userForm.get('couponCode')?.touched,
+      valid: couponApplied && userForm.get('couponCode')?.value
+    }"
+    (blur)="validateCoupon()"
+    (keyup.enter)="validateCoupon()" />
       </div>
 
       <div class="coupon-button-container">
-    <button 
+   <button 
       type="button" 
       class="apply-coupon-btn"
       [disabled]="!userForm.get('couponCode')?.value || isValidatingCoupon"
-      (click)="applyCoupon()">
+      (click)="validateCoupon()">
       <span *ngIf="!isValidatingCoupon">Apply</span>
       <span *ngIf="isValidatingCoupon">Applying...</span>
     </button>
@@ -235,7 +236,7 @@
   ✓ Coupon "{{ appliedCouponDetails.displayCode || 'promotion code' }}" applied!
 </div>
   
-  <!-- Error messages -->
+ <!-- Error messages -->
   <div *ngIf="userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched" class="error">
     <div *ngIf="userForm.get('couponCode')?.errors?.['invalidCoupon']">
       *Invalid coupon code. Please check and try again.
@@ -247,14 +248,10 @@
       *{{ userForm.get('couponCode')?.errors?.['couponError'] }}
     </div>
   </div>
-  <div *ngIf="userForm.get('couponCode')?.errors?.['couponError']">
-      *{{ userForm.get('couponCode')?.errors?.['couponError'] }}
-    </div>
-    <div class="wrong-plan" *ngIf="userForm.get('couponCode')?.errors?.['planMismatchError']">
-      *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan. Please select the correct plan or use a different code.
-    </div>
+  <div class="wrong-plan" *ngIf="userForm.get('couponCode')?.errors?.['planMismatchError']">
+    *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan. Please select the correct plan or use a different code.
+  </div>
 </div>
-
 
   <!-- Price Summary -->
   <div class="price-summary">
