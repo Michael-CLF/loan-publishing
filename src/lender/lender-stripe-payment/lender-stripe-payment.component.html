@@ -13,8 +13,7 @@
 
         <div class="billing-options">
           <!-- Monthly Option -->
-          <div class="billing-card" [class.selected]="paymentForm.get('interval')?.value === 'monthly'"
-            (click)="selectBilling('monthly')">
+          <div class="billing-card" [class.selected]="paymentForm.get('interval')?.value === 'monthly'" (click)="selectBilling('monthly')">
             <div class="billing-header">
               <input type="radio" formControlName="interval" value="monthly" id="lender-monthly" class="billing-radio">
               <label for="lender-monthly" class="billing-label">
@@ -29,18 +28,15 @@
                 <li>Unlimited loan searches</li>
                 <li>New loan notifications</li>
                 <li>Cancel anytime</li>
-
               </ul>
             </div>
           </div>
 
           <!-- Annual Option -->
-          <div class="billing-card popular" [class.selected]="paymentForm.get('interval')?.value === 'annually'"
-            (click)="selectBilling('annually')">
+          <div class="billing-card popular" [class.selected]="paymentForm.get('interval')?.value === 'annually'" (click)="selectBilling('annually')">
             <div class="popular-badge">Most Popular</div>
             <div class="billing-header">
-              <input type="radio" formControlName="interval" value="annually" id="lender-annually"
-                class="billing-radio">
+              <input type="radio" formControlName="interval" value="annually" id="lender-annually" class="billing-radio">
               <label for="lender-annually" class="billing-label">
                 <span class="billing-period">Annually</span>
                 <span class="billing-price">$1610.00/year</span>
@@ -61,6 +57,47 @@
           </div>
         </div>
 
+          <!-- Promotion Code Section -->
+        <div class="form-group full-width">
+          <label class="coupon" for="couponCode">Promotion Code (Optional)</label>
+          <div class="coupon-input-container">
+            <input type="text" id="couponCode" formControlName="couponCode" placeholder="Enter promotion code"
+                   [ngClass]="{
+                     invalid: paymentForm.get('couponCode')?.invalid && paymentForm.get('couponCode')?.touched,
+                     valid: paymentForm.get('couponCode')?.valid && paymentForm.get('couponCode')?.value && couponApplied
+                   }"
+                   (blur)="validateCoupon()" />
+          </div>
+        </div>
+        
+        <!-- Coupon Apply Button -->
+        <div class="coupon-button-container">
+          <button type="button" class="apply-coupon-btn" [ngClass]="{ 'loading': isValidatingCoupon }"
+                  [disabled]="!paymentForm.get('couponCode')?.value || isValidatingCoupon"
+                  (click)="applyCoupon()">
+            <span *ngIf="!isValidatingCoupon">Apply</span>
+            <span *ngIf="isValidatingCoupon">Applying...</span>
+          </button>
+        </div>
+
+        <!-- Coupon Success Message -->
+        <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
+          ✓ Promotion code "{{ appliedCouponDetails.displayCode || 'promotion code' }}" applied!
+        </div>
+
+        <!-- Error Messages -->
+        <div *ngIf="paymentForm.get('couponCode')?.invalid && paymentForm.get('couponCode')?.touched" class="error">
+          <div *ngIf="paymentForm.get('couponCode')?.hasError('invalidCoupon')">
+            *Invalid promotion code. Please check and try again.
+          </div>
+          <div *ngIf="paymentForm.get('couponCode')?.hasError('expiredCoupon')">
+            *This promotion code has expired.
+          </div>
+          <div *ngIf="paymentForm.get('couponCode')?.hasError('couponError')">
+            *{{ paymentForm.get('couponCode')?.getError('couponError') }}
+          </div>
+        </div>
+
         <!-- Price Summary -->
         <div class="price-summary">
           <div class="summary-row">
@@ -72,12 +109,14 @@
             <span>{{ getDisplayPrice() }}</span>
           </div>
         </div>
-      </div>
 
-      <!-- Error Message -->
-      <div *ngIf="errorMessage" class="error-message">
-        <p>{{ errorMessage }}</p>
-      </div>
+        <!-- General Error Message -->
+        <div *ngIf="errorMessage" class="error-message">
+          <p>{{ errorMessage }}</p>
+        </div>
+
+      </div> <!-- End pricing-section -->
+
     </form>
   </div>
 </div>

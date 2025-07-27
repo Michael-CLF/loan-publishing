@@ -129,43 +129,4 @@
                 </div>
             </div>
         </div>
-
-        <!-- Promotion Code Section - Add after State field, before Terms -->
-        <div class="form-group full-width">
-            <label class="coupon" for="couponCode">Promotion Code (Optional)</label>
-
-            <div class="coupon-input-container">
-                <input type="text" id="couponCode" formControlName="couponCode" placeholder="Enter promotion code"
-                    [ngClass]="{
-        invalid: lenderForm.get('couponCode')?.invalid && lenderForm.get('couponCode')?.touched,
-        valid: lenderForm.get('couponCode')?.valid && lenderForm.get('couponCode')?.value && couponApplied
-      }" (blur)="validateCoupon()" />
-            </div>
-
-            <div class="coupon-button-container">
-                <button type="button" class="apply-coupon-btn"
-                    [ngClass]="{ 'loading': isValidatingCoupon }"
-                    [disabled]="!lenderForm.get('couponCode')?.value || isValidatingCoupon" (click)="applyCoupon()">                    
-                    <span *ngIf="!isValidatingCoupon">Apply</span>
-                    <span *ngIf="isValidatingCoupon">Applying...</span>
-                </button>
-            </div>
-
-            <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
-                ✓ Promotion code "{{ appliedCouponDetails.displayCode || 'promotion code' }}" applied!
-            </div>
-
-            <!-- Error messages -->
-            <div *ngIf="lenderForm.get('couponCode')?.invalid && lenderForm.get('couponCode')?.touched" class="error">
-                <div *ngIf="lenderForm.get('couponCode')?.errors?.['invalidCoupon']">
-                    *Invalid promotion code. Please check and try again.
-                </div>
-                <div *ngIf="lenderForm.get('couponCode')?.errors?.['expiredCoupon']">
-                    *This promotion code has expired.
-                </div>
-                <div *ngIf="lenderForm.get('couponCode')?.errors?.['couponError']">
-                    *{{ lenderForm.get('couponCode')?.errors?.['couponError'] }}
-                </div>
-            </div>
-        </div>
 </form>
