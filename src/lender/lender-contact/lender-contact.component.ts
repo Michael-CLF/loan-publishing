@@ -107,7 +107,7 @@ export class LenderContactComponent implements OnDestroy {
 
     this.isValidatingCoupon = true;
 
-    this.stripeService.validatePromotionCode(couponCode)
+   this.stripeService.validatePromotionCode(couponCode, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => {
@@ -135,7 +135,7 @@ export class LenderContactComponent implements OnDestroy {
 
     this.isValidatingCoupon = true;
 
-    this.stripeService.validatePromotionCode(couponCode)
+    this.stripeService.validatePromotionCode(couponCode, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
