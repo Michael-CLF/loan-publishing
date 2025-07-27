@@ -683,8 +683,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   validatePromotionCode(): void {
-  const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
   console.log('🚨🚨🚨 LENDER COMPONENT METHOD EXECUTING 🚨🚨🚨');
+  
+  const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim().toUpperCase() || '';
 
   if (!code) {
     this.errorMessage = 'Please enter a promotion code.';
@@ -700,13 +701,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   console.log('🎯 LENDER: About to call validation service with:', { code, interval });
 
   this.stripeService.validatePromotionCode(code, 'lender', interval)
-    .pipe(
-      tap(response => console.log('🎯 LENDER: Service returned:', response)),
-      take(1)
-    )
+    .pipe(take(1))
     .subscribe({
       next: (response: any) => {
-        console.log('🎯 LENDER: Subscribe NEXT executed');
         console.log('🎯 LENDER: Raw validation response:', response);
         
         if (response && response.valid && response.promotion_code) {
@@ -743,9 +740,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         this.couponApplied = false;
         this.appliedCouponDetails = null;
         this.isValidatingCoupon = false;
-      },
-      complete: () => {
-        console.log('🎯 LENDER: Subscribe COMPLETE executed');
       }
     });
 }
