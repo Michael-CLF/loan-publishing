@@ -218,7 +218,15 @@ export class LenderStripePaymentComponent implements OnInit {
 
     this.isLoading = true;
     this.errorMessage = '';
-    const paymentData = this.paymentForm.value;
+    const formValue = this.paymentForm.value;
+
+    const paymentData: CheckoutSessionRequest = {
+      ...formValue,
+      promotion_code: this.couponApplied && this.appliedCouponDetails?.code
+        ? this.appliedCouponDetails.code
+        : null
+    };
+
 
     runInInjectionContext(this.injector, () => {
       this.processLenderPayment(paymentData);
