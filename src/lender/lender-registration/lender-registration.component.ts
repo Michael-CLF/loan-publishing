@@ -34,7 +34,7 @@ import { ModalService } from '../../services/modal.service';
 import { StepManagementService } from './step-management';
 import { FormCoordinationService } from './form-coordination';
 import { LocationService } from '../../services/location.service';
-import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
+import { StripeService, CheckoutSessionRequest, CouponValidationResponse } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import { LenderFormService } from '../../services/lender-registration.service';
@@ -63,18 +63,6 @@ export interface SubCategory {
 export interface StateOption {
   value: string;
   name: string;
-}
-
-interface CouponValidationResponse {
-  valid: boolean;
-  coupon?: {
-    id: string;
-    code: string;
-    discount: number;
-    discountType: 'percentage' | 'fixed';
-    description?: string;
-  };
-  error?: string;
 }
 
 interface AppliedCouponDetails {
@@ -694,7 +682,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
-  validatePromotionCode(): void {
+validatePromotionCode(): void {
   const code = this.validatedCouponCode.trim().toUpperCase();
 
   if (!code) {
@@ -706,7 +694,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   this.errorMessage = '';
   this.successMessage = '';
 
-  const interval = this.lenderForm.get('interval')?.value || 'annual';
+  const interval = this.lenderForm.get('interval')?.value || 'monthly';
 
   this.stripeService.validatePromotionCode(code, 'lender', interval)
     .pipe(take(1))
@@ -730,15 +718,18 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           this.couponApplied = true;
           this.successMessage = '✅ Promotion code applied successfully.';
         } else {
-          this.errorMessage = '❌ Invalid or expired promotion code.';
+          this.errorMessage = response.error || '❌ Invalid or expired promotion code.';
           this.couponApplied = false;
+          this.appliedCouponDetails = null;
         }
 
         this.isValidatingCoupon = false;
       },
-      error: () => {
+      error: (error) => {
+        console.error('❌ Validation error:', error);
         this.errorMessage = '⚠️ Error validating the code. Please try again.';
         this.couponApplied = false;
+        this.appliedCouponDetails = null;
         this.isValidatingCoupon = false;
       }
     });

@@ -2,7 +2,7 @@
 
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, firstValueFrom, catchError } from 'rxjs';
+import { Observable, firstValueFrom, catchError, map, of } from 'rxjs';
 import { environment } from '../environments/environment';
 import { getToken } from 'firebase/app-check';
 import { AppCheckService } from './app-check.service';
@@ -56,7 +56,22 @@ export interface PromotionCodeValidationResponse {
       amount_off?: number;
       currency?: string;
       name?: string;
+      duration?: string;
+      duration_in_months?: number;
     };
+  };
+  error?: string;
+}
+
+// Add this helper interface for the component
+export interface CouponValidationResponse {
+  valid: boolean;
+  coupon?: {
+    id: string;
+    code: string;
+    discount: number;
+    discountType: 'percentage' | 'fixed';
+    description?: string;
   };
   error?: string;
 }
@@ -70,7 +85,7 @@ export class StripeService {
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
-  validatePromotionCode(code: string, role: 'originator' | 'lender', interval: 'monthly' | 'annually'): Observable<PromotionCodeValidationResponse> {
+  validatePromotionCode(code: string, role: 'originator' | 'lender', interval: 'monthly' | 'annually'): Observable<CouponValidationResponse> {
     console.log('🔵 Validating promotion code:', code);
 
     if (!code?.trim()) {
@@ -88,9 +103,38 @@ export class StripeService {
         headers: { 'Content-Type': 'application/json' }
       }
     ).pipe(
+      map(response => {
+        // Transform backend response to frontend format
+        if (!response.valid || !response.promotion_code) {
+          return {
+            valid: false,
+            error: response.error || 'Invalid promotion code'
+          };
+        }
+
+        const { promotion_code } = response;
+        const coupon = promotion_code.coupon;
+
+        const discount = coupon.percent_off || (coupon.amount_off ? coupon.amount_off / 100 : 0);
+        const discountType: 'percentage' | 'fixed' = coupon.percent_off ? 'percentage' : 'fixed';
+
+        return {
+          valid: true,
+          coupon: {
+            id: coupon.id,
+            code: promotion_code.code,
+            discount,
+            discountType,
+            description: coupon.name || `${discount}${discountType === 'percentage' ? '%' : ''} off`
+          }
+        };
+      }),
       catchError((error) => {
         console.error('❌ Promotion code validation failed:', error);
-        throw new Error('Failed to validate promotion code. Please try again.');
+        return of({
+          valid: false,
+          error: 'Failed to validate promotion code. Please try again.'
+        });
       })
     );
   }
@@ -108,7 +152,7 @@ export class StripeService {
     console.log('🔵 Creating Stripe checkout session');
     this.validateCheckoutData(data);
 
-       const checkoutData: any = {
+    const checkoutData: any = {
       email: data.email.toLowerCase().trim(),
       role: data.role,
       interval: data.interval,
