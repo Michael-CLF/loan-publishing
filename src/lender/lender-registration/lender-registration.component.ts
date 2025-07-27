@@ -1025,12 +1025,6 @@ if (this.couponApplied && this.appliedCouponDetails) {
   payload.discount = couponDetails.discount;
   payload.discountType = couponDetails.discountType;
 }
-
-
-
-     
-
-
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
         draftId: draftId,
