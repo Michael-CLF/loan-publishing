@@ -1006,7 +1006,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     runInInjectionContext(this.injector, () => {
       const payload: any = {
         hasPromotionCode: !!this.validatedCouponCode,
-        promotionCode: this.validatedCouponCode?.trim().toUpperCase() || null,
+        promotion_code: this.validatedCouponCode?.trim().toUpperCase() || null,
         email,
         role: 'lender',
         interval: formData.interval,
