@@ -358,6 +358,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.lenderForm.patchValue({ interval });
+
+    // Revalidate coupon if one is applied and interval changed
+    if (this.couponApplied && this.lenderForm.get('contactInfo.couponCode')?.value) {
+      console.log('🔄 Revalidating coupon for new interval:', interval);
+      this.validatePromotionCode();
+    }
   }
 
   // Custom validator for minimum checkbox selection
@@ -714,7 +720,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.errorMessage = '';
     this.successMessage = '';
 
-    this.stripeService.validatePromotionCode(code, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
+    // Ensure interval has a value before validation
+    const currentInterval = this.lenderForm.get('interval')?.value || 'monthly';
+    console.log('🎯 Validating lender coupon with interval:', currentInterval);
+
+    this.stripeService.validatePromotionCode(code, 'lender', currentInterval)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -1025,9 +1035,13 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       if (this.couponApplied && this.appliedCouponDetails) {
         const couponDetails = this.appliedCouponDetails;
         payload.promotion_code = couponDetails.code;
-        payload.discount = couponDetails.discount;
-        payload.discountType = couponDetails.discountType;
+        console.log('✅ Lender coupon details being sent:', {
+          code: couponDetails.code,
+          applied: this.couponApplied,
+          details: this.appliedCouponDetails
+        });
       }
+
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
         draftId: draftId,
@@ -1066,6 +1080,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     });
   }
+
+
 
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
