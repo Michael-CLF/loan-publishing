@@ -163,12 +163,13 @@ export class LenderStripePaymentComponent implements OnInit {
       this.couponApplied = true;
       const coupon = response.promotion_code.coupon;
       this.appliedCouponDetails = {
-        code: response.promotion_code.id,
+        code: response.promotion_code.code,
         displayCode: response.promotion_code.code,
         discount: coupon.percent_off || coupon.amount_off || 0,
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
       };
+
       this.clearCouponErrors();
     } else {
       this.resetCouponState();
