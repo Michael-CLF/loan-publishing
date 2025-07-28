@@ -753,6 +753,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
       };
+      this.validatedCouponCode = response.promotion_code.code;
       this.errorMessage = '';
       this.successMessage = '✅ Promotion code applied successfully.';
     } else {
@@ -1097,16 +1098,18 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
-  onCouponValidated(event: any): void {
-    console.log('🎫 PARENT: Received coupon validation event:', event);
-    this.couponApplied = event.applied;
-    this.appliedCouponDetails = event.details;
+ onCouponValidated(event: any): void {
+  console.log('🎫 PARENT: Received coupon validation event:', event);
+  this.couponApplied = event.applied;
+  this.appliedCouponDetails = event.details;
+  this.validatedCouponCode = event.details?.code || '';  // ADD THIS LINE
 
-    console.log('🎫 PARENT: Updated state:', {
-      couponApplied: this.couponApplied,
-      appliedCouponDetails: this.appliedCouponDetails
-    });
-  }
+  console.log('🎫 PARENT: Updated state:', {
+    couponApplied: this.couponApplied,
+    appliedCouponDetails: this.appliedCouponDetails,
+    validatedCouponCode: this.validatedCouponCode  // ADD THIS LINE
+  });
+}
 
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
