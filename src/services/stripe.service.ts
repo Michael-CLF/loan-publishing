@@ -141,6 +141,10 @@ export class StripeService {
 
 
     console.log('🔵 Creating Stripe checkout session with App Check token');
+    console.log('🧾 Final checkoutData posted to backend:', checkoutData);
+    console.log('📬 data.promotion_code before transform:', data.promotion_code);
+
+
 
     return firstValueFrom(
       this.http.post<CheckoutSessionResponse>(
