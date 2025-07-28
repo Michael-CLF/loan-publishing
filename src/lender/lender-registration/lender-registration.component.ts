@@ -1004,27 +1004,29 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     localStorage.setItem('lenderRegistrationEmail', email);
 
     runInInjectionContext(this.injector, () => {
-    const payload: any = {
-  email,
-  role: 'lender',
-  interval: formData.interval,
-  userData: {
-    firstName: formData.contactInfo.firstName,
-    lastName: formData.contactInfo.lastName,
-    company: formData.contactInfo.company,
-    phone: formData.contactInfo.contactPhone,
-    city: formData.contactInfo.city,
-    state: formData.contactInfo.state,
-    draftId: draftId,
-  }
-};
+      const payload: any = {
+        hasPromotionCode: !!this.validatedCouponCode,
+        promotionCode: this.validatedCouponCode?.trim().toUpperCase() || null,
+        email,
+        role: 'lender',
+        interval: formData.interval,
+        userData: {
+          firstName: formData.contactInfo.firstName,
+          lastName: formData.contactInfo.lastName,
+          company: formData.contactInfo.company,
+          phone: formData.contactInfo.contactPhone,
+          city: formData.contactInfo.city,
+          state: formData.contactInfo.state,
+          draftId: draftId,
+        }
+      };
 
-if (this.couponApplied && this.appliedCouponDetails) {
-  const couponDetails = this.appliedCouponDetails;
-  payload.promotion_code = couponDetails.code;
-  payload.discount = couponDetails.discount;
-  payload.discountType = couponDetails.discountType;
-}
+      if (this.couponApplied && this.appliedCouponDetails) {
+        const couponDetails = this.appliedCouponDetails;
+        payload.promotion_code = couponDetails.code;
+        payload.discount = couponDetails.discount;
+        payload.discountType = couponDetails.discountType;
+      }
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
         draftId: draftId,
@@ -1032,34 +1034,34 @@ if (this.couponApplied && this.appliedCouponDetails) {
         fullPayload: payload
       });
 
-     from(this.stripeService.createCheckoutSession(payload)).pipe(
-  catchError((error: any) => {
-    this.isLoading = false;
-    console.error('❌ Stripe checkout error:', error);
-    this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-    return of(null);
-  })
-).subscribe({
-  next: (checkoutResponse) => {
-    if (checkoutResponse && checkoutResponse.url) {
-      console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-      try {
-        window.location.href = checkoutResponse.url;
-      } catch (err) {
-        console.error('❌ Redirect failed:', err);
-        window.open(checkoutResponse.url, '_self');
-      }
-    } else {
-      this.isLoading = false;
-      this.errorMessage = 'Invalid checkout response. Please try again.';
-    }
-  },
-  error: (error) => {
-    this.isLoading = false;
-    console.error('❌ Checkout error:', error);
-    this.errorMessage = 'An unexpected error occurred. Please try again.';
-  }
-});
+      from(this.stripeService.createCheckoutSession(payload)).pipe(
+        catchError((error: any) => {
+          this.isLoading = false;
+          console.error('❌ Stripe checkout error:', error);
+          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+          return of(null);
+        })
+      ).subscribe({
+        next: (checkoutResponse) => {
+          if (checkoutResponse && checkoutResponse.url) {
+            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+            try {
+              window.location.href = checkoutResponse.url;
+            } catch (err) {
+              console.error('❌ Redirect failed:', err);
+              window.open(checkoutResponse.url, '_self');
+            }
+          } else {
+            this.isLoading = false;
+            this.errorMessage = 'Invalid checkout response. Please try again.';
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          console.error('❌ Checkout error:', error);
+          this.errorMessage = 'An unexpected error occurred. Please try again.';
+        }
+      });
 
     });
   }
