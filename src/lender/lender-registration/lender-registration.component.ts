@@ -744,6 +744,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private handleCouponValidationResponse(response: any): void {
     if (response.valid && response.promotion_code) {
       this.couponApplied = true;
+      this.appliedCouponDetails
+      
 
       const coupon = response.promotion_code.coupon;
       this.appliedCouponDetails = {
@@ -1082,8 +1084,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-
-
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
   }
@@ -1102,7 +1102,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   console.log('🎫 PARENT: Received coupon validation event:', event);
   this.couponApplied = event.applied;
   this.appliedCouponDetails = event.details;
-  this.validatedCouponCode = event.details?.code || '';  // ADD THIS LINE
+  this.validatedCouponCode = event.details?.code || ''; 
+
 
   console.log('🎫 PARENT: Updated state:', {
     couponApplied: this.couponApplied,
