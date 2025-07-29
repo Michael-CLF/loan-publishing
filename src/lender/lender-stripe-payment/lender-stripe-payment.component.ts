@@ -238,34 +238,71 @@ export class LenderStripePaymentComponent implements OnInit {
     this.clearCouponErrors();
     this.couponValidated.emit({ applied: false, details: null });
   }
+onSubmit(): void {
+  this.paymentForm.markAllAsTouched();
+  this.paymentForm.get('interval')?.markAsTouched();
 
-  onSubmit(): void {
-    this.paymentForm.markAllAsTouched();
-    this.paymentForm.get('interval')?.markAsTouched();
+  if (this.paymentForm.invalid) {
+    this.errorMessage = 'Please select a billing option';
+    return;
+  }
 
-    if (this.paymentForm.invalid) {
-      this.errorMessage = 'Please select a billing option';
-      return;
-    }
+  // ✅ CRITICAL FIX: Validate promotion code before proceeding
+  const paymentInfo = this.lenderFormService.getFormSection('payment');
+  const promotionCode = paymentInfo?.validatedCouponCode?.trim();
+  const billingInterval = this.paymentForm.value.interval || 'monthly';
 
+  if (promotionCode) {
+    console.log('🔍 Validating promotion code before payment:', promotionCode);
+    
     this.isLoading = true;
     this.errorMessage = '';
-    const formValue = this.paymentForm.value;
 
-    // Get payment info from service
-    const paymentInfo = this.lenderFormService.getFormSection('payment');
-
-    const paymentData: CheckoutSessionRequest = {
-      ...formValue,
-      promotion_code: paymentInfo?.couponApplied && paymentInfo?.validatedCouponCode
-        ? paymentInfo.validatedCouponCode
-        : null
-    };
-
-    runInInjectionContext(this.injector, () => {
-      this.processLenderPayment(paymentData);
-    });
+    this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          if (!paymentInfo?.couponApplied) {
+            this.isLoading = false;
+          }
+        }),
+        catchError((error: HttpErrorResponse) => {
+          console.error('❌ Payment promotion code validation failed:', error);
+          this.errorMessage = 'Invalid promotion code. Please check and try again.';
+          this.isLoading = false;
+          return of(null);
+        })
+      )
+      .subscribe(response => {
+        if (response && response.valid) {
+          console.log('✅ Payment promotion code validated successfully');
+          this.proceedToPayment(promotionCode, billingInterval);
+        } else {
+          console.log('❌ Payment promotion code validation failed:', response?.error);
+          this.errorMessage = response?.error || 'Invalid promotion code';
+          this.isLoading = false;
+        }
+      });
+  } else {
+    // No promotion code, proceed directly
+    this.proceedToPayment(null, billingInterval);
   }
+}
+
+private proceedToPayment(validatedPromotionCode: string | null, billingInterval: string): void {
+  this.isLoading = true;
+  this.errorMessage = '';
+
+  const paymentData: CheckoutSessionRequest = {
+    ...this.paymentForm.value,
+    promotion_code: validatedPromotionCode,
+    interval: billingInterval
+  };
+
+  runInInjectionContext(this.injector, () => {
+    this.processLenderPayment(paymentData);
+  });
+}
 
   private async processLenderPayment(paymentData: CheckoutSessionRequest): Promise<void> {
     this.isLoading = true;

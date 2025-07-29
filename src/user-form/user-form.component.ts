@@ -235,89 +235,127 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   onSubmit(): void {
-    console.log('🚨 FORM IS INVALID - STOPPING');
     console.log('🚨 FORM SUBMITTED - onSubmit() called!');
     runInInjectionContext(this.injector, () => {
       if (this.userForm.invalid) {
-
+        console.log('🚨 FORM IS INVALID - STOPPING');
         Object.keys(this.userForm.controls).forEach((key) => {
           const control = this.userForm.get(key);
           control?.markAsTouched();
         });
         return;
       }
-      console.log('🚨 FORM IS VALID - CONTINUING');
-      this.isLoading = true;
-      this.errorMessage = '';
 
-      const formData = this.userForm.value;
-      console.log('🚨 FORM DATA:', formData);
+      // ✅ CRITICAL FIX: Validate promotion code before proceeding
+      const couponCode = this.userForm.get('couponCode')?.value?.trim();
+      if (couponCode) {
+        console.log('🔍 Validating promotion code before checkout:', couponCode);
 
-      // Prepare user registration data for backend
-      const registrationData = {
-        email: formData.email,
-        role: 'originator',
-        userData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          company: formData.company,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-        }
-      };
+        this.isLoading = true;
+        this.errorMessage = '';
 
-      // Prepare Stripe checkout data
-      const checkoutData: any = {
-        email: formData.email,
-        role: 'originator',
-        interval: formData.interval as 'monthly' | 'annually',
-        userData: {
-          firstName: formData.firstName,
-          lastName: formData.lastName,
-          company: formData.company,
-          phone: formData.phone,
-          city: formData.city,
-          state: formData.state,
-        },
-      };
-
-      if (this.couponApplied && this.appliedCouponDetails) {
-        const couponDetails = this.appliedCouponDetails;
-        checkoutData.promotion_code = couponDetails.code;
-        checkoutData.discount = couponDetails.discount;
-        checkoutData.discountType = couponDetails.discountType;
-      }
-
-      console.log('🔵 Creating Stripe checkout session with registration data');
-      from(this.stripeService.createCheckoutSession(checkoutData))
-        .pipe(
-          takeUntil(this.destroy$),
-          catchError((error: any) => {
-            this.isLoading = false;
-            console.error('❌ Stripe checkout error:', error);
-            this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-            return of(null);
-          })
-        )
-        .subscribe({
-          next: (checkoutResponse) => {
-            if (checkoutResponse && checkoutResponse.url) {
-              console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-              // ✅ Store registration data in localStorage for webhook to use later
-              localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-              window.location.href = checkoutResponse.url;
-            } else {
+        this.promotionService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
+          .pipe(
+            takeUntil(this.destroy$),
+            finalize(() => {
+              if (!this.couponApplied) {
+                this.isLoading = false;
+              }
+            }),
+            catchError((error: HttpErrorResponse) => {
+              console.error('❌ Promotion code validation failed:', error);
+              this.errorMessage = 'Invalid promotion code. Please check and try again.';
               this.isLoading = false;
-              this.errorMessage = 'Invalid checkout response. Please try again.';
+              return of(null);
+            })
+          )
+          .subscribe(response => {
+            if (response && response.valid) {
+              console.log('✅ Promotion code validated, proceeding to checkout');
+              this.handleCouponValidationResponse(response);
+              this.proceedToCheckout();
+            } else {
+              console.log('❌ Promotion code validation failed:', response?.error);
+              this.errorMessage = response?.error || 'Invalid promotion code';
+              this.isLoading = false;
             }
-          },
-          error: (error) => {
-            this.isLoading = false;
-            console.error('❌ Checkout error:', error);
-            this.errorMessage = 'An unexpected error occurred. Please try again.';
-          }
-        });
+          });
+      } else {
+        // No promotion code, proceed directly
+        this.proceedToCheckout();
+      }
     });
   }
+private proceedToCheckout(): void {
+  this.isLoading = true;
+  this.errorMessage = '';
+
+  const formData = this.userForm.value;
+
+  // Prepare user registration data for backend
+  const registrationData = {
+    email: formData.email,
+    role: 'originator',
+    userData: {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      company: formData.company,
+      phone: formData.phone,
+      city: formData.city,
+      state: formData.state,
+    }
+  };
+
+  // Prepare Stripe checkout data
+  const checkoutData: any = {
+    email: formData.email,
+    role: 'originator',
+    interval: formData.interval as 'monthly' | 'annually',
+    userData: {
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      company: formData.company,
+      phone: formData.phone,
+      city: formData.city,
+      state: formData.state,
+    },
+  };
+
+  if (this.couponApplied && this.appliedCouponDetails) {
+    const couponDetails = this.appliedCouponDetails;
+    checkoutData.promotion_code = couponDetails.code;
+    checkoutData.discount = couponDetails.discount;
+    checkoutData.discountType = couponDetails.discountType;
+  }
+
+  console.log('🔵 Creating Stripe checkout session with registration data');
+  from(this.stripeService.createCheckoutSession(checkoutData))
+    .pipe(
+      takeUntil(this.destroy$),
+      catchError((error: any) => {
+        this.isLoading = false;
+        console.error('❌ Stripe checkout error:', error);
+        this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+        return of(null);
+      })
+    )
+    .subscribe({
+      next: (checkoutResponse) => {
+        if (checkoutResponse && checkoutResponse.url) {
+          console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+          localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+          window.location.href = checkoutResponse.url;
+        } else {
+          this.isLoading = false;
+          this.errorMessage = 'Invalid checkout response. Please try again.';
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('❌ Checkout error:', error);
+        this.errorMessage = 'An unexpected error occurred. Please try again.';
+      }
+    });
+  };
 }
+

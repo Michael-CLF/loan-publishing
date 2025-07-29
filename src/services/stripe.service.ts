@@ -84,19 +84,39 @@ export class StripeService {
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
   async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
-    console.log('🚨 createCheckoutSession method called!');
-    this.validateCheckoutData(data);
+  console.log('🚨 createCheckoutSession method called!');
+  this.validateCheckoutData(data);
 
-    const checkoutData: any = {
-      email: data.email.toLowerCase().trim(),
-      role: data.role,
-      interval: data.interval,
-      userData: data.userData,
-    };
-
-    if (data.promotion_code && typeof data.promotion_code === 'string') {
-      checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
+  // ✅ CRITICAL FIX: Validate promotion code BEFORE creating checkout
+  if (data.promotion_code && data.promotion_code.trim()) {
+    console.log('🔍 Validating promotion code before checkout:', data.promotion_code);
+    
+    try {
+      const validationResult = await firstValueFrom(
+        this.validatePromotionCode(data.promotion_code, data.role, data.interval)
+      );
+      
+      if (!validationResult.valid) {
+        throw new Error(validationResult.error || 'Invalid promotion code');
+      }
+      
+      console.log('✅ Promotion code validated successfully');
+    } catch (error: any) {
+      console.error('❌ Promotion code validation failed:', error);
+      throw new Error(error.message || 'Invalid promotion code');
     }
+  }
+
+  const checkoutData: any = {
+    email: data.email.toLowerCase().trim(),
+    role: data.role,
+    interval: data.interval,
+    userData: data.userData,
+  };
+
+  if (data.promotion_code && typeof data.promotion_code === 'string') {
+    checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
+  }
 
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 

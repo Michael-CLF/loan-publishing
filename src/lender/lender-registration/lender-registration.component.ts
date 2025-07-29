@@ -990,46 +990,75 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   private proceedToStripe(email: string, formData: any, draftId: string): void {
-    console.log('✅ Proceeding to Stripe with draft ID:', draftId);
-    console.log('🔍 Coupon state before Stripe:', {
-      validatedCouponCode: this.validatedCouponCode,
-      couponApplied: this.couponApplied,
-      appliedCouponDetails: this.appliedCouponDetails
-    });
+  console.log('✅ Proceeding to Stripe with draft ID:', draftId);
+  
+  // ✅ Store draft ID for recovery (but not all the form data)
+  localStorage.setItem('lenderDraftId', draftId);
+  localStorage.setItem('lenderRegistrationEmail', email);
 
-    // ✅ Store draft ID for recovery (but not all the form data)
-    localStorage.setItem('lenderDraftId', draftId);
-    localStorage.setItem('lenderRegistrationEmail', email);
+  runInInjectionContext(this.injector, () => {
+    // Get payment data from service
+    const paymentData = this.lenderFormService.getFormSection('payment');
+    console.log('🔍 Payment data from service:', paymentData);
 
-    runInInjectionContext(this.injector, () => {
-      // Get payment data from service
-      const paymentData = this.lenderFormService.getFormSection('payment');
-      console.log('🔍 Payment data from service:', paymentData);
+    const promotionCode = paymentData?.validatedCouponCode?.trim();
+    const billingInterval = paymentData?.billingInterval || formData.interval || 'monthly';
 
-      const payload: any = {
-        hasPromotionCode: !!paymentData?.validatedCouponCode,
-        promotion_code: paymentData?.validatedCouponCode?.trim().toUpperCase() || null,
-        email,
-        role: 'lender',
-        interval: paymentData?.billingInterval || formData.interval || 'monthly',
-        userData: {
-          firstName: formData.contactInfo.firstName,
-          lastName: formData.contactInfo.lastName,
-          company: formData.contactInfo.company,
-          phone: formData.contactInfo.contactPhone,
-          city: formData.contactInfo.city,
-          state: formData.contactInfo.state,
-          draftId: draftId,
-        }
-      };
-
-      if (paymentData?.couponApplied && paymentData?.validatedCouponCode) {
-        console.log('✅ Lender coupon details being sent:', {
-          code: paymentData.validatedCouponCode,
-          applied: paymentData.couponApplied,
-          details: paymentData.appliedCouponDetails
+    // ✅ CRITICAL FIX: Validate promotion code before proceeding to Stripe
+    if (promotionCode) {
+      console.log('🔍 Validating promotion code before Stripe checkout:', promotionCode);
+      
+      this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
+        .pipe(
+          takeUntil(this.destroy$),
+          catchError((error: any) => {
+            console.error('❌ Final promotion code validation failed:', error);
+            this.errorMessage = 'Invalid promotion code. Please check and try again.';
+            this.isLoading = false;
+            return of(null);
+          })
+        )
+        .subscribe(response => {
+          if (response && response.valid) {
+            console.log('✅ Final promotion code validation successful');
+            this.createStripeCheckoutWithValidCode(email, formData, draftId, promotionCode, billingInterval);
+          } else {
+            console.log('❌ Final promotion code validation failed:', response?.error);
+            this.errorMessage = response?.error || 'Invalid promotion code';
+            this.isLoading = false;
+          }
         });
-      }
+    } else {
+      // No promotion code, proceed directly
+      this.createStripeCheckoutWithValidCode(email, formData, draftId, null, billingInterval);
+    }
+  });
+}
+
+private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotionCode: string | null, billingInterval: string): void {
+  const payload: any = {
+    hasPromotionCode: !!promotionCode,
+    promotion_code: promotionCode?.toUpperCase() || null,
+    email,
+    role: 'lender',
+    interval: billingInterval,
+    userData: {
+      firstName: formData.contactInfo.firstName,
+      lastName: formData.contactInfo.lastName,
+      company: formData.contactInfo.company,
+      phone: formData.contactInfo.contactPhone,
+      city: formData.contactInfo.city,
+      state: formData.contactInfo.state,
+      draftId: draftId,
+    }
+  };
+
+  if (promotionCode) {
+    console.log('✅ Lender coupon details being sent:', {
+      code: promotionCode,
+      interval: billingInterval
+    });
+  }
 
       console.log('🚀 LENDER: Payload being sent to Stripe:', {
         hasPromotionCode: !!payload.promotion_code,
@@ -1066,8 +1095,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           this.errorMessage = 'An unexpected error occurred. Please try again.';
         }
       });
-
-    });
   }
 
   private extractStringValues(input: any[]): string[] {
