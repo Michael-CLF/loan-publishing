@@ -280,6 +280,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     }
   }
 
+  // Getter methods for template access
+get validatedCouponCode(): string {
+  return this.lenderFormService.getFormSection('payment')?.validatedCouponCode || '';
+}
+
+get couponApplied(): boolean {
+  return this.lenderFormService.getFormSection('payment')?.couponApplied || false;
+}
+
+get appliedCouponDetails(): any {
+  return this.lenderFormService.getFormSection('payment')?.appliedCouponDetails || null;
+}
+
   // Type-safe getters for form groups
   get contactForm(): FormGroup {
     const form = this.lenderForm.get('contactInfo');
@@ -972,6 +985,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private proceedToStripe(email: string, formData: any, draftId: string): void {
     console.log('✅ Proceeding to Stripe with draft ID:', draftId);
     console.log('🔍 Coupon state before Stripe:', {
+      validatedCouponCode: this.validatedCouponCode,
+      couponApplied: this.couponApplied,
+      appliedCouponDetails: this.appliedCouponDetails
     });
 
     // ✅ Store draft ID for recovery (but not all the form data)
