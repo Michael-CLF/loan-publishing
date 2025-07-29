@@ -66,14 +66,6 @@ export interface StateOption {
   name: string;
 }
 
-interface AppliedCouponDetails {
-  code: string;
-  displayCode?: string;
-  discount: number;
-  discountType: 'percentage' | 'fixed';
-  description?: string;
-}
-
 export interface CheckoutSessionRequest {
   email: string;
   role: string;
@@ -128,10 +120,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   submitted = false;
   successMessage = '';
   errorMessage = '';
-  isValidatingCoupon = false;
-  couponApplied = false;
-  validatedCouponCode: string = '';
-  appliedCouponDetails: AppliedCouponDetails | null = null;
   private subscriptions: Subscription[] = [];
   private destroy$ = new Subject<void>();
 
@@ -198,6 +186,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       console.log('Found existing draft:', draftId);
       this.loadDraftData(draftId);
     }
+    // Initialize payment section if it doesn't exist
+    if (!this.lenderFormService.getFormSection('payment')) {
+      this.lenderFormService.setFormSection('payment', {
+        billingInterval: 'monthly',
+        couponCode: '',
+        couponApplied: false,
+        appliedCouponDetails: null,
+        validatedCouponCode: ''
+      });
+    }
 
     this.subscriptions.push(
       this.stepService.currentStep$.subscribe((step) => {
@@ -234,6 +232,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           if (draftData.termsAccepted !== undefined) {
             this.lenderForm.get('termsAccepted')?.setValue(draftData.termsAccepted);
           }
+          // Load payment data from draft
+          if (draftData.payment) {
+            this.lenderFormService.setFormSection('payment', draftData.payment);
+            // Update the interval in the form
+            if (draftData.payment.billingInterval) {
+              this.lenderForm.get('interval')?.setValue(draftData.payment.billingInterval);
+            }
+          }
         }
       },
       error: (error) => {
@@ -262,6 +268,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         break;
       case 3:
         this.lenderFormService.setFormSection('termsAccepted', this.lenderForm.get('termsAccepted')?.value);
+        break;
+      case 4:
+        // Payment step - save interval to service
+        const paymentData = this.lenderFormService.getFormSection('payment') || {};
+        this.lenderFormService.setFormSection('payment', {
+          ...paymentData,
+          billingInterval: this.lenderForm.get('interval')?.value || 'monthly'
+        });
         break;
     }
   }
@@ -359,11 +373,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.lenderForm.patchValue({ interval });
 
-    // Revalidate coupon if one is applied and interval changed
-    if (this.couponApplied && this.lenderForm.get('contactInfo.couponCode')?.value) {
-      console.log('🔄 Revalidating coupon for new interval:', interval);
-      this.validatePromotionCode();
-    }
+    // Update service with new interval
+    const currentPayment = this.lenderFormService.getFormSection('payment') || {};
+    this.lenderFormService.setFormSection('payment', {
+      ...currentPayment,
+      billingInterval: interval
+    });
   }
 
   // Custom validator for minimum checkbox selection
@@ -708,62 +723,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.productForm.updateValueAndValidity();
   }
 
-  validatePromotionCode(): void {
-    const code = this.lenderForm.get('contactInfo.couponCode')?.value?.trim();
-
-    if (!code) {
-      this.errorMessage = 'Please enter a promotion code.';
-      return;
-    }
-
-    this.isValidatingCoupon = true;
-    this.errorMessage = '';
-    this.successMessage = '';
-
-    // Ensure interval has a value before validation
-    const currentInterval = this.lenderForm.get('interval')?.value || 'monthly';
-    console.log('🎯 Validating lender coupon with interval:', currentInterval);
-
-    this.stripeService.validatePromotionCode(code, 'lender', currentInterval)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isValidatingCoupon = false),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Coupon validation error:', error);
-          this.errorMessage = 'Unable to validate coupon. Please try again.';
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
-
-  private handleCouponValidationResponse(response: any): void {
-    if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
-      this.appliedCouponDetails
-
-
-      const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
-        code: response.promotion_code.code,
-        displayCode: response.promotion_code.code,
-        discount: coupon.percent_off || coupon.amount_off || 0,
-        discountType: coupon.percent_off ? 'percentage' : 'fixed',
-        description: coupon.name
-      };
-      this.validatedCouponCode = response.promotion_code.code;
-      this.errorMessage = '';
-      this.successMessage = '✅ Promotion code applied successfully.';
-    } else {
-      this.couponApplied = false;
-      this.appliedCouponDetails = null;
-      this.errorMessage = response?.error || 'Invalid coupon code';
-    }
-  }
 
   // Add this helper method for deep form inspection
   private debugFormStructure(form: FormGroup, prefix = ''): void {
@@ -1013,9 +972,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private proceedToStripe(email: string, formData: any, draftId: string): void {
     console.log('✅ Proceeding to Stripe with draft ID:', draftId);
     console.log('🔍 Coupon state before Stripe:', {
-      validatedCouponCode: this.validatedCouponCode,
-      couponApplied: this.couponApplied,
-      appliedCouponDetails: this.appliedCouponDetails
     });
 
     // ✅ Store draft ID for recovery (but not all the form data)
@@ -1023,12 +979,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     localStorage.setItem('lenderRegistrationEmail', email);
 
     runInInjectionContext(this.injector, () => {
+      // Get payment data from service
+      const paymentData = this.lenderFormService.getFormSection('payment');
+      console.log('🔍 Payment data from service:', paymentData);
+
       const payload: any = {
-        hasPromotionCode: !!this.validatedCouponCode,
-        promotion_code: this.validatedCouponCode?.trim().toUpperCase() || null,
+        hasPromotionCode: !!paymentData?.validatedCouponCode,
+        promotion_code: paymentData?.validatedCouponCode?.trim().toUpperCase() || null,
         email,
         role: 'lender',
-        interval: formData.interval,
+        interval: paymentData?.billingInterval || formData.interval || 'monthly',
         userData: {
           firstName: formData.contactInfo.firstName,
           lastName: formData.contactInfo.lastName,
@@ -1040,13 +1000,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         }
       };
 
-      if (this.couponApplied && this.appliedCouponDetails) {
-        const couponDetails = this.appliedCouponDetails;
-        payload.promotion_code = couponDetails.code;
+      if (paymentData?.couponApplied && paymentData?.validatedCouponCode) {
         console.log('✅ Lender coupon details being sent:', {
-          code: couponDetails.code,
-          applied: this.couponApplied,
-          details: this.appliedCouponDetails
+          code: paymentData.validatedCouponCode,
+          applied: paymentData.couponApplied,
+          details: paymentData.appliedCouponDetails
         });
       }
 
@@ -1105,16 +1063,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   onCouponValidated(event: any): void {
     console.log('🎫 PARENT: Received coupon validation event:', event);
-    this.couponApplied = event.applied;
-    this.appliedCouponDetails = event.details;
-    this.validatedCouponCode = event.details?.code || '';
-
-
-    console.log('🎫 PARENT: Updated state:', {
-      couponApplied: this.couponApplied,
-      appliedCouponDetails: this.appliedCouponDetails,
-      validatedCouponCode: this.validatedCouponCode  // ADD THIS LINE
-    });
+    // Child component already updates the service, just log for debugging
+    const paymentData = this.lenderFormService.getFormSection('payment');
+    console.log('🎫 PARENT: Current payment state in service:', paymentData);
   }
 
   private parseNumericValue(value: any): number {

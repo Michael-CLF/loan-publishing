@@ -20,6 +20,7 @@ import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { StripeService } from '../../services/stripe.service';
+import { LenderFormService, PaymentInfo } from '../../services/lender-registration.service';
 import { catchError, tap, switchMap, take, finalize, takeUntil } from 'rxjs/operators';
 import { of, Subject } from 'rxjs';
 import { CheckoutSessionRequest } from '../../services/stripe.service';
@@ -59,6 +60,7 @@ export class LenderStripePaymentComponent implements OnInit {
   private router = inject(Router);
   private injector = inject(Injector);
   private stripeService = inject(StripeService);
+  private lenderFormService = inject(LenderFormService);
 
   @Input() lenderData!: LenderData;
   @Output() paymentComplete = new EventEmitter<PaymentResult>();
@@ -66,12 +68,11 @@ export class LenderStripePaymentComponent implements OnInit {
   @Output() couponValidated = new EventEmitter<any>();
 
   paymentForm!: FormGroup;
+  paymentInfo$ = this.lenderFormService.getFormSection('payment');
   isLoading = false;
+  isValidatingCoupon = false;
   errorMessage = '';
 
-  isValidatingCoupon = false;
-  couponApplied = false;
-  appliedCouponDetails: any = null;
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
@@ -80,10 +81,17 @@ export class LenderStripePaymentComponent implements OnInit {
   }
 
   private initializePaymentForm(): void {
+    // Get existing payment data from service
+    const existingPayment = this.lenderFormService.getFormSection('payment');
+
     this.paymentForm = this.fb.group({
-      interval: ['monthly'],
-      couponCode: ['']
+      interval: [existingPayment?.billingInterval || 'monthly'],
+      couponCode: [existingPayment?.couponCode || '']
     });
+
+    // If there's existing payment data, apply it
+    if (existingPayment?.couponApplied && existingPayment?.appliedCouponDetails) {
+    }
   }
 
   private validateLenderData(): void {
@@ -98,14 +106,19 @@ export class LenderStripePaymentComponent implements OnInit {
 
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.paymentForm.patchValue({ interval });
-    if (this.couponApplied && this.paymentForm.get('couponCode')?.value) {
+
+    // Update service with new interval
+    const currentPayment = this.lenderFormService.getFormSection('payment') || {} as PaymentInfo;
+    this.lenderFormService.setFormSection('payment', {
+      ...currentPayment,
+      billingInterval: interval
+    });
+
+    // Revalidate coupon if one exists
+    if (currentPayment?.couponApplied && this.paymentForm.get('couponCode')?.value) {
       this.validateCoupon();
     }
   }
-
-  /**
-   * ✅ Applies the promotion code (triggered by Apply button)
-   */
   applyCoupon(): void {
     const couponCode = this.paymentForm.get('couponCode')?.value?.trim();
     if (!couponCode) return;
@@ -155,20 +168,27 @@ export class LenderStripePaymentComponent implements OnInit {
       });
   }
 
-  /**
-   * ✅ Handle promotion code validation response
-   */
   private handleCouponValidationResponse(response: any): void {
     if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
       const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
+      const couponDetails = {
         code: response.promotion_code.code,
         displayCode: response.promotion_code.code,
         discount: coupon.percent_off || coupon.amount_off || 0,
         discountType: coupon.percent_off ? 'percentage' : 'fixed',
         description: coupon.name
       };
+
+      // Update service with validated coupon
+      const currentPayment = this.lenderFormService.getFormSection('payment') || {} as PaymentInfo;
+      this.lenderFormService.setFormSection('payment', {
+        ...currentPayment,
+        billingInterval: this.paymentForm.get('interval')?.value || 'monthly',
+        couponCode: response.promotion_code.code,
+        couponApplied: true,
+        appliedCouponDetails: couponDetails,
+        validatedCouponCode: response.promotion_code.code
+      });
 
       this.clearCouponErrors();
     } else {
@@ -187,23 +207,30 @@ export class LenderStripePaymentComponent implements OnInit {
     }
   }
 
-  /**
-   * ✅ Clear coupon errors
-   */
   private clearCouponErrors(): void {
     const couponControl = this.paymentForm.get('couponCode');
     if (couponControl) {
       couponControl.setErrors(null);
     }
-    this.couponValidated.emit({ applied: true, details: this.appliedCouponDetails });
+    // Emit event with current service state
+    const paymentData = this.lenderFormService.getFormSection('payment');
+    this.couponValidated.emit({
+      applied: paymentData?.couponApplied || false,
+      details: paymentData?.appliedCouponDetails || null
+    });
   }
 
-  /**
-   * ✅ Reset coupon state
-   */
   private resetCouponState(): void {
-    this.couponApplied = false;
-    this.appliedCouponDetails = null;
+    // Update service to clear coupon state
+    const currentPayment = this.lenderFormService.getFormSection('payment') || {} as PaymentInfo;
+    this.lenderFormService.setFormSection('payment', {
+      ...currentPayment,
+      couponCode: '',
+      couponApplied: false,
+      appliedCouponDetails: null,
+      validatedCouponCode: ''
+    });
+
     this.clearCouponErrors();
     this.couponValidated.emit({ applied: false, details: null });
   }
@@ -221,13 +248,15 @@ export class LenderStripePaymentComponent implements OnInit {
     this.errorMessage = '';
     const formValue = this.paymentForm.value;
 
+    // Get payment info from service
+    const paymentInfo = this.lenderFormService.getFormSection('payment');
+
     const paymentData: CheckoutSessionRequest = {
       ...formValue,
-      promotion_code: this.couponApplied && this.appliedCouponDetails?.code
-        ? this.appliedCouponDetails.code
+      promotion_code: paymentInfo?.couponApplied && paymentInfo?.validatedCouponCode
+        ? paymentInfo.validatedCouponCode
         : null
     };
-
 
     runInInjectionContext(this.injector, () => {
       this.processLenderPayment(paymentData);
@@ -283,5 +312,15 @@ export class LenderStripePaymentComponent implements OnInit {
 
   getSavingsAmount(): string {
     return '$178.00';
+  }
+  // Helper methods for template
+  get couponApplied(): boolean {
+    const paymentInfo = this.lenderFormService.getFormSection('payment');
+    return paymentInfo?.couponApplied || false;
+  }
+
+  get appliedCouponDetails(): any {
+    const paymentInfo = this.lenderFormService.getFormSection('payment');
+    return paymentInfo?.appliedCouponDetails || null;
   }
 }

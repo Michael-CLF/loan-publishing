@@ -32,10 +32,19 @@ export interface FootprintInfo {
   states: Record<string, any>;
 }
 
+export interface PaymentInfo {
+  billingInterval: 'monthly' | 'annually';
+  couponCode: string;
+  couponApplied: boolean;
+  appliedCouponDetails: any;
+  validatedCouponCode: string;
+}
+
 export interface LenderFormData {
   contact: ContactInfo | null;
   product: ProductInfo | null;
   footprint: FootprintInfo | null;
+  payment: PaymentInfo | null;
   termsAccepted?: boolean;
 }
 
@@ -46,6 +55,7 @@ export class LenderFormService {
     contact: null,
     product: null,
     footprint: null,
+    payment: null,
     termsAccepted: false,
   });
 
@@ -65,7 +75,7 @@ export class LenderFormService {
 
   // Set a section of the form with persistence
   setFormSection(
-    section: 'contact' | 'product' | 'footprint' | 'termsAccepted',
+    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted',
     data: any
   ): void {
     const currentData = this.formDataSubject.getValue();
@@ -99,7 +109,7 @@ export class LenderFormService {
 
   // Get a section of the form
   getFormSection(
-    section: 'contact' | 'product' | 'footprint' | 'termsAccepted'
+    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted'
   ): any {
     return this.formDataSubject.getValue()[section];
   }
@@ -126,6 +136,7 @@ export class LenderFormService {
       contact: null,
       product: null,
       footprint: null,
+      payment: null,
       termsAccepted: false,
     };
 
@@ -142,7 +153,7 @@ export class LenderFormService {
   createOrUpdateDraft(email: string): Observable<string> {
     const draftId = this.draftIdSubject.getValue() || this.generateDraftId();
     const currentData = this.formDataSubject.getValue();
-    
+
     const draftData = {
       ...currentData,
       email: email.toLowerCase().trim(),
@@ -153,7 +164,7 @@ export class LenderFormService {
     };
 
     const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-    
+
     return from(setDoc(draftRef, draftData, { merge: true })).pipe(
       tap(() => {
         this.draftIdSubject.next(draftId);
@@ -169,7 +180,7 @@ export class LenderFormService {
    */
   loadDraft(draftId: string): Observable<LenderFormData | null> {
     const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-    
+
     return from(getDoc(draftRef)).pipe(
       map(snapshot => {
         if (snapshot.exists()) {
@@ -178,13 +189,14 @@ export class LenderFormService {
             contact: data['contact'] || null,
             product: data['product'] || null,
             footprint: data['footprint'] || null,
+            payment: data['payment'] || null,
             termsAccepted: data['termsAccepted'] || false,
           };
-          
+
           // Update our local state
           this.formDataSubject.next(formData);
           this.draftIdSubject.next(draftId);
-          
+
           return formData;
         }
         return null;
@@ -216,7 +228,7 @@ export class LenderFormService {
       const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
       setDoc(draftRef, { status: 'completed', completedAt: serverTimestamp() }, { merge: true });
     }
-    
+
     this.draftIdSubject.next(null);
     localStorage.removeItem('lenderDraftId');
     this.clearForm();
