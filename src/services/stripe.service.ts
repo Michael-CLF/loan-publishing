@@ -85,31 +85,7 @@ export class StripeService {
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
-  validatePromotionCode(code: string, role: 'originator' | 'lender', interval: 'monthly' | 'annually'): Observable<any> {
-    console.log('🔵 Validating promotion code:', code);
-
-    if (!code?.trim()) {
-      throw new Error('Promotion code cannot be empty');
-    }
-
-    return this.http.post<any>(
-      `${this.functionsUrl}/validatePromotionCode`,
-      {
-        code: code.trim().toUpperCase(),
-        role,
-        interval
-      },
-      {
-        headers: { 'Content-Type': 'application/json' }
-      }
-    ).pipe(
-      catchError((error) => {
-        console.error('❌ Promotion code validation failed:', error);
-        throw new Error('Failed to validate promotion code. Please try again.');
-      })
-    );
-  }
-  /**
+  /*
    * Create Stripe checkout session with App Check protection
    */
   async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {

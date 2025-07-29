@@ -39,6 +39,12 @@ import { StripeService } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import { LenderFormService } from '../../services/lender-registration.service';
+import { PromotionService } from './../../services/promotion.service';
+import { CouponValidationResponse } from '../../services/stripe.service';
+import { ActivatedRoute } from '@angular/router';
+
+
+
 import {
   PROPERTY_CATEGORIES,
   PROPERTY_SUBCATEGORIES,
@@ -112,6 +118,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   public stepService = inject(StepManagementService);
   private formCoordination = inject(FormCoordinationService);
   private lenderFormService = inject(LenderFormService);
+  private promotionService = inject(PromotionService);
 
   states: FootprintLocation[] = [];
   lenderForm!: FormGroup;
@@ -281,17 +288,17 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   // Getter methods for template access
-get validatedCouponCode(): string {
-  return this.lenderFormService.getFormSection('payment')?.validatedCouponCode || '';
-}
+  get validatedCouponCode(): string {
+    return this.lenderFormService.getFormSection('payment')?.validatedCouponCode || '';
+  }
 
-get couponApplied(): boolean {
-  return this.lenderFormService.getFormSection('payment')?.couponApplied || false;
-}
+  get couponApplied(): boolean {
+    return this.lenderFormService.getFormSection('payment')?.couponApplied || false;
+  }
 
-get appliedCouponDetails(): any {
-  return this.lenderFormService.getFormSection('payment')?.appliedCouponDetails || null;
-}
+  get appliedCouponDetails(): any {
+    return this.lenderFormService.getFormSection('payment')?.appliedCouponDetails || null;
+  }
 
   // Type-safe getters for form groups
   get contactForm(): FormGroup {

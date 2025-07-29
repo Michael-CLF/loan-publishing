@@ -24,6 +24,8 @@ import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
+import { PromotionService } from '../services/promotion.service';
+
 
 export interface StateOption {
   value: string;
@@ -67,6 +69,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private locationService = inject(LocationService);
   private stripeService = inject(StripeService);
   private modalService = inject(ModalService);
+  private promotionService = inject(PromotionService);
+
 
   private destroy$ = new Subject<void>();
 
@@ -162,7 +166,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.isValidatingCoupon = true;
 
     // ✅ CORRECT - Use your StripeService
-    this.stripeService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),

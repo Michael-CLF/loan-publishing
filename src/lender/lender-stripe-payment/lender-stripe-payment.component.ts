@@ -19,12 +19,13 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
-import { StripeService } from '../../services/stripe.service';
 import { LenderFormService, PaymentInfo } from '../../services/lender-registration.service';
 import { catchError, tap, switchMap, take, finalize, takeUntil } from 'rxjs/operators';
 import { of, Subject } from 'rxjs';
 import { CheckoutSessionRequest } from '../../services/stripe.service';
 import { HttpErrorResponse } from '@angular/common/http';
+import { PromotionService } from '../../services/promotion.service';
+import { StripeService } from '../../services/stripe.service';
 
 interface LenderData {
   companyName: string;
@@ -59,8 +60,9 @@ export class LenderStripePaymentComponent implements OnInit {
   private authService = inject(AuthService);
   private router = inject(Router);
   private injector = inject(Injector);
-  private stripeService = inject(StripeService);
+  private promotionService = inject(PromotionService);
   private lenderFormService = inject(LenderFormService);
+  private stripeService = inject(StripeService);
 
   @Input() lenderData!: LenderData;
   @Output() paymentComplete = new EventEmitter<PaymentResult>();
@@ -125,7 +127,8 @@ export class LenderStripePaymentComponent implements OnInit {
 
     this.isValidatingCoupon = true;
 
-    this.stripeService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -151,7 +154,8 @@ export class LenderStripePaymentComponent implements OnInit {
 
     this.isValidatingCoupon = true;
 
-    this.stripeService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
