@@ -745,7 +745,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     if (response.valid && response.promotion_code) {
       this.couponApplied = true;
       this.appliedCouponDetails
-      
+
 
       const coupon = response.promotion_code.coupon;
       this.appliedCouponDetails = {
@@ -1012,6 +1012,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   private proceedToStripe(email: string, formData: any, draftId: string): void {
     console.log('✅ Proceeding to Stripe with draft ID:', draftId);
+    console.log('🔍 Coupon state before Stripe:', {
+      validatedCouponCode: this.validatedCouponCode,
+      couponApplied: this.couponApplied,
+      appliedCouponDetails: this.appliedCouponDetails
+    });
 
     // ✅ Store draft ID for recovery (but not all the form data)
     localStorage.setItem('lenderDraftId', draftId);
@@ -1098,19 +1103,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
- onCouponValidated(event: any): void {
-  console.log('🎫 PARENT: Received coupon validation event:', event);
-  this.couponApplied = event.applied;
-  this.appliedCouponDetails = event.details;
-  this.validatedCouponCode = event.details?.code || ''; 
+  onCouponValidated(event: any): void {
+    console.log('🎫 PARENT: Received coupon validation event:', event);
+    this.couponApplied = event.applied;
+    this.appliedCouponDetails = event.details;
+    this.validatedCouponCode = event.details?.code || '';
 
 
-  console.log('🎫 PARENT: Updated state:', {
-    couponApplied: this.couponApplied,
-    appliedCouponDetails: this.appliedCouponDetails,
-    validatedCouponCode: this.validatedCouponCode  // ADD THIS LINE
-  });
-}
+    console.log('🎫 PARENT: Updated state:', {
+      couponApplied: this.couponApplied,
+      appliedCouponDetails: this.appliedCouponDetails,
+      validatedCouponCode: this.validatedCouponCode  // ADD THIS LINE
+    });
+  }
 
   private parseNumericValue(value: any): number {
     if (typeof value === 'number') return value;
