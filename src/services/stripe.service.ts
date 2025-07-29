@@ -7,7 +7,6 @@ import { environment } from '../environments/environment';
 import { getToken } from 'firebase/app-check';
 import { AppCheckService } from './app-check.service';
 
-
 export interface CheckoutSessionRequest {
   email: string;
   role: 'originator' | 'lender';
@@ -63,7 +62,6 @@ export interface PromotionCodeValidationResponse {
   error?: string;
 }
 
-// Add this helper interface for the component
 export interface CouponValidationResponse {
   valid: boolean;
   coupon?: {
@@ -85,17 +83,8 @@ export class StripeService {
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
-  /*
-   * Create Stripe checkout session with App Check protection
-   */
   async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
     console.log('🚨 createCheckoutSession method called!');
-    this.validateCheckoutData(data);
-
-    console.log('🔍 functionsUrl:', this.functionsUrl);
-    console.log('🔍 environment.registerUserUrl:', environment.registerUserUrl);
-    console.log('🔍 Final URL:', `{environment.registerUserUrl}`);
-    console.log('🔵 Creating Stripe checkout session');
     this.validateCheckoutData(data);
 
     const checkoutData: any = {
@@ -109,22 +98,7 @@ export class StripeService {
       checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
     }
 
-
-    console.log('🔵 Creating Stripe checkout session (App Check disabled)');
-
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
-
-
-    console.log('🔵 Creating Stripe checkout session with App Check token');
-    console.log('🧾 Final checkoutData posted to backend:', checkoutData);
-    console.log('📬 data.promotion_code before transform:', data.promotion_code);
-
-    console.log('✅ Preparing checkoutData for backend:', {
-      promotion_code: data.promotion_code,
-      fullPayload: data
-    });
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 
     return firstValueFrom(
       this.http.post<CheckoutSessionResponse>(
@@ -152,6 +126,22 @@ export class StripeService {
     });
   }
 
+  validatePromotionCode(code: string, role: string, interval: string): Observable<CouponValidationResponse> {
+    const body = { code, role, interval };
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    return this.http.post<CouponValidationResponse>(
+      `${this.functionsUrl}/validatePromotionCode`,
+      body,
+      { headers }
+    ).pipe(
+      catchError((error) => {
+        console.error('❌ Promotion code validation failed:', error);
+        return of({ valid: false, error: 'Error validating promotion code' });
+      })
+    );
+  }
+
   private validateCheckoutData(data: CheckoutSessionRequest): void {
     const errors: string[] = [];
 
@@ -170,7 +160,7 @@ export class StripeService {
   }
 
   private sanitizeString(input: string): string {
-    return input?.trim().replace(/[^\w\s-.']/g, '').substring(0, 100) || '';
+    return input?.trim().replace(/[^\w\s-.'']/g, '').substring(0, 100) || '';
   }
 
   private sanitizePhoneNumber(phone: string): string {
