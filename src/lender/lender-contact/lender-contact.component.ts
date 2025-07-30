@@ -13,14 +13,6 @@ interface StateOption {
   name: string;
 }
 
-interface AppliedCouponDetails {
-  code: string;
-  displayCode?: string;
-  discount: number;
-  discountType: 'percentage' | 'fixed';
-  description?: string;
-}
-
 @Component({
   selector: 'app-lender-contact',
   standalone: true,
@@ -35,11 +27,6 @@ export class LenderContactComponent implements OnDestroy {
 
   private stripeService = inject(StripeService);
   private destroy$ = new Subject<void>();
-
-  // ✅ Promotion code properties
-  isValidatingCoupon = false;
-  couponApplied = false;
-  appliedCouponDetails: AppliedCouponDetails | null = null;
 
   ngOnDestroy(): void {
     this.destroy$.next();
@@ -93,123 +80,5 @@ export class LenderContactComponent implements OnDestroy {
         phoneControl.setErrors({ invalidLength: true });
       }
     }
-  }
-
-  /**
-   * ✅ Applies the promotion code (triggered by Apply button)
-   */
-  applyCoupon(): void {
-    const couponCode = this.lenderForm.get('couponCode')?.value?.trim();
-
-    if (!couponCode) {
-      return;
-    }
-
-    this.isValidatingCoupon = true;
-
-   this.stripeService.validatePromotionCode(couponCode, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          this.isValidatingCoupon = false;
-        }),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Promotion code application error:', error);
-          this.setCouponError('Unable to apply promotion code. Please try again.');
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
-
-  /**
-   * ✅ Validates promotion code on blur
-   */
-  validateCoupon(): void {
-    const couponCode = this.lenderForm.get('couponCode')?.value?.trim();
-    if (!couponCode) return;
-
-    this.isValidatingCoupon = true;
-
-    this.stripeService.validatePromotionCode(couponCode, 'lender', this.lenderForm.get('interval')?.value || 'monthly')
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isValidatingCoupon = false),
-        catchError((error: HttpErrorResponse) => {
-          console.error('Coupon validation error:', error);
-          this.setCouponError('Unable to validate promotion code. Please try again.');
-          return of(null);
-        })
-      )
-      .subscribe(response => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
-      });
-  }
-
-  /**
-   * ✅ Handle promotion code validation response
-   */
-  private handleCouponValidationResponse(response: any): void {
-    if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
-
-      const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
-        code: response.promotion_code.id,
-        displayCode: response.promotion_code.code,
-        discount: coupon.percent_off || coupon.amount_off || 0,
-        discountType: coupon.percent_off ? 'percentage' : 'fixed',
-        description: coupon.name
-      };
-      this.clearCouponErrors();
-    } else {
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid promotion code');
-    }
-  }
-
-  /**
-   * ✅ Set coupon error on form control
-   */
-  private setCouponError(errorMessage: string): void {
-    const couponControl = this.lenderForm.get('couponCode');
-    if (couponControl) {
-      couponControl.setErrors({ couponError: errorMessage });
-    }
-  }
-
-  /**
-   * ✅ Clear coupon errors
-   */
-  private clearCouponErrors(): void {
-    // ✅ Tell parent component about successful validation
-    this.couponValidated.emit({
-      applied: true,
-      details: this.appliedCouponDetails
-    });
-    const couponControl = this.lenderForm.get('couponCode');
-    if (couponControl) {
-      couponControl.setErrors(null);
-    }
-  }
-
-  /**
-   * ✅ Reset coupon state
-   */
-  private resetCouponState(): void {
-    this.couponApplied = false;
-    this.appliedCouponDetails = null;
-    this.clearCouponErrors();
-    // ✅ Tell parent component validation was reset
-    this.couponValidated.emit({
-      applied: false,
-      details: null
-    });
   }
 }

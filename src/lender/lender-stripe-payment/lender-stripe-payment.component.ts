@@ -122,12 +122,12 @@ export class LenderStripePaymentComponent implements OnInit {
     }
   }
   applyCoupon(): void {
-    const couponCode = this.paymentForm.get('promtion_code')?.value?.trim();
-    if (!couponCode) return;
+    const promotion_code = this.paymentForm.get('promtion_code')?.value?.trim();
+    if (!promotion_code) return;
 
     this.isValidatingCoupon = true;
 
-    this.promotionService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(promotion_code, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -148,12 +148,12 @@ export class LenderStripePaymentComponent implements OnInit {
    * ✅ Validates promotion code on blur
    */
   validateCoupon(): void {
-    const couponCode = this.paymentForm.get('promotion_code')?.value?.trim();
-    if (!couponCode) return;
+    const promotion_code = this.paymentForm.get('promotion_code')?.value?.trim();
+    if (!promotion_code) return;
 
     this.isValidatingCoupon = true;
 
-    this.promotionService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(promotion_code, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
 
       .pipe(
         takeUntil(this.destroy$),

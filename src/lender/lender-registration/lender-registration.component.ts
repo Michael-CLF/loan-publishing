@@ -1002,13 +1002,13 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const paymentData = this.lenderFormService.getFormSection('payment');
     console.log('🔍 Payment data from service:', paymentData);
 
-    const promotionCode = paymentData?.validatedCouponCode?.trim();
+    const promotion_code = paymentData?.validatedCouponCode?.trim();
     const billingInterval = paymentData?.billingInterval || formData.interval || 'monthly';
 
-   if (promotionCode) {
-  console.log('🔍 Validating promotion code before Stripe checkout:', promotionCode);
+   if (promotion_code) {
+  console.log('🔍 Validating promotion code before Stripe checkout:', promotion_code);
   
-  this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
+  this.promotionService.validatePromotionCode(promotion_code, 'lender', billingInterval)
     .pipe(
       takeUntil(this.destroy$),
       catchError((httpError: any) => {
@@ -1022,7 +1022,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       console.log('🔍 Validation response received:', response);
       if (response && response.valid === true) {
         console.log('✅ Final promotion code validation successful');
-        this.createStripeCheckoutWithValidCode(email, formData, draftId, promotionCode, billingInterval);
+        this.createStripeCheckoutWithValidCode(email, formData, draftId, promotion_code, billingInterval);
       } else {
         console.log('❌ Final promotion code validation failed:', response?.error);
         this.errorMessage = response?.error || 'Invalid promotion code';
@@ -1036,10 +1036,10 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   });
 }
 
-private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotionCode: string | null, billingInterval: string): void {
+private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotion_code: string | null, billingInterval: string): void {
   const payload: any = {
-    hasPromotionCode: !!promotionCode,
-    promotion_code: promotionCode?.toUpperCase() || null,
+    hasPromotionCode: !!promotion_code,
+    promotion_code: promotion_code?.toUpperCase() || null,
     email,
     role: 'lender',
     interval: billingInterval,
@@ -1054,9 +1054,9 @@ private createStripeCheckoutWithValidCode(email: string, formData: any, draftId:
     }
   };
 
-  if (promotionCode) {
+  if (promotion_code) {
     console.log('✅ Lender coupon details being sent:', {
-      code: promotionCode,
+      code: promotion_code,
       interval: billingInterval
     });
   }
