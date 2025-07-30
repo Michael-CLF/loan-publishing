@@ -1,10 +1,9 @@
 // src/app/services/stripe.service.ts
-
 import { Injectable, inject } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
-import { Observable, firstValueFrom, catchError, map, of } from 'rxjs';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
+import { Observable, of, throwError, firstValueFrom } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { getToken } from 'firebase/app-check';
 import { AppCheckService } from './app-check.service';
 
 export interface CheckoutSessionRequest {
@@ -18,48 +17,14 @@ export interface CheckoutSessionRequest {
     phone: string;
     city: string;
     state: string;
-    draftId: string;
+    draftId?: string;
   };
-  promotion_code?: string;
+  promotion_code?: string | null;
 }
 
 export interface CheckoutSessionResponse {
   url: string;
   sessionId?: string;
-}
-
-export interface StripeMetadata {
-  email: string;
-  firstName: string;
-  lastName: string;
-  company: string;
-  phone: string;
-  city: string;
-  state: string;
-  role: string;
-  interval: string;
-  source: string;
-  timestamp: string;
-  couponCode?: string;
-  draftId?: string;
-}
-
-export interface PromotionCodeValidationResponse {
-  valid: boolean;
-  promotion_code?: {
-    id: string;
-    code: string;
-    coupon: {
-      id: string;
-      percent_off?: number;
-      amount_off?: number;
-      currency?: string;
-      name?: string;
-      duration?: string;
-      duration_in_months?: number;
-    };
-  };
-  error?: string;
 }
 
 export interface CouponValidationResponse {
@@ -68,7 +33,7 @@ export interface CouponValidationResponse {
     id: string;
     code: string;
     discount: number;
-    discountType: 'percentage' | 'fixed';
+    discountType: 'percentage' | 'fixed' | 'trial';
     description?: string;
   };
   error?: string;
@@ -83,69 +48,64 @@ export class StripeService {
   private readonly apiUrl = environment.apiUrl;
   private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
 
-  async createCheckoutSession(data: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
-  console.log('🚨 createCheckoutSession method called!');
-  this.validateCheckoutData(data);
+  /**
+   * ✅ Create a Stripe Checkout Session
+   */
+  async createCheckoutSession(requestData: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
+    console.log('📤 Sending checkout session request:', requestData);
 
-  // ✅ CRITICAL FIX: Validate promotion code BEFORE creating checkout
-  if (data.promotion_code && data.promotion_code.trim()) {
-    console.log('🔍 Validating promotion code before checkout:', data.promotion_code);
-    
     try {
-      const validationResult = await firstValueFrom(
-        this.validatePromotionCode(data.promotion_code, data.role, data.interval)
+      // Validate data before sending
+      this.validateCheckoutData(requestData);
+
+      // Call backend endpoint
+      const response = await firstValueFrom(
+        this.http.post<CheckoutSessionResponse>(
+          `${this.functionsUrl}/createStripeCheckout`,
+          requestData,
+          { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
+        ).pipe(
+          catchError((error: HttpErrorResponse) => {
+            console.error('❌ Error creating Stripe checkout session:', error);
+            let message = 'Failed to create checkout session. Please try again.';
+            if (error.status === 400 && error.error?.error?.includes('promotion code')) {
+              message = 'Invalid promotion code provided.';
+            }
+            return throwError(() => new Error(message));
+          })
+        )
       );
-      
-      if (!validationResult.valid) {
-        throw new Error(validationResult.error || 'Invalid promotion code');
-      }
-      
-      console.log('✅ Promotion code validated successfully');
+
+      console.log('✅ Stripe session created successfully:', response);
+      return response;
+
     } catch (error: any) {
-      console.error('❌ Promotion code validation failed:', error);
-      throw new Error(error.message || 'Invalid promotion code');
+      console.error('❌ createCheckoutSession failed:', error);
+      throw new Error(error.message || 'Failed to create checkout session.');
     }
   }
 
-  const checkoutData: any = {
-    email: data.email.toLowerCase().trim(),
-    role: data.role,
-    interval: data.interval,
-    userData: data.userData,
-  };
-
-  if (data.promotion_code && typeof data.promotion_code === 'string') {
-    checkoutData.promotion_code = data.promotion_code.trim().toUpperCase();
-  }
-
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-
-    return firstValueFrom(
-      this.http.post<CheckoutSessionResponse>(
-        environment.stripeCheckoutUrl,
-        checkoutData,
-        { headers }
-      ).pipe(
-        catchError((error) => {
-          console.error('❌ Stripe checkout failed:', error);
-          throw new Error('Failed to create checkout session. Please try again.');
-        })
-      )
-    );
-  }
-
+  /**
+   * ✅ Retrieve an existing checkout session
+   */
   getCheckoutSession(sessionId: string): Observable<any> {
-    return this.http.get(`${this.apiUrl}/get-checkout-session`, {
+    return this.http.get(`${this.functionsUrl}/get-checkout-session`, {
       params: { session_id: sessionId }
     });
   }
 
+  /**
+   * ✅ Cancel a checkout session
+   */
   cancelCheckoutSession(sessionId: string): Observable<any> {
-    return this.http.post(`${this.apiUrl}/cancel-checkout-session`, {
+    return this.http.post(`${this.functionsUrl}/cancel-checkout-session`, {
       session_id: sessionId
     });
   }
 
+  /**
+   * ✅ Validate a promotion code
+   */
   validatePromotionCode(code: string, role: string, interval: string): Observable<CouponValidationResponse> {
     const body = { code, role, interval };
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
@@ -162,6 +122,10 @@ export class StripeService {
     );
   }
 
+  // ----------------------
+  // ✅ HELPER FUNCTIONS
+  // ----------------------
+
   private validateCheckoutData(data: CheckoutSessionRequest): void {
     const errors: string[] = [];
 
@@ -177,17 +141,6 @@ export class StripeService {
     if (data.promotion_code && !data.promotion_code.trim()) errors.push('Promotion code cannot be empty if provided');
 
     if (errors.length > 0) throw new Error(`Validation failed: ${errors.join(', ')}`);
-  }
-
-  private sanitizeString(input: string): string {
-    return input?.trim().replace(/[^\w\s-.'']/g, '').substring(0, 100) || '';
-  }
-
-  private sanitizePhoneNumber(phone: string): string {
-    const digits = phone.replace(/\D/g, '');
-    return digits.length === 10
-      ? `(${digits.slice(0, 3)}) ${digits.slice(3, 6)}-${digits.slice(6)}`
-      : phone.substring(0, 50);
   }
 
   private isValidEmail(email: string): boolean {
