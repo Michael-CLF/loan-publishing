@@ -1004,30 +1004,30 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const promotionCode = paymentData?.validatedCouponCode?.trim();
     const billingInterval = paymentData?.billingInterval || formData.interval || 'monthly';
 
-    // ✅ CRITICAL FIX: Validate promotion code before proceeding to Stripe
-    if (promotionCode) {
-      console.log('🔍 Validating promotion code before Stripe checkout:', promotionCode);
-      
-      this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
-        .pipe(
-          takeUntil(this.destroy$),
-          catchError((error: any) => {
-            console.error('❌ Final promotion code validation failed:', error);
-            this.errorMessage = 'Invalid promotion code. Please check and try again.';
-            this.isLoading = false;
-            return of(null);
-          })
-        )
-        .subscribe(response => {
-          if (response && response.valid) {
-            console.log('✅ Final promotion code validation successful');
-            this.createStripeCheckoutWithValidCode(email, formData, draftId, promotionCode, billingInterval);
-          } else {
-            console.log('❌ Final promotion code validation failed:', response?.error);
-            this.errorMessage = response?.error || 'Invalid promotion code';
-            this.isLoading = false;
-          }
-        });
+   if (promotionCode) {
+  console.log('🔍 Validating promotion code before Stripe checkout:', promotionCode);
+  
+  this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
+    .pipe(
+      takeUntil(this.destroy$),
+      catchError((httpError: any) => {
+        console.error('❌ HTTP error during validation:', httpError);
+        this.errorMessage = 'Network error validating promotion code. Please try again.';
+        this.isLoading = false;
+        return of({ valid: false, error: 'Network error' });
+      })
+    )
+    .subscribe(response => {
+      console.log('🔍 Validation response received:', response);
+      if (response && response.valid === true) {
+        console.log('✅ Final promotion code validation successful');
+        this.createStripeCheckoutWithValidCode(email, formData, draftId, promotionCode, billingInterval);
+      } else {
+        console.log('❌ Final promotion code validation failed:', response?.error);
+        this.errorMessage = response?.error || 'Invalid promotion code';
+        this.isLoading = false;
+      }
+    });
     } else {
       // No promotion code, proceed directly
       this.createStripeCheckoutWithValidCode(email, formData, draftId, null, billingInterval);
