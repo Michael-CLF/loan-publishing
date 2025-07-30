@@ -59,12 +59,12 @@
 
           <!-- Promotion Code Section -->
         <div class="form-group full-width">
-          <label class="coupon" for="couponCode">Promotion Code (Optional)</label>
+          <label class="coupon" for="promotion_code">Promotion Code (Optional)</label>
           <div class="coupon-input-container">
-            <input type="text" id="couponCode" formControlName="couponCode" placeholder="Enter promotion code"
+            <input type="text" id="promotion_code" formControlName="promotion_code" placeholder="Enter promotion code"
                    [ngClass]="{
-                     invalid: paymentForm.get('couponCode')?.invalid && paymentForm.get('couponCode')?.touched,
-                     valid: paymentForm.get('couponCode')?.valid && paymentForm.get('couponCode')?.value && couponApplied
+                     invalid: paymentForm.get('promotion_code')?.invalid && paymentForm.get('promotion_code')?.touched,
+                     valid: paymentForm.get('promotion_code')?.valid && paymentForm.get('promotion_code')?.value && couponApplied
                    }"
                    (blur)="validateCoupon()" />
           </div>
@@ -73,7 +73,7 @@
         <!-- Coupon Apply Button -->
         <div class="coupon-button-container">
           <button type="button" class="apply-coupon-btn" [ngClass]="{ 'loading': isValidatingCoupon }"
-                  [disabled]="!paymentForm.get('couponCode')?.value || isValidatingCoupon"
+                  [disabled]="!paymentForm.get('promotion_code')?.value || isValidatingCoupon"
                   (click)="applyCoupon()">
             <span *ngIf="!isValidatingCoupon">Apply</span>
             <span *ngIf="isValidatingCoupon">Applying...</span>
@@ -86,15 +86,15 @@
         </div>
 
         <!-- Error Messages -->
-        <div *ngIf="paymentForm.get('couponCode')?.invalid && paymentForm.get('couponCode')?.touched" class="error">
-          <div *ngIf="paymentForm.get('couponCode')?.hasError('invalidCoupon')">
+        <div *ngIf="paymentForm.get('promotion_code')?.invalid && paymentForm.get('promotion_code')?.touched" class="error">
+          <div *ngIf="paymentForm.get('promotion_code')?.hasError('invalidCoupon')">
             *Invalid promotion code. Please check and try again.
           </div>
-          <div *ngIf="paymentForm.get('couponCode')?.hasError('expiredCoupon')">
+          <div *ngIf="paymentForm.get('promotion_code')?.hasError('expiredCoupon')">
             *This promotion code has expired.
           </div>
-          <div *ngIf="paymentForm.get('couponCode')?.hasError('couponError')">
-            *{{ paymentForm.get('couponCode')?.getError('couponError') }}
+          <div *ngIf="paymentForm.get('promotion_code')?.hasError('couponError')">
+            *{{ paymentForm.get('promotion_code')?.getError('couponError') }}
           </div>
         </div>
 

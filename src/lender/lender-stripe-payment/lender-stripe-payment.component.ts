@@ -88,7 +88,7 @@ export class LenderStripePaymentComponent implements OnInit {
 
     this.paymentForm = this.fb.group({
       interval: [existingPayment?.billingInterval || 'monthly'],
-      couponCode: [existingPayment?.couponCode || '']
+      promotion_code: [existingPayment?.promotion_code || '']
     });
 
     // If there's existing payment data, apply it
@@ -117,12 +117,12 @@ export class LenderStripePaymentComponent implements OnInit {
     });
 
     // Revalidate coupon if one exists
-    if (currentPayment?.couponApplied && this.paymentForm.get('couponCode')?.value) {
+    if (currentPayment?.couponApplied && this.paymentForm.get('promotion_code')?.value) {
       this.validateCoupon();
     }
   }
   applyCoupon(): void {
-    const promotion_code = this.paymentForm.get('promtion_code')?.value?.trim();
+    const promotion_code = this.paymentForm.get('promotion_code')?.value?.trim();
     if (!promotion_code) return;
 
     this.isValidatingCoupon = true;
@@ -181,7 +181,7 @@ export class LenderStripePaymentComponent implements OnInit {
       // ✅ Handle special LENDER30TRIAL case
       if (response.promotion_code.code === 'LENDER30TRIAL') {
         couponDetails = {
-          code: response.promotion_code.code,
+          promotion_code: response.promotion_code.code,
           displayCode: response.promotion_code.code,
           discount: 0, // No discount, just trial
           discountType: 'trial' as any,
@@ -192,7 +192,7 @@ export class LenderStripePaymentComponent implements OnInit {
       } else {
         // ✅ Handle regular Stripe promotion codes
         couponDetails = {
-          code: response.promotion_code.code,
+          promotion_code: response.promotion_code.code,
           displayCode: response.promotion_code.code,
           discount: coupon.percent_off || coupon.amount_off || 0,
           discountType: coupon.percent_off ? 'percentage' : 'fixed',
@@ -205,7 +205,7 @@ export class LenderStripePaymentComponent implements OnInit {
       this.lenderFormService.setFormSection('payment', {
         ...currentPayment,
         billingInterval: this.paymentForm.get('interval')?.value || 'monthly',
-        couponCode: response.promotion_code.code,
+        promotion_code: response.promotion_code.code,
         couponApplied: true,
         appliedCouponDetails: couponDetails,
         validatedCouponCode: response.promotion_code.code
@@ -223,14 +223,14 @@ export class LenderStripePaymentComponent implements OnInit {
    * ✅ Set coupon error on form control
    */
   private setCouponError(errorMessage: string): void {
-    const couponControl = this.paymentForm.get('couponCode');
+    const couponControl = this.paymentForm.get('promotion_code');
     if (couponControl) {
       couponControl.setErrors({ couponError: errorMessage });
     }
   }
 
   private clearCouponErrors(): void {
-    const couponControl = this.paymentForm.get('couponCode');
+    const couponControl = this.paymentForm.get('promotion_code');
     if (couponControl) {
       couponControl.setErrors(null);
     }
