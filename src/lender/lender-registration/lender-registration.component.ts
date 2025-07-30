@@ -522,7 +522,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       productInfo: productStep,
       footprintInfo: footprintStep,
       termsAccepted: [false],
-      interval: ['monthly', [Validators.required]], // Add billing interval here
+      interval: ['monthly', [Validators.required]],
+      promotion_code: ['']
     });
 
     // Initialize counties structure

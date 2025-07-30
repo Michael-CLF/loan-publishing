@@ -1,8 +1,11 @@
+// ============================================
 // src/app/services/stripe.service.ts
+// ============================================
+
 import { Injectable, inject } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, of, throwError, firstValueFrom } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
 import { AppCheckService } from './app-check.service';
 
@@ -29,12 +32,18 @@ export interface CheckoutSessionResponse {
 
 export interface CouponValidationResponse {
   valid: boolean;
-  coupon?: {
+  promotion_code?: {
     id: string;
     code: string;
-    discount: number;
-    discountType: 'percentage' | 'fixed' | 'trial';
-    description?: string;
+    coupon: {
+      id: string;
+      percent_off?: number | null;
+      amount_off?: number | null;
+      currency?: string | null;
+      name?: string;
+      duration?: string;
+      duration_in_months?: number | null;
+    };
   };
   error?: string;
 }
@@ -106,9 +115,14 @@ export class StripeService {
   /**
    * ✅ Validate a promotion code
    */
-  validatePromotionCode(code: string, role: string, interval: string): Observable<CouponValidationResponse> {
-    const body = { code, role, interval };
+  validatePromotionCode(promotion_code: string, role: string, interval: string): Observable<CouponValidationResponse> {
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+    const body = {
+      code: promotion_code,
+      role,
+      interval
+    };
 
     return this.http.post<CouponValidationResponse>(
       `${this.functionsUrl}/validatePromotionCode`,
@@ -125,7 +139,6 @@ export class StripeService {
   // ----------------------
   // ✅ HELPER FUNCTIONS
   // ----------------------
-
   private validateCheckoutData(data: CheckoutSessionRequest): void {
     const errors: string[] = [];
 

@@ -122,13 +122,12 @@ export class LenderStripePaymentComponent implements OnInit {
     }
   }
   applyCoupon(): void {
-    const couponCode = this.paymentForm.get('couponCode')?.value?.trim();
+    const couponCode = this.paymentForm.get('promtion_code')?.value?.trim();
     if (!couponCode) return;
 
     this.isValidatingCoupon = true;
 
     this.promotionService.validatePromotionCode(couponCode, 'lender', this.paymentForm.get('interval')?.value || 'monthly')
-
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -149,7 +148,7 @@ export class LenderStripePaymentComponent implements OnInit {
    * ✅ Validates promotion code on blur
    */
   validateCoupon(): void {
-    const couponCode = this.paymentForm.get('couponCode')?.value?.trim();
+    const couponCode = this.paymentForm.get('promotion_code')?.value?.trim();
     if (!couponCode) return;
 
     this.isValidatingCoupon = true;
@@ -278,15 +277,15 @@ export class LenderStripePaymentComponent implements OnInit {
       console.log('✅ Sending backend trial code for LENDER30TRIAL');
     }
 
-    const promotionCode = paymentInfo?.validatedCouponCode?.trim();
+    const promotion_code = paymentInfo?.validatedCouponCode?.trim();
     const billingInterval = this.paymentForm.value.interval || 'monthly';
 
-    if (promotionCode) {
-      console.log('🎟 Validating promotion code before payment:', promotionCode);
+    if (promotion_code) {
+      console.log('🎟 Validating promotion code before payment:', promotion_code);
       this.isLoading = true;
       this.errorMessage = '';
 
-      this.promotionService.validatePromotionCode(promotionCode, 'lender', billingInterval)
+      this.promotionService.validatePromotionCode(promotion_code, 'lender', billingInterval)
         .pipe(
           takeUntil(this.destroy$),
           finalize(() => {
@@ -304,7 +303,7 @@ export class LenderStripePaymentComponent implements OnInit {
         .subscribe(response => {
           if (response && response.valid) {
             console.log('✅ Payment promotion code validated successfully');
-            this.proceedToPayment(promotionCode, billingInterval);
+            this.proceedToPayment(promotion_code, billingInterval);
           } else {
             console.log('❌ Payment promotion code validation failed:', response?.error);
             this.errorMessage = response?.error || 'Invalid promotion code';
@@ -316,13 +315,13 @@ export class LenderStripePaymentComponent implements OnInit {
     }
   }
 
-  private proceedToPayment(validatedPromotionCode: string | null, billingInterval: string): void {
+  private proceedToPayment(validatedpromotion_code: string | null, billingInterval: string): void {
     this.isLoading = true;
     this.errorMessage = '';
 
     const paymentData: CheckoutSessionRequest = {
       ...this.paymentForm.value,
-      promotion_code: validatedPromotionCode,
+      promotion_code: validatedpromotion_code,
       interval: billingInterval
     };
 

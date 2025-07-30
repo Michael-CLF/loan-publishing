@@ -34,15 +34,22 @@ export interface StateOption {
 
 interface CouponValidationResponse {
   valid: boolean;
-  coupon?: {
+  promotion_code?: {
     id: string;
     code: string;
-    discount: number;
-    discountType: 'percentage' | 'fixed';
-    description?: string;
+    coupon: {
+      id: string;
+      percent_off?: number | null;
+      amount_off?: number | null;
+      currency?: string | null;
+      name?: string;
+      duration?: string;
+      duration_in_months?: number | null;
+    };
   };
   error?: string;
 }
+
 
 interface AppliedCouponDetails {
   code: string;
@@ -104,13 +111,13 @@ export class UserFormComponent implements OnInit, OnDestroy {
       tos: [false, [Validators.requiredTrue]],
       interval: ['monthly', [Validators.required]],
       applyTrial: [false],
-      couponCode: ['']
+      promotion_code: ['']
     });
     // Clear coupon errors when user starts typing
-    this.userForm.get('couponCode')?.valueChanges
+    this.userForm.get('promotion_code')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.userForm.get('couponCode')?.errors) {
+        if (this.userForm.get('promotion_code')?.errors) {
           this.clearCouponErrors();
         }
       });
@@ -125,7 +132,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.userForm.patchValue({ interval });
 
     // If a coupon is applied, revalidate it for the new plan
-    if (this.couponApplied && this.userForm.get('couponCode')?.value) {
+    if (this.couponApplied && this.userForm.get('promotion_code')?.value) {
       this.validateCoupon();
     }
   }
@@ -150,10 +157,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const couponCode = this.userForm.get('couponCode')?.value?.trim();
+    const promotion_code = this.userForm.get('promotion_code')?.value?.trim();
 
     // If no code entered, reset state and return
-    if (!couponCode) {
+    if (!promotion_code) {
       this.resetCouponState();
       return;
     }
@@ -166,7 +173,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.isValidatingCoupon = true;
 
     // ✅ CORRECT - Use your StripeService
-    this.promotionService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
+    this.promotionService.validatePromotionCode(promotion_code, 'originator', this.userForm.get('interval')?.value || 'monthly')
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -202,21 +209,20 @@ export class UserFormComponent implements OnInit, OnDestroy {
     }
   }
   private setCouponError(errorMessage: string): void {
-    const couponControl = this.userForm.get('couponCode');
-    if (couponControl) {
-      // Check if it's a plan mismatch error
+    const control = this.userForm.get('promotion_code');
+    if (control) {
       if (errorMessage.includes('not valid for the selected plan')) {
-        couponControl.setErrors({ planMismatchError: true });
+        control.setErrors({ planMismatchError: true });
       } else {
-        couponControl.setErrors({ couponError: errorMessage });
+        control.setErrors({ couponError: errorMessage });
       }
     }
   }
 
   private clearCouponErrors(): void {
-    const couponControl = this.userForm.get('couponCode');
-    if (couponControl) {
-      couponControl.setErrors(null);
+    const control = this.userForm.get('promotion_code');
+    if (control) {
+      control.setErrors(null);
     }
   }
 
@@ -227,7 +233,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.clearCouponErrors();
 
     // Clear the coupon input field
-    this.userForm.get('couponCode')?.setValue('', { emitEvent: false });
+    this.userForm.get('promotion_code')?.setValue('', { emitEvent: false });
 
     setTimeout(() => {
       this.isResettingCoupon = false;
@@ -246,15 +252,20 @@ export class UserFormComponent implements OnInit, OnDestroy {
         return;
       }
 
-      // ✅ CRITICAL FIX: Validate promotion code before proceeding
-      const couponCode = this.userForm.get('couponCode')?.value?.trim();
-      if (couponCode) {
-        console.log('🔍 Validating promotion code before checkout:', couponCode);
+      // ✅ Validate promotion code before proceeding
+      const promotion_code = this.userForm.get('promotion_code')?.value?.trim();
+      if (promotion_code) {
+        console.log('🔍 Validating promotion code before checkout:', promotion_code);
 
         this.isLoading = true;
         this.errorMessage = '';
 
-        this.promotionService.validatePromotionCode(couponCode, 'originator', this.userForm.get('interval')?.value || 'monthly')
+        this.promotionService.validatePromotionCode(
+          promotion_code,
+          'originator',
+          this.userForm.get('interval')?.value || 'monthly'
+        )
+
           .pipe(
             takeUntil(this.destroy$),
             finalize(() => {
@@ -286,76 +297,76 @@ export class UserFormComponent implements OnInit, OnDestroy {
       }
     });
   }
-private proceedToCheckout(): void {
-  this.isLoading = true;
-  this.errorMessage = '';
+  private proceedToCheckout(): void {
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  const formData = this.userForm.value;
+    const formData = this.userForm.value;
 
-  // Prepare user registration data for backend
-  const registrationData = {
-    email: formData.email,
-    role: 'originator',
-    userData: {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      company: formData.company,
-      phone: formData.phone,
-      city: formData.city,
-      state: formData.state,
-    }
-  };
-
-  // Prepare Stripe checkout data
-  const checkoutData: any = {
-    email: formData.email,
-    role: 'originator',
-    interval: formData.interval as 'monthly' | 'annually',
-    userData: {
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      company: formData.company,
-      phone: formData.phone,
-      city: formData.city,
-      state: formData.state,
-    },
-  };
-
-  if (this.couponApplied && this.appliedCouponDetails) {
-    const couponDetails = this.appliedCouponDetails;
-    checkoutData.promotion_code = couponDetails.code;
-    checkoutData.discount = couponDetails.discount;
-    checkoutData.discountType = couponDetails.discountType;
-  }
-
-  console.log('🔵 Creating Stripe checkout session with registration data');
-  from(this.stripeService.createCheckoutSession(checkoutData))
-    .pipe(
-      takeUntil(this.destroy$),
-      catchError((error: any) => {
-        this.isLoading = false;
-        console.error('❌ Stripe checkout error:', error);
-        this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-        return of(null);
-      })
-    )
-    .subscribe({
-      next: (checkoutResponse) => {
-        if (checkoutResponse && checkoutResponse.url) {
-          console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-          localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-          window.location.href = checkoutResponse.url;
-        } else {
-          this.isLoading = false;
-          this.errorMessage = 'Invalid checkout response. Please try again.';
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        console.error('❌ Checkout error:', error);
-        this.errorMessage = 'An unexpected error occurred. Please try again.';
+    // Prepare user registration data for backend
+    const registrationData = {
+      email: formData.email,
+      role: 'originator',
+      userData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
       }
-    });
+    };
+
+    // Prepare Stripe checkout data
+    const checkoutData: any = {
+      email: formData.email,
+      role: 'originator',
+      interval: formData.interval as 'monthly' | 'annually',
+      userData: {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+      },
+    };
+
+    if (this.couponApplied && this.appliedCouponDetails) {
+      const couponDetails = this.appliedCouponDetails;
+      checkoutData.promotion_code = couponDetails.code;
+      checkoutData.discount = couponDetails.discount;
+      checkoutData.discountType = couponDetails.discountType;
+    }
+
+    console.log('🔵 Creating Stripe checkout session with registration data');
+    from(this.stripeService.createCheckoutSession(checkoutData))
+      .pipe(
+        takeUntil(this.destroy$),
+        catchError((error: any) => {
+          this.isLoading = false;
+          console.error('❌ Stripe checkout error:', error);
+          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+          return of(null);
+        })
+      )
+      .subscribe({
+        next: (checkoutResponse) => {
+          if (checkoutResponse && checkoutResponse.url) {
+            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+            localStorage.setItem('pendingRegistration', JSON.stringify(formData));
+            window.location.href = checkoutResponse.url;
+          } else {
+            this.isLoading = false;
+            this.errorMessage = 'Invalid checkout response. Please try again.';
+          }
+        },
+        error: (error) => {
+          this.isLoading = false;
+          console.error('❌ Checkout error:', error);
+          this.errorMessage = 'An unexpected error occurred. Please try again.';
+        }
+      });
   };
 }
 
