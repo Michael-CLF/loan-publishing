@@ -85,7 +85,7 @@
                     <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
                         <div class="subcategory">
                             <div class="category-header" [ngStyle]="getCategoryStyle(category.key)">
-                             {{ formatCategoryName(category.key) }}
+                                {{ formatCategoryName(category.key) }}
 
 
 
@@ -115,7 +115,7 @@
                             <div class="subcategory-list">
                                 <ng-container *ngFor="let loanType of getLoanTypesArray()">
                                     <div class="subcategory-item">
-                                       <span class="detail-value">{{ loanType }}</span>
+                                        <span class="detail-value">{{ loanType }}</span>
                                     </div>
                                 </ng-container>
                             </div>

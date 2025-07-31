@@ -40,10 +40,9 @@ export interface Lender {
 export class LenderService {
   private firestoreService = inject(FirestoreService);
 
-private get db() {
-  return this.firestoreService.firestore;
-}
-
+  private get db() {
+    return this.firestoreService.firestore;
+  }
 
   // Convert UserData to Lender format
   private mapUserToLender(user: UserData): Lender {
@@ -107,17 +106,19 @@ private get db() {
   }
 
   private mapLenderData(lender: any): Lender {
+    console.log('🔍 Raw Firebase lender data:', lender); // Debug log
+
     return {
       id: lender.id,
       contactInfo: {
-        firstName: lender.contactInfo?.firstName || '',
-        lastName: lender.contactInfo?.lastName || '',
-        company:
-          lender.contactInfo?.company || lender.contactInfo?.company || '', // Map root-level company to contactInfo
-        contactEmail: lender.contactInfo?.contactEmail || '',
-        contactPhone: lender.contactInfo?.contactPhone || '',
-        city: lender.contactInfo?.city || '',
-        state: lender.contactInfo?.state || '',
+        // ✅ FIXED: Map from ROOT-LEVEL Firebase fields (not nested contactInfo)
+        firstName: lender.firstName || '', // Root level → nested
+        lastName: lender.lastName || '', // Root level → nested
+        company: lender.company || '', // Root level → nested
+        contactEmail: lender.email || '', // Root "email" → nested "contactEmail"
+        contactPhone: lender.phone || '', // Root "phone" → nested "contactPhone"
+        city: lender.city || '', // Root level → nested
+        state: lender.state || '', // Root level → nested
       },
       productInfo: {
         minLoanAmount: this.parseNumericValue(
@@ -147,18 +148,18 @@ private get db() {
     return parseFloat(numericString) || 0;
   }
 
-// Update an existing lender
-updateLender(id: string, data: Partial<Lender>): Observable<void> {
-  // Convert Lender partial to UserData partial as needed
-  const userData: Partial<UserData> = {
-    // Map the relevant fields from Lender to UserData
-    // This is simplified - you'll need to adapt it to your specific needs
-    updatedAt: serverTimestamp() // Use serverTimestamp
-  };
+  // Update an existing lender
+  updateLender(id: string, data: Partial<Lender>): Observable<void> {
+    // Convert Lender partial to UserData partial as needed
+    const userData: Partial<UserData> = {
+      // Map the relevant fields from Lender to UserData
+      // This is simplified - you'll need to adapt it to your specific needs
+      updatedAt: serverTimestamp(), // Use serverTimestamp
+    };
 
-  // Change the collection from users to lenders
-  return this.firestoreService.updateDocument(`lenders/${id}`, userData);
-}
+    // Change the collection from users to lenders
+    return this.firestoreService.updateDocument(`lenders/${id}`, userData);
+  }
 
   searchLenders(
     lenderType: string,

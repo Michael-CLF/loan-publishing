@@ -19,18 +19,16 @@ import { propertyColorMap } from '../../shared/property-category-colors';
 import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
 
 // Import the new mapping constants
-import { 
-  getPropertyCategoryName, 
-  getPropertySubcategoryName, 
-  getCategoryFromSubcategory 
+import {
+  getPropertyCategoryName,
+  getPropertySubcategoryName,
+  getCategoryFromSubcategory,
 } from '../../shared/constants/property-mappings';
-import { 
-  getLenderTypeName, 
-  getLoanTypeName 
+import {
+  getLenderTypeName,
+  getLoanTypeName,
 } from '../../shared/constants/lender-type-mappings';
-import { 
-  formatStateForDisplay 
-} from '../../shared/constants/state-mappings';
+import { formatStateForDisplay } from '../../shared/constants/state-mappings';
 
 @Component({
   selector: 'app-lender-details',
@@ -57,18 +55,17 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
 
- async ngOnInit(): Promise<void> {
-  const user = await this.authService.getCurrentFirebaseUser();
-  if (user) {
-    this.isAuthenticated = true;
-    this.userRole = null;
-    this.isAuthenticated = false;
-    this.userRole = null;
-  }
-  this.cdr.markForCheck();
+  async ngOnInit(): Promise<void> {
+    const user = await this.authService.getCurrentFirebaseUser();
+    if (user) {
+      this.isAuthenticated = true;
+      this.userRole = null;
+      this.isAuthenticated = false;
+      this.userRole = null;
+    }
+    this.cdr.markForCheck();
 
-  this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
-  
+    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
       const id = params.get('id');
       if (id) {
         this.loadLenderDetails(id);
@@ -130,9 +127,8 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   formatCategoryName(category: string): string {
-  return getPropertyCategoryName(category);
-}
-
+    return getPropertyCategoryName(category);
+  }
 
   goBack(): void {
     this.router.navigate(['/lender-list']);
@@ -233,7 +229,7 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   // =============================================
   // CONTACT INFORMATION METHODS (Using new mappings)
   // =============================================
-  
+
   getContactName(): string {
     const firstName = this.lender?.contactInfo?.firstName || '';
     const lastName = this.lender?.contactInfo?.lastName || '';
@@ -241,14 +237,12 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   getCompanyName(lender: any): string {
-  const topCompany = lender.company;
-  const contactInfoCompany = lender.contactInfo?.company;
+    const topCompany = lender.company;
+    const contactInfoCompany = lender.contactInfo?.company;
 
-  const company = (topCompany || contactInfoCompany || '').trim();
-  return company !== '' ? company : 'N/A';
-}
-
-
+    const company = (topCompany || contactInfoCompany || '').trim();
+    return company !== '' ? company : 'N/A';
+  }
 
   getEmail(): string {
     return this.lender?.contactInfo?.contactEmail || 'Not specified';
@@ -272,27 +266,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   // =============================================
   // PRODUCT INFO METHODS (Using new mappings)
   // =============================================
-
-  getLenderTypes(): string {
-    if (!this.lender?.productInfo?.lenderTypes?.length) return 'None specified';
-    return this.lender.productInfo.lenderTypes
-      .map(type => getLenderTypeName(type))
-      .join(', ');
-  }
-
-  getLoanRange(): string {
-    if (!this.lender?.productInfo) return 'Not specified';
-
-    const parseAmount = (val: string | number): number =>
-      typeof val === 'number'
-        ? val
-        : parseFloat(val.replace(/[^0-9.]/g, '')) || 0;
-
-    const min = parseAmount(this.lender?.productInfo?.minLoanAmount ?? 0);
-    const max = parseAmount(this.lender?.productInfo?.maxLoanAmount ?? 0);
-
-    return `$${min.toLocaleString()} - $${max.toLocaleString()}`;
-  }
 
   hasLoanTypes(): boolean {
     return true; // Always show loan types section
@@ -324,12 +297,92 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   // =============================================
 
   getLendingStatesArray(): string[] {
+    console.log('🔍 DEBUG - footprintInfo:', this.lender?.footprintInfo);
+    console.log(
+      '🔍 DEBUG - lendingFootprint raw:',
+      this.lender?.footprintInfo?.lendingFootprint
+    );
+
     if (!this.lender?.footprintInfo?.lendingFootprint) return [];
 
-    return this.lender.footprintInfo.lendingFootprint
-      .map((state) => formatStateForDisplay(state))
+    const result = this.lender.footprintInfo.lendingFootprint
+      .map((state) => {
+        console.log('🔍 DEBUG - processing state:', state);
+        const formatted = formatStateForDisplay(state);
+        console.log('🔍 DEBUG - formatted to:', formatted);
+        return formatted;
+      })
       .filter((state) => state.length > 0)
       .sort((a, b) => a.localeCompare(b));
+
+    console.log('🔍 DEBUG - final getLendingStatesArray result:', result);
+    return result;
+  }
+
+  // Replace these methods in your lender-details.component.ts:
+
+  // Replace these exact methods in your component:
+
+  getLenderTypes(): string {
+    console.log(
+      '🔍 DEBUG - lenderTypes raw:',
+      this.lender?.productInfo?.lenderTypes
+    );
+
+    if (!this.lender?.productInfo?.lenderTypes?.length) {
+      console.log('🔍 DEBUG - no lender types found');
+      return 'None specified';
+    }
+
+    const result = this.lender.productInfo.lenderTypes
+      .map((type: any) => {
+        console.log('🔍 DEBUG - processing type:', type);
+
+        // Handle object with name property
+        if (type && typeof type === 'object' && type.name) {
+          console.log('🔍 DEBUG - using name:', type.name);
+          return type.name;
+        }
+
+        // Handle string
+        if (typeof type === 'string') {
+          console.log('🔍 DEBUG - using string:', type);
+          return type;
+        }
+
+        console.log('🔍 DEBUG - unknown type format');
+        return 'Unknown';
+      })
+      .filter((name) => name && name !== 'Unknown')
+      .join(', ');
+
+    console.log('🔍 DEBUG - final getLenderTypes result:', result);
+    return result || 'None specified';
+  }
+
+  getLoanRange(): string {
+    console.log('🔍 DEBUG - productInfo:', this.lender?.productInfo);
+
+    if (!this.lender?.productInfo) {
+      console.log('🔍 DEBUG - no productInfo');
+      return 'Not specified';
+    }
+
+    const min = this.lender.productInfo.minLoanAmount || 0;
+    const max = this.lender.productInfo.maxLoanAmount || 0;
+
+    console.log('🔍 DEBUG - min:', min, 'max:', max);
+
+    if (min === 0 && max === 0) {
+      console.log('🔍 DEBUG - both amounts are zero');
+      return 'Not specified';
+    }
+
+    const result = `$${Number(min).toLocaleString()} - $${Number(
+      max
+    ).toLocaleString()}`;
+    console.log('🔍 DEBUG - final getLoanRange result:', result);
+    return result;
   }
 
   // =============================================
@@ -350,13 +403,13 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     if (typeof sub === 'string') {
       return getPropertySubcategoryName(sub);
     }
-    
+
     if (typeof sub === 'object' && sub !== null) {
       // If it's an object, try to get the value or name property
       const value = sub.value || sub.name || '';
       return getPropertySubcategoryName(value);
     }
-    
+
     return 'Unknown';
   }
 
