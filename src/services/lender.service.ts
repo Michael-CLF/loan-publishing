@@ -39,6 +39,7 @@ export interface Lender {
   };
   footprintInfo?: {
     lendingFootprint?: string[];
+    states?: Record<string, boolean>;
   };
 }
 
@@ -96,49 +97,62 @@ export class LenderService {
     );
   }
 
-getLender(id: string): Observable<Lender | null> {
-  const docRef = doc(this.db, `lenders/${id}`);
-  return from(getDoc(docRef)).pipe(
-    map((docSnap) => {
-      if (!docSnap.exists()) {
-        return null;
-      }
-
-      const data: any = docSnap.data() || {};
-      const contactInfo = data.contactInfo || {};
-      const productInfo = data.productInfo || {};
-
-      const lender: Lender = {
-        id: docSnap.id,
-        accountNumber: docSnap.id.substring(0, 8).toUpperCase(),
-        firstName: data.firstName || contactInfo.firstName || '',
-        lastName: data.lastName || contactInfo.lastName || '',
-        company: data.company || contactInfo.company || '',
-        email: data.email || contactInfo.contactEmail || contactInfo.email || '',
-        phone: data.phone || contactInfo.contactPhone || contactInfo.phone || '',
-        city: data.city || contactInfo.city || '',
-        state: data.state || contactInfo.state || '',
-        createdAt: data.createdAt || null,
-        contactInfo: {
-          ...contactInfo,
-          firstName: contactInfo.firstName || data.firstName || '',
-          lastName: contactInfo.lastName || data.lastName || '',
-          contactEmail: contactInfo.contactEmail || data.email || '',
-          contactPhone: contactInfo.contactPhone || data.phone || '',
-          company: contactInfo.company || data.company || '',
-          city: contactInfo.city || data.city || '',
-          state: contactInfo.state || data.state || ''
-        },
-        productInfo: {
-          ...productInfo,
-          lenderTypes: productInfo.lenderTypes || data.lenderTypes || []
+  getLender(id: string): Observable<Lender | null> {
+    const docRef = doc(this.db, `lenders/${id}`);
+    return from(getDoc(docRef)).pipe(
+      map((docSnap) => {
+        if (!docSnap.exists()) {
+          return null;
         }
-      };
 
-      return lender;
-    })
-  );
-}
+        const data: any = docSnap.data() || {};
+        const contactInfo = data.contactInfo || {};
+        const productInfo = data.productInfo || {};
+        const footprintInfo = data.footprintInfo || {};
+
+        const lender: Lender = {
+          id: docSnap.id,
+          accountNumber: docSnap.id.substring(0, 8).toUpperCase(),
+          firstName: data.firstName || contactInfo.firstName || '',
+          lastName: data.lastName || contactInfo.lastName || '',
+          company: data.company || contactInfo.company || '',
+          email: data.email || contactInfo.contactEmail || contactInfo.email || '',
+          phone: data.phone || contactInfo.contactPhone || contactInfo.phone || '',
+          city: data.city || contactInfo.city || '',
+          state: data.state || contactInfo.state || '',
+          createdAt: data.createdAt || null,
+          contactInfo: {
+            ...contactInfo,
+            firstName: contactInfo.firstName || data.firstName || '',
+            lastName: contactInfo.lastName || data.lastName || '',
+            contactEmail: contactInfo.contactEmail || data.email || '',
+            contactPhone: contactInfo.contactPhone || data.phone || '',
+            company: contactInfo.company || data.company || '',
+            city: contactInfo.city || data.city || '',
+            state: contactInfo.state || data.state || ''
+          },
+          productInfo: {
+            ...productInfo,
+            lenderTypes: productInfo.lenderTypes || data.lenderTypes || [],
+            propertyCategories: productInfo.propertyCategories || data.propertyCategories || [],
+            subcategorySelections: productInfo.subcategorySelections || data.subcategorySelections || []
+          },
+
+          footprintInfo: {
+            lendingFootprint: footprintInfo.lendingFootprint || [],
+            states: footprintInfo.states || {}
+          },
+        };
+        console.log("🔥 Lender Firestore data raw:", data);
+        console.log("🔥 productInfo.subcategorySelections:", productInfo?.subcategorySelections);
+        console.log("🔥 data.subcategorySelections:", data?.subcategorySelections);
+
+
+        return lender;
+      })
+    );
+  }
+
 
 
   private mapLenderData(lender: any): Lender {

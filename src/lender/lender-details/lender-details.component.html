@@ -78,31 +78,32 @@
         </div>
 
         <!-- Property Categories & Subcategories Section -->
-        <div class="details-section property-categories-section" *ngIf="hasSubcategories()">
-            <h3 class="section-title property-categories-title">Property Categories & Subcategories</h3>
-            <div class="detail-item full-width">
-                <div class="subcategory-container">
-                    <ng-container *ngFor="let category of getGroupedSubcategories() | keyvalue">
-                        <div class="subcategory">
-                            <div class="category-header" [ngStyle]="getCategoryStyle(category.key)">
-                                {{ formatCategoryName(category.key) }}
+<div class="details-section property-categories-section" *ngIf="getCategoriesWithOptionalSubcategories().length">
+  <h3 class="section-title property-categories-title">Property Categories & Subcategories</h3>
+  <div class="detail-item full-width">
+    <div class="subcategory-container">
+      <ng-container *ngFor="let item of getCategoriesWithOptionalSubcategories()">
+        <div class="subcategory">
+          <!-- Always show category -->
+          <div class="category-header" [ngStyle]="getCategoryStyle(item.category)">
+            {{ formatCategoryName(item.category) }}
+          </div>
 
-
-
-                            </div>
-
-
-                            <!-- Subcategory Grid -->
-                            <div class="subcategory-grid">
-                                <div *ngFor="let sub of category.value" class="subcategory-item">
-                                    <span class="subcategory-value">{{ formatSubcategory(sub) }}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </ng-container>
-                </div>
+          <!-- Show subcategories only if they exist -->
+          <div class="subcategory-grid" *ngIf="item.subcategories.length > 0">
+            <div *ngFor="let sub of item.subcategories" class="subcategory-item">
+              <span class="subcategory-value">{{ formatSubcategory(sub) }}</span>
             </div>
+          </div>
         </div>
+      </ng-container>
+    </div>
+  </div>
+</div>
+
+
+
+                
 
 
         <!-- Loan Types Section (conditional) -->

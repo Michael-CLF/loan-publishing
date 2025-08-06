@@ -581,32 +581,36 @@ debugLenderDataStructure(): void {
   // LENDING FOOTPRINT METHODS (Using new mappings)
   // =============================================
 
-  getLendingStatesArray(): string[] {
-    console.log('🔍 DEBUG - footprintInfo:', this.lender?.footprintInfo);
-    console.log(
-      '🔍 DEBUG - lendingFootprint raw:',
-      this.lender?.footprintInfo?.lendingFootprint
-    );
+   getLendingStatesArray(): string[] {
+  console.log('🔍 DEBUG - footprintInfo:', this.lender?.footprintInfo);
 
-    if (!this.lender?.footprintInfo?.lendingFootprint) return [];
+  if (!this.lender?.footprintInfo) return [];
 
-    const result = this.lender.footprintInfo.lendingFootprint
-      .map((state) => {
-        console.log('🔍 DEBUG - processing state:', state);
-        const formatted = formatStateForDisplay(state);
-        console.log('🔍 DEBUG - formatted to:', formatted);
-        return formatted;
-      })
-      .filter((state) => state.length > 0)
-      .sort((a, b) => a.localeCompare(b));
+  const footprintInfo = this.lender.footprintInfo as any;
+  let statesArray: string[] = [];
 
-    console.log('🔍 DEBUG - final getLendingStatesArray result:', result);
-    return result;
+  // ✅ 1) Prefer lendingFootprint array if it exists and has data
+  if (Array.isArray(footprintInfo.lendingFootprint) && footprintInfo.lendingFootprint.length > 0) {
+    statesArray = footprintInfo.lendingFootprint;
+    console.log('🔍 DEBUG - Using lendingFootprint array:', statesArray);
   }
 
+  // ✅ 2) If no array data, fall back to states object keys
+  else if (footprintInfo.states && typeof footprintInfo.states === 'object') {
+    statesArray = Object.keys(footprintInfo.states)
+      .filter((key) => footprintInfo.states[key] === true);
+    console.log('🔍 DEBUG - Using states object keys:', statesArray);
+  }
 
+  // ✅ 3) Format all states for display
+  const result = statesArray
+    .map((state) => formatStateForDisplay(state))
+    .filter((state) => state.length > 0)
+    .sort((a, b) => a.localeCompare(b));
 
-  
+  console.log('🔍 DEBUG - final getLendingStatesArray result:', result);
+  return result;
+}
 
   // =============================================
   // SUBCATEGORIES METHODS (Using new mappings)
@@ -636,26 +640,68 @@ debugLenderDataStructure(): void {
     return 'Unknown';
   }
 
+private normalizeCategory(value: string): string {
+  if (!value) return '';
+  return value.trim().toLowerCase().replace(/[\s_-]+/g, '_');
+}
+
+getCategoriesWithOptionalSubcategories(): { category: string; subcategories: string[] }[] {
+  if (!this.lender?.productInfo?.propertyCategories) return [];
+
+  const categories = this.lender.productInfo.propertyCategories.map(cat => this.normalizeCategory(cat));
+  const subcategories = this.lender.productInfo.subcategorySelections || [];
+
+  // Group subcategories by category
+  const groupedSubs: { [key: string]: string[] } = {};
+  for (const sub of subcategories) {
+    const cat = this.normalizeCategory(getCategoryFromSubcategory(sub));
+    if (!groupedSubs[cat]) groupedSubs[cat] = [];
+    groupedSubs[cat].push(sub);
+  }
+
+  // Map categories with their subcategories (or empty array)
+  return categories.map(cat => ({
+    category: cat,
+    subcategories: groupedSubs[cat] || []
+  }));
+}
+
+
   // UPDATED: Now uses the mapping constants
   getCategoryFromSubcategory(sub: string): string {
     return getCategoryFromSubcategory(sub);
   }
 
-  getGroupedSubcategories(): { [category: string]: string[] } {
-    const subcategories = this.getSubcategories();
 
-    if (!subcategories.length) {
-      return { 'No Categories': [] };
-    }
+getGroupedSubcategories(): { [category: string]: string[] } {
+  const categories = this.lender?.productInfo?.propertyCategories || [];
+  const subcategories = this.lender?.productInfo?.subcategorySelections || [];
 
-    const grouped: { [key: string]: string[] } = {};
-    for (const sub of subcategories) {
-      const cat = this.getCategoryFromSubcategory(sub);
-      if (!grouped[cat]) grouped[cat] = [];
-      grouped[cat].push(sub);
-    }
-    return grouped;
+  const grouped: { [key: string]: string[] } = {};
+
+  // Always start with the categories
+  for (const cat of categories) {
+    const formattedCat = this.formatCategoryName(cat);
+    grouped[formattedCat] = [];
   }
+
+  // Then attach subcategories to the matching category
+  for (const sub of subcategories) {
+    const catKey = this.getCategoryFromSubcategory(sub);
+    const formattedCatKey = this.formatCategoryName(catKey);
+
+    if (!grouped[formattedCatKey]) {
+      grouped[formattedCatKey] = [];
+    }
+
+    if (!grouped[formattedCatKey].includes(sub)) {
+      grouped[formattedCatKey].push(sub);
+    }
+  }
+
+  return grouped;
+}
+
 
   // =============================================
   // UTILITY METHODS

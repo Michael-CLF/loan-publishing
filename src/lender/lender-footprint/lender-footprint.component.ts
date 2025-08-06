@@ -95,48 +95,52 @@ export class LenderFootprintComponent implements OnInit {
     statesGroup.updateValueAndValidity({ emitEvent: true });
   }
 
-  private initializeSelectedStates(): void {
-    const statesGroup = this.lenderForm.get(
-      'footprintInfo.states'
-    ) as FormGroup;
-    if (!statesGroup) return;
-    this.selectedStates = [];
+ // --- Existing code above ---
+private initializeSelectedStates(): void {
+  const statesGroup = this.lenderForm.get('footprintInfo.states') as FormGroup;
+  const lendingFootprint: string[] = this.lenderForm.get('footprintInfo.lendingFootprint')?.value || [];
 
-    const stateControls = Object.keys(statesGroup.controls).filter(
-      (key) => !key.includes('_counties')
-    );
+  this.selectedStates = [];
 
-    stateControls.forEach((stateKey) => {
-      if (statesGroup.get(stateKey)?.value === true) {
-        const state = this.footprintLocation.find((s) => s.value === stateKey);
-        if (state) {
-          const countiesGroup = statesGroup.get(
-            `${stateKey}_counties`
-          ) as FormGroup;
-          if (!countiesGroup) return;
+  // Helper to add state if found in master location list
+  const addStateFromValue = (stateValue: string) => {
+    const state = this.footprintLocation.find((s) => s.value === stateValue);
+    if (state) {
+      const countiesGroup = statesGroup?.get(`${stateValue}_counties`) as FormGroup;
+      const counties = countiesGroup
+        ? state.subcategories.map((county) => ({
+            value: county.value,
+            name: county.name,
+            selected: countiesGroup.get(county.value)?.value === true
+          }))
+        : [];
 
-          const counties = state.subcategories.map((county) => {
-            const isSelected = countiesGroup.get(county.value)?.value === true;
-            return {
-              value: county.value,
-              name: county.name,
-              selected: isSelected,
-            };
-          });
+      const allCountiesSelected = counties.length > 0 && counties.every((c) => c.selected);
 
-          const allCountiesSelected =
-            counties.length > 0 && counties.every((c) => c.selected);
+      this.selectedStates.push({
+        stateValue,
+        stateName: state.name,
+        counties,
+        allCountiesSelected
+      });
+    }
+  };
 
-          this.selectedStates.push({
-            stateValue: stateKey,
-            stateName: state.name,
-            counties,
-            allCountiesSelected,
-          });
-        }
-      }
-    });
+  // --- 1. Load from states map (boolean map)
+  if (statesGroup) {
+    Object.keys(statesGroup.controls)
+      .filter((key) => !key.includes('_counties') && statesGroup.get(key)?.value === true)
+      .forEach((stateKey) => addStateFromValue(stateKey));
   }
+
+  // --- 2. Load from lendingFootprint array if not already in selectedStates
+  lendingFootprint.forEach((abbr) => {
+    if (!this.selectedStates.some((s) => s.stateValue === abbr)) {
+      addStateFromValue(abbr);
+    }
+  });
+}
+
 
   private atLeastOneStateValidator(): ValidatorFn {
     return (formGroup: AbstractControl): ValidationErrors | null => {
