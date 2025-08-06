@@ -104,41 +104,6 @@ export class AdminComponent implements OnInit {
     this.csvExportService.downloadCSV(combined, filename);
   }
 
-  // Helper method to get and format lender types
-  getLenderTypes(lender: any): string {
-    // Check both possible locations for lender types
-    const types =
-      lender.lenderTypes || lender.productInfo?.lenderTypes || lender.types;
-
-    // If we have an array of types, format each one and join them with commas
-    if (types && Array.isArray(types) && types.length > 0) {
-      return types.map((type) => this.formatLenderType(type)).join(', ');
-    }
-
-    // If we have a single string type
-    if (types && typeof types === 'string') {
-      return this.formatLenderType(types);
-    }
-
-    // Default fallback
-    return 'N/A';
-  }
-
-  // Helper method to format a single lender type value
-  private formatLenderType(type: string): string {
-    if (!type) return 'N/A';
-
-    // Replace underscores with spaces
-    let formatted = type.replace(/_/g, ' ');
-
-    // Capitalize each word
-    formatted = formatted
-      .split(' ')
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(' ');
-
-    return formatted;
-  }
   // Add this method to filter users
   applyUserFilter(): void {
     const filter = this.userFilter.toLowerCase();
@@ -255,6 +220,8 @@ export class AdminComponent implements OnInit {
     }
   }
 
+  // ✅ FIXED: Replace the loadOriginatorsAndLenders method in your admin.component.ts
+
   async loadOriginatorsAndLenders() {
     try {
       // Clear existing maps
@@ -279,7 +246,7 @@ export class AdminComponent implements OnInit {
           company: contactInfo['company'] || data['company'] || '',
           city: contactInfo['city'] || data['city'] || '',
           state: contactInfo['state'] || data['state'] || '',
-          createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
+          createdAt: this.normalizeTimestamp(data['createdAt']),
           role: 'originator',
         };
 
@@ -296,7 +263,7 @@ export class AdminComponent implements OnInit {
         return originator;
       });
 
-      // Load lenders
+      // ✅ FIXED: Load lenders with comprehensive fallback handling
       const lendersRef = collection(this.firestore, 'lenders');
       const lendersSnapshot = await getDocs(lendersRef);
 
@@ -305,25 +272,74 @@ export class AdminComponent implements OnInit {
         const contactInfo = data['contactInfo'] || {};
         const productInfo = data['productInfo'] || {};
 
+        console.log(`Processing lender ${doc.id}:`, {
+          hasContactInfo: !!contactInfo,
+          hasProductInfo: !!productInfo,
+          rootKeys: Object.keys(data),
+          contactInfoKeys: Object.keys(contactInfo),
+          productInfoKeys: Object.keys(productInfo),
+        });
+
         const lender = {
           id: doc.id,
           accountNumber: doc.id.substring(0, 8).toUpperCase(),
-          // ✅ FIXED: Get from root level, then fallback to contactInfo
+
+          // ✅ ENHANCED: Try all possible locations for name data
           firstName: data['firstName'] || contactInfo['firstName'] || '',
           lastName: data['lastName'] || contactInfo['lastName'] || '',
+
+          // ✅ ENHANCED: Try all possible locations for company data
           company: data['company'] || contactInfo['company'] || '',
+
+          // ✅ ENHANCED: Try all possible locations for location data
           city: data['city'] || contactInfo['city'] || '',
           state: data['state'] || contactInfo['state'] || '',
-          email: data['email'] || contactInfo['contactEmail'] || '',
+
+          // ✅ ENHANCED: Try all possible locations for contact data
+          email:
+            data['email'] ||
+            contactInfo['contactEmail'] ||
+            contactInfo['email'] ||
+            '',
+          phone:
+            data['phone'] ||
+            contactInfo['contactPhone'] ||
+            contactInfo['phone'] ||
+            '',
+
           createdAt: this.normalizeTimestamp(data['createdAt']),
           role: 'lender',
-          lenderTypes: data['lenderTypes'] || productInfo['lenderTypes'] || [],
+
+          // ✅ ENHANCED: Try all possible locations for lender types
+          lenderTypes: productInfo['lenderTypes'] || data['lenderTypes'] || [],
+
+          // ✅ Keep full objects for detailed access if needed
           productInfo: productInfo,
+          contactInfo: contactInfo,
+
+          // ✅ Add raw data for debugging
+          _rawData: data,
         };
+
+        // ✅ Debug logging for problematic lenders
+        if (!lender.firstName && !lender.lastName) {
+          console.warn(`Lender ${doc.id} missing name data:`, lender);
+        }
+        if (!lender.company) {
+          console.warn(`Lender ${doc.id} missing company data:`, lender);
+        }
 
         // Store in map for quick lookup
         this.lendersMap.set(doc.id, lender);
         return lender;
+      });
+
+      // ✅ Debug: Log summary of data loading
+      console.log('Lenders loaded:', {
+        total: lendersData.length,
+        withNames: lendersData.filter((l) => l.firstName || l.lastName).length,
+        withCompanies: lendersData.filter((l) => l.company).length,
+        withTypes: lendersData.filter((l) => l.lenderTypes?.length > 0).length,
       });
 
       // Update signals
@@ -333,6 +349,146 @@ export class AdminComponent implements OnInit {
       console.error('Error loading originators and lenders:', err);
       throw err;
     }
+  }
+
+  // ✅ ENHANCED: Updated getLenderTypes method for admin component
+  getLenderTypes(lender: any): string {
+    if (!lender) return 'N/A';
+
+    // ✅ Try all possible locations for lender types
+    const types =
+      lender.lenderTypes ||
+      lender.productInfo?.lenderTypes ||
+      lender._rawData?.productInfo?.lenderTypes ||
+      lender._rawData?.lenderTypes ||
+      lender.types;
+
+    console.log(`Getting lender types for ${lender.id}:`, {
+      lenderTypes: lender.lenderTypes,
+      productInfoTypes: lender.productInfo?.lenderTypes,
+      rawTypes: lender._rawData?.lenderTypes,
+      finalTypes: types,
+    });
+
+    // If we have an array of types, format each one and join them with commas
+    if (types && Array.isArray(types) && types.length > 0) {
+      return types.map((type) => this.formatLenderType(type)).join(', ');
+    }
+
+    // If we have a single string type
+    if (types && typeof types === 'string') {
+      return this.formatLenderType(types);
+    }
+
+    // ✅ More informative fallback
+    return 'General';
+  }
+
+  // ✅ ENHANCED: Better lender type formatting
+  private formatLenderType(type: string | any): string {
+    if (!type) return 'General';
+
+    // ✅ Handle object format (with name or value properties)
+    if (typeof type === 'object') {
+      if (type.name) return type.name;
+      if (type.value) return this.formatLenderTypeString(type.value);
+      if (type.displayName) return type.displayName;
+    }
+
+    // ✅ Handle string format
+    if (typeof type === 'string') {
+      return this.formatLenderTypeString(type);
+    }
+
+    return 'General';
+  }
+
+  // ✅ NEW: Helper method to format lender type strings
+  private formatLenderTypeString(type: string): string {
+    if (!type) return 'General';
+
+    // ✅ Enhanced mapping for common lender types
+    const typeMap: { [key: string]: string } = {
+      // Snake case format
+      agency: 'Agency Lender',
+      balance_sheet: 'Balance Sheet',
+      bank: 'Bank',
+      bridge_lender: 'Bridge Lender',
+      cdfi: 'CDFI Lender',
+      conduit_lender: 'Conduit Lender (CMBS)',
+      construction_lender: 'Construction Lender',
+      correspondent_lender: 'Correspondent Lender',
+      credit_union: 'Credit Union',
+      crowdfunding: 'Crowdfunding Platform',
+      direct_lender: 'Direct Lender',
+      family_office: 'Family Office',
+      general: 'General',
+      hard_money: 'Hard Money Lender',
+      life_insurance: 'Life Insurance Lender',
+      mezzanine_lender: 'Mezzanine Lender',
+      non_qm_lender: 'Non-QM Lender',
+      portfolio_lender: 'Portfolio Lender',
+      private_lender: 'Private Lender',
+      sba: 'SBA Lender',
+      usda: 'USDA Lender',
+
+      // Camel case format (legacy)
+      balanceSheet: 'Balance Sheet',
+      bridgeLender: 'Bridge Lender',
+      conduitLender: 'Conduit Lender (CMBS)',
+      constructionLender: 'Construction Lender',
+      correspondentLender: 'Correspondent Lender',
+      creditUnion: 'Credit Union',
+      directLender: 'Direct Lender',
+      familyOffice: 'Family Office',
+      hardMoney: 'Hard Money Lender',
+      lifeInsurance: 'Life Insurance Lender',
+      mezzanineLender: 'Mezzanine Lender',
+      nonQmLender: 'Non-QM Lender',
+      portfolioLender: 'Portfolio Lender',
+      privateLender: 'Private Lender',
+    };
+
+    // ✅ Try exact match first
+    if (typeMap[type]) {
+      return typeMap[type];
+    }
+
+    // ✅ Try case-insensitive match
+    const lowerType = type.toLowerCase();
+    const matchedKey = Object.keys(typeMap).find(
+      (key) => key.toLowerCase() === lowerType
+    );
+    if (matchedKey) {
+      return typeMap[matchedKey];
+    }
+
+    // ✅ Fallback: Format snake_case/camelCase to readable format
+    return (
+      type
+        .replace(/([a-z])([A-Z])/g, '$1 $2') // Handle camelCase
+        .replace(/_/g, ' ') // Handle snake_case
+        .replace(/\b\w/g, (l) => l.toUpperCase()) // Capitalize each word
+        .trim() || 'General'
+    );
+  }
+
+  // ✅ NEW: Debug method to analyze lender data structure
+  debugLenderDataStructure(): void {
+    console.log('=== ADMIN LENDER DATA STRUCTURE DEBUG ===');
+    const lenders = this.lenders();
+    console.log(`Total lenders: ${lenders.length}`);
+
+    lenders.forEach((lender, index) => {
+      console.log(`Lender ${index + 1} (${lender.id}):`);
+      console.log('- Name:', lender.firstName, lender.lastName);
+      console.log('- Company:', lender.company);
+      console.log('- Types:', lender.lenderTypes);
+      console.log('- ContactInfo keys:', Object.keys(lender.contactInfo || {}));
+      console.log('- ProductInfo keys:', Object.keys(lender.productInfo || {}));
+      console.log('- Raw data keys:', Object.keys(lender._rawData || {}));
+      console.log('---');
+    });
   }
 
   async loadLoansDirectly() {

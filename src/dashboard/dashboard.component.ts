@@ -5,12 +5,10 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { firstValueFrom } from 'rxjs';
-import {
-  NotificationPreferencesService,
-} from '../services/notification-preferences.service';
+import { NotificationPreferencesService } from '../services/notification-preferences.service';
 import {
   LenderNotificationPreferences,
-  DEFAULT_LENDER_NOTIFICATION_PREFERENCES
+  DEFAULT_LENDER_NOTIFICATION_PREFERENCES,
 } from '../types/notification.types';
 import {
   Firestore,
@@ -43,19 +41,22 @@ import { UserData } from '../models';
 import { LocationService } from '../services/location.service';
 import { createTimestamp } from '../utils/firebase.utils';
 import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
-import { LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
+import {
+  LoanUtils,
+  PropertySubcategoryValue,
+} from '../models/loan-model.model';
 import { getStateName } from '../shared/constants/state-mappings';
 import { FirestoreService } from 'src/services/firestore.service';
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
-  value: string;        // Snake_case for storage/matching
-  displayName: string;  // User-friendly display name
+  value: string; // Snake_case for storage/matching
+  displayName: string; // User-friendly display name
 }
 
 interface LoanTypeOption {
-  value: string;        // Snake_case for storage/matching  
-  displayName: string;  // User-friendly display name
+  value: string; // Snake_case for storage/matching
+  displayName: string; // User-friendly display name
 }
 
 interface SimpleUser {
@@ -80,7 +81,9 @@ export class DashboardComponent implements OnInit {
   private readonly loanService = inject(LoanService);
   private readonly modalService = inject(ModalService);
   public readonly locationService = inject(LocationService);
-  private readonly notificationPreferencesService = inject(NotificationPreferencesService);
+  private readonly notificationPreferencesService = inject(
+    NotificationPreferencesService
+  );
   private readonly emailNotificationService = inject(EmailNotificationService);
   private route = inject(ActivatedRoute);
 
@@ -112,7 +115,9 @@ export class DashboardComponent implements OnInit {
   });
 
   // ✅ Computed signal for toggle state - automatically syncs with preferences
-  notificationOptIn = computed(() => this.notificationPrefs().wantsEmailNotifications);
+  notificationOptIn = computed(
+    () => this.notificationPrefs().wantsEmailNotifications
+  );
 
   // ✅ Signal for saving state
   savingOptIn = signal(false);
@@ -147,16 +152,16 @@ export class DashboardComponent implements OnInit {
     special_purpose: '#6e2c00',
 
     // Legacy format (Title Case/spaces) - for backward compatibility
-    'Commercial': '#1E90FF',
-    'Healthcare': '#cb4335',
-    'Hospitality': '#1b4f72',
-    'Industrial': '#2c3e50',
-    'Land': '#023020',
+    Commercial: '#1E90FF',
+    Healthcare: '#cb4335',
+    Hospitality: '#1b4f72',
+    Industrial: '#2c3e50',
+    Land: '#023020',
     'Mixed Use': '#8A2BE2',
-    'Multifamily': '#6c3483',
-    'Office': '#4682B4',
-    'Residential': '#DC143C',
-    'Retail': '#660000',
+    Multifamily: '#6c3483',
+    Office: '#4682B4',
+    Residential: '#DC143C',
+    Retail: '#660000',
     'Special Purpose': '#6e2c00',
   };
 
@@ -197,16 +202,61 @@ export class DashboardComponent implements OnInit {
     { value: 'portfolio', displayName: 'Portfolio Loan' },
     { value: 'sba_express', displayName: 'SBA Express' },
     { value: 'sba_7a', displayName: 'SBA 7(a)' },
-    { value: 'sba_504', displayName: 'SBA 504' }
+    { value: 'sba_504', displayName: 'SBA 504' },
   ];
 
   // Available states for footprint selection
   allStates: string[] = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA',
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD',
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ',
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC',
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY'
+    'AL',
+    'AK',
+    'AZ',
+    'AR',
+    'CA',
+    'CO',
+    'CT',
+    'DE',
+    'FL',
+    'GA',
+    'HI',
+    'ID',
+    'IL',
+    'IN',
+    'IA',
+    'KS',
+    'KY',
+    'LA',
+    'ME',
+    'MD',
+    'MA',
+    'MI',
+    'MN',
+    'MS',
+    'MO',
+    'MT',
+    'NE',
+    'NV',
+    'NH',
+    'NJ',
+    'NM',
+    'NY',
+    'NC',
+    'ND',
+    'OH',
+    'OK',
+    'OR',
+    'PA',
+    'RI',
+    'SC',
+    'SD',
+    'TN',
+    'TX',
+    'UT',
+    'VT',
+    'VA',
+    'WA',
+    'WV',
+    'WI',
+    'WY',
   ];
 
   ngOnInit(): void {
@@ -216,26 +266,26 @@ export class DashboardComponent implements OnInit {
   }
 
   private waitForAuthAndLoadData(): void {
-  console.log('⏳ Dashboard - Waiting for auth to be ready...');
-  
-  this.authService.authReady$
-    .pipe(
-      filter(ready => ready),
-      take(1)
-    )
-    .subscribe({
-      next: () => {
-        console.log('✅ Dashboard - Auth is ready, loading user data');
-        this.loadUserData();
-      },
-      error: (error) => {
-        console.error('❌ Dashboard - Auth ready check failed:', error);
-        this.error = 'Authentication service not available';
-        this.loading = false;
-        this.handleNoAuthenticatedUser();
-      }
-    });
-}
+    console.log('⏳ Dashboard - Waiting for auth to be ready...');
+
+    this.authService.authReady$
+      .pipe(
+        filter((ready) => ready),
+        take(1)
+      )
+      .subscribe({
+        next: () => {
+          console.log('✅ Dashboard - Auth is ready, loading user data');
+          this.loadUserData();
+        },
+        error: (error) => {
+          console.error('❌ Dashboard - Auth ready check failed:', error);
+          this.error = 'Authentication service not available';
+          this.loading = false;
+          this.handleNoAuthenticatedUser();
+        },
+      });
+  }
 
   private subscribeToAuthState(): void {
     this.authService.isLoggedIn$.subscribe((loggedIn) => {
@@ -250,8 +300,8 @@ export class DashboardComponent implements OnInit {
     });
   }
   /**
- * Handle logged out state
- */
+   * Handle logged out state
+   */
   private handleLoggedOut(): void {
     console.log('🚪 DASHBOARD - handleLoggedOut called, redirecting to login');
     this.userData = {} as UserData;
@@ -282,96 +332,116 @@ export class DashboardComponent implements OnInit {
     return loanType.displayName; // ✅ Use displayName consistently
   }
 
-async loadUserData(): Promise<void> {
-  console.log('🟡 DashboardComponent - Loading user data...');
-  this.loading = true;
-  this.error = null;
+  async loadUserData(): Promise<void> {
+    console.log('🟡 DashboardComponent - Loading user data...');
+    this.loading = true;
+    this.error = null;
 
-  try {
-    // ✅ Auth service should now be ready
-    const userProfile = await this.authService.getUserProfile().pipe(take(1)).toPromise();
+    try {
+      // ✅ Auth service should now be ready
+      const userProfile = await this.authService
+        .getUserProfile()
+        .pipe(take(1))
+        .toPromise();
 
-    if (!userProfile) {
-      this.handleNoAuthenticatedUser();
-      return;
-    }
+      if (!userProfile) {
+        this.handleNoAuthenticatedUser();
+        return;
+      }
 
-    // ✅ Set basic user info for internal use
-    this.user = {
-      uid: userProfile.id,
-      displayName: `${userProfile['contactInfo']?.firstName || userProfile.firstName || ''} ${userProfile['contactInfo']?.lastName || userProfile.lastName || ''}`.trim(),
-      email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
-    };
-
-    // ✅ Generate account number
-    this.accountNumber = userProfile.id.substring(0, 8);
-
-    // ✅ Map the user profile to flat userData structure based on role
-    if (userProfile.role === 'lender') {
-     this.userData = {
-  id: userProfile.id,
-  email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
-  firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
-  lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
-  phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
-  city: userProfile['contactInfo']?.city || userProfile.city || '',
-  state: userProfile['contactInfo']?.state || userProfile.state || '',
-  company: userProfile['contactInfo']?.company || userProfile.company || '',
-  role: 'lender',
-  accountNumber: this.accountNumber
-};
-
-      
-      // ✅ Load notification preferences for lenders
-      this.loadNotificationPreferencesFromService();
-      
-    } else if (userProfile.role === 'originator') {
-      this.userData = {
-        id: userProfile.id,
-        email: userProfile['contactInfo']?.contactEmail || userProfile.email || '',
-        firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
-        lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
-        phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
-        company: userProfile['contactInfo']?.company || userProfile.company || '',
-        city: userProfile['contactInfo']?.city || userProfile.city || '',
-        state: userProfile['contactInfo']?.state || userProfile.state || '',
-        role: 'originator',
+      // ✅ Set basic user info for internal use
+      this.user = {
+        uid: userProfile.id,
+        displayName: `${
+          userProfile['contactInfo']?.firstName || userProfile.firstName || ''
+        } ${
+          userProfile['contactInfo']?.lastName || userProfile.lastName || ''
+        }`.trim(),
+        email:
+          userProfile['contactInfo']?.contactEmail || userProfile.email || '',
       };
+
+      // ✅ Generate account number
+      this.accountNumber = userProfile.id.substring(0, 8);
+
+      // ✅ Map the user profile to flat userData structure based on role
+      if (userProfile.role === 'lender') {
+        this.userData = {
+          id: userProfile.id,
+          email:
+            userProfile['contactInfo']?.contactEmail || userProfile.email || '',
+          firstName:
+            userProfile['contactInfo']?.firstName ||
+            userProfile.firstName ||
+            '',
+          lastName:
+            userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+          phone:
+            userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+          city: userProfile['contactInfo']?.city || userProfile.city || '',
+          state: userProfile['contactInfo']?.state || userProfile.state || '',
+          company:
+            userProfile['contactInfo']?.company || userProfile.company || '',
+          role: 'lender',
+          accountNumber: this.accountNumber,
+        };
+
+        // ✅ Load notification preferences for lenders
+        this.loadNotificationPreferencesFromService();
+      } else if (userProfile.role === 'originator') {
+        this.userData = {
+          id: userProfile.id,
+          email:
+            userProfile['contactInfo']?.contactEmail || userProfile.email || '',
+          firstName:
+            userProfile['contactInfo']?.firstName ||
+            userProfile.firstName ||
+            '',
+          lastName:
+            userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+          phone:
+            userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+          company:
+            userProfile['contactInfo']?.company || userProfile.company || '',
+          city: userProfile['contactInfo']?.city || userProfile.city || '',
+          state: userProfile['contactInfo']?.state || userProfile.state || '',
+          role: 'originator',
+        };
+      }
+
+      // ✅ Set user role for template conditionals
+      this.userRole = this.userData.role;
+
+      console.log('✅ User profile loaded and mapped:', {
+        user: this.user,
+        userData: this.userData,
+        userRole: this.userRole,
+      });
+
+      // ✅ Load role-specific data
+      if (this.userRole === 'lender' && this.user.uid) {
+        await this.loadSavedLoans(this.user.uid);
+      }
+
+      if (this.userRole === 'originator' && this.user.uid) {
+        await this.loadSavedLenders(this.user.uid);
+      }
+
+      // ✅ Load loans for both roles
+      if (this.user.uid) {
+        await this.loadLoans(this.user.uid);
+      }
+    } catch (error) {
+      console.error('❌ Error loading user profile:', error);
+      this.error =
+        'Unable to load user profile. Please try refreshing the page.';
+      this.handleNoAuthenticatedUser();
+    } finally {
+      this.loading = false;
     }
-
-    // ✅ Set user role for template conditionals
-    this.userRole = this.userData.role;
-
-    console.log('✅ User profile loaded and mapped:', {
-      user: this.user,
-      userData: this.userData,
-      userRole: this.userRole
-    });
-
-    // ✅ Load role-specific data
-    if (this.userRole === 'lender' && this.user.uid) {
-      await this.loadSavedLoans(this.user.uid);
-    }
-
-    if (this.userRole === 'originator' && this.user.uid) {
-      await this.loadSavedLenders(this.user.uid);
-    }
-
-    // ✅ Load loans for both roles
-    if (this.user.uid) {
-      await this.loadLoans(this.user.uid);
-    }
-
-  } catch (error) {
-    console.error('❌ Error loading user profile:', error);
-    this.error = 'Unable to load user profile. Please try refreshing the page.';
-    this.handleNoAuthenticatedUser();
-  } finally {
-    this.loading = false;
   }
-}
 
-/**
+  /**
    * Load complete lender data including product and footprint info
    */
   private async loadLenderCompleteData(): Promise<void> {
@@ -380,13 +450,16 @@ async loadUserData(): Promise<void> {
     }
 
     try {
-      const lenderRef = doc(this.firestoreService.firestore, `lenders/${this.user.uid}`);
+      const lenderRef = doc(
+        this.firestoreService.firestore,
+        `lenders/${this.user.uid}`
+      );
       const lenderSnap = await getDoc(lenderRef);
-      
+
       if (lenderSnap.exists()) {
         this.lenderData = lenderSnap.data();
         console.log('✅ Complete lender data loaded:', this.lenderData);
-        
+
         // Log specific sections for debugging
         console.log('Product Info:', this.lenderData.productInfo);
         console.log('Footprint Info:', this.lenderData.footprintInfo);
@@ -419,7 +492,10 @@ async loadUserData(): Promise<void> {
     this.accountNumber = fbUser.uid.substring(0, 8);
 
     // Try lenders collection first
-    const lenderDocRef = doc(this.firestoreService.firestore, `lenders/${fbUser.uid}`);
+    const lenderDocRef = doc(
+      this.firestoreService.firestore,
+      `lenders/${fbUser.uid}`
+    );
     const lenderSnap = await getDoc(lenderDocRef);
 
     if (lenderSnap.exists()) {
@@ -428,7 +504,10 @@ async loadUserData(): Promise<void> {
     }
 
     // If not found in lenders, try originators collection
-    const userDocRef = doc(this.firestoreService.firestore, `originators/${fbUser.uid}`);
+    const userDocRef = doc(
+      this.firestoreService.firestore,
+      `originators/${fbUser.uid}`
+    );
     const userSnap = await getDoc(userDocRef);
 
     if (userSnap.exists()) {
@@ -451,7 +530,8 @@ async loadUserData(): Promise<void> {
     if (data.role === 'lender') {
       this.userData = {
         id: docSnap.id,
-        company: data.company || (data.contactInfo && data.contactInfo.company) || '',
+        company:
+          data.company || (data.contactInfo && data.contactInfo.company) || '',
         firstName: data.contactInfo?.firstName || '',
         lastName: data.contactInfo?.lastName || '',
         phone: data.contactInfo?.contactPhone || '',
@@ -498,37 +578,61 @@ async loadUserData(): Promise<void> {
   private loadNotificationPreferencesFromService(): void {
     console.log('🔍 Loading notification preferences...');
 
-    this.authService.isLoggedIn$.pipe(
-      filter((isLoggedIn: boolean) => isLoggedIn),
-      take(1),
-      switchMap(() => {
-        console.log('🔍 Calling getNotificationPreferences...');
-        return this.notificationPreferencesService.getNotificationPreferences();
-      })
+    this.authService.isLoggedIn$
+      .pipe(
+        filter((isLoggedIn: boolean) => isLoggedIn),
+        take(1),
+        switchMap(() => {
+          console.log('🔍 Calling getNotificationPreferences...');
+          return this.notificationPreferencesService.getNotificationPreferences();
+        })
+      )
+      .subscribe({
+        next: (preferences: any) => {
+          console.log('🔍 Raw server response:', preferences);
+          console.log(
+            '🔍 wantsEmailNotifications value:',
+            preferences?.wantsEmailNotifications
+          );
 
-    ).subscribe({
-      next: (preferences: any) => {
-        console.log('🔍 Raw server response:', preferences);
-        console.log('🔍 wantsEmailNotifications value:', preferences?.wantsEmailNotifications);
+          const actualPrefs =
+            preferences?.data?.preferences ||
+            preferences?.preferences ||
+            preferences;
 
-        const actualPrefs = preferences?.data?.preferences || preferences?.preferences || preferences;
-
-        if (actualPrefs) {
-          // ✅ Use actualPrefs instead of preferences
-          this.notificationPrefs.set({
-            wantsEmailNotifications: actualPrefs.wantsEmailNotifications || false, // ← Use actualPrefs!
-            propertyCategories: actualPrefs.propertyCategory || [],
-            subcategorySelections: actualPrefs.subcategorySelections || [],
-            loanTypes: actualPrefs.loanTypes || [],
-            minLoanAmount: actualPrefs.minLoanAmount || 0,
-            ficoScore: actualPrefs.ficoScore || 0,
-            footprint: actualPrefs.footprint || [],
-          });
-          console.log('✅ Updated notification preferences signal:', this.notificationPrefs());
-        } else {
-
-
-          console.warn('⚠️ No notification preferences found. Using defaults.');
+          if (actualPrefs) {
+            // ✅ Use actualPrefs instead of preferences
+            this.notificationPrefs.set({
+              wantsEmailNotifications:
+                actualPrefs.wantsEmailNotifications || false, // ← Use actualPrefs!
+              propertyCategories: actualPrefs.propertyCategory || [],
+              subcategorySelections: actualPrefs.subcategorySelections || [],
+              loanTypes: actualPrefs.loanTypes || [],
+              minLoanAmount: actualPrefs.minLoanAmount || 0,
+              ficoScore: actualPrefs.ficoScore || 0,
+              footprint: actualPrefs.footprint || [],
+            });
+            console.log(
+              '✅ Updated notification preferences signal:',
+              this.notificationPrefs()
+            );
+          } else {
+            console.warn(
+              '⚠️ No notification preferences found. Using defaults.'
+            );
+            this.notificationPrefs.set({
+              wantsEmailNotifications: false,
+              propertyCategories: [],
+              subcategorySelections: [],
+              loanTypes: [],
+              minLoanAmount: 0,
+              ficoScore: 0,
+              footprint: [],
+            });
+          }
+        },
+        error: (error: any) => {
+          console.error('❌ Error loading notification preferences:', error);
           this.notificationPrefs.set({
             wantsEmailNotifications: false,
             propertyCategories: [],
@@ -538,21 +642,8 @@ async loadUserData(): Promise<void> {
             ficoScore: 0,
             footprint: [],
           });
-        }
-      },
-      error: (error: any) => {
-        console.error('❌ Error loading notification preferences:', error);
-        this.notificationPrefs.set({
-          wantsEmailNotifications: false,
-          propertyCategories: [],
-          subcategorySelections: [],
-          loanTypes: [],
-          minLoanAmount: 0,
-          ficoScore: 0,
-          footprint: [],
-        });
-      },
-    });
+        },
+      });
   }
 
   /**
@@ -571,33 +662,42 @@ async loadUserData(): Promise<void> {
     const currentPrefs = this.notificationPrefs();
     this.notificationPrefs.set({
       ...currentPrefs,
-      wantsEmailNotifications: newStatus
+      wantsEmailNotifications: newStatus,
     });
 
     // ✅ Save to backend
-    this.emailNotificationService.toggleEmailNotificationsCallable(newStatus).pipe(
-      finalize(() => {
-        // ✅ Always clear saving state when done
-        this.savingOptIn.set(false);
-      })
-    ).subscribe({
-      next: (response) => {
-        console.log('✅ Notification opt-in status updated via Cloud Function:', response);
-      },
-      error: (error) => {
-        console.error('❌ Error toggling notification opt-in via Cloud Function:', error);
+    this.emailNotificationService
+      .toggleEmailNotificationsCallable(newStatus)
+      .pipe(
+        finalize(() => {
+          // ✅ Always clear saving state when done
+          this.savingOptIn.set(false);
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log(
+            '✅ Notification opt-in status updated via Cloud Function:',
+            response
+          );
+        },
+        error: (error) => {
+          console.error(
+            '❌ Error toggling notification opt-in via Cloud Function:',
+            error
+          );
 
-        // ✅ Revert the optimistic update on error
-        const revertedPrefs = this.notificationPrefs();
-        this.notificationPrefs.set({
-          ...revertedPrefs,
-          wantsEmailNotifications: !newStatus
-        });
+          // ✅ Revert the optimistic update on error
+          const revertedPrefs = this.notificationPrefs();
+          this.notificationPrefs.set({
+            ...revertedPrefs,
+            wantsEmailNotifications: !newStatus,
+          });
 
-        // ✅ Show user-friendly error message
-        alert('Failed to update notification preferences. Please try again.');
-      }
-    });
+          // ✅ Show user-friendly error message
+          alert('Failed to update notification preferences. Please try again.');
+        },
+      });
   }
 
   /**
@@ -653,26 +753,26 @@ async loadUserData(): Promise<void> {
   }
 
   /**
- * Load loans created by the user (primarily for originators)
- */
-async loadLoans(userId: string): Promise<void> {
-  console.log('Loading loans for user:', userId);
-  this.loansLoading.set(true);
-  this.loansError.set(null);
+   * Load loans created by the user (primarily for originators)
+   */
+  async loadLoans(userId: string): Promise<void> {
+    console.log('Loading loans for user:', userId);
+    this.loansLoading.set(true);
+    this.loansError.set(null);
 
-  this.loanService.loadLoans(userId).subscribe({
-    next: (serviceLoans: LoanModel[]) => {
-      console.log(`✅ Dashboard: Loaded ${serviceLoans.length} loans`);
-      this.loans.set(serviceLoans);
-      this.loansLoading.set(false); // ✅ Reset loading state
-    },
-    error: (error: any) => {
-      console.error('❌ Error loading loans:', error);
-      this.loansError.set('Failed to load your loans. Please try again.');
-      this.loansLoading.set(false); // ✅ Reset loading state on error
-    }
-  });
-}
+    this.loanService.loadLoans(userId).subscribe({
+      next: (serviceLoans: LoanModel[]) => {
+        console.log(`✅ Dashboard: Loaded ${serviceLoans.length} loans`);
+        this.loans.set(serviceLoans);
+        this.loansLoading.set(false); // ✅ Reset loading state
+      },
+      error: (error: any) => {
+        console.error('❌ Error loading loans:', error);
+        this.loansError.set('Failed to load your loans. Please try again.');
+        this.loansLoading.set(false); // ✅ Reset loading state on error
+      },
+    });
+  }
 
   /**
    * Load saved loans for lenders
@@ -732,7 +832,10 @@ async loadLoans(userId: string): Promise<void> {
       return;
     }
 
-    const savedLoansCollectionRef = collection(this.firestoreService.firestore, 'loanFavorites');
+    const savedLoansCollectionRef = collection(
+      this.firestoreService.firestore,
+      'loanFavorites'
+    );
     const q = query(
       savedLoansCollectionRef,
       where('loanId', '==', loan.id),
@@ -814,7 +917,7 @@ async loadLoans(userId: string): Promise<void> {
 
     this.notificationPrefs.set({
       ...currentPrefs,
-      propertyCategories: currentCategories
+      propertyCategories: currentCategories,
     });
   }
 
@@ -831,7 +934,7 @@ async loadLoans(userId: string): Promise<void> {
 
     this.notificationPrefs.set({
       ...currentPrefs,
-      subcategorySelections: currentSelections
+      subcategorySelections: currentSelections,
     });
   }
 
@@ -848,7 +951,7 @@ async loadLoans(userId: string): Promise<void> {
 
     this.notificationPrefs.set({
       ...currentPrefs,
-      loanTypes: currentLoanTypes
+      loanTypes: currentLoanTypes,
     });
   }
 
@@ -865,7 +968,7 @@ async loadLoans(userId: string): Promise<void> {
 
     this.notificationPrefs.set({
       ...currentPrefs,
-      footprint: currentFootprint
+      footprint: currentFootprint,
     });
   }
 
@@ -875,7 +978,9 @@ async loadLoans(userId: string): Promise<void> {
   }
 
   isSubcategorySelected(subcategoryValue: string): boolean {
-    return this.notificationPrefs().subcategorySelections.includes(subcategoryValue);
+    return this.notificationPrefs().subcategorySelections.includes(
+      subcategoryValue
+    );
   }
 
   isLoanTypeSelected(loanTypeValue: string): boolean {
@@ -888,12 +993,16 @@ async loadLoans(userId: string): Promise<void> {
 
   // ✅ Helper methods for display names
   getCategoryDisplayName(categoryValue: string): string {
-    const category = this.allPropertyCategoryOptions.find(cat => cat.value === categoryValue);
+    const category = this.allPropertyCategoryOptions.find(
+      (cat) => cat.value === categoryValue
+    );
     return category ? category.displayName : categoryValue;
   }
 
   getLoanTypeDisplayName(loanTypeValue: string): string {
-    const loanType = this.allLoanTypeOptions.find(type => type.value === loanTypeValue);
+    const loanType = this.allLoanTypeOptions.find(
+      (type) => type.value === loanTypeValue
+    );
     return loanType ? loanType.displayName : loanTypeValue;
   }
 
@@ -915,20 +1024,20 @@ async loadLoans(userId: string): Promise<void> {
     return !!(this.lenderData?.productInfo && this.lenderData?.footprintInfo);
   }
   get formattedPropertyTypes(): string {
-    return this.notificationPrefs().propertyCategories
-      .map(cat => this.getCategoryDisplayName(cat))
+    return this.notificationPrefs()
+      .propertyCategories.map((cat) => this.getCategoryDisplayName(cat))
       .join(', ');
   }
 
   get formattedLoanTypes(): string {
-    return this.notificationPrefs().loanTypes
-      .map(type => this.getLoanTypeDisplayName(type))
+    return this.notificationPrefs()
+      .loanTypes.map((type) => this.getLoanTypeDisplayName(type))
       .join(', ');
   }
 
   get formattedFootprintStates(): string {
-    return this.notificationPrefs().footprint
-      .map(state => this.getFormattedStateName(state))
+    return this.notificationPrefs()
+      .footprint.map((state) => this.getFormattedStateName(state))
       .join(', ');
   }
 
@@ -939,13 +1048,17 @@ async loadLoans(userId: string): Promise<void> {
 
     this.notificationPrefs.set({
       ...currentPrefs,
-      minLoanAmount: isNaN(numericValue) ? 0 : numericValue
+      minLoanAmount: isNaN(numericValue) ? 0 : numericValue,
     });
   }
 
   // ✅ FIXED: Reset method using proper signal updates
   resetNotificationPreferences(): void {
-    if (confirm('Are you sure you want to reset all notification preferences to defaults?')) {
+    if (
+      confirm(
+        'Are you sure you want to reset all notification preferences to defaults?'
+      )
+    ) {
       this.notificationPrefs.set({
         wantsEmailNotifications: false,
         propertyCategories: [],
@@ -967,25 +1080,33 @@ async loadLoans(userId: string): Promise<void> {
     console.log('Is lender:', this.isLender());
 
     if (this.userRole === 'lender') {
-      this.notificationPreferencesService.getNotificationPreferences().subscribe({
-        next: (serverPrefs) => {
-          if (!serverPrefs) {
-            console.error('No server preferences found.');
-            return;
-          }
-          console.log('✅ Server preferences:', serverPrefs);
-          console.log('Email Notifications Enabled:', serverPrefs.wantsEmailNotifications);
-          console.log('Property Categories:', serverPrefs.propertyCategories);
-          console.log('Subcategory Selections:', serverPrefs.subcategorySelections);
-          console.log('Loan Types:', serverPrefs.loanTypes);
-          console.log('Minimum Loan Amount:', serverPrefs.minLoanAmount);
-          console.log('FICO Score:', serverPrefs.ficoScore);
-          console.log('Footprint:', serverPrefs.footprint);
-        },
-        error: (error) => {
-          console.error('Error loading server preferences:', error);
-        },
-      });
+      this.notificationPreferencesService
+        .getNotificationPreferences()
+        .subscribe({
+          next: (serverPrefs) => {
+            if (!serverPrefs) {
+              console.error('No server preferences found.');
+              return;
+            }
+            console.log('✅ Server preferences:', serverPrefs);
+            console.log(
+              'Email Notifications Enabled:',
+              serverPrefs.wantsEmailNotifications
+            );
+            console.log('Property Categories:', serverPrefs.propertyCategories);
+            console.log(
+              'Subcategory Selections:',
+              serverPrefs.subcategorySelections
+            );
+            console.log('Loan Types:', serverPrefs.loanTypes);
+            console.log('Minimum Loan Amount:', serverPrefs.minLoanAmount);
+            console.log('FICO Score:', serverPrefs.ficoScore);
+            console.log('Footprint:', serverPrefs.footprint);
+          },
+          error: (error) => {
+            console.error('Error loading server preferences:', error);
+          },
+        });
     }
   }
 
@@ -1066,88 +1187,161 @@ async loadLoans(userId: string): Promise<void> {
   }
 
   getFormattedLoanTypes(): string {
-    return this.notificationPrefs().loanTypes
-      .map(lt => this.getLoanTypeDisplayName(lt))
+    return this.notificationPrefs()
+      .loanTypes.map((lt) => this.getLoanTypeDisplayName(lt))
       .join(', ');
   }
 
+  // ✅ UPDATED: Dashboard Component Lender Methods with Angular 18 best practices
+  // Replace these methods in your dashboard.component.ts
+
+  /**
+   * ✅ FIXED: Get lender contact name with proper null checking
+   */
   getLenderContactName(lenderFavorite: any): string {
     if (
-      !lenderFavorite.lenderData ||
+      !lenderFavorite?.lenderData ||
       lenderFavorite.lenderData.notFound ||
       lenderFavorite.lenderData.error
     ) {
-      return 'Unknown';
+      return 'Not specified';
     }
 
-    const firstName = lenderFavorite.lenderData.contactInfo?.firstName || '';
-    const lastName = lenderFavorite.lenderData.contactInfo?.lastName || '';
+    // ✅ Match exact Lender model structure with fallbacks
+    const firstName =
+      lenderFavorite.lenderData.contactInfo?.firstName ||
+      lenderFavorite.lenderData.firstName ||
+      '';
+    const lastName =
+      lenderFavorite.lenderData.contactInfo?.lastName ||
+      lenderFavorite.lenderData.lastName ||
+      '';
 
-    return firstName || lastName
-      ? `${firstName} ${lastName}`.trim()
-      : 'Not specified';
-  }
-
-  getLenderCompanyName(lenderFavorite: any): string {
-    if (!lenderFavorite.lenderData) {
-      return 'Unknown Company';
-    }
-
-    const companyFromContactInfo =
-      lenderFavorite.lenderData.contactInfo?.company;
-    const firstName = lenderFavorite.lenderData.contactInfo?.firstName || '';
-    const lastName = lenderFavorite.lenderData.contactInfo?.lastName || '';
     const fullName = `${firstName} ${lastName}`.trim();
-
-    if (companyFromContactInfo && companyFromContactInfo !== '') {
-      return companyFromContactInfo;
-    }
-
-    if (fullName) {
-      return `${fullName}'s Company`;
-    }
-
-    return 'Unknown Company';
+    return fullName || 'Not specified';
   }
 
   /**
-   * Get lender types as string
+   * ✅ FIXED: Get lender company name with all possible fallback locations
+   */
+  getLenderCompanyName(lenderFavorite: any): string {
+    if (!lenderFavorite?.lenderData) {
+      return 'Unknown Company';
+    }
+
+    // ✅ Check all possible company locations per Lender model
+    const topLevelCompany = lenderFavorite.lenderData.company;
+    const contactInfoCompany = lenderFavorite.lenderData.contactInfo?.company;
+
+    const company = (topLevelCompany || contactInfoCompany || '').trim();
+
+    if (company && company !== '') {
+      return company;
+    }
+
+    // ✅ Fallback to name-based company if no company specified
+    const firstName =
+      lenderFavorite.lenderData.contactInfo?.firstName ||
+      lenderFavorite.lenderData.firstName ||
+      '';
+    const lastName =
+      lenderFavorite.lenderData.contactInfo?.lastName ||
+      lenderFavorite.lenderData.lastName ||
+      '';
+    const fullName = `${firstName} ${lastName}`.trim();
+
+    return fullName ? `${fullName}'s Company` : 'Unknown Company';
+  }
+
+  /**
+   * ✅ FIXED: Get lender types with updated data access matching Lender model
    */
   getLenderTypes(lenderFavorite: any): string {
-    if (
-      !lenderFavorite.lenderData ||
-      !lenderFavorite.lenderData.productInfo?.lenderTypes?.length
-    ) {
-      return 'Not specified';
+    if (!lenderFavorite?.lenderData) {
+      return 'general';
     }
 
-    const firstType = lenderFavorite.lenderData.productInfo.lenderTypes[0];
-    return this.getLenderTypeName(firstType);
+    // ✅ Check both productInfo.lenderTypes and top-level lenderTypes per Lender model
+    const productInfoTypes = lenderFavorite.lenderData.productInfo?.lenderTypes;
+    const topLevelTypes = lenderFavorite.lenderData.lenderTypes;
+
+    const lenderTypes = productInfoTypes || topLevelTypes || [];
+
+    if (!Array.isArray(lenderTypes) || lenderTypes.length === 0) {
+      return 'general';
+    }
+
+    // ✅ Get first lender type and format it
+    const firstType = lenderTypes[0];
+
+    // ✅ Handle both string and object formats
+    if (typeof firstType === 'string') {
+      return this.getLenderTypeName(firstType);
+    }
+
+    if (typeof firstType === 'object' && firstType?.name) {
+      return firstType.name;
+    }
+
+    if (typeof firstType === 'object' && firstType?.value) {
+      return this.getLenderTypeName(firstType.value);
+    }
+
+    return 'general';
   }
 
+  /**
+   * ✅ FIXED: Get lender loan range matching Lender model structure
+   */
   getLenderLoanRange(lenderFavorite: any): string {
-    if (!lenderFavorite.lenderData || !lenderFavorite.lenderData.productInfo) {
-      return 'Not specified';
+    if (!lenderFavorite?.lenderData) {
+      return '$100,000 - $10,000,000';
     }
 
-    const minAmount = lenderFavorite.lenderData.productInfo.minLoanAmount;
-    const maxAmount = lenderFavorite.lenderData.productInfo.maxLoanAmount;
+    // ✅ Check both productInfo and top-level amounts per Lender model
+    const productInfo = lenderFavorite.lenderData.productInfo;
+    const topLevel = lenderFavorite.lenderData;
 
-    if (!minAmount && !maxAmount) {
-      return 'Not specified';
+    const minAmount =
+      productInfo?.minLoanAmount || topLevel?.minLoanAmount || 0;
+    const maxAmount =
+      productInfo?.maxLoanAmount || topLevel?.maxLoanAmount || 0;
+
+    // ✅ Handle number | string types as defined in Lender model
+    const minValue =
+      typeof minAmount === 'string'
+        ? parseFloat(minAmount.replace(/[^\d.-]/g, ''))
+        : Number(minAmount);
+    const maxValue =
+      typeof maxAmount === 'string'
+        ? parseFloat(maxAmount.replace(/[^\d.-]/g, ''))
+        : Number(maxAmount);
+
+    if (
+      (minValue === 0 || isNaN(minValue)) &&
+      (maxValue === 0 || isNaN(maxValue))
+    ) {
+      return '$100,000 - $10,000,000'; // ✅ Default fallback
     }
 
-    return (
-      this.formatCurrency(minAmount || 0) +
-      ' - ' +
-      this.formatCurrency(maxAmount || 0)
-    );
+    // ✅ Format both amounts consistently
+    const formattedMin = this.formatCurrency(minValue || 100000);
+    const formattedMax = this.formatCurrency(maxValue || 10000000);
+
+    return `${formattedMin} - ${formattedMax}`;
   }
 
+  /**
+   * ✅ ENHANCED: Improved lender type name mapping matching registration cleanup
+   */
   getLenderTypeName(value: string): string {
-    const map: { [key: string]: string } = {
+    if (!value) return 'General Lender';
+
+    // ✅ Updated mapping to match your registration cleanup naming conventions
+    const lenderTypeMap: { [key: string]: string } = {
+      // New standardized format (snake_case)
       agency: 'Agency Lender',
-      balanceSheet: 'Balance Sheet',
+      balance_sheet: 'Balance Sheet',
       bank: 'Bank',
       bridge_lender: 'Bridge Lender',
       cdfi: 'CDFI Lender',
@@ -1158,6 +1352,7 @@ async loadLoans(userId: string): Promise<void> {
       crowdfunding: 'Crowdfunding Platform',
       direct_lender: 'Direct Lender',
       family_office: 'Family Office',
+      general: 'General Lender',
       hard_money: 'Hard Money Lender',
       life_insurance: 'Life Insurance Lender',
       mezzanine_lender: 'Mezzanine Lender',
@@ -1166,9 +1361,115 @@ async loadLoans(userId: string): Promise<void> {
       private_lender: 'Private Lender',
       sba: 'SBA Lender',
       usda: 'USDA Lender',
+
+      // Legacy format support (camelCase/spaces) for backward compatibility
+      balanceSheet: 'Balance Sheet',
+      'balance sheet': 'Balance Sheet',
+      bridgeLender: 'Bridge Lender',
+      'bridge lender': 'Bridge Lender',
+      conduitLender: 'Conduit Lender (CMBS)',
+      'conduit lender': 'Conduit Lender (CMBS)',
+      constructionLender: 'Construction Lender',
+      'construction lender': 'Construction Lender',
+      correspondentLender: 'Correspondent Lender',
+      'correspondent lender': 'Correspondent Lender',
+      creditUnion: 'Credit Union',
+      'credit union': 'Credit Union',
+      directLender: 'Direct Lender',
+      'direct lender': 'Direct Lender',
+      familyOffice: 'Family Office',
+      'family office': 'Family Office',
+      hardMoney: 'Hard Money Lender',
+      'hard money': 'Hard Money Lender',
+      lifeInsurance: 'Life Insurance Lender',
+      'life insurance': 'Life Insurance Lender',
+      mezzanineLender: 'Mezzanine Lender',
+      'mezzanine lender': 'Mezzanine Lender',
+      nonQmLender: 'Non-QM Lender',
+      'non qm lender': 'Non-QM Lender',
+      'non-qm lender': 'Non-QM Lender',
+      portfolioLender: 'Portfolio Lender',
+      'portfolio lender': 'Portfolio Lender',
+      privateLender: 'Private Lender',
+      'private lender': 'Private Lender',
     };
 
-    return map[value] || value;
+    // ✅ Try exact match first
+    if (lenderTypeMap[value]) {
+      return lenderTypeMap[value];
+    }
+
+    // ✅ Try case-insensitive match
+    const lowerValue = value.toLowerCase();
+    const foundKey = Object.keys(lenderTypeMap).find(
+      (key) => key.toLowerCase() === lowerValue
+    );
+
+    if (foundKey) {
+      return lenderTypeMap[foundKey];
+    }
+
+    // ✅ Fallback: format the value nicely
+    return (
+      value
+        .replace(/([A-Z])/g, ' $1')
+        .replace(/^./, (str) => str.toUpperCase())
+        .trim() || 'General Lender'
+    );
+  }
+
+  // ✅ DEBUGGING: Add this method temporarily to identify data structure issues
+  debugLenderDataStructure(): void {
+    console.log('=== LENDER DATA STRUCTURE DEBUG ===');
+    console.log(
+      'savedLendersWithDetails signal:',
+      this.savedLendersWithDetails()
+    );
+
+    const firstLender = this.savedLendersWithDetails()[0];
+    if (firstLender) {
+      console.log('First lender structure:', firstLender);
+      console.log('lenderData structure:', firstLender.lenderData);
+
+      if (firstLender.lenderData) {
+        console.log('contactInfo:', firstLender.lenderData.contactInfo);
+        console.log('productInfo:', firstLender.lenderData.productInfo);
+        console.log('footprintInfo:', firstLender.lenderData.footprintInfo);
+        console.log('company (top-level):', firstLender.lenderData.company);
+
+        // Check all top-level properties
+        console.log(
+          'All lenderData properties:',
+          Object.keys(firstLender.lenderData)
+        );
+
+        if (firstLender.lenderData.contactInfo) {
+          console.log(
+            'All contactInfo properties:',
+            Object.keys(firstLender.lenderData.contactInfo)
+          );
+        }
+
+        if (firstLender.lenderData.productInfo) {
+          console.log(
+            'All productInfo properties:',
+            Object.keys(firstLender.lenderData.productInfo)
+          );
+          console.log(
+            'lenderTypes array:',
+            firstLender.lenderData.productInfo.lenderTypes
+          );
+          console.log(
+            'minLoanAmount:',
+            firstLender.lenderData.productInfo.minLoanAmount
+          );
+          console.log(
+            'maxLoanAmount:',
+            firstLender.lenderData.productInfo.maxLoanAmount
+          );
+        }
+      }
+    }
   }
 
   viewLenderDetails(lenderId: string): void {
@@ -1262,12 +1563,16 @@ async loadLoans(userId: string): Promise<void> {
   }
 
   formatPropertyCategory(category: string): string {
-    const categoryOption = this.allPropertyCategoryOptions.find(opt => opt.value === category);
+    const categoryOption = this.allPropertyCategoryOptions.find(
+      (opt) => opt.value === category
+    );
     return categoryOption ? categoryOption.displayName : category;
   }
 
   formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
-    return getPropertySubcategoryName(LoanUtils.getSubcategoryValue(subcategory));
+    return getPropertySubcategoryName(
+      LoanUtils.getSubcategoryValue(subcategory)
+    );
   }
 
   /**
@@ -1309,7 +1614,6 @@ async loadLoans(userId: string): Promise<void> {
     if (!state) return '';
     return this.locationService.formatValueForDisplay(state);
   }
-
 
   /**
    * Format date
@@ -1407,7 +1711,10 @@ async loadLoans(userId: string): Promise<void> {
 
     if (confirmed) {
       try {
-        const loanDocRef = doc(this.firestoreService.firestore, `loans/${loanId}`);
+        const loanDocRef = doc(
+          this.firestoreService.firestore,
+          `loans/${loanId}`
+        );
         await deleteDoc(loanDocRef);
 
         const currentLoans = this.loans();
@@ -1429,13 +1736,13 @@ async loadLoans(userId: string): Promise<void> {
       // Deselect all states
       this.notificationPrefs.set({
         ...currentPrefs,
-        footprint: []
+        footprint: [],
       });
     } else {
       // Select all states
       this.notificationPrefs.set({
         ...currentPrefs,
-        footprint: [...this.allStates]
+        footprint: [...this.allStates],
       });
     }
   }
@@ -1473,8 +1780,12 @@ async loadLoans(userId: string): Promise<void> {
       throw new Error('User account information not available');
     }
 
-    const collectionName = this.userRole === 'lender' ? 'lenders' : 'originators';
-    const userDocRef = doc(this.firestoreService.firestore, `${collectionName}/${this.userData.id}`);
+    const collectionName =
+      this.userRole === 'lender' ? 'lenders' : 'originators';
+    const userDocRef = doc(
+      this.firestoreService.firestore,
+      `${collectionName}/${this.userData.id}`
+    );
     await deleteDoc(userDocRef);
 
     this.authService.logout().subscribe({

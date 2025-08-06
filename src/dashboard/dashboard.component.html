@@ -1,253 +1,257 @@
+<h1 class="title">Dashboard</h1>
 
-  <h1 class="title">Dashboard</h1>
+<!-- Add this temporarily after your saved lenders table -->
+<button (click)="debugLenderDataStructure()" *ngIf="savedLendersWithDetails().length > 0" class="action-btn debug-btn">
+  Debug Lender Data
+</button>
 
-  <div class="dashboard-container">
-    <!-- User Profile Section -->
-    <div class="account-container">
-      <div class="profile-section">
-        <h2 class="acct-info">Account Information</h2>
+<div class="dashboard-container">
+  <!-- User Profile Section -->
+  <div class="account-container">
+    <div class="profile-section">
+      <h2 class="acct-info">Account Information</h2>
 
-        <div *ngIf="loading" class="loading">
-          Loading your profile...
+      <div *ngIf="loading" class="loading">
+        Loading your profile...
+      </div>
+
+      <div class="profile-card" *ngIf="userData && !loading">
+        <div class="profile-header">
+          <h3 class="user-name">{{ userData.firstName }} {{ userData.lastName }}</h3>
+          <h4 class="email">{{ userData.email }}</h4>
         </div>
 
-        <div class="profile-card" *ngIf="userData && !loading">
-          <div class="profile-header">
-            <h3 class="user-name">{{ userData.firstName }} {{ userData.lastName }}</h3>
-            <h4 class="email">{{ userData.email }}</h4>
+        <div class="profile-details">
+          <div class="profile-row">
+            <span class="label">Account #:</span>
+            <span class="value"> {{ accountNumber | uppercase }}</span>
           </div>
 
-          <div class="profile-details">
-            <div class="profile-row">
-              <span class="label">Account #:</span>
-              <span class="value"> {{ accountNumber | uppercase }}</span>
-            </div>
-
-            <div class="profile-row">
-              <span class="label">Phone:</span>
-              <span class="value"> {{ formatPhoneNumber(userData.phone) }}</span>
-            </div>
-
-            <div class="profile-row">
-              <span class="label">Company:</span>
-              <span class="value"> {{ userData.company }}</span>
-            </div>
-
-            <div class="profile-row">
-              <span class="label">Location:</span>
-              <span class="value">
-                {{ userData.city }}
-                <span *ngIf="userData.state">, {{ getFormattedStateName(userData.state) }}</span>
-              </span>
-            </div>
-
-            <div class="profile-actions">
-              <button class="action-btn account-edit-btn" (click)="editAccount()">Edit Account</button>
-              <button class="action-btn account-delete-btn" (click)="deleteAccount()">Delete Account</button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- My Published Loans (Originators only) -->
-    <div class="loan-container" *ngIf="isOriginator()">
-      <h3 class="loans">My Published Loans:</h3>
-
-      <div *ngIf="loansLoading()" class="loading">
-        <p>Loading your loans...</p>
-      </div>
-
-      <div *ngIf="loansError()" class="error-message">
-        <p>{{ loansError() }}</p>
-        <button *ngIf="user" (click)="loadLoans(user.uid)">Try Again</button>
-      </div>
-
-      <div *ngIf="!loansLoading() && !loansError() && loans().length === 0" class="empty-state">
-        <p class="alert">You haven't created any loans yet.</p>
-        <p class="alert">Click "Add new loan" to get started.</p>
-      </div>
-
-      <div class="button-container">
-        <button class="add-loan" (click)="createNewLoan()">Add new loan</button>
-      </div>
-
-      <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
-        <div *ngFor="let loan of loans()" class="loan-card">
-          <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
-            <span class="loan-type">{{ formatPropertyCategory(loan.propertyTypeCategory) }}</span>
-            <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
+          <div class="profile-row">
+            <span class="label">Phone:</span>
+            <span class="value"> {{ formatPhoneNumber(userData.phone) }}</span>
           </div>
 
-          <div class="loan-body">
-            <div class="loan-detail">
-              <span class="detail-label">Property:</span>
-              <span class="detail-value">{{ formatPropertySubcategory(loan.propertySubCategory) }}</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Location:</span>
-              <span class="detail-value">{{ loan.city }}, {{ loan.state }}</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Loan Type:</span>
-              <span class="detail-value">{{ getLoanTypeName(loan.loanType) }}</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">LTV:</span>
-              <span class="detail-value">{{ loan.ltv }}%</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Created:</span>
-              <span class="detail-value">{{ getFormattedDate(loan.createdAt) }}</span>
-            </div>
+          <div class="profile-row">
+            <span class="label">Company:</span>
+            <span class="value"> {{ userData.company }}</span>
           </div>
 
-          <div class="loan-actions">
-            <button class="action-btn view-btn" (click)="viewLoanDetails(loan.id || '')">View</button>
-            <button class="action-btn edit-btn" (click)="editLoan(loan.id || '')">Edit</button>
-            <button class="action-btn delete-btn" (click)="deleteLoan(loan.id || '')">Delete</button>
+          <div class="profile-row">
+            <span class="label">Location:</span>
+            <span class="value">
+              {{ userData.city }}
+              <span *ngIf="userData.state">, {{ getFormattedStateName(userData.state) }}</span>
+            </span>
           </div>
 
-          <button class="action-btn match-btn" (click)="goToMatches(loan.id || '')">Lender Matches</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Saved Lenders (Originators only) -->
-    <div class="loan-container" *ngIf="isOriginator()">
-      <h3 class="loans">Saved Lenders:</h3>
-
-      <div *ngIf="savedLendersLoading()" class="loading">
-        <p>Loading your saved lenders...</p>
-      </div>
-
-      <div *ngIf="savedLendersError()" class="error-message">
-        <p>{{ savedLendersError() }}</p>
-        <button *ngIf="user" (click)="loadSavedLenders(user.uid)">Try Again</button>
-      </div>
-
-      <div *ngIf="!savedLendersLoading() && !savedLendersError() && savedLenders().length === 0" class="empty-state">
-        <p class="no-saved-lenders">
-          You haven't saved any lenders yet. Browse lenders to find and save ones you're interested in.
-        </p>
-      </div>
-
-      <div class="button-container">
-        <a routerLink="/lender-list" class="browse-loans">Browse Lenders</a>
-      </div>
-
-      <div class="lender-table-container" *ngIf="!savedLendersLoading() && savedLenders().length > 0">
-        <table class="lender-table">
-          <thead>
-            <tr>
-              <th>Company Name</th>
-              <th>Contact Name</th>
-              <th>Lender Type</th>
-              <th>Loan Range</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let lender of savedLendersWithDetails()" class="lender-row"
-              (click)="viewLenderDetails(lender.lenderId)">
-              <td class="lender-info">{{ getLenderCompanyName(lender) }}</td>
-              <td class="lender-info">{{ getLenderContactName(lender) }}</td>
-              <td class="lender-info">{{ getLenderTypes(lender) }}</td>
-              <td class="lender-info">{{ getLenderLoanRange(lender) }}</td>
-              <td class="actions-cell" (click)="$event.stopPropagation()">
-                <button class="action-btn view-btn" (click)="viewLenderDetails(lender.lenderId)">View</button>
-                <button class="action-btn delete-btn" (click)="removeSavedLender(lender.id)">Remove</button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Saved Loans (Lenders only) -->
-    <div class="loan-container" *ngIf="isLender()">
-      <h3 class="loans">Saved Loans:</h3>
-
-      <div *ngIf="savedLoansLoading()" class="loading">
-        <p>Loading your saved loans...</p>
-      </div>
-
-      <div *ngIf="savedLoansError()" class="error-message">
-        <p>{{ savedLoansError() }}</p>
-        <button *ngIf="user" (click)="loadSavedLoans(user.uid)">Try Again</button>
-      </div>
-
-      <div *ngIf="!savedLoansLoading() && !savedLoansError() && savedLoans().length === 0" class="empty-state">
-        <p class="alert">You haven't saved any loans yet.</p>
-      </div>
-
-      <div class="button-container">
-        <a routerLink="/loans" class="browse-loans">View Loans</a>
-      </div>
-
-      <div class="loans-grid" *ngIf="!savedLoansLoading() && savedLoans().length > 0">
-        <div *ngFor="let savedLoan of savedLoans()" class="loan-card">
-          <div class="loan-header" [style.backgroundColor]="getColor(savedLoan.loanData.propertyTypeCategory)">
-            <span class="loan-type">{{ savedLoan.loanData.propertyTypeCategory }}</span>
-            <span class="loan-amount">{{ formatCurrency(savedLoan.loanData.loanAmount) }}</span>
-          </div>
-
-          <div class="loan-body">
-            <div class="loan-detail">
-              <span class="detail-label">Property:</span>
-              <span class="detail-value">
-                {{ formatPropertySubcategory(savedLoan.loanData.propertySubCategory) }}
-              </span>
-
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Location:</span>
-              <span class="detail-value">{{ savedLoan.loanData.city }}, {{ getStateName(savedLoan.loanData.state)
-                }}</span>
-
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Loan Type:</span>
-              <span class="detail-value">{{ getLoanTypeName(savedLoan.loanData.loanType) }}</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">LTV:</span>
-              <span class="detail-value">{{ savedLoan.loanData.ltv }}%</span>
-            </div>
-
-            <div class="loan-detail">
-              <span class="detail-label">Saved:</span>
-              <span class="detail-value">{{ getFormattedDate(savedLoan.createdAt) }}</span>
-            </div>
-          </div>
-
-          <div class="loan-actions">
-            <button class="action-btn view-btn" (click)="viewLoanDetails(savedLoan.loanId)">View</button>
-            <button class="action-btn delete-btn" (click)="removeSavedLoan(savedLoan.id || '')">Remove</button>
+          <div class="profile-actions">
+            <button class="action-btn account-edit-btn" (click)="editAccount()">Edit Account</button>
+            <button class="action-btn account-delete-btn" (click)="deleteAccount()">Delete Account</button>
           </div>
         </div>
       </div>
-    </div>
-
-    <!-- ✅ NEW: Email Notification Opt-In Container -->
-    <div class="notification-opt-in-container" *ngIf="isLender()">
-      <h3 class="loans">Email Notifications</h3>
-      <p>When you turn on email notifications, you'll get an email every time a loan is posted that meets your lending
-        criteria. you can turn it off at any time.
-      </p>
-
-      <input type="checkbox" id="toggle" class="toggleCheckbox" [checked]="notificationOptIn()"
-        (change)="toggleNotificationOptIn($event)" />
-      <label for="toggle" class="toggleContainer">
-        <div>No Emails</div>
-        <div>Receive Emails</div>
-      </label>
     </div>
   </div>
+
+  <!-- My Published Loans (Originators only) -->
+  <div class="loan-container" *ngIf="isOriginator()">
+    <h3 class="loans">My Published Loans:</h3>
+
+    <div *ngIf="loansLoading()" class="loading">
+      <p>Loading your loans...</p>
+    </div>
+
+    <div *ngIf="loansError()" class="error-message">
+      <p>{{ loansError() }}</p>
+      <button *ngIf="user" (click)="loadLoans(user.uid)">Try Again</button>
+    </div>
+
+    <div *ngIf="!loansLoading() && !loansError() && loans().length === 0" class="empty-state">
+      <p class="alert">You haven't created any loans yet.</p>
+      <p class="alert">Click "Add new loan" to get started.</p>
+    </div>
+
+    <div class="button-container">
+      <button class="add-loan" (click)="createNewLoan()">Add new loan</button>
+    </div>
+
+    <div *ngIf="!loansLoading() && loans().length > 0" class="loans-grid">
+      <div *ngFor="let loan of loans()" class="loan-card">
+        <div class="loan-header" [style.backgroundColor]="getColor(loan.propertyTypeCategory)">
+          <span class="loan-type">{{ formatPropertyCategory(loan.propertyTypeCategory) }}</span>
+          <span class="loan-amount">{{ formatCurrency(loan.loanAmount) }}</span>
+        </div>
+
+        <div class="loan-body">
+          <div class="loan-detail">
+            <span class="detail-label">Property:</span>
+            <span class="detail-value">{{ formatPropertySubcategory(loan.propertySubCategory) }}</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Location:</span>
+            <span class="detail-value">{{ loan.city }}, {{ loan.state }}</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Loan Type:</span>
+            <span class="detail-value">{{ getLoanTypeName(loan.loanType) }}</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">LTV:</span>
+            <span class="detail-value">{{ loan.ltv }}%</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Created:</span>
+            <span class="detail-value">{{ getFormattedDate(loan.createdAt) }}</span>
+          </div>
+        </div>
+
+        <div class="loan-actions">
+          <button class="action-btn view-btn" (click)="viewLoanDetails(loan.id || '')">View</button>
+          <button class="action-btn edit-btn" (click)="editLoan(loan.id || '')">Edit</button>
+          <button class="action-btn delete-btn" (click)="deleteLoan(loan.id || '')">Delete</button>
+        </div>
+
+        <button class="action-btn match-btn" (click)="goToMatches(loan.id || '')">Lender Matches</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Saved Lenders (Originators only) -->
+  <div class="loan-container" *ngIf="isOriginator()">
+    <h3 class="loans">Saved Lenders:</h3>
+
+    <div *ngIf="savedLendersLoading()" class="loading">
+      <p>Loading your saved lenders...</p>
+    </div>
+
+    <div *ngIf="savedLendersError()" class="error-message">
+      <p>{{ savedLendersError() }}</p>
+      <button *ngIf="user" (click)="loadSavedLenders(user.uid)">Try Again</button>
+    </div>
+
+    <div *ngIf="!savedLendersLoading() && !savedLendersError() && savedLenders().length === 0" class="empty-state">
+      <p class="no-saved-lenders">
+        You haven't saved any lenders yet. Browse lenders to find and save ones you're interested in.
+      </p>
+    </div>
+
+    <div class="button-container">
+      <a routerLink="/lender-list" class="browse-loans">Browse Lenders</a>
+    </div>
+
+    <div class="lender-table-container" *ngIf="!savedLendersLoading() && savedLenders().length > 0">
+      <table class="lender-table">
+        <thead>
+          <tr>
+            <th>Company Name</th>
+            <th>Contact Name</th>
+            <th>Lender Type</th>
+            <th>Loan Range</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let lender of savedLendersWithDetails()" class="lender-row"
+            (click)="viewLenderDetails(lender.lenderId)">
+            <td class="lender-info">{{ getLenderCompanyName(lender) }}</td>
+            <td class="lender-info">{{ getLenderContactName(lender) }}</td>
+            <td class="lender-info">{{ getLenderTypes(lender) }}</td>
+            <td class="lender-info">{{ getLenderLoanRange(lender) }}</td>
+            <td class="actions-cell" (click)="$event.stopPropagation()">
+              <button class="action-btn view-btn" (click)="viewLenderDetails(lender.lenderId)">View</button>
+              <button class="action-btn delete-btn" (click)="removeSavedLender(lender.id)">Remove</button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Saved Loans (Lenders only) -->
+  <div class="loan-container" *ngIf="isLender()">
+    <h3 class="loans">Saved Loans:</h3>
+
+    <div *ngIf="savedLoansLoading()" class="loading">
+      <p>Loading your saved loans...</p>
+    </div>
+
+    <div *ngIf="savedLoansError()" class="error-message">
+      <p>{{ savedLoansError() }}</p>
+      <button *ngIf="user" (click)="loadSavedLoans(user.uid)">Try Again</button>
+    </div>
+
+    <div *ngIf="!savedLoansLoading() && !savedLoansError() && savedLoans().length === 0" class="empty-state">
+      <p class="alert">You haven't saved any loans yet.</p>
+    </div>
+
+    <div class="button-container">
+      <a routerLink="/loans" class="browse-loans">View Loans</a>
+    </div>
+
+    <div class="loans-grid" *ngIf="!savedLoansLoading() && savedLoans().length > 0">
+      <div *ngFor="let savedLoan of savedLoans()" class="loan-card">
+        <div class="loan-header" [style.backgroundColor]="getColor(savedLoan.loanData.propertyTypeCategory)">
+          <span class="loan-type">{{ savedLoan.loanData.propertyTypeCategory }}</span>
+          <span class="loan-amount">{{ formatCurrency(savedLoan.loanData.loanAmount) }}</span>
+        </div>
+
+        <div class="loan-body">
+          <div class="loan-detail">
+            <span class="detail-label">Property:</span>
+            <span class="detail-value">
+              {{ formatPropertySubcategory(savedLoan.loanData.propertySubCategory) }}
+            </span>
+
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Location:</span>
+            <span class="detail-value">{{ savedLoan.loanData.city }}, {{ getStateName(savedLoan.loanData.state)
+              }}</span>
+
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Loan Type:</span>
+            <span class="detail-value">{{ getLoanTypeName(savedLoan.loanData.loanType) }}</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">LTV:</span>
+            <span class="detail-value">{{ savedLoan.loanData.ltv }}%</span>
+          </div>
+
+          <div class="loan-detail">
+            <span class="detail-label">Saved:</span>
+            <span class="detail-value">{{ getFormattedDate(savedLoan.createdAt) }}</span>
+          </div>
+        </div>
+
+        <div class="loan-actions">
+          <button class="action-btn view-btn" (click)="viewLoanDetails(savedLoan.loanId)">View</button>
+          <button class="action-btn delete-btn" (click)="removeSavedLoan(savedLoan.id || '')">Remove</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ✅ NEW: Email Notification Opt-In Container -->
+  <div class="notification-opt-in-container" *ngIf="isLender()">
+    <h3 class="loans">Email Notifications</h3>
+    <p>When you turn on email notifications, you'll get an email every time a loan is posted that meets your lending
+      criteria. you can turn it off at any time.
+    </p>
+
+    <input type="checkbox" id="toggle" class="toggleCheckbox" [checked]="notificationOptIn()"
+      (change)="toggleNotificationOptIn($event)" />
+    <label for="toggle" class="toggleContainer">
+      <div>No Emails</div>
+      <div>Receive Emails</div>
+    </label>
+  </div>
+</div>
