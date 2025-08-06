@@ -1,14 +1,22 @@
 // lender.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Firestore, serverTimestamp } from '@angular/fire/firestore';
-import { Observable, of } from 'rxjs';
+import { Firestore, serverTimestamp, getDoc, doc } from '@angular/fire/firestore';
+import { Observable, of, from } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { FirestoreService } from './firestore.service';
 import { UserData } from '../models/user-data.model';
 
 export interface Lender {
   id: string;
-  lenderType?: string;
+  accountNumber?: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  createdAt?: any;
   contactInfo?: {
     name?: string;
     firstName?: string;
@@ -20,10 +28,10 @@ export interface Lender {
     state?: string;
   };
   productInfo?: {
-    lenderTypes?: string[]; // Using value format (e.g., 'agency', 'bank')
-    propertyCategories?: string[]; // Using value format (e.g., 'commercial', 'retail')
+    lenderTypes?: string[];
+    propertyCategories?: string[];
     propertyTypes?: string[];
-    loanTypes?: string[]; // Using value format (e.g., 'agency', 'bridge')
+    loanTypes?: string[];
     minLoanAmount?: string | number;
     maxLoanAmount?: string | number;
     subcategorySelections?: string[];
@@ -88,22 +96,50 @@ export class LenderService {
     );
   }
 
-  // Get a single lender by ID
-  getLender(id: string): Observable<Lender | null> {
-    return this.firestoreService.getDocument<any>(`lenders/${id}`).pipe(
-      map((lender) => {
-        if (lender && lender.role === 'lender') {
-          return this.mapLenderData(lender);
-        }
-        console.log('User is not a lender or does not exist');
+getLender(id: string): Observable<Lender | null> {
+  const docRef = doc(this.db, `lenders/${id}`);
+  return from(getDoc(docRef)).pipe(
+    map((docSnap) => {
+      if (!docSnap.exists()) {
         return null;
-      }),
-      catchError((error) => {
-        console.error('Error getting lender:', error);
-        return of(null);
-      })
-    );
-  }
+      }
+
+      const data: any = docSnap.data() || {};
+      const contactInfo = data.contactInfo || {};
+      const productInfo = data.productInfo || {};
+
+      const lender: Lender = {
+        id: docSnap.id,
+        accountNumber: docSnap.id.substring(0, 8).toUpperCase(),
+        firstName: data.firstName || contactInfo.firstName || '',
+        lastName: data.lastName || contactInfo.lastName || '',
+        company: data.company || contactInfo.company || '',
+        email: data.email || contactInfo.contactEmail || contactInfo.email || '',
+        phone: data.phone || contactInfo.contactPhone || contactInfo.phone || '',
+        city: data.city || contactInfo.city || '',
+        state: data.state || contactInfo.state || '',
+        createdAt: data.createdAt || null,
+        contactInfo: {
+          ...contactInfo,
+          firstName: contactInfo.firstName || data.firstName || '',
+          lastName: contactInfo.lastName || data.lastName || '',
+          contactEmail: contactInfo.contactEmail || data.email || '',
+          contactPhone: contactInfo.contactPhone || data.phone || '',
+          company: contactInfo.company || data.company || '',
+          city: contactInfo.city || data.city || '',
+          state: contactInfo.state || data.state || ''
+        },
+        productInfo: {
+          ...productInfo,
+          lenderTypes: productInfo.lenderTypes || data.lenderTypes || []
+        }
+      };
+
+      return lender;
+    })
+  );
+}
+
 
   private mapLenderData(lender: any): Lender {
     console.log('🔍 Raw Firebase lender data:', lender); // Debug log

@@ -99,32 +99,32 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   }
 
   loadLenderDetails(id: string): void {
-    this.loading = true;
-    this.cdr.markForCheck();
+  this.loading = true;
+  this.cdr.markForCheck();
 
-    this.lenderService
-      .getLender(id)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (lender) => {
-          this.lender = lender;
-          if (!lender) {
-            this.error = true;
-            console.log('Lender not found');
-          } else {
-            console.log('LENDER DETAILS: Lender loaded:', this.lender);
-          }
-          this.loading = false;
-          this.cdr.markForCheck();
-        },
-        error: (err) => {
-          console.error('Error loading lender details:', err);
+  this.lenderService
+    .getLender(id)
+    .pipe(takeUntil(this.destroy$))
+    .subscribe({
+      next: (lender) => {
+        this.lender = lender;
+        if (!lender) {
           this.error = true;
-          this.loading = false;
-          this.cdr.markForCheck();
-        },
-      });
-  }
+          console.log('Lender not found');
+        } else {
+          console.log('LENDER DETAILS: Lender loaded:', this.lender);
+        }
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+      error: (err) => {
+        console.error('Error loading lender details:', err);
+        this.error = true;
+        this.loading = false;
+        this.cdr.markForCheck();
+      },
+    });
+}
 
   formatCategoryName(category: string): string {
     return getPropertyCategoryName(category);
