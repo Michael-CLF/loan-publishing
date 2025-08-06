@@ -119,7 +119,7 @@ viewLenderDetails(lenderId: string): void {
       office: 'Office',
       residential: 'Residential',
       retail: 'Retail',
-      special_purpose: 'Special Purpose'
+      special_purpose: 'Special Purpose',
     };
     
     return categoryMap[category.toLowerCase()] || category;

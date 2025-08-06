@@ -225,7 +225,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       }
     }
   }
-// ✅ FIXED: Replace these methods in your lender-details.component.ts
 
 // =============================================
 // CONTACT INFORMATION METHODS (Enhanced with comprehensive fallbacks)

@@ -79,7 +79,7 @@
                 <div class="form-group">
                     <label for="contactPhone">Phone</label>
                     <input id="contactPhone" type="tel" formControlName="contactPhone"
-                        (input)="formatPhoneNumberOnInput($event)" (blur)="formatPhoneNumber()"
+                        (input)="formatPhoneNumber()"
                         [ngClass]="{'invalid': lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched}" />
                     <div *ngIf="lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched"
                         class="error">

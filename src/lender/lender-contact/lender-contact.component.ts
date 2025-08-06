@@ -36,7 +36,7 @@ export class LenderContactComponent implements OnDestroy {
   // Format phone number as the user types
   formatPhoneNumberOnInput(event: any): void {
     const input = event.target.value.replace(/\D/g, '');
-    const phoneControl = this.lenderForm.get('.contactPhone');
+    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
 
     if (input.length <= 10) {
       let formattedNumber = input;
@@ -66,7 +66,7 @@ export class LenderContactComponent implements OnDestroy {
 
   // Keep the blur handler for cases where the user pastes a number
   formatPhoneNumber(): void {
-    const phoneControl = this.lenderForm.get('.contactPhone');
+    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
     if (phoneControl?.value) {
       let phoneNumber = phoneControl.value.replace(/\D/g, '');
       if (phoneNumber.length === 10) {
