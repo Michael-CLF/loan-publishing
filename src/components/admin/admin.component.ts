@@ -1,5 +1,13 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
-import { Firestore, collection, getDocs, doc, setDoc, serverTimestamp, updateDoc } from '@angular/fire/firestore';
+import {
+  Firestore,
+  collection,
+  getDocs,
+  doc,
+  setDoc,
+  serverTimestamp,
+  updateDoc,
+} from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -9,8 +17,6 @@ import { FirestoreService } from '../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../services/location.service';
 import { CsvExportService } from '../../utils/csv-export.service';
-
-
 
 @Component({
   selector: 'app-admin',
@@ -28,7 +34,6 @@ export class AdminComponent implements OnInit {
   private modalService = inject(ModalService);
   private locationService = inject(LocationService);
   private csvExportService = inject(CsvExportService);
-
 
   userFilter = '';
   filteredLenders = signal<any[]>([]);
@@ -50,7 +55,7 @@ export class AdminComponent implements OnInit {
   private originatorsMap = new Map<string, any>();
   private lendersMap = new Map<string, any>();
   private originatorNames = new Map<string, string>();
-  
+
   // Sorting properties
   sortColumn = '';
   sortDirection: 'asc' | 'desc' = 'asc';
@@ -67,7 +72,6 @@ export class AdminComponent implements OnInit {
     if (isAuthenticated) {
       this.loadAllData();
     }
-  
 
     // Initialize the signal
     this.adminAuthenticated.set(isAuthenticated);
@@ -80,63 +84,61 @@ export class AdminComponent implements OnInit {
   }
 
   downloadUsersAsCSV(): void {
-  const originators = this.originators().map(o => ({
-    firstName: o.firstName || '',
-    lastName: o.lastName || '',
-    email: o.email || '',
-    role: 'originator',
-    
-  }));
+    const originators = this.originators().map((o) => ({
+      firstName: o.firstName || '',
+      lastName: o.lastName || '',
+      email: o.email || '',
+      role: 'originator',
+    }));
 
-  console.log('Lenders:', this.lenders());
-  const lenders = this.lenders().map(l => ({
-    
-    firstName: l.firstName || '',
-    lastName: l.lastName || '',
-    email: l.email || '',
-    role: 'lender',
-  }));
+    console.log('Lenders:', this.lenders());
+    const lenders = this.lenders().map((l) => ({
+      firstName: l.firstName || '',
+      lastName: l.lastName || '',
+      email: l.email || '',
+      role: 'lender',
+    }));
 
-  const combined = [...originators, ...lenders].filter(u => u.email);
-  const filename = `users-${new Date().toISOString().split('T')[0]}`;
-  this.csvExportService.downloadCSV(combined, filename);
-}
-
-
+    const combined = [...originators, ...lenders].filter((u) => u.email);
+    const filename = `users-${new Date().toISOString().split('T')[0]}`;
+    this.csvExportService.downloadCSV(combined, filename);
+  }
 
   // Helper method to get and format lender types
-getLenderTypes(lender: any): string {
-  // Check both possible locations for lender types
-  const types = lender.lenderTypes || lender.productInfo?.lenderTypes || lender.types;
-  
-  // If we have an array of types, format each one and join them with commas
-  if (types && Array.isArray(types) && types.length > 0) {
-    return types.map(type => this.formatLenderType(type)).join(', ');
-  }
-  
-  // If we have a single string type
-  if (types && typeof types === 'string') {
-    return this.formatLenderType(types);
-  }
-  
-  // Default fallback
-  return 'N/A';
-}
+  getLenderTypes(lender: any): string {
+    // Check both possible locations for lender types
+    const types =
+      lender.lenderTypes || lender.productInfo?.lenderTypes || lender.types;
 
-// Helper method to format a single lender type value
-private formatLenderType(type: string): string {
-  if (!type) return 'N/A';
-  
-  // Replace underscores with spaces
-  let formatted = type.replace(/_/g, ' ');
-  
-  // Capitalize each word
-  formatted = formatted.split(' ')
-    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(' ');
-    
-  return formatted;
-}
+    // If we have an array of types, format each one and join them with commas
+    if (types && Array.isArray(types) && types.length > 0) {
+      return types.map((type) => this.formatLenderType(type)).join(', ');
+    }
+
+    // If we have a single string type
+    if (types && typeof types === 'string') {
+      return this.formatLenderType(types);
+    }
+
+    // Default fallback
+    return 'N/A';
+  }
+
+  // Helper method to format a single lender type value
+  private formatLenderType(type: string): string {
+    if (!type) return 'N/A';
+
+    // Replace underscores with spaces
+    let formatted = type.replace(/_/g, ' ');
+
+    // Capitalize each word
+    formatted = formatted
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+    return formatted;
+  }
   // Add this method to filter users
   applyUserFilter(): void {
     const filter = this.userFilter.toLowerCase();
@@ -208,46 +210,50 @@ private formatLenderType(type: string): string {
   // Helper method to standardize timestamp handling
   private normalizeTimestamp(timestamp: any): Date {
     if (!timestamp) return new Date();
-    
+
     // Handle Firestore Timestamp objects
     if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
       return timestamp.toDate();
     }
-    
+
     // Handle timestamp objects with seconds/nanoseconds
     if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
       return new Date(timestamp.seconds * 1000);
     }
-    
+
     // Handle raw serverTimestamp objects
-    if (timestamp && typeof timestamp === 'object' && timestamp._methodName === 'serverTimestamp') {
+    if (
+      timestamp &&
+      typeof timestamp === 'object' &&
+      timestamp._methodName === 'serverTimestamp'
+    ) {
       return new Date(); // Current date for display purposes
     }
-    
+
     // Handle JavaScript Date objects
     if (timestamp instanceof Date) {
       return timestamp;
     }
-    
+
     // Default fallback
     return new Date();
   }
 
   getFormattedDate(date: any): string {
-  if (!date) return 'N/A';
+    if (!date) return 'N/A';
 
-  try {
-    const timestamp = date.toDate ? date.toDate() : new Date(date);
-    return timestamp.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch (error) {
-    console.error('Error formatting date:', error);
-    return 'N/A';
+    try {
+      const timestamp = date.toDate ? date.toDate() : new Date(date);
+      return timestamp.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+      });
+    } catch (error) {
+      console.error('Error formatting date:', error);
+      return 'N/A';
+    }
   }
-}
 
   async loadOriginatorsAndLenders() {
     try {
@@ -259,7 +265,7 @@ private formatLenderType(type: string): string {
       // Load originators
       const originatorsRef = collection(this.firestore, 'originators');
       const originatorsSnapshot = await getDocs(originatorsRef);
-      
+
       const originatorsData = originatorsSnapshot.docs.map((doc) => {
         const data = doc.data();
         const contactInfo = data['contactInfo'] || {};
@@ -280,9 +286,12 @@ private formatLenderType(type: string): string {
         // Store in maps for reference
         const userId = data['userId'] || doc.id;
         this.originatorsMap.set(userId, originator);
-        this.originatorNames.set(userId, 
-          `${originator.firstName} ${originator.lastName}`.trim() || 
-          originator.email || 'N/A');
+        this.originatorNames.set(
+          userId,
+          `${originator.firstName} ${originator.lastName}`.trim() ||
+            originator.email ||
+            'N/A'
+        );
 
         return originator;
       });
@@ -290,7 +299,7 @@ private formatLenderType(type: string): string {
       // Load lenders
       const lendersRef = collection(this.firestore, 'lenders');
       const lendersSnapshot = await getDocs(lendersRef);
-      
+
       const lendersData = lendersSnapshot.docs.map((doc) => {
         const data = doc.data();
         const contactInfo = data['contactInfo'] || {};
@@ -299,18 +308,17 @@ private formatLenderType(type: string): string {
         const lender = {
           id: doc.id,
           accountNumber: doc.id.substring(0, 8).toUpperCase(),
-          firstName: contactInfo['firstName'] || '',
-          lastName: contactInfo['lastName'] || '',
+          // ✅ FIXED: Get from root level, then fallback to contactInfo
+          firstName: data['firstName'] || contactInfo['firstName'] || '',
+          lastName: data['lastName'] || contactInfo['lastName'] || '',
           company: data['company'] || contactInfo['company'] || '',
-          city: contactInfo['city'] || '',
-          state: contactInfo['state'] || '',
-          createdAt: this.normalizeTimestamp(data['createdAt']), // Use normalized timestamp
+          city: data['city'] || contactInfo['city'] || '',
+          state: data['state'] || contactInfo['state'] || '',
+          email: data['email'] || contactInfo['contactEmail'] || '',
+          createdAt: this.normalizeTimestamp(data['createdAt']),
           role: 'lender',
-          // Include lender types for display
           lenderTypes: data['lenderTypes'] || productInfo['lenderTypes'] || [],
           productInfo: productInfo,
-          email: contactInfo['contactEmail'] || data['email'] || '',
-
         };
 
         // Store in map for quick lookup
@@ -456,7 +464,7 @@ private formatLenderType(type: string): string {
   compareLenderAndOriginatorTimestamps() {
     // Get one lender with working timestamp
     const lendersRef = collection(this.firestore, 'lenders');
-    getDocs(lendersRef).then(snapshot => {
+    getDocs(lendersRef).then((snapshot) => {
       if (snapshot.docs.length > 0) {
         const lenderDoc = snapshot.docs[0];
         console.log('WORKING LENDER TIMESTAMP:');
@@ -465,16 +473,25 @@ private formatLenderType(type: string): string {
         console.log('- Type:', typeof lenderDoc.data()['createdAt']);
         if (lenderDoc.data()['createdAt']) {
           console.log('- JSON:', JSON.stringify(lenderDoc.data()['createdAt']));
-          console.log('- Has toDate:', 'toDate' in lenderDoc.data()['createdAt']);
-          console.log('- Properties:', Object.getOwnPropertyNames(lenderDoc.data()['createdAt']));
-          console.log('- Prototype:', Object.getPrototypeOf(lenderDoc.data()['createdAt']));
+          console.log(
+            '- Has toDate:',
+            'toDate' in lenderDoc.data()['createdAt']
+          );
+          console.log(
+            '- Properties:',
+            Object.getOwnPropertyNames(lenderDoc.data()['createdAt'])
+          );
+          console.log(
+            '- Prototype:',
+            Object.getPrototypeOf(lenderDoc.data()['createdAt'])
+          );
         }
       }
     });
-    
+
     // Get one originator with non-working timestamp
     const originatorsRef = collection(this.firestore, 'originators');
-    getDocs(originatorsRef).then(snapshot => {
+    getDocs(originatorsRef).then((snapshot) => {
       if (snapshot.docs.length > 0) {
         const originatorDoc = snapshot.docs[0];
         console.log('NON-WORKING ORIGINATOR TIMESTAMP:');
@@ -482,10 +499,22 @@ private formatLenderType(type: string): string {
         console.log('- createdAt:', originatorDoc.data()['createdAt']);
         console.log('- Type:', typeof originatorDoc.data()['createdAt']);
         if (originatorDoc.data()['createdAt']) {
-          console.log('- JSON:', JSON.stringify(originatorDoc.data()['createdAt']));
-          console.log('- Has toDate:', 'toDate' in originatorDoc.data()['createdAt']);
-          console.log('- Properties:', Object.getOwnPropertyNames(originatorDoc.data()['createdAt']));
-          console.log('- Prototype:', Object.getPrototypeOf(originatorDoc.data()['createdAt']));
+          console.log(
+            '- JSON:',
+            JSON.stringify(originatorDoc.data()['createdAt'])
+          );
+          console.log(
+            '- Has toDate:',
+            'toDate' in originatorDoc.data()['createdAt']
+          );
+          console.log(
+            '- Properties:',
+            Object.getOwnPropertyNames(originatorDoc.data()['createdAt'])
+          );
+          console.log(
+            '- Prototype:',
+            Object.getPrototypeOf(originatorDoc.data()['createdAt'])
+          );
         }
       }
     });
@@ -495,7 +524,7 @@ private formatLenderType(type: string): string {
   async createTestOriginator() {
     // Get current time
     const serverTime = serverTimestamp();
-    
+
     // Create data exactly like a lender
     const testData = {
       uid: 'test-' + new Date().getTime(),
@@ -512,77 +541,84 @@ private formatLenderType(type: string): string {
         firstName: 'Test',
         lastName: 'User',
         contactEmail: 'test@example.com',
-        company: 'Test Company'
-      }
+        company: 'Test Company',
+      },
     };
-    
+
     // Add directly to originators collection
     const docRef = doc(this.firestore, `originators/${testData.id}`);
     await setDoc(docRef, testData);
     console.log('Test originator created with ID:', testData.id);
-    
+
     // Reload data to see if it worked
     this.loadAllData();
   }
 
   formatDate(timestamp: any): string {
-  if (!timestamp) return 'N/A';
-  
-  try {
-    // Handle unresolved serverTimestamp placeholder
-    if (timestamp && 
-        typeof timestamp === 'object' && 
-        '_methodName' in timestamp && 
-        timestamp._methodName === 'serverTimestamp') {
-      return 'Pending'; // Or any other message you prefer
-    }
-    
-    // Handle Firestore Timestamp
-    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-      return timestamp.toDate().toLocaleDateString();
-    }
-    
-    // Handle JavaScript Date objects
-    if (timestamp instanceof Date) {
-      return timestamp.toLocaleDateString();
-    }
-    
-    // Handle timestamp objects with seconds/nanoseconds
-    if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
-      return new Date(timestamp.seconds * 1000).toLocaleDateString();
-    }
-    
-    // Handle string dates
-    if (typeof timestamp === 'string') {
-      const date = new Date(timestamp);
-      if (!isNaN(date.getTime())) {
-        return date.toLocaleDateString();
+    if (!timestamp) return 'N/A';
+
+    try {
+      // Handle unresolved serverTimestamp placeholder
+      if (
+        timestamp &&
+        typeof timestamp === 'object' &&
+        '_methodName' in timestamp &&
+        timestamp._methodName === 'serverTimestamp'
+      ) {
+        return 'Pending'; // Or any other message you prefer
       }
+
+      // Handle Firestore Timestamp
+      if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+        return timestamp.toDate().toLocaleDateString();
+      }
+
+      // Handle JavaScript Date objects
+      if (timestamp instanceof Date) {
+        return timestamp.toLocaleDateString();
+      }
+
+      // Handle timestamp objects with seconds/nanoseconds
+      if (
+        timestamp &&
+        typeof timestamp === 'object' &&
+        'seconds' in timestamp
+      ) {
+        return new Date(timestamp.seconds * 1000).toLocaleDateString();
+      }
+
+      // Handle string dates
+      if (typeof timestamp === 'string') {
+        const date = new Date(timestamp);
+        if (!isNaN(date.getTime())) {
+          return date.toLocaleDateString();
+        }
+      }
+
+      // Return the string value for anything else
+      return String(timestamp);
+    } catch (err) {
+      console.error('Error formatting date:', err);
+      return 'Invalid date';
     }
-    
-    // Return the string value for anything else
-    return String(timestamp);
-  } catch (err) {
-    console.error('Error formatting date:', err);
-    return 'Invalid date';
   }
-}
 
-async fixAllTimestamps() {
-  try {
-    // Call the fix method from your firestore service
-    const result = await this.firestoreService.fixOriginatorTimestamps();
-    
-    alert(`Fixed ${result.fixed} out of ${result.total} documents with timestamp issues.`);
-    
-    // Reload data to show the fixed timestamps
-    this.loadAllData();
-  } catch (error) {
-    console.error('Error fixing timestamps:', error);
-    alert('Failed to fix timestamps. Please try again.');
+  async fixAllTimestamps() {
+    try {
+      // Call the fix method from your firestore service
+      const result = await this.firestoreService.fixOriginatorTimestamps();
+
+      alert(
+        `Fixed ${result.fixed} out of ${result.total} documents with timestamp issues.`
+      );
+
+      // Reload data to show the fixed timestamps
+      this.loadAllData();
+    } catch (error) {
+      console.error('Error fixing timestamps:', error);
+      alert('Failed to fix timestamps. Please try again.');
+    }
   }
-}
-
 
   // Format currency
   formatCurrency(amount: any): string {
@@ -646,17 +682,18 @@ async fixAllTimestamps() {
   // Sorting methods
   sortLenders(column: string): void {
     if (this.lenderSortColumn === column) {
-      this.lenderSortDirection = this.lenderSortDirection === 'asc' ? 'desc' : 'asc';
+      this.lenderSortDirection =
+        this.lenderSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.lenderSortColumn = column;
       this.lenderSortDirection = 'asc';
     }
-    
-    this.filteredLenders.update(lenders => {
+
+    this.filteredLenders.update((lenders) => {
       return [...lenders].sort((a, b) => {
         let valueA = this.getSortValue(a, column);
         let valueB = this.getSortValue(b, column);
-        
+
         return this.compareValues(valueA, valueB, this.lenderSortDirection);
       });
     });
@@ -664,17 +701,18 @@ async fixAllTimestamps() {
 
   sortOriginators(column: string): void {
     if (this.originatorSortColumn === column) {
-      this.originatorSortDirection = this.originatorSortDirection === 'asc' ? 'desc' : 'asc';
+      this.originatorSortDirection =
+        this.originatorSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.originatorSortColumn = column;
       this.originatorSortDirection = 'asc';
     }
-    
-    this.filteredOriginators.update(originators => {
+
+    this.filteredOriginators.update((originators) => {
       return [...originators].sort((a, b) => {
         let valueA = this.getSortValue(a, column);
         let valueB = this.getSortValue(b, column);
-        
+
         return this.compareValues(valueA, valueB, this.originatorSortDirection);
       });
     });
@@ -682,17 +720,18 @@ async fixAllTimestamps() {
 
   sortLoans(column: string): void {
     if (this.loanSortColumn === column) {
-      this.loanSortDirection = this.loanSortDirection === 'asc' ? 'desc' : 'asc';
+      this.loanSortDirection =
+        this.loanSortDirection === 'asc' ? 'desc' : 'asc';
     } else {
       this.loanSortColumn = column;
       this.loanSortDirection = 'asc';
     }
-    
-    this.loans.update(loans => {
+
+    this.loans.update((loans) => {
       return [...loans].sort((a, b) => {
         let valueA = this.getSortValue(a, column);
         let valueB = this.getSortValue(b, column);
-        
+
         return this.compareValues(valueA, valueB, this.loanSortDirection);
       });
     });
@@ -701,39 +740,53 @@ async fixAllTimestamps() {
   private getSortValue(item: any, column: string): any {
     // Handle special case columns
     if (column === 'name') {
-      return `${item.firstName || ''} ${item.lastName || ''}`.trim().toLowerCase();
+      return `${item.firstName || ''} ${item.lastName || ''}`
+        .trim()
+        .toLowerCase();
     } else if (column === 'location') {
-      return `${item.city || ''} ${this.getFormattedStateName(item.state) || ''}`.trim().toLowerCase();
+      return `${item.city || ''} ${
+        this.getFormattedStateName(item.state) || ''
+      }`
+        .trim()
+        .toLowerCase();
     } else if (column === 'type') {
       return this.getLenderTypes(item).toLowerCase();
     } else if (column === 'createdAt') {
       return this.normalizeTimestamp(item.createdAt).getTime();
     }
-    
+
     // Default case - direct property access
     return (item[column] || '').toString().toLowerCase();
   }
 
-  private compareValues(valueA: any, valueB: any, direction: 'asc' | 'desc'): number {
+  private compareValues(
+    valueA: any,
+    valueB: any,
+    direction: 'asc' | 'desc'
+  ): number {
     // Handle date comparison (timestamp)
     if (typeof valueA === 'number' && typeof valueB === 'number') {
       return direction === 'asc' ? valueA - valueB : valueB - valueA;
     }
-    
+
     // Handle string comparison
     if (typeof valueA === 'string' && typeof valueB === 'string') {
-      return direction === 'asc' 
-        ? valueA.localeCompare(valueB) 
+      return direction === 'asc'
+        ? valueA.localeCompare(valueB)
         : valueB.localeCompare(valueA);
     }
-    
+
     // Fallback comparison
     if (valueA < valueB) return direction === 'asc' ? -1 : 1;
     if (valueA > valueB) return direction === 'asc' ? 1 : -1;
     return 0;
   }
 
-  getSortIcon(column: string, currentSortColumn: string, direction: 'asc' | 'desc'): string {
+  getSortIcon(
+    column: string,
+    currentSortColumn: string,
+    direction: 'asc' | 'desc'
+  ): string {
     if (column !== currentSortColumn) return '';
     return direction === 'asc' ? '↑' : '↓';
   }
