@@ -225,7 +225,6 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
       }
     }
   }
-
 // ✅ FIXED: Replace these methods in your lender-details.component.ts
 
 // =============================================
@@ -235,30 +234,58 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
 getContactName(): string {
   if (!this.lender) return 'Not specified';
 
-  // ✅ Only access properties that exist in Lender interface
-  const firstName = this.lender.contactInfo?.firstName || '';
-  const lastName = this.lender.contactInfo?.lastName || '';
+  // ✅ Use type assertion to safely check all possible locations
+  const lenderAny = this.lender as any;
+  const firstName = 
+    this.lender.contactInfo?.firstName || 
+    lenderAny.firstName || 
+    '';
+  const lastName = 
+    this.lender.contactInfo?.lastName || 
+    lenderAny.lastName || 
+    '';
 
   const fullName = `${firstName} ${lastName}`.trim();
+  console.log('🔍 DEBUG - getContactName:', { firstName, lastName, fullName });
   return fullName || 'Not specified';
 }
 
 getCompanyName(lender: any): string {
   if (!lender) return 'N/A';
 
-  // ✅ Check all possible locations for company data
-  const topCompany = lender.company;
-  const contactInfoCompany = lender.contactInfo?.company;
+  // ✅ Use type assertion to safely check all possible locations
+  const lenderAny = lender as any;
+  const company = 
+    lender.contactInfo?.company || 
+    lenderAny.company || 
+    '';
 
-  const company = (topCompany || contactInfoCompany || '').trim();
-  return company !== '' ? company : 'N/A';
+  console.log('🔍 DEBUG - getCompanyName:', { 
+    contactInfoCompany: lender.contactInfo?.company,
+    rootCompany: lenderAny.company,
+    finalCompany: company 
+  });
+  
+  return company.trim() || 'N/A';
 }
 
 getEmail(): string {
   if (!this.lender) return 'Not specified';
 
-  // ✅ Only access properties that exist in Lender interface
-  const email = this.lender.contactInfo?.contactEmail || '';
+  // ✅ Use type assertion to safely check all possible locations
+  const lenderAny = this.lender as any;
+  const email = 
+    this.lender.contactInfo?.contactEmail || 
+    lenderAny.contactEmail ||
+    lenderAny.email || 
+    '';
+
+  console.log('🔍 DEBUG - getEmail:', { 
+    contactInfoEmail: this.lender.contactInfo?.contactEmail,
+    rootContactEmail: lenderAny.contactEmail,
+    rootEmail: lenderAny.email,
+    finalEmail: email 
+  });
 
   return email || 'Not specified';
 }
@@ -266,8 +293,20 @@ getEmail(): string {
 getPhone(): string {
   if (!this.lender) return 'Not specified';
 
-  // ✅ Only access properties that exist in Lender interface
-  const phone = this.lender.contactInfo?.contactPhone || '';
+  // ✅ Use type assertion to safely check all possible locations
+  const lenderAny = this.lender as any;
+  const phone = 
+    this.lender.contactInfo?.contactPhone || 
+    lenderAny.contactPhone ||
+    lenderAny.phone || 
+    '';
+
+  console.log('🔍 DEBUG - getPhone:', { 
+    contactInfoPhone: this.lender.contactInfo?.contactPhone,
+    rootContactPhone: lenderAny.contactPhone,
+    rootPhone: lenderAny.phone,
+    finalPhone: phone 
+  });
 
   return phone || 'Not specified';
 }
@@ -275,9 +314,25 @@ getPhone(): string {
 getLocation(): string {
   if (!this.lender) return 'Not specified';
 
-  // ✅ Only access properties that exist in Lender interface
-  const city = this.lender.contactInfo?.city || '';
-  const state = this.lender.contactInfo?.state || '';
+  // ✅ Use type assertion to safely check all possible locations
+  const lenderAny = this.lender as any;
+  const city = 
+    this.lender.contactInfo?.city || 
+    lenderAny.city || 
+    '';
+  const state = 
+    this.lender.contactInfo?.state || 
+    lenderAny.state || 
+    '';
+
+  console.log('🔍 DEBUG - getLocation:', { 
+    contactInfoCity: this.lender.contactInfo?.city,
+    contactInfoState: this.lender.contactInfo?.state,
+    rootCity: lenderAny.city,
+    rootState: lenderAny.state,
+    finalCity: city,
+    finalState: state
+  });
 
   if (city && state) {
     return `${city}, ${formatStateForDisplay(state)}`;
