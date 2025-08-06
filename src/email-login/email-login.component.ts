@@ -69,63 +69,28 @@ export class EmailLoginComponent implements OnInit {
     return this.loginForm.get('email');
   }
 
-  sendLoginLink(email: string): void {
-    this.isLoading = true;
-    this.successMessage = '';
-    this.clearError(); // ✅ Clear any previous errors
+  
+sendLoginLink(email: string): void {
+  this.isLoading = true;
+  this.successMessage = '';
+  this.clearError();
 
-    console.log('🔍 Validating account before sending login link...');
+  localStorage.setItem('redirectUrl', '/dashboard');
 
-    this.authService.checkAccountExists(email).subscribe({
-      next: (accountInfo) => {
-        if (!accountInfo.exists) {
-          this.isLoading = false;
-          this.showError(
-            'Account not found. Please check your email address or contact support to create an account.',
-            'account-not-found'
-          );
-          console.log('❌ Account not found for:', email);
-          return;
-        }
-
-        if (accountInfo.needsPayment) {
-          this.isLoading = false;
-          this.showError(
-            'Account found but payment required. Please complete your registration to access your account.',
-            'payment-required'
-          );
-          console.log('💳 Account needs payment:', accountInfo);
-          return;
-        }
-
-        console.log('✅ Account validated, sending login link...');
-        this.sendValidatedLoginLink(email);
-      },
-      error: (error) => {
-        this.isLoading = false;
-        this.showError('Unable to verify account status. Please try again.', 'general');
-        console.error('❌ Error checking account:', error);
-      }
-    });
-  }
-
-  private sendValidatedLoginLink(email: string): void {
-    localStorage.setItem('redirectUrl', '/dashboard');
-
-    this.authService.sendLoginLink(email).subscribe({
-      next: () => {
-        this.isLoading = false;
-        this.successMessage = 'Login link sent to your email!';
-        this.showLinkSent = true;
-        console.log('✅ Login link sent successfully');
-      },
-      error: (error: Error) => {
-        this.isLoading = false;
-        this.showError(`Error sending login link: ${error.message}`, 'general');
-        console.error('❌ Error sending login link:', error);
-      }
-    });
-  }
+  this.authService.sendLoginLink(email).subscribe({
+    next: () => {
+      this.isLoading = false;
+      this.successMessage = 'Login link sent to your email!';
+      this.showLinkSent = true;
+      console.log('✅ Login link sent successfully');
+    },
+    error: (error: Error) => {
+      this.isLoading = false;
+      this.showError(`Error sending login link: ${error.message}`, 'general');
+      console.error('❌ Error sending login link:', error);
+    }
+  });
+}  
 
   // ✅ NEW: Method to show error with dialog
   private showError(message: string, type: 'account-not-found' | 'payment-required' | 'general'): void {
