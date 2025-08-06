@@ -226,46 +226,277 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     }
   }
 
-  // =============================================
-  // CONTACT INFORMATION METHODS (Using new mappings)
-  // =============================================
+// ✅ FIXED: Replace these methods in your lender-details.component.ts
 
-  getContactName(): string {
-    const firstName = this.lender?.contactInfo?.firstName || '';
-    const lastName = this.lender?.contactInfo?.lastName || '';
-    return `${firstName} ${lastName}`.trim() || 'Not specified';
+// =============================================
+// CONTACT INFORMATION METHODS (Enhanced with comprehensive fallbacks)
+// =============================================
+
+getContactName(): string {
+  if (!this.lender) return 'Not specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const firstName = this.lender.contactInfo?.firstName || '';
+  const lastName = this.lender.contactInfo?.lastName || '';
+
+  const fullName = `${firstName} ${lastName}`.trim();
+  return fullName || 'Not specified';
+}
+
+getCompanyName(lender: any): string {
+  if (!lender) return 'N/A';
+
+  // ✅ Check all possible locations for company data
+  const topCompany = lender.company;
+  const contactInfoCompany = lender.contactInfo?.company;
+
+  const company = (topCompany || contactInfoCompany || '').trim();
+  return company !== '' ? company : 'N/A';
+}
+
+getEmail(): string {
+  if (!this.lender) return 'Not specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const email = this.lender.contactInfo?.contactEmail || '';
+
+  return email || 'Not specified';
+}
+
+getPhone(): string {
+  if (!this.lender) return 'Not specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const phone = this.lender.contactInfo?.contactPhone || '';
+
+  return phone || 'Not specified';
+}
+
+getLocation(): string {
+  if (!this.lender) return 'Not specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const city = this.lender.contactInfo?.city || '';
+  const state = this.lender.contactInfo?.state || '';
+
+  if (city && state) {
+    return `${city}, ${formatStateForDisplay(state)}`;
+  } else if (city) {
+    return city;
+  } else if (state) {
+    return formatStateForDisplay(state);
   }
 
-  getCompanyName(lender: any): string {
-    const topCompany = lender.company;
-    const contactInfoCompany = lender.contactInfo?.company;
+  return 'Not specified';
+}
 
-    const company = (topCompany || contactInfoCompany || '').trim();
-    return company !== '' ? company : 'N/A';
+// =============================================
+// PRODUCT INFO METHODS (Enhanced with comprehensive fallbacks)
+// =============================================
+
+getLenderTypes(): string {
+  console.log('🔍 DEBUG - Full lender object:', this.lender);
+  console.log('🔍 DEBUG - lenderTypes from productInfo:', this.lender?.productInfo?.lenderTypes);
+
+  if (!this.lender) return 'None specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const lenderTypes = this.lender.productInfo?.lenderTypes || [];
+
+  console.log('🔍 DEBUG - final lenderTypes array:', lenderTypes);
+
+  if (!Array.isArray(lenderTypes) || lenderTypes.length === 0) {
+    console.log('🔍 DEBUG - no lender types found, returning general');
+    return 'General';
   }
 
-  getEmail(): string {
-    return this.lender?.contactInfo?.contactEmail || 'Not specified';
-  }
+  const result = lenderTypes
+    .map((type: any) => {
+      console.log('🔍 DEBUG - processing type:', type);
 
-  getPhone(): string {
-    return this.lender?.contactInfo?.contactPhone || 'Not specified';
-  }
+      // Handle object with name property
+      if (type && typeof type === 'object' && type.name) {
+        console.log('🔍 DEBUG - using name:', type.name);
+        return type.name;
+      }
 
-  getLocation(): string {
-    const city = this.lender?.contactInfo?.city || '';
-    const state = this.lender?.contactInfo?.state || '';
+      // Handle object with value property
+      if (type && typeof type === 'object' && type.value) {
+        console.log('🔍 DEBUG - using value:', type.value);
+        return this.formatLenderType(type.value);
+      }
 
-    if (city && state) {
-      return `${city}, ${formatStateForDisplay(state)}`;
-    }
+      // Handle string
+      if (typeof type === 'string') {
+        console.log('🔍 DEBUG - using string:', type);
+        return this.formatLenderType(type);
+      }
 
+      console.log('🔍 DEBUG - unknown type format');
+      return null;
+    })
+    .filter((name) => name && name !== 'Unknown')
+    .join(', ');
+
+  console.log('🔍 DEBUG - final getLenderTypes result:', result);
+  return result || 'General';
+}
+
+getLoanRange(): string {
+  console.log('🔍 DEBUG - Full lender object for loan range:', this.lender);
+  console.log('🔍 DEBUG - productInfo:', this.lender?.productInfo);
+
+  if (!this.lender) return 'Not specified';
+
+  // ✅ Only access properties that exist in Lender interface
+  const productInfo = this.lender.productInfo;
+  
+  const minAmount = productInfo?.minLoanAmount || 0;
+  const maxAmount = productInfo?.maxLoanAmount || 0;
+
+  console.log('🔍 DEBUG - minAmount:', minAmount, 'maxAmount:', maxAmount);
+
+  // ✅ Handle number | string types as defined in Lender model
+  const minValue = this.parseNumericValue(minAmount);
+  const maxValue = this.parseNumericValue(maxAmount);
+
+  console.log('🔍 DEBUG - parsed minValue:', minValue, 'maxValue:', maxValue);
+
+  if ((minValue === 0 || isNaN(minValue)) && (maxValue === 0 || isNaN(maxValue))) {
+    console.log('🔍 DEBUG - both amounts are zero or NaN');
     return 'Not specified';
   }
 
-  // =============================================
-  // PRODUCT INFO METHODS (Using new mappings)
-  // =============================================
+  const result = `${Number(minValue || 0).toLocaleString()} - ${Number(maxValue || 0).toLocaleString()}`;
+  console.log('🔍 DEBUG - final getLoanRange result:', result);
+  return result;
+}
+
+// =============================================
+// UTILITY METHODS
+// =============================================
+
+/**
+ * ✅ NEW: Helper method to format lender types
+ */
+private formatLenderType(type: string): string {
+  if (!type) return 'General';
+
+  // ✅ Enhanced mapping for common lender types
+  const typeMap: { [key: string]: string } = {
+    // Snake case format
+    'agency': 'Agency Lender',
+    'balance_sheet': 'Balance Sheet',
+    'bank': 'Bank',
+    'bridge_lender': 'Bridge Lender', 
+    'cdfi': 'CDFI Lender',
+    'conduit_lender': 'Conduit Lender (CMBS)',
+    'construction_lender': 'Construction Lender',
+    'correspondent_lender': 'Correspondent Lender',
+    'credit_union': 'Credit Union',
+    'crowdfunding': 'Crowdfunding Platform',
+    'direct_lender': 'Direct Lender',
+    'family_office': 'Family Office',
+    'general': 'General',
+    'hard_money': 'Hard Money Lender',
+    'life_insurance': 'Life Insurance Lender',
+    'mezzanine_lender': 'Mezzanine Lender',
+    'non_qm_lender': 'Non-QM Lender',
+    'portfolio_lender': 'Portfolio Lender',
+    'private_lender': 'Private Lender',
+    'sba': 'SBA Lender',
+    'usda': 'USDA Lender',
+    
+    // Camel case format (legacy)
+    'balanceSheet': 'Balance Sheet',
+    'bridgeLender': 'Bridge Lender',
+    'conduitLender': 'Conduit Lender (CMBS)', 
+    'constructionLender': 'Construction Lender',
+    'correspondentLender': 'Correspondent Lender',
+    'creditUnion': 'Credit Union',
+    'directLender': 'Direct Lender',
+    'familyOffice': 'Family Office',
+    'hardMoney': 'Hard Money Lender',
+    'lifeInsurance': 'Life Insurance Lender',
+    'mezzanineLender': 'Mezzanine Lender',
+    'nonQmLender': 'Non-QM Lender',
+    'portfolioLender': 'Portfolio Lender',
+    'privateLender': 'Private Lender'
+  };
+
+  // ✅ Try exact match first
+  if (typeMap[type]) {
+    return typeMap[type];
+  }
+
+  // ✅ Try case-insensitive match
+  const lowerType = type.toLowerCase();
+  const matchedKey = Object.keys(typeMap).find(key => 
+    key.toLowerCase() === lowerType
+  );
+  if (matchedKey) {
+    return typeMap[matchedKey];
+  }
+
+  // ✅ Fallback: Format snake_case/camelCase to readable format
+  return type
+    .replace(/([a-z])([A-Z])/g, '$1 $2') // Handle camelCase
+    .replace(/_/g, ' ') // Handle snake_case
+    .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize each word
+    .trim() || 'General';
+}
+
+/**
+ * ✅ NEW: Helper method to parse numeric values from string or number
+ */
+private parseNumericValue(value: any): number {
+  if (value === undefined || value === null) return 0;
+  
+  if (typeof value === 'number') return value;
+  
+  if (typeof value === 'string') {
+    const numericString = value.replace(/[^0-9.]/g, '');
+    const parsedValue = parseFloat(numericString);
+    return isNaN(parsedValue) ? 0 : parsedValue;
+  }
+  
+  return 0;
+}
+
+/**
+ * ✅ FIXED: Debug method with proper TypeScript typing
+ */
+debugLenderDataStructure(): void {
+  console.log('=== LENDER DETAILS DATA STRUCTURE DEBUG ===');
+  console.log('Full lender object:', this.lender);
+  
+  if (this.lender) {
+    // ✅ Use type assertion to access all properties for debugging
+    const lenderAsAny = this.lender as any;
+    console.log('Root level properties:', Object.keys(lenderAsAny));
+    console.log('ContactInfo:', this.lender.contactInfo);
+    console.log('ProductInfo:', this.lender.productInfo);
+    console.log('FootprintInfo:', this.lender.footprintInfo);
+    
+    if (this.lender.contactInfo) {
+      console.log('ContactInfo properties:', Object.keys(this.lender.contactInfo));
+    }
+    
+    if (this.lender.productInfo) {
+      console.log('ProductInfo properties:', Object.keys(this.lender.productInfo));
+    }
+    
+    // Test each method
+    console.log('=== METHOD RESULTS ===');
+    console.log('getContactName():', this.getContactName());
+    console.log('getCompanyName():', this.getCompanyName(this.lender));
+    console.log('getEmail():', this.getEmail());
+    console.log('getPhone():', this.getPhone());
+    console.log('getLocation():', this.getLocation());
+    console.log('getLenderTypes():', this.getLenderTypes());
+    console.log('getLoanRange():', this.getLoanRange());
+  }
+}
 
   hasLoanTypes(): boolean {
     return true; // Always show loan types section
@@ -319,71 +550,9 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
     return result;
   }
 
-  // Replace these methods in your lender-details.component.ts:
 
-  // Replace these exact methods in your component:
 
-  getLenderTypes(): string {
-    console.log(
-      '🔍 DEBUG - lenderTypes raw:',
-      this.lender?.productInfo?.lenderTypes
-    );
-
-    if (!this.lender?.productInfo?.lenderTypes?.length) {
-      console.log('🔍 DEBUG - no lender types found');
-      return 'None specified';
-    }
-
-    const result = this.lender.productInfo.lenderTypes
-      .map((type: any) => {
-        console.log('🔍 DEBUG - processing type:', type);
-
-        // Handle object with name property
-        if (type && typeof type === 'object' && type.name) {
-          console.log('🔍 DEBUG - using name:', type.name);
-          return type.name;
-        }
-
-        // Handle string
-        if (typeof type === 'string') {
-          console.log('🔍 DEBUG - using string:', type);
-          return type;
-        }
-
-        console.log('🔍 DEBUG - unknown type format');
-        return 'Unknown';
-      })
-      .filter((name) => name && name !== 'Unknown')
-      .join(', ');
-
-    console.log('🔍 DEBUG - final getLenderTypes result:', result);
-    return result || 'None specified';
-  }
-
-  getLoanRange(): string {
-    console.log('🔍 DEBUG - productInfo:', this.lender?.productInfo);
-
-    if (!this.lender?.productInfo) {
-      console.log('🔍 DEBUG - no productInfo');
-      return 'Not specified';
-    }
-
-    const min = this.lender.productInfo.minLoanAmount || 0;
-    const max = this.lender.productInfo.maxLoanAmount || 0;
-
-    console.log('🔍 DEBUG - min:', min, 'max:', max);
-
-    if (min === 0 && max === 0) {
-      console.log('🔍 DEBUG - both amounts are zero');
-      return 'Not specified';
-    }
-
-    const result = `$${Number(min).toLocaleString()} - $${Number(
-      max
-    ).toLocaleString()}`;
-    console.log('🔍 DEBUG - final getLoanRange result:', result);
-    return result;
-  }
+  
 
   // =============================================
   // SUBCATEGORIES METHODS (Using new mappings)
