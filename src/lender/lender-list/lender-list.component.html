@@ -39,10 +39,11 @@
             : 'N/A') }}
 
           </td>
+          <!-- ✅ FIXED: Handles both object and string structures -->
           <td class="lender-detail">
             <div *ngIf="lender.productInfo?.lenderTypes">
               <ng-container *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
-                {{ getLenderTypeName(type) }}{{ !last ? ', ' : '' }}
+                {{ getLenderTypeName(type?.value || type?.name || type) }}{{ !last ? ', ' : '' }}
               </ng-container>
             </div>
           </td>
