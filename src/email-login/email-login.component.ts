@@ -241,37 +241,49 @@ requestNewLink(): void {
   }
 
   private handleEmailLink(): void {
-    this.isVerifying = true;
-    this.clearError();
+  this.isVerifying = true;
+  this.clearError();
 
-    const storedEmail = this.authService.getStoredEmail();
-    console.log('Stored email for verification:', storedEmail || 'Not found');
+  const storedEmail = this.authService.getStoredEmail();
+  console.log('Stored email for verification:', storedEmail || 'Not found');
 
-    if (!storedEmail) {
-      this.isVerifying = false;
-      this.showError('Please enter the email you used to request the login link.', 'general');
-      return;
-    }
-
-    this.authService.loginWithEmailLink(storedEmail).subscribe({
-      next: () => {
-        this.isVerifying = false;
-        console.log('✅ Email link sign-in successful');
-      },
-      error: (error: any) => {
-        this.isVerifying = false;
-        console.error('❌ Email link sign-in error:', error);
-        
-        if (error.code === 'auth/invalid-action-code') {
-          this.showError('This login link has expired or been used already. Please request a new one.', 'general');
-        } else if (error.code === 'auth/expired-action-code') {
-          this.showError('This login link has expired. Please request a new one.', 'general');
-        } else {
-          this.showError(`Login failed: ${error.message}`, 'general');
-        }
-      },
-    });
+  if (!storedEmail) {
+    this.isVerifying = false;
+    this.showError('Please enter the email you used to request the login link.', 'general');
+    return;
   }
+
+  this.authService.loginWithEmailLink(storedEmail).subscribe({
+    next: (userCredential) => {  // ✅ Get the userCredential
+      this.isVerifying = false;
+      console.log('✅ Email link sign-in successful for:', userCredential.user?.email);
+      
+      // ✅ CRITICAL FIX: Add navigation after successful auth
+      this.ngZone.run(() => {
+        localStorage.setItem('isLoggedIn', 'true');
+        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+        console.log('🔄 Redirecting to:', redirectUrl);
+        
+        this.router.navigate([redirectUrl]).then(() => {
+          localStorage.removeItem('redirectUrl');
+          console.log('✅ Navigation completed successfully');
+        });
+      });
+    },
+    error: (error: any) => {
+      this.isVerifying = false;
+      console.error('❌ Email link sign-in error:', error);
+      
+      if (error.code === 'auth/invalid-action-code') {
+        this.showError('This login link has expired or been used already. Please request a new one.', 'general');
+      } else if (error.code === 'auth/expired-action-code') {
+        this.showError('This login link has expired. Please request a new one.', 'general');
+      } else {
+        this.showError(`Login failed: ${error.message}`, 'general');
+      }
+    },
+  });
+}
 
   openRoleSelectionModal(): void {
     this.modalService.openRoleSelectionModal();

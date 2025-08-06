@@ -211,102 +211,95 @@ export class LenderService {
     return this.firestoreService.updateDocument(`lenders/${id}`, userData);
   }
 
-  searchLenders(
-    lenderType: string,
-    propertyCategory: string,
-    state: string,
-    loanAmount: string,
-    loanType: string // Added this parameter
-  ): Observable<Lender[]> {
-    console.log('Searching lenders with criteria:', {
-      lenderType,
-      propertyCategory,
-      state,
-      loanAmount,
-      loanType,
-    });
+  // Replace your current searchLenders() method with this:
 
-    // Get all lenders and filter in memory
-    return this.getAllLenders().pipe(
-      map((lenders) => {
-        return lenders.filter((lender) => {
-          let includeThisLender = true;
+searchLenders(
+  lenderType: string,
+  propertyCategory: string,
+  state: string,
+  loanAmount: string,
+  loanType: string
+): Observable<Lender[]> {
+  console.log('Searching lenders with criteria (raw):', {
+    lenderType,
+    propertyCategory,
+    state,
+    loanAmount,
+    loanType,
+  });
 
-          // Filter by lender type if provided
-          if (lenderType && lenderType.trim() !== '') {
-            const lenderTypes = lender.productInfo?.lenderTypes || [];
-            const hasMatchingType = lenderTypes.some(
-              (type) => type.toLowerCase() === lenderType.toLowerCase()
-            );
+  const normalize = (str: string) =>
+    str
+      ? str.trim().toLowerCase().replace(/\s+/g, '_')
+      : '';
 
-            if (!hasMatchingType) {
-              includeThisLender = false;
-            }
-          }
+  const stateMap: { [key: string]: string } = {
+    alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
+    connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID',
+    illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
+    maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN',
+    mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV',
+    new_hampshire: 'NH', new_jersey: 'NJ', new_mexico: 'NM', new_york: 'NY',
+    north_carolina: 'NC', north_dakota: 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR',
+    pennsylvania: 'PA', rhode_island: 'RI', south_carolina: 'SC', south_dakota: 'SD',
+    tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA',
+    west_virginia: 'WV', wisconsin: 'WI', wyoming: 'WY', district_of_columbia: 'DC'
+  };
 
-          // Filter by loan type if provided
-          if (loanType && loanType.trim() !== '' && includeThisLender) {
-            const loanTypes = lender.productInfo?.loanTypes || [];
-            const hasMatchingLoanType = loanTypes.some(
-              (type) => type.toLowerCase() === loanType.toLowerCase()
-            );
+  const filterLenderType = normalize(lenderType);
+  const filterCategory = normalize(propertyCategory);
+  const filterLoanType = normalize(loanType);
+  const filterStateAbbr = state
+    ? (state.length === 2
+        ? state.toUpperCase()
+        : stateMap[normalize(state)] || state.toUpperCase())
+    : '';
 
-            if (!hasMatchingLoanType) {
-              includeThisLender = false;
-            }
-          }
+  const filterAmount = loanAmount ? this.parseNumericValue(loanAmount) : null;
 
-          // Filter by property category if provided
-          if (
-            propertyCategory &&
-            propertyCategory.trim() !== '' &&
-            includeThisLender
-          ) {
-            const categories = lender.productInfo?.propertyCategories || [];
-            const hasMatchingCategory = categories.some(
-              (category) =>
-                category.toLowerCase() === propertyCategory.toLowerCase()
-            );
+  return this.getAllLenders().pipe(
+    map((lenders) =>
+      lenders.filter((lender) => {
+        let includeThisLender = true;
 
-            if (!hasMatchingCategory) {
-              includeThisLender = false;
-            }
-          }
+        // Lender type
+        if (filterLenderType && includeThisLender) {
+          const lenderTypes = (lender.productInfo?.lenderTypes || []).map(normalize);
+          includeThisLender = lenderTypes.includes(filterLenderType);
+        }
 
-          // Filter by state if provided
-          if (state && state.trim() !== '' && includeThisLender) {
-            const states = lender.footprintInfo?.lendingFootprint || [];
-            const hasMatchingState = states.some(
-              (s) => s.toLowerCase() === state.toLowerCase()
-            );
+        // Loan type
+        if (filterLoanType && includeThisLender) {
+          const loanTypes = (lender.productInfo?.loanTypes || []).map(normalize);
+          includeThisLender = loanTypes.includes(filterLoanType);
+        }
 
-            if (!hasMatchingState) {
-              includeThisLender = false;
-            }
-          }
+        // Property category
+        if (filterCategory && includeThisLender) {
+          const categories = (lender.productInfo?.propertyCategories || []).map(normalize);
+          includeThisLender = categories.includes(filterCategory);
+        }
 
-          // Filter by loan amount if provided
-          if (loanAmount && loanAmount.trim() !== '' && includeThisLender) {
-            const amount = parseFloat(loanAmount.replace(/[^0-9.]/g, ''));
-            if (!isNaN(amount) && amount > 0) {
-              const minAmount =
-                this.parseNumericValue(lender.productInfo?.minLoanAmount) || 0;
-              const maxAmount =
-                this.parseNumericValue(lender.productInfo?.maxLoanAmount) ||
-                Number.MAX_VALUE;
+        // State
+        if (filterStateAbbr && includeThisLender) {
+          const states = (lender.footprintInfo?.lendingFootprint || []).map((s) =>
+            s.length === 2 ? s.toUpperCase() : stateMap[normalize(s)] || s.toUpperCase()
+          );
+          includeThisLender = states.includes(filterStateAbbr);
+        }
 
-              if (amount < minAmount || amount > maxAmount) {
-                includeThisLender = false;
-              }
-            }
-          }
+        // Loan amount
+        if (filterAmount && includeThisLender) {
+          const minAmount = this.parseNumericValue(lender.productInfo?.minLoanAmount) || 0;
+          const maxAmount =
+            this.parseNumericValue(lender.productInfo?.maxLoanAmount) || Number.MAX_VALUE;
+          includeThisLender = filterAmount >= minAmount && filterAmount <= maxAmount;
+        }
 
-          return includeThisLender;
-        });
-      }),
-      tap((filteredLenders) => {
-        console.log('After filtering:', filteredLenders.length, 'lenders');
+        return includeThisLender;
       })
-    );
-  }
+    ),
+    tap((filtered) => console.log('Filtered lenders count:', filtered.length))
+  );
+}
 }
