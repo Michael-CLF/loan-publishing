@@ -29,11 +29,14 @@
       </thead>
       <tbody>
         <tr *ngFor="let lender of paginatedLenders" (click)="navigateTo(lender.id)">
+          <!-- ✅ FIXED: Checks both structures -->
           <td class="lender-detail">
-            {{ lender.contactInfo?.firstName }} {{ lender.contactInfo?.lastName }}
+            {{ (lender.contactInfo?.firstName || lender.firstName) }} {{ (lender.contactInfo?.lastName ||
+            lender.lastName) }}
           </td>
           <td class="lender-detail">
-          {{ lender.company ? lender.company.trim() : (lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A') }}
+            {{ lender.company ? lender.company.trim() : (lender.contactInfo?.company ? lender.contactInfo.company.trim()
+            : 'N/A') }}
 
           </td>
           <td class="lender-detail">
