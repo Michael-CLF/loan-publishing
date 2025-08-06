@@ -61,17 +61,35 @@ export class HomeComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private handleMagicLink(): void {
+ private handleMagicLink(): void {
   const storedEmail = this.authService.getStoredEmail();
-  console.log('Processing magic link for email:', storedEmail || 'Not found');
+  console.log('Processing magic link for email:', storedEmail || 'Not found - will wait for auth completion');
 
   if (!storedEmail) {
-    console.error('❌ No stored email for magic link');
-    // Redirect to login page for manual email entry
-    this.router.navigate(['/login']);
+    // No stored email, but magic link might still work
+    // Let's wait a moment for Firebase to process the authentication
+    console.log('⏳ No stored email, waiting for Firebase auth to complete...');
+    
+    // Give Firebase time to process the magic link authentication
+    setTimeout(() => {
+      this.authService.isLoggedIn$.pipe(take(1)).subscribe(isAuthenticated => {
+        if (isAuthenticated) {
+          console.log('✅ Authentication completed via magic link, redirecting to dashboard');
+          localStorage.setItem('isLoggedIn', 'true');
+          this.router.navigate(['/dashboard']);
+        } else {
+          console.log('❌ Authentication failed, redirecting to login');
+          this.router.navigate(['/login'], { 
+            queryParams: { magicLink: 'true' }
+          });
+        }
+      });
+    }, 2000); // Wait 2 seconds for Firebase to process
+    
     return;
   }
 
+  // Original flow for when email is stored
   this.authService.loginWithEmailLink(storedEmail).subscribe({
     next: (userCredential) => {
       console.log('✅ Magic link authentication successful:', userCredential.user?.email);
@@ -80,7 +98,6 @@ export class HomeComponent implements OnInit, OnDestroy {
     },
     error: (error) => {
       console.error('❌ Magic link authentication failed:', error);
-      // Redirect to login with error handling
       this.router.navigate(['/login'], { 
         queryParams: { error: 'magic-link-failed' } 
       });

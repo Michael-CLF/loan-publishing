@@ -282,25 +282,26 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
     );
   }
 
-  /**
-   * ✅ Send login email link
-   */
-  sendLoginLink(email: string): Observable<void> {
-    const actionCodeSettings = {
-      url: `${environment.frontendUrl}/dashboard`,
-      handleCodeInApp: true,
-    };
+ sendLoginLink(email: string): Observable<void> {
+  const actionCodeSettings = {
+    url: `${environment.frontendUrl}/dashboard`,
+    handleCodeInApp: true,
+  };
 
-    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
-      map(() => {
-        localStorage.setItem('emailForSignIn', email);
-      }),
-      catchError((error) => {
-        console.error('❌ Error sending login link:', error);
-        return throwError(() => error);
-      })
-    );
-  }
+  // ✅ ADD THIS LOGGING
+  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+  console.log('🔗 Frontend URL from environment:', environment.frontendUrl);
+
+  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+    map(() => {
+      localStorage.setItem('emailForSignIn', email);
+    }),
+    catchError((error) => {
+      console.error('❌ Error sending login link:', error);
+      return throwError(() => error);
+    })
+  );
+}
 
   loginWithEmailLink(email: string): Observable<UserCredential> {
     const storedEmail = email || localStorage.getItem('emailForSignIn');
