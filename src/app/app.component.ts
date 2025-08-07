@@ -49,10 +49,6 @@ export class AppComponent implements OnInit, OnDestroy {
   isRoleSelectionModalOpen = false;
   isAppInitialized = false;
 
-  constructor() {
-    // ✅ Angular 18 Best Practice: Keep constructor minimal
-  }
-
   async ngOnInit(): Promise<void> {
     try {
       // ✅ Initialize App Check first for security
@@ -61,6 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.logEnvironmentInfo();
       this.setupNavigationMonitoring();
       this.logFirebaseAuthStatus();
+      this.authService.initAuthPersistence(); 
 
       this.isAppInitialized = true;
     } catch (error) {

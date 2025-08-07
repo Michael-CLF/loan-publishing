@@ -37,6 +37,7 @@ import { HttpClient } from '@angular/common/http';
 import { FirestoreService } from './firestore.service';
 import { httpsCallable } from '@angular/fire/functions';
 import { Functions } from '@angular/fire/functions';
+import { browserLocalPersistence, setPersistence } from '@firebase/auth';
 
 
 
@@ -384,6 +385,12 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
       return () => unsubscribe();
     });
   }
+  initAuthPersistence(): void {
+  setPersistence(this.auth, browserLocalPersistence)
+    .then(() => console.log('✅ Firebase Auth persistence set to local'))
+    .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
+}
+
 
 
   /**
