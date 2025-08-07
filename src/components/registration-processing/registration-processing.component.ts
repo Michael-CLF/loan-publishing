@@ -70,31 +70,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   async ngOnInit(): Promise<void> {
-  console.log('📥 Registration Processing Component 🟡 Starting...');
-  const draftId = this.lenderFormService.getCurrentDraftId();
-
-  const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
-  const uid = user?.uid;
-
-  if (draftId && uid) {
-    this.lenderFormService.loadDraft(draftId).subscribe({
-      next: async (data) => {
-        if (data) {
-          console.log('✅ Draft restored:', data);
-          this.processingMessage.set('Draft loaded successfully.');
-
-          // 👇 CALL lenderService, not lenderFormService
-          await this.lenderService.updateLenderFromDraft(uid, draftId);
-        }
-      },
-      error: (err) => {
-        console.error('❌ Error loading draft:', err);
-        this.hasError.set(true);
-        this.processingMessage.set('Failed to load draft. Please try again.');
-      }
-    });
-  }
-
+    console.log('📥 Registration Processing Component 🟡 Starting...');
 
     // ✅ RESET static flags on fresh component load
     RegistrationProcessingComponent.processingInProgress = false;
@@ -174,6 +150,25 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
             if (userEmail) {
               console.log('🚀 Calling authenticateNewUser with:', userEmail, sessionId);
+
+              this.authService.authenticateNewUser(userEmail, sessionId).subscribe({
+                next: () => {
+                  console.log('✅ User authenticated successfully');
+                  this.processingMessage.set('Success! Redirecting to dashboard...');
+
+                  setTimeout(() => {
+                    this.showProcessingSpinner.set(false);
+                    this.showModalBasedOnRole();
+                  }, 1500);
+                },
+                error: (error) => {
+                  console.error('❌ Authentication failed:', error);
+                  this.hasError.set(true);
+                  this.showProcessingSpinner.set(false);
+                  this.processingMessage.set('Authentication failed. Please try logging in.');
+                  this.router.navigate(['/login']);
+                }
+              });
             } else {
               console.error('❌ No email in verified user document');
               this.hasError.set(true);
@@ -195,62 +190,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         this.router.navigate(['/dashboard']); // Optional fallback
       }
     }, intervalTime);
-  }
-
-  /**
-   * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
-   */
-  private handleOriginatorPaymentSuccess(): void {
-    console.log('👤 Processing originator payment success');
-    this.processingMessage.set('Payment successful! Finalizing your account...');
-
-    // ✅ Set processing flag
-    RegistrationProcessingComponent.processingInProgress = true;
-
-    // ✅ Simple success flow - webhook already updated user status
-    this.userRole = 'originator';
-    this.authService.setRegistrationSuccess(true);
-
-    setTimeout(() => {
-      RegistrationProcessingComponent.processingInProgress = false;
-      this.showModalBasedOnRole();
-    }, 1500);
-  }
-
-  private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
-    console.log('🏦 Processing lender payment success');
-    this.processingMessage.set('Payment successful! Finalizing your account...');
-
-    try {
-      const lenderData = JSON.parse(rawLenderData);
-      const email = lenderData?.contactInfo?.contactEmail;
-
-      if (!email) {
-        throw new Error('Email is required');
-      }
-
-      // ✅ Create lender document from draft
-      await this.lenderService.updateLenderFromDraft(lenderData.uid, lenderData.draftId);
-
-      // ✅ Set processing flag
-      RegistrationProcessingComponent.processingInProgress = true;
-
-      // ✅ Update auth and redirect
-      this.userRole = 'lender';
-      this.authService.setRegistrationSuccess(true);
-
-      setTimeout(() => {
-        RegistrationProcessingComponent.processingInProgress = false;
-        this.showModalBasedOnRole();
-      }, 1500);
-
-    } catch (error) {
-      console.error('❌ Error in handleLenderPaymentSuccess:', error);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      RegistrationProcessingComponent.processingInProgress = false;
-      this.router.navigate(['/register/lender']);
-    }
   }
 
   /**
@@ -311,6 +250,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private showModalBasedOnRole(): void {
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
+     if (role === 'lender') {
+    this.loadAndProcessDraft();
+  }
     this.showProcessingSpinner.set(false);
 
     setTimeout(() => {
@@ -320,6 +262,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       } else if (role === 'lender') {
         console.log('🏢 Showing lender registration success modal');
         this.showLenderRegistrationSuccessModal.set(true);
+        if (role === 'lender') {
+          this.loadAndProcessDraft();
+        }
       } else {
         console.warn('⚠️ Unknown role, showing default originator modal');
         this.showRegistrationSuccessModal.set(true);
@@ -330,6 +275,34 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         this.clearRegistrationFlags();
       }, 100);
     }, 200);
+  }
+
+  private async loadAndProcessDraft(): Promise<void> {
+    const draftId = this.lenderFormService.getCurrentDraftId();
+
+    if (!draftId || this.userRole !== 'lender') {
+      return;
+    }
+
+    try {
+      const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+      if (!user?.uid) {
+        console.warn('No authenticated user for draft processing');
+        return;
+      }
+
+      const draftData = await firstValueFrom(
+        this.lenderFormService.loadDraft(draftId)
+      );
+
+      if (draftData) {
+        console.log('✅ Processing draft after authentication');
+        await this.lenderService.updateLenderFromDraft(user.uid, draftId);
+        this.lenderFormService.clearDraft();
+      }
+    } catch (error) {
+      console.error('❌ Error processing draft:', error);
+    }
   }
 
   closeRegistrationSuccessModal(): void {
