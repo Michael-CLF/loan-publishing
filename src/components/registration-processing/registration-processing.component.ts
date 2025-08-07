@@ -132,6 +132,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
       if (!expectedEmail) {
         console.error('❌ No expected email found in localStorage');
+        console.log('🔍 Looking for specific user:', expectedEmail);
         if (attempts >= maxAttempts) {
           clearInterval(interval);
           this.hasError.set(true);
@@ -140,9 +141,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         }
         return;
       }
-
-      console.log('🔍 Looking for specific user:', expectedEmail);
-
       for (const collectionName of ['originators', 'lenders']) {
         try {
           const q = query(
