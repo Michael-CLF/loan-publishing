@@ -73,28 +73,28 @@
                 </div>
             </div>
 
-            <!-- Contact Phone -->
-            <div class="form-group">
+            <!-- Phone -->
+            <div class="form-group" formGroupName="contactInfo">
                 <label for="contactPhone">Phone</label>
                 <input id="contactPhone" type="tel" formControlName="contactPhone"
                     (input)="formatPhoneNumberOnInput($event)" (blur)="formatPhoneNumber()" maxlength="14" [ngClass]="{
-    invalid: lenderForm.get('contactInfo.contactPhone')?.invalid &&
-             lenderForm.get('contactInfo.contactPhone')?.touched
-  }" />
-
-                <div *ngIf="lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched"
+      invalid: lenderForm.get('contactInfo.contactPhone')?.invalid &&
+               lenderForm.get('contactInfo.contactPhone')?.touched
+    }" />
+                <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.invalid && lenderForm.get('contactInfo.contactPhone')?.touched"
                     class="error">
-                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['required']">
+                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['required']">
                         *Phone number is required.
                     </div>
-                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['pattern']">
+                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['pattern']">
                         *Please enter a valid phone number.
                     </div>
-                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['invalidLength']">
+                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['invalidLength']">
                         *Please enter 10 digits.
                     </div>
                 </div>
             </div>
+
 
             <!-- City -->
             <div class="form-group">

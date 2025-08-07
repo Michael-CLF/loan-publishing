@@ -6,6 +6,8 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Subject, of } from 'rxjs';
 import { takeUntil, finalize, catchError } from 'rxjs/operators';
 import { StripeService } from '../../services/stripe.service';
+import { FormBuilder, Validators } from '@angular/forms';
+
 
 
 interface StateOption {
@@ -24,6 +26,25 @@ export class LenderContactComponent implements OnDestroy {
   @Input() lenderForm!: FormGroup;
   @Input() states: StateOption[] = [];
   @Output() couponValidated = new EventEmitter<any>();
+  
+  ngOnInit() {
+  this.lenderForm.addControl(
+    'contactInfo',
+    this.fb.group({
+      contactPhone: [
+        '',
+        [
+          Validators.required,
+          Validators.pattern(/^\(\d{3}\) \d{3}-\d{4}$/),
+        ],
+      ],
+      // add others here like contactEmail, city, etc.
+    })
+  );
+}
+
+constructor(private fb: FormBuilder) {}
+
 
   private stripeService = inject(StripeService);
   private destroy$ = new Subject<void>();

@@ -443,7 +443,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         '',
         [
           Validators.required,
-        Validators.pattern(/^\(\d{3}\) \d{3}-\d{4}$/),
+          Validators.pattern(/^\(\d{3}\) \d{3}-\d{4}$/),
         ],
       ],
       contactEmail: [
