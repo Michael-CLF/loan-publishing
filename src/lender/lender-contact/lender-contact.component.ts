@@ -33,52 +33,43 @@ export class LenderContactComponent implements OnDestroy {
     this.destroy$.complete();
   }
 
-  // Format phone number as the user types
-  formatPhoneNumberOnInput(event: any): void {
-    const input = event.target.value.replace(/\D/g, '');
-    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
+ formatPhoneNumberOnInput(event: any): void {
+  const input = event.target.value.replace(/\D/g, ''); // Strip non-digits
+  const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
 
-    if (input.length <= 10) {
-      let formattedNumber = input;
+  let formattedNumber = '';
 
-      if (input.length > 3) {
-        formattedNumber = `(${input.substring(0, 3)}) ${input.substring(3)}`;
-      }
-
-      if (input.length > 6) {
-        formattedNumber = `(${input.substring(0, 3)}) ${input.substring(
-          3,
-          6
-        )}-${input.substring(6)}`;
-      }
-
-      // Update the value without marking as touched to prevent premature validation
-      phoneControl?.setValue(formattedNumber, { emitEvent: false });
-
-      // Update validity manually
-      if (input.length === 10) {
-        phoneControl?.setErrors(null);
-      } else if (input.length > 0) {
-        phoneControl?.setErrors({ invalidLength: true });
-      }
-    }
+  if (input.length <= 3) {
+    formattedNumber = input;
+  } else if (input.length <= 6) {
+    formattedNumber = `(${input.substring(0, 3)}) ${input.substring(3)}`;
+  } else {
+    formattedNumber = `(${input.substring(0, 3)}) ${input.substring(3, 6)}-${input.substring(6, 10)}`;
   }
 
-  // Keep the blur handler for cases where the user pastes a number
-  formatPhoneNumber(): void {
-    const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
-    if (phoneControl?.value) {
-      let phoneNumber = phoneControl.value.replace(/\D/g, '');
-      if (phoneNumber.length === 10) {
-        const formattedNumber = `(${phoneNumber.substring(
-          0,
-          3
-        )}) ${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6)}`;
-        phoneControl.setValue(formattedNumber, { emitEvent: false });
-        phoneControl.setErrors(null);
-      } else if (phoneNumber.length > 0) {
-        phoneControl.setErrors({ invalidLength: true });
-      }
-    }
+  // Set the formatted value
+  phoneControl?.setValue(formattedNumber, { emitEvent: false });
+
+  // Manual validation
+  if (input.length === 10) {
+    phoneControl?.setErrors(null);
+  } else if (input.length > 0) {
+    phoneControl?.setErrors({ invalidLength: true });
   }
+}
+
+formatPhoneNumber(): void {
+  const phoneControl = this.lenderForm.get('contactInfo.contactPhone');
+  if (!phoneControl?.value) return;
+
+  const phoneNumber = phoneControl.value.replace(/\D/g, '');
+
+  if (phoneNumber.length === 10) {
+    const formatted = `(${phoneNumber.substring(0, 3)}) ${phoneNumber.substring(3, 6)}-${phoneNumber.substring(6)}`;
+    phoneControl.setValue(formatted, { emitEvent: false });
+    phoneControl.setErrors(null);
+  } else if (phoneNumber.length > 0) {
+    phoneControl.setErrors({ invalidLength: true });
+  }
+}
 }
