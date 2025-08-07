@@ -32,7 +32,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
-  private readonly lenderFormService = inject(LenderFormService); 
+  private readonly lenderFormService = inject(LenderFormService);
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
@@ -89,16 +89,17 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   private authenticateNewUser(email: string, sessionId: string): void {
-    this.authService.authenticateNewUser(email, sessionId).subscribe({
+    this.authService.authenticateNewUser(email, sessionId).pipe(take(1)).subscribe({
       next: () => {
         console.log('✅ User authenticated successfully, showing success modal');
         this.showProcessingSpinner.set(false);
-        this.showModalBasedOnRole();
+        this.showModalBasedOnRole(); // Continue flow based on role
       },
       error: (error) => {
         console.error('❌ Failed to authenticate user:', error);
         this.hasError.set(true);
         this.showProcessingSpinner.set(false);
+        this.processingMessage.set('Authentication failed. Please try again or contact support.');
       }
     });
   }
@@ -116,23 +117,20 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       return;
     }
 
-    console.log('🔍 Verifying payment for session:', sessionId);
-    console.log('🔍 Draft ID found:', draftId);
-
     let attempts = 0;
-    const maxAttempts = 40; // 2 minutes if interval is 3s
+    const maxAttempts = 40;
     const intervalTime = 3000;
 
     const interval = setInterval(async () => {
+      console.log(`⏳ Polling attempt #${attempts}`);
       attempts++;
 
-      // 🔍 Get expected email from localStorage (set during registration)
-      const expectedEmail = localStorage.getItem('lenderRegistrationEmail') || 
-                           localStorage.getItem('originatorRegistrationEmail');
+      const expectedEmail =
+        localStorage.getItem('lenderRegistrationEmail') ||
+        localStorage.getItem('originatorRegistrationEmail');
 
       if (!expectedEmail) {
-        console.error('❌ No expected email found in localStorage');
-        console.log('🔍 Looking for specific user:', expectedEmail);
+        console.warn('⚠️ No expected email found in localStorage');
         if (attempts >= maxAttempts) {
           clearInterval(interval);
           this.hasError.set(true);
@@ -141,6 +139,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         }
         return;
       }
+
       for (const collectionName of ['originators', 'lenders']) {
         try {
           const q = query(
@@ -152,55 +151,47 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
           );
 
           const querySnapshot = await getDocs(q);
-
+          console.log(`📦 Checked collection ${collectionName}, query result empty:`, querySnapshot.empty);
           if (!querySnapshot.empty) {
             const userDoc = querySnapshot.docs[0];
             const userData = userDoc.data();
             const userEmail = userData?.['email'];
 
-            // 🛡️ SECURITY: Verify email matches expected
             if (userEmail !== expectedEmail.toLowerCase().trim()) {
-              console.error('🚨 EMAIL MISMATCH - SECURITY BREACH!', {
-                expected: expectedEmail,
-                found: userEmail
-              });
+              console.error('🚨 EMAIL MISMATCH – expected vs found:', expectedEmail, userEmail);
               continue;
             }
 
-            // 🛡️ Additional verification: Check session ownership  
             const userSessionId = userData?.['stripeSessionId'];
             if (userSessionId !== sessionId) {
-              console.error('🚨 SESSION MISMATCH - SECURITY BREACH!', {
-                expectedSession: sessionId,
-                userSession: userSessionId
-              });
+              console.error('🚨 SESSION MISMATCH – expected vs found:', sessionId, userSessionId);
               continue;
             }
 
-            console.log('✅ Stripe verified. Found correct user:', userEmail);
-            console.log('✅ Session verified. User owns this checkout session.');
-
+            console.log('✅ Stripe verified. User authenticated:', userEmail);
             clearInterval(interval);
+
             this.userRole = userData?.['role'] || 'originator';
             this.processingMessage.set('Logging you in...');
 
-            // ✅ If this is a lender with a draft, update their document
             if (this.userRole === 'lender' && draftId) {
               await this.updateLenderFromDraft(userDoc.id, draftId);
             }
 
             if (userEmail) {
+              console.log('🚀 Calling authenticateNewUser with:', userEmail, sessionId);
               this.authenticateNewUser(userEmail, sessionId);
             } else {
-              console.error('❌ No email found in user data');
+              console.error('❌ No email in verified user document');
               this.hasError.set(true);
               this.showProcessingSpinner.set(false);
+              this.processingMessage.set('Email not found after verification.');
             }
 
-            return; // ⛔ Exit both polling and loop
+            return;
           }
         } catch (err) {
-          console.error(`⚠️ Error checking ${collectionName}:`, err);
+          console.error(`⚠️ Error checking ${collectionName} collection:`, err);
         }
       }
 
@@ -210,25 +201,27 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         this.showProcessingSpinner.set(false);
         this.processingMessage.set('Payment verification timeout. Please contact support.');
         console.error('❌ Stripe verification timeout after 2 minutes');
+        this.router.navigate(['/dashboard']); // Optional fallback
       }
     }, intervalTime);
   }
-  
+
+
   /**
    * ✅ Update lender document with complete data from draft
    */
   private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
     console.log('📝 Updating lender from draft:', { lenderId, draftId });
-    
+
     try {
       // Load draft data
       const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
       const draftSnap = await getDoc(draftRef);
-      
+
       if (draftSnap.exists()) {
         const draftData = draftSnap.data();
         console.log('✅ Draft data found:', draftData);
-        
+
         // Update lender document with complete data
         const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
         await updateDoc(lenderRef, {
@@ -238,15 +231,15 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
           updatedAt: serverTimestamp(),
           registrationCompleted: true
         });
-        
+
         console.log('✅ Lender document updated with draft data');
-        
+
         // Mark draft as completed
         await updateDoc(draftRef, {
           status: 'completed',
           completedAt: serverTimestamp()
         });
-        
+
         // Clear draft from localStorage
         localStorage.removeItem('lenderDraftId');
         this.lenderFormService.clearDraft();

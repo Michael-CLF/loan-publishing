@@ -174,11 +174,6 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
   );
 }
 
-
-  /**
-   * ✅ NEW: Check if user account exists in our system before sending login links
-   * Returns account status to determine appropriate action
-   */
   checkAccountExists(email: string): Observable<{
     exists: boolean;
     userType?: 'originator' | 'lender';
@@ -390,9 +385,6 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
     .then(() => console.log('✅ Firebase Auth persistence set to local'))
     .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
 }
-
-
-
   /**
    * ✅ Modal flow state controller (used after Stripe return)
    */
