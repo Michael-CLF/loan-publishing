@@ -73,28 +73,25 @@
                 </div>
             </div>
 
-            <!-- Phone -->
-            <div class="form-group" formGroupName="contactInfo">
+            <!-- Contact Phone -->
+            <div class="form-group">
                 <label for="contactPhone">Phone</label>
-                <input id="contactPhone" type="tel" formControlName="contactPhone"
-                    (input)="formatPhoneNumberOnInput($event)" (blur)="formatPhoneNumber()" maxlength="14" [ngClass]="{
-      invalid: lenderForm.get('contactInfo.contactPhone')?.invalid &&
-               lenderForm.get('contactInfo.contactPhone')?.touched
-    }" />
-                <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.invalid && lenderForm.get('contactInfo.contactPhone')?.touched"
+                <input id="contactPhone" type="tel" formControlName="contactPhone" (input)="onPhoneInput($event)"
+                    (keydown)="allowOnlyDigits($event)" maxlength="14" (input)="formatPhoneNumber()"
+                    [ngClass]="{'invalid': lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched}" />
+                <div *ngIf="lenderForm.get('contactPhone')?.invalid && lenderForm.get('contactPhone')?.touched"
                     class="error">
-                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['required']">
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['required']">
                         *Phone number is required.
                     </div>
-                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['pattern']">
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['pattern']">
                         *Please enter a valid phone number.
                     </div>
-                    <div *ngIf="lenderForm.get('contactInfo.contactPhone')?.errors?.['invalidLength']">
+                    <div *ngIf="lenderForm.get('contactPhone')?.errors?.['invalidLength']">
                         *Please enter 10 digits.
                     </div>
                 </div>
             </div>
-
 
             <!-- City -->
             <div class="form-group">
