@@ -32,7 +32,7 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     type: 'trial',
     trialDays: 30,
     validFor: ['lender'],
-    validIntervals: ['monthly', 'annually'],
+    validIntervals: ['annually'],
     active: true,
     maxUses: 100,
     currentUses: 0,
