@@ -1,7 +1,7 @@
 // user.service.ts
 import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Firestore, doc, updateDoc, deleteDoc, serverTimestamp } from '@angular/fire/firestore';
+import { Firestore, doc, collection, updateDoc, deleteDoc, getDoc, where, query, getDocs, serverTimestamp } from '@angular/fire/firestore';
 import {
   Auth,
   EmailAuthProvider,
@@ -46,6 +46,47 @@ private get db() {
     })
   );
 }
+getUserProfileByUid(uid: string): Observable<any | null> {
+  const lenderRef = doc(this.db, `lenders/${uid}`);
+  const originatorRef = doc(this.db, `originators/${uid}`);
+
+  return from(getDoc(lenderRef)).pipe(
+    switchMap(lenderSnap => {
+      if (lenderSnap.exists()) return of({ id: uid, ...lenderSnap.data() });
+      return from(getDoc(originatorRef)).pipe(
+        map(originatorSnap => originatorSnap.exists() ? { id: uid, ...originatorSnap.data() } : null)
+      );
+    }),
+    catchError(error => {
+      console.error('❌ Error fetching user profile by UID:', error);
+      return of(null);
+    })
+  );
+}
+
+checkUserByEmail(email: string): Observable<any | null> {
+  const collections = ['lenders', 'originators'];
+
+  return from(Promise.all(collections.map(async (collectionName) => {
+    const querySnapshot = await getDocs(
+      query(
+        collection(this.db, collectionName),  // ✅ FIXED
+        where('email', '==', email.toLowerCase().trim()),
+        where('subscriptionStatus', '==', 'active'),
+        where('source', '==', 'stripe_checkout')
+      )
+    );
+    return querySnapshot.empty ? null : { data: querySnapshot.docs[0].data(), id: querySnapshot.docs[0].id };
+  }))).pipe(
+    map(results => results.find(result => result !== null) || null),
+    catchError(error => {
+      console.error('❌ Error checking user by email:', error);
+      return of(null);
+    })
+  );
+}
+
+
 
   /**
    * 🔁 Updates existing Firestore user document
