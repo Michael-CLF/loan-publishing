@@ -6,6 +6,10 @@ import { UserRegSuccessModalComponent } from '../../modals/user-reg-success-moda
 import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { take, finalize } from 'rxjs/operators';
 import { LenderFormService } from '../../services/lender-registration.service';
+import { LenderService } from 'src/services/lender.service';
+import { firstValueFrom } from 'rxjs';
+
+
 import {
   Query,
   DocumentData,
@@ -40,6 +44,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly firestore = inject(Firestore);
   private readonly auth = inject(Auth);
   private readonly lenderFormService = inject(LenderFormService);
+  private readonly lenderService = inject(LenderService);
+
 
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
@@ -63,8 +69,32 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     this.processingMessage.set('Loading...');
   }
 
-  ngOnInit(): void {
-    console.log('🔄 Registration Processing Component - Starting...');
+  async ngOnInit(): Promise<void> {
+  console.log('📥 Registration Processing Component 🟡 Starting...');
+  const draftId = this.lenderFormService.getCurrentDraftId();
+
+  const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
+  const uid = user?.uid;
+
+  if (draftId && uid) {
+    this.lenderFormService.loadDraft(draftId).subscribe({
+      next: async (data) => {
+        if (data) {
+          console.log('✅ Draft restored:', data);
+          this.processingMessage.set('Draft loaded successfully.');
+
+          // 👇 CALL lenderService, not lenderFormService
+          await this.lenderService.updateLenderFromDraft(uid, draftId);
+        }
+      },
+      error: (err) => {
+        console.error('❌ Error loading draft:', err);
+        this.hasError.set(true);
+        this.processingMessage.set('Failed to load draft. Please try again.');
+      }
+    });
+  }
+
 
     // ✅ RESET static flags on fresh component load
     RegistrationProcessingComponent.processingInProgress = false;
@@ -117,7 +147,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
       for (const collectionName of ['originators', 'lenders']) {
         try {
-         const q: Query<DocumentData> = query(
+          const q: Query<DocumentData> = query(
             collection(this.firestore, collectionName),
             where('source', '==', 'stripe_checkout'),
             where('subscriptionStatus', '==', 'active'),
@@ -166,49 +196,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       }
     }, intervalTime);
   }
-  /**
-   * ✅ Update lender document with complete data from draft
-   */
-  private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
-    console.log('📝 Updating lender from draft:', { lenderId, draftId });
-
-    try {
-      // Load draft data
-      const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-      const draftSnap = await getDoc(draftRef);
-
-      if (draftSnap.exists()) {
-        const draftData = draftSnap.data();
-        console.log('✅ Draft data found:', draftData);
-
-        // Update lender document with complete data
-        const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
-        await updateDoc(lenderRef, {
-          productInfo: draftData['product'] || {},
-          footprintInfo: draftData['footprint'] || {},
-          termsAccepted: draftData['termsAccepted'] || false,
-          updatedAt: serverTimestamp(),
-          registrationCompleted: true
-        });
-
-        console.log('✅ Lender document updated with draft data');
-
-        // Mark draft as completed
-        await updateDoc(draftRef, {
-          status: 'completed',
-          completedAt: serverTimestamp()
-        });
-
-        // Clear draft from localStorage
-        localStorage.removeItem('lenderDraftId');
-        this.lenderFormService.clearDraft();
-      } else {
-        console.warn('⚠️ No draft found with ID:', draftId);
-      }
-    } catch (error) {
-      console.error('❌ Error updating lender from draft:', error);
-    }
-  }
 
   /**
    * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
@@ -230,11 +217,8 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }, 1500);
   }
 
-  /**
-   * ✅ Handle lender payment success - Just show success modal (webhook handles status update)  
-   */
-  private handleLenderPaymentSuccess(rawLenderData: string): void {
-    console.log('🏢 Processing lender payment success');
+  private async handleLenderPaymentSuccess(rawLenderData: string): Promise<void> {
+    console.log('🏦 Processing lender payment success');
     this.processingMessage.set('Payment successful! Finalizing your account...');
 
     try {
@@ -245,10 +229,13 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         throw new Error('Email is required');
       }
 
+      // ✅ Create lender document from draft
+      await this.lenderService.updateLenderFromDraft(lenderData.uid, lenderData.draftId);
+
       // ✅ Set processing flag
       RegistrationProcessingComponent.processingInProgress = true;
 
-      // ✅ Simple success flow - webhook already updated user status
+      // ✅ Update auth and redirect
       this.userRole = 'lender';
       this.authService.setRegistrationSuccess(true);
 

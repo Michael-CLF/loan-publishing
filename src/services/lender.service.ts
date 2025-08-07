@@ -1,6 +1,6 @@
 // lender.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Firestore, serverTimestamp, getDoc, doc } from '@angular/fire/firestore';
+import { Firestore, serverTimestamp, getDoc, updateDoc, doc } from '@angular/fire/firestore';
 import { Observable, of, from } from 'rxjs';
 import { map, catchError, tap } from 'rxjs/operators';
 import { FirestoreService } from './firestore.service';
@@ -48,6 +48,8 @@ export interface Lender {
 })
 export class LenderService {
   private firestoreService = inject(FirestoreService);
+  private firestore = inject(Firestore);
+
 
   private get db() {
     return this.firestoreService.firestore;
@@ -198,6 +200,36 @@ export class LenderService {
     return parseFloat(numericString) || 0;
   }
 
+  async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
+    console.log('📤 Updating lender from draft:', { lenderId, draftId });
+
+    try {
+      const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
+      const draftSnap = await getDoc(draftRef);
+
+      if (draftSnap.exists()) {
+        const draftData = draftSnap.data();
+        console.log('✅ Draft data found:', draftData);
+
+        const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
+        await updateDoc(lenderRef, {
+          productInfo: draftData['product'] || {},
+          footprintInfo: draftData['footprint'] || {},
+          updatedAt: serverTimestamp(),
+          createdAt: serverTimestamp(), // optional if not already set
+        });
+
+
+      } else {
+        console.warn('⚠️ No draft found with ID:', draftId);
+      }
+
+    } catch (err) {
+      console.error('❌ Error updating lender from draft:', err);
+      throw err;
+    }
+  }
+
   // Update an existing lender
   updateLender(id: string, data: Partial<Lender>): Observable<void> {
     // Convert Lender partial to UserData partial as needed
@@ -213,93 +245,93 @@ export class LenderService {
 
   // Replace your current searchLenders() method with this:
 
-searchLenders(
-  lenderType: string,
-  propertyCategory: string,
-  state: string,
-  loanAmount: string,
-  loanType: string
-): Observable<Lender[]> {
-  console.log('Searching lenders with criteria (raw):', {
-    lenderType,
-    propertyCategory,
-    state,
-    loanAmount,
-    loanType,
-  });
+  searchLenders(
+    lenderType: string,
+    propertyCategory: string,
+    state: string,
+    loanAmount: string,
+    loanType: string
+  ): Observable<Lender[]> {
+    console.log('Searching lenders with criteria (raw):', {
+      lenderType,
+      propertyCategory,
+      state,
+      loanAmount,
+      loanType,
+    });
 
-  const normalize = (str: string) =>
-    str
-      ? str.trim().toLowerCase().replace(/\s+/g, '_')
-      : '';
+    const normalize = (str: string) =>
+      str
+        ? str.trim().toLowerCase().replace(/\s+/g, '_')
+        : '';
 
-  const stateMap: { [key: string]: string } = {
-    alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
-    connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID',
-    illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
-    maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN',
-    mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV',
-    new_hampshire: 'NH', new_jersey: 'NJ', new_mexico: 'NM', new_york: 'NY',
-    north_carolina: 'NC', north_dakota: 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR',
-    pennsylvania: 'PA', rhode_island: 'RI', south_carolina: 'SC', south_dakota: 'SD',
-    tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA',
-    west_virginia: 'WV', wisconsin: 'WI', wyoming: 'WY', district_of_columbia: 'DC'
-  };
+    const stateMap: { [key: string]: string } = {
+      alabama: 'AL', alaska: 'AK', arizona: 'AZ', arkansas: 'AR', california: 'CA', colorado: 'CO',
+      connecticut: 'CT', delaware: 'DE', florida: 'FL', georgia: 'GA', hawaii: 'HI', idaho: 'ID',
+      illinois: 'IL', indiana: 'IN', iowa: 'IA', kansas: 'KS', kentucky: 'KY', louisiana: 'LA',
+      maine: 'ME', maryland: 'MD', massachusetts: 'MA', michigan: 'MI', minnesota: 'MN',
+      mississippi: 'MS', missouri: 'MO', montana: 'MT', nebraska: 'NE', nevada: 'NV',
+      new_hampshire: 'NH', new_jersey: 'NJ', new_mexico: 'NM', new_york: 'NY',
+      north_carolina: 'NC', north_dakota: 'ND', ohio: 'OH', oklahoma: 'OK', oregon: 'OR',
+      pennsylvania: 'PA', rhode_island: 'RI', south_carolina: 'SC', south_dakota: 'SD',
+      tennessee: 'TN', texas: 'TX', utah: 'UT', vermont: 'VT', virginia: 'VA', washington: 'WA',
+      west_virginia: 'WV', wisconsin: 'WI', wyoming: 'WY', district_of_columbia: 'DC'
+    };
 
-  const filterLenderType = normalize(lenderType);
-  const filterCategory = normalize(propertyCategory);
-  const filterLoanType = normalize(loanType);
-  const filterStateAbbr = state
-    ? (state.length === 2
+    const filterLenderType = normalize(lenderType);
+    const filterCategory = normalize(propertyCategory);
+    const filterLoanType = normalize(loanType);
+    const filterStateAbbr = state
+      ? (state.length === 2
         ? state.toUpperCase()
         : stateMap[normalize(state)] || state.toUpperCase())
-    : '';
+      : '';
 
-  const filterAmount = loanAmount ? this.parseNumericValue(loanAmount) : null;
+    const filterAmount = loanAmount ? this.parseNumericValue(loanAmount) : null;
 
-  return this.getAllLenders().pipe(
-    map((lenders) =>
-      lenders.filter((lender) => {
-        let includeThisLender = true;
+    return this.getAllLenders().pipe(
+      map((lenders) =>
+        lenders.filter((lender) => {
+          let includeThisLender = true;
 
-        // Lender type
-        if (filterLenderType && includeThisLender) {
-          const lenderTypes = (lender.productInfo?.lenderTypes || []).map(normalize);
-          includeThisLender = lenderTypes.includes(filterLenderType);
-        }
+          // Lender type
+          if (filterLenderType && includeThisLender) {
+            const lenderTypes = (lender.productInfo?.lenderTypes || []).map(normalize);
+            includeThisLender = lenderTypes.includes(filterLenderType);
+          }
 
-        // Loan type
-        if (filterLoanType && includeThisLender) {
-          const loanTypes = (lender.productInfo?.loanTypes || []).map(normalize);
-          includeThisLender = loanTypes.includes(filterLoanType);
-        }
+          // Loan type
+          if (filterLoanType && includeThisLender) {
+            const loanTypes = (lender.productInfo?.loanTypes || []).map(normalize);
+            includeThisLender = loanTypes.includes(filterLoanType);
+          }
 
-        // Property category
-        if (filterCategory && includeThisLender) {
-          const categories = (lender.productInfo?.propertyCategories || []).map(normalize);
-          includeThisLender = categories.includes(filterCategory);
-        }
+          // Property category
+          if (filterCategory && includeThisLender) {
+            const categories = (lender.productInfo?.propertyCategories || []).map(normalize);
+            includeThisLender = categories.includes(filterCategory);
+          }
 
-        // State
-        if (filterStateAbbr && includeThisLender) {
-          const states = (lender.footprintInfo?.lendingFootprint || []).map((s) =>
-            s.length === 2 ? s.toUpperCase() : stateMap[normalize(s)] || s.toUpperCase()
-          );
-          includeThisLender = states.includes(filterStateAbbr);
-        }
+          // State
+          if (filterStateAbbr && includeThisLender) {
+            const states = (lender.footprintInfo?.lendingFootprint || []).map((s) =>
+              s.length === 2 ? s.toUpperCase() : stateMap[normalize(s)] || s.toUpperCase()
+            );
+            includeThisLender = states.includes(filterStateAbbr);
+          }
 
-        // Loan amount
-        if (filterAmount && includeThisLender) {
-          const minAmount = this.parseNumericValue(lender.productInfo?.minLoanAmount) || 0;
-          const maxAmount =
-            this.parseNumericValue(lender.productInfo?.maxLoanAmount) || Number.MAX_VALUE;
-          includeThisLender = filterAmount >= minAmount && filterAmount <= maxAmount;
-        }
+          // Loan amount
+          if (filterAmount && includeThisLender) {
+            const minAmount = this.parseNumericValue(lender.productInfo?.minLoanAmount) || 0;
+            const maxAmount =
+              this.parseNumericValue(lender.productInfo?.maxLoanAmount) || Number.MAX_VALUE;
+            includeThisLender = filterAmount >= minAmount && filterAmount <= maxAmount;
+          }
 
-        return includeThisLender;
-      })
-    ),
-    tap((filtered) => console.log('Filtered lenders count:', filtered.length))
-  );
-}
+          return includeThisLender;
+        })
+      ),
+      tap((filtered) => console.log('Filtered lenders count:', filtered.length))
+    );
+  }
 }

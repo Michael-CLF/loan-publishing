@@ -3,12 +3,14 @@
 import { Injectable, inject } from '@angular/core';
 import {
   Auth,
+  authState,
   User,
   UserCredential,
   onAuthStateChanged,
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
+  signInWithCustomToken,
   signOut,
   signInWithPopup,
   GoogleAuthProvider
@@ -32,14 +34,12 @@ import { switchMap, map, tap, catchError } from 'rxjs/operators';
 import { docData } from 'rxfire/firestore';
 import { UserData } from '../models/user-data.model';
 import { BehaviorSubject } from 'rxjs';
-import { authState, signInWithCustomToken } from '@angular/fire/auth';
 import { HttpClient } from '@angular/common/http';
 import { FirestoreService } from './firestore.service';
 import { httpsCallable } from '@angular/fire/functions';
 import { Functions } from '@angular/fire/functions';
 import { browserLocalPersistence, setPersistence } from '@firebase/auth';
-
-
+import { firstValueFrom } from 'rxjs';
 
 @Injectable({
   providedIn: 'root',
@@ -96,33 +96,33 @@ export class AuthService {
       })
     );
   }
-authenticateNewUser(email: string, sessionId: string): Observable<void> {
-  console.log('🔍 Generating custom token for user:', email);
+  authenticateNewUser(email: string, sessionId: string): Observable<void> {
+    console.log('🔍 Generating custom token for user:', email);
 
-  const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
+    const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
 
-  return this.http.post<{ token: string }>(
-    tokenUrl,
-    { email: email.toLowerCase().trim(), sessionId },
-    { headers: { 'Content-Type': 'application/json' } }
-  ).pipe(
-    switchMap((response) => {
-      console.log('✅ Custom token received, signing in user...');
+    return this.http.post<{ token: string }>(
+      tokenUrl,
+      { email: email.toLowerCase().trim(), sessionId },
+      { headers: { 'Content-Type': 'application/json' } }
+    ).pipe(
+      switchMap((response) => {
+        console.log('✅ Custom token received, signing in user...');
 
-      return from(signInWithCustomToken(this.auth, response.token)).pipe(
-        tap(() => {
-          console.log('✅ User authenticated with custom token');
-          localStorage.setItem('isLoggedIn', 'true');
-        }),
-        map(() => void 0) // Return void
-      );
-    }),
-    catchError((error) => {
-      console.error('❌ Error authenticating with custom token:', error);
-      return throwError(() => error);
-    })
-  );
-}
+        return from(signInWithCustomToken(this.auth, response.token)).pipe(
+          tap(() => {
+            console.log('✅ User authenticated with custom token');
+            localStorage.setItem('isLoggedIn', 'true');
+          }),
+          map(() => void 0) // Return void
+        );
+      }),
+      catchError((error) => {
+        console.error('❌ Error authenticating with custom token:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));
@@ -132,47 +132,47 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
 
 
   getUserProfile(): Observable<UserData | null> {
-  return this.getCurrentFirebaseUser().pipe(
-    switchMap(user => {
-      if (!user) return of(null);
-      const uid = user.uid;
+    return this.getCurrentFirebaseUser().pipe(
+      switchMap(user => {
+        if (!user) return of(null);
+        const uid = user.uid;
 
-      const lenderRef = doc(this.db, `lenders/${uid}`);
-      const originatorRef = doc(this.db, `originators/${uid}`);
+        const lenderRef = doc(this.db, `lenders/${uid}`);
+        const originatorRef = doc(this.db, `originators/${uid}`);
 
-      // Check lenders first
-      return from(getDoc(lenderRef)).pipe(
-        switchMap(lenderSnap => {
-          if (lenderSnap.exists()) {
-            return of({
-              id: lenderSnap.id,
-              ...(lenderSnap.data() as any),
-            } as UserData);
-          }
+        // Check lenders first
+        return from(getDoc(lenderRef)).pipe(
+          switchMap(lenderSnap => {
+            if (lenderSnap.exists()) {
+              return of({
+                id: lenderSnap.id,
+                ...(lenderSnap.data() as any),
+              } as UserData);
+            }
 
-          // Fallback to originators
-          return from(getDoc(originatorRef)).pipe(
-            map(originatorSnap => {
-              if (originatorSnap.exists()) {
-                return {
-                  id: originatorSnap.id,
-                  ...(originatorSnap.data() as any),
-                } as UserData;
-              } else {
-                console.warn('❌ No lender or originator profile found.');
-                return null;
-              }
-            })
-          );
-        })
-      );
-    }),
-    catchError(err => {
-      console.error('❌ Error fetching user profile:', err);
-      return of(null);
-    })
-  );
-}
+            // Fallback to originators
+            return from(getDoc(originatorRef)).pipe(
+              map(originatorSnap => {
+                if (originatorSnap.exists()) {
+                  return {
+                    id: originatorSnap.id,
+                    ...(originatorSnap.data() as any),
+                  } as UserData;
+                } else {
+                  console.warn('❌ No lender or originator profile found.');
+                  return null;
+                }
+              })
+            );
+          })
+        );
+      }),
+      catchError(err => {
+        console.error('❌ Error fetching user profile:', err);
+        return of(null);
+      })
+    );
+  }
 
   checkAccountExists(email: string): Observable<{
     exists: boolean;
@@ -278,26 +278,26 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
     );
   }
 
- sendLoginLink(email: string): Observable<void> {
-  const actionCodeSettings = {
-    url: `${environment.frontendUrl}/dashboard`,
-    handleCodeInApp: true,
-  };
+  sendLoginLink(email: string): Observable<void> {
+    const actionCodeSettings = {
+      url: `${environment.frontendUrl}/dashboard`,
+      handleCodeInApp: true,
+    };
 
-  // ✅ ADD THIS LOGGING
-  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
-  console.log('🔗 Frontend URL from environment:', environment.frontendUrl);
+    // ✅ ADD THIS LOGGING
+    console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+    console.log('🔗 Frontend URL from environment:', environment.frontendUrl);
 
-  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
-    map(() => {
-      localStorage.setItem('emailForSignIn', email);
-    }),
-    catchError((error) => {
-      console.error('❌ Error sending login link:', error);
-      return throwError(() => error);
-    })
-  );
-}
+    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+      map(() => {
+        localStorage.setItem('emailForSignIn', email);
+      }),
+      catchError((error) => {
+        console.error('❌ Error sending login link:', error);
+        return throwError(() => error);
+      })
+    );
+  }
 
   loginWithEmailLink(email: string): Observable<UserCredential> {
     const storedEmail = email || localStorage.getItem('emailForSignIn');
@@ -350,10 +350,9 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
     return from(signOut(this.auth));
   }
 
-  getCurrentFirebaseUser(): Observable<User | null> {
-    return authState(this.auth); // already imported from '@angular/fire/auth'
-  }
-
+ getCurrentFirebaseUser(): Observable<User | null> {
+  return authState(this.auth); // from @angular/fire/auth
+}
 
   /**
  * ✅ Force reload of the current Firebase user object
@@ -381,10 +380,10 @@ authenticateNewUser(email: string, sessionId: string): Observable<void> {
     });
   }
   initAuthPersistence(): void {
-  setPersistence(this.auth, browserLocalPersistence)
-    .then(() => console.log('✅ Firebase Auth persistence set to local'))
-    .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
-}
+    setPersistence(this.auth, browserLocalPersistence)
+      .then(() => console.log('✅ Firebase Auth persistence set to local'))
+      .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
+  }
   /**
    * ✅ Modal flow state controller (used after Stripe return)
    */
