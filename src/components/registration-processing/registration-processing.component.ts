@@ -34,7 +34,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private readonly auth = inject(Auth);
   private readonly lenderFormService = inject(LenderFormService); 
 
-
   // ✅ Angular 18 Best Practice: Use signals for reactive state management
   showProcessingSpinner = signal(true);
   showRegistrationSuccessModal = signal(false);
@@ -45,7 +44,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private userRole: 'originator' | 'lender' | undefined = undefined;
 
   originatorData: any;
-
 
   // ✅ Prevent duplicate processing
   private static processingInProgress = false;
@@ -105,128 +103,166 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     });
   }
 
- private handleStripeCallback(): void {
-  console.log('💳 Processing Stripe payment callback');
-  this.processingMessage.set('Verifying your payment...');
+  private handleStripeCallback(): void {
+    console.log('💳 Processing Stripe payment callback');
+    this.processingMessage.set('Verifying your payment...');
 
-  const sessionId = this.route.snapshot.queryParams['session_id'];
-  const draftId = localStorage.getItem('lenderDraftId'); // Check for draft ID
+    const sessionId = this.route.snapshot.queryParams['session_id'];
+    const draftId = localStorage.getItem('lenderDraftId');
 
-  if (!sessionId) {
-    console.error('❌ No session ID found in URL – retrying...');
-    this.processingMessage.set('Waiting for payment session...');
-    return;
-  }
+    if (!sessionId) {
+      console.error('❌ No session ID found in URL – retrying...');
+      this.processingMessage.set('Waiting for payment session...');
+      return;
+    }
 
-  console.log('🔍 Verifying payment for session:', sessionId);
-  console.log('🔍 Draft ID found:', draftId);
+    console.log('🔍 Verifying payment for session:', sessionId);
+    console.log('🔍 Draft ID found:', draftId);
 
-  let attempts = 0;
-  const maxAttempts = 40; // 2 minutes if interval is 3s
-  const intervalTime = 3000;
+    let attempts = 0;
+    const maxAttempts = 40; // 2 minutes if interval is 3s
+    const intervalTime = 3000;
 
-  const interval = setInterval(async () => {
-    attempts++;
+    const interval = setInterval(async () => {
+      attempts++;
 
-    for (const collectionName of ['originators', 'lenders']) {
-      try {
-        const q = query(
-          collection(this.firestore, collectionName),
-          where('source', '==', 'stripe_checkout'),
-          where('subscriptionStatus', '==', 'active')
-        );
+      // 🔍 Get expected email from localStorage (set during registration)
+      const expectedEmail = localStorage.getItem('lenderRegistrationEmail') || 
+                           localStorage.getItem('originatorRegistrationEmail');
 
-        const querySnapshot = await getDocs(q);
-
-        if (!querySnapshot.empty) {
-          const userDoc = querySnapshot.docs[0];
-          const userData = userDoc.data();
-          const userEmail = userData?.['email'];
-
-          console.log('✅ Stripe verified. Found user:', userEmail);
-
+      if (!expectedEmail) {
+        console.error('❌ No expected email found in localStorage');
+        if (attempts >= maxAttempts) {
           clearInterval(interval);
-          this.userRole = userData?.['role'] || 'originator';
-          this.processingMessage.set('Logging you in...');
-
-          // ✅ If this is a lender with a draft, update their document
-          if (this.userRole === 'lender' && draftId) {
-            await this.updateLenderFromDraft(userDoc.id, draftId);
-          }
-
-          if (userEmail) {
-            this.authenticateNewUser(userEmail, sessionId);
-          } else {
-            console.error('❌ No email found in user data');
-            this.hasError.set(true);
-            this.showProcessingSpinner.set(false);
-          }
-
-          return; // ⛔ Exit both polling and loop
+          this.hasError.set(true);
+          this.showProcessingSpinner.set(false);
+          this.processingMessage.set('Registration verification failed. Please try again.');
         }
-      } catch (err) {
-        console.error(`⚠️ Error checking ${collectionName}:`, err);
+        return;
       }
-    }
 
-    if (attempts >= maxAttempts) {
-      clearInterval(interval);
-      this.hasError.set(true);
-      this.showProcessingSpinner.set(false);
-      this.processingMessage.set('Payment verification timeout. Please contact support.');
-      console.error('❌ Stripe verification timeout after 2 minutes');
-    }
+      console.log('🔍 Looking for specific user:', expectedEmail);
 
-  }, intervalTime);
-}
-  
-/**
- * ✅ Update lender document with complete data from draft
- */
-private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
-  console.log('📝 Updating lender from draft:', { lenderId, draftId });
-  
-  try {
-    // Load draft data
-    const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-    const draftSnap = await getDoc(draftRef);
-    
-    if (draftSnap.exists()) {
-      const draftData = draftSnap.data();
-      console.log('✅ Draft data found:', draftData);
-      
-      // Update lender document with complete data
-      const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
-      await updateDoc(lenderRef, {
-        productInfo: draftData['product'] || {},
-        footprintInfo: draftData['footprint'] || {},
-        termsAccepted: draftData['termsAccepted'] || false,
-        updatedAt: serverTimestamp(),
-        registrationCompleted: true
-      });
-      
-      console.log('✅ Lender document updated with draft data');
-      
-      // Mark draft as completed
-      await updateDoc(draftRef, {
-        status: 'completed',
-        completedAt: serverTimestamp()
-      });
-      
-      // Clear draft from localStorage
-      localStorage.removeItem('lenderDraftId');
-      this.lenderFormService.clearDraft();
-    } else {
-      console.warn('⚠️ No draft found with ID:', draftId);
-    }
-  } catch (error) {
-    console.error('❌ Error updating lender from draft:', error);
+      for (const collectionName of ['originators', 'lenders']) {
+        try {
+          const q = query(
+            collection(this.firestore, collectionName),
+            where('email', '==', expectedEmail.toLowerCase().trim()),
+            where('source', '==', 'stripe_checkout'),
+            where('subscriptionStatus', '==', 'active'),
+            where('stripeSessionId', '==', sessionId)
+          );
+
+          const querySnapshot = await getDocs(q);
+
+          if (!querySnapshot.empty) {
+            const userDoc = querySnapshot.docs[0];
+            const userData = userDoc.data();
+            const userEmail = userData?.['email'];
+
+            // 🛡️ SECURITY: Verify email matches expected
+            if (userEmail !== expectedEmail.toLowerCase().trim()) {
+              console.error('🚨 EMAIL MISMATCH - SECURITY BREACH!', {
+                expected: expectedEmail,
+                found: userEmail
+              });
+              continue;
+            }
+
+            // 🛡️ Additional verification: Check session ownership  
+            const userSessionId = userData?.['stripeSessionId'];
+            if (userSessionId !== sessionId) {
+              console.error('🚨 SESSION MISMATCH - SECURITY BREACH!', {
+                expectedSession: sessionId,
+                userSession: userSessionId
+              });
+              continue;
+            }
+
+            console.log('✅ Stripe verified. Found correct user:', userEmail);
+            console.log('✅ Session verified. User owns this checkout session.');
+
+            clearInterval(interval);
+            this.userRole = userData?.['role'] || 'originator';
+            this.processingMessage.set('Logging you in...');
+
+            // ✅ If this is a lender with a draft, update their document
+            if (this.userRole === 'lender' && draftId) {
+              await this.updateLenderFromDraft(userDoc.id, draftId);
+            }
+
+            if (userEmail) {
+              this.authenticateNewUser(userEmail, sessionId);
+            } else {
+              console.error('❌ No email found in user data');
+              this.hasError.set(true);
+              this.showProcessingSpinner.set(false);
+            }
+
+            return; // ⛔ Exit both polling and loop
+          }
+        } catch (err) {
+          console.error(`⚠️ Error checking ${collectionName}:`, err);
+        }
+      }
+
+      if (attempts >= maxAttempts) {
+        clearInterval(interval);
+        this.hasError.set(true);
+        this.showProcessingSpinner.set(false);
+        this.processingMessage.set('Payment verification timeout. Please contact support.');
+        console.error('❌ Stripe verification timeout after 2 minutes');
+      }
+    }, intervalTime);
   }
-}
+  
+  /**
+   * ✅ Update lender document with complete data from draft
+   */
+  private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
+    console.log('📝 Updating lender from draft:', { lenderId, draftId });
+    
+    try {
+      // Load draft data
+      const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
+      const draftSnap = await getDoc(draftRef);
+      
+      if (draftSnap.exists()) {
+        const draftData = draftSnap.data();
+        console.log('✅ Draft data found:', draftData);
+        
+        // Update lender document with complete data
+        const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
+        await updateDoc(lenderRef, {
+          productInfo: draftData['product'] || {},
+          footprintInfo: draftData['footprint'] || {},
+          termsAccepted: draftData['termsAccepted'] || false,
+          updatedAt: serverTimestamp(),
+          registrationCompleted: true
+        });
+        
+        console.log('✅ Lender document updated with draft data');
+        
+        // Mark draft as completed
+        await updateDoc(draftRef, {
+          status: 'completed',
+          completedAt: serverTimestamp()
+        });
+        
+        // Clear draft from localStorage
+        localStorage.removeItem('lenderDraftId');
+        this.lenderFormService.clearDraft();
+      } else {
+        console.warn('⚠️ No draft found with ID:', draftId);
+      }
+    } catch (error) {
+      console.error('❌ Error updating lender from draft:', error);
+    }
+  }
 
   /**
-  * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
-  */
+   * ✅ Handle originator payment success - Just show success modal (webhook handles status update)
+   */
   private handleOriginatorPaymentSuccess(): void {
     console.log('👤 Processing originator payment success');
     this.processingMessage.set('Payment successful! Finalizing your account...');
@@ -245,8 +281,8 @@ private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<
   }
 
   /**
- * ✅ Handle lender payment success - Just show success modal (webhook handles status update)  
- */
+   * ✅ Handle lender payment success - Just show success modal (webhook handles status update)  
+   */
   private handleLenderPaymentSuccess(rawLenderData: string): void {
     console.log('🏢 Processing lender payment success');
     this.processingMessage.set('Payment successful! Finalizing your account...');
@@ -331,6 +367,7 @@ private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<
       this.processingMessage.set('Failed to create user. Please try again.');
     }
   }
+
   /**
    * ✅ Show appropriate modal based on user role
    */
@@ -358,29 +395,29 @@ private async updateLenderFromDraft(lenderId: string, draftId: string): Promise<
     }, 200);
   }
 
- closeRegistrationSuccessModal(): void {
-  console.log('✅ Originator modal closed - redirecting to dashboard');
+  closeRegistrationSuccessModal(): void {
+    console.log('✅ Originator modal closed - redirecting to dashboard');
 
-  // ✅ Hide modal first
-  this.showRegistrationSuccessModal.set(false);
+    // ✅ Hide modal first
+    this.showRegistrationSuccessModal.set(false);
 
-  // ✅ Small delay before redirect to allow modal close animation
-  setTimeout(() => {
-    this.redirectToDashboard('originator'); // Pass role
-  }, 100);
-}
+    // ✅ Small delay before redirect to allow modal close animation
+    setTimeout(() => {
+      this.redirectToDashboard('originator'); // Pass role
+    }, 100);
+  }
 
-closeLenderRegistrationSuccessModal(): void {
-  console.log('✅ Lender modal closed - redirecting to dashboard');
+  closeLenderRegistrationSuccessModal(): void {
+    console.log('✅ Lender modal closed - redirecting to dashboard');
 
-  // ✅ Hide modal first
-  this.showLenderRegistrationSuccessModal.set(false);
+    // ✅ Hide modal first
+    this.showLenderRegistrationSuccessModal.set(false);
 
-  // ✅ Small delay before redirect to allow modal close animation
-  setTimeout(() => {
-    this.redirectToDashboard('lender'); // Pass role
-  }, 100);
-}
+    // ✅ Small delay before redirect to allow modal close animation
+    setTimeout(() => {
+      this.redirectToDashboard('lender'); // Pass role
+    }, 100);
+  }
 
   private clearRegistrationFlags(): void {
     console.log('🧹 Clearing registration success flags');
@@ -390,22 +427,22 @@ closeLenderRegistrationSuccessModal(): void {
     localStorage.removeItem('completeOriginatorData');
   }
 
- private redirectToDashboard(role?: string): void {
-  console.log('🎯 Redirecting to dashboard for role:', role || this.userRole);
+  private redirectToDashboard(role?: string): void {
+    console.log('🎯 Redirecting to dashboard for role:', role || this.userRole);
 
-  try {
-    // ✅ Route based on user role
-    if (role === 'lender' || this.userRole === 'lender') {
-      this.router.navigate(['/dashboard']); // Same route but dashboard component will handle the role
-    } else {
-      this.router.navigate(['/dashboard']);
+    try {
+      // ✅ Route based on user role
+      if (role === 'lender' || this.userRole === 'lender') {
+        this.router.navigate(['/dashboard']); // Same route but dashboard component will handle the role
+      } else {
+        this.router.navigate(['/dashboard']);
+      }
+    } catch (error) {
+      console.error('❌ Error navigating to dashboard:', error);
+      // ✅ Fallback: try direct navigation
+      window.location.href = '/dashboard';
     }
-  } catch (error) {
-    console.error('❌ Error navigating to dashboard:', error);
-    // ✅ Fallback: try direct navigation
-    window.location.href = '/dashboard';
   }
-}
 
   /**
    * ✅ Clean up static flags when component is destroyed
