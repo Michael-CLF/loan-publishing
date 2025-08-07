@@ -68,10 +68,7 @@ export class LenderFormService {
   private draftIdSubject = new BehaviorSubject<string | null>(null);
   public draftId$ = this.draftIdSubject.asObservable();
 
-  constructor() {
-    // Try to load saved data from localStorage on initialization
-    this.loadFromLocalStorage();
-  }
+  constructor() {}
 
   // Set a section of the form with persistence
   setFormSection(
@@ -85,9 +82,6 @@ export class LenderFormService {
       ...currentData,
       [section]: data,
     };
-
-    // Save to local storage
-    this.saveToLocalStorage(updatedData);
 
     // Update the BehaviorSubject
     this.formDataSubject.next(updatedData);
@@ -140,9 +134,6 @@ export class LenderFormService {
       termsAccepted: false,
     };
 
-    // Clear local storage
-    localStorage.removeItem('lenderFormData');
-
     // Reset the form data
     this.formDataSubject.next(emptyData);
   }
@@ -168,8 +159,6 @@ export class LenderFormService {
     return from(setDoc(draftRef, draftData, { merge: true })).pipe(
       tap(() => {
         this.draftIdSubject.next(draftId);
-        // Also save draft ID to localStorage for recovery
-        localStorage.setItem('lenderDraftId', draftId);
       }),
       map(() => draftId)
     );
@@ -208,7 +197,7 @@ export class LenderFormService {
    * Get current draft ID
    */
   getCurrentDraftId(): string | null {
-    return this.draftIdSubject.getValue() || localStorage.getItem('lenderDraftId');
+    return this.draftIdSubject.getValue();
   }
 
   /**
@@ -230,29 +219,6 @@ export class LenderFormService {
     }
 
     this.draftIdSubject.next(null);
-    localStorage.removeItem('lenderDraftId');
     this.clearForm();
-  }
-
-  // Helper method to save form data to localStorage
-  private saveToLocalStorage(data: LenderFormData): void {
-    try {
-      localStorage.setItem('lenderFormData', JSON.stringify(data));
-    } catch (error) {
-      console.error('Error saving form data to localStorage:', error);
-    }
-  }
-
-  // Helper method to load form data from localStorage
-  private loadFromLocalStorage(): void {
-    try {
-      const savedData = localStorage.getItem('lenderFormData');
-      if (savedData) {
-        const parsedData = JSON.parse(savedData) as LenderFormData;
-        this.formDataSubject.next(parsedData);
-      }
-    } catch (error) {
-      console.error('Error loading form data from localStorage:', error);
-    }
   }
 }

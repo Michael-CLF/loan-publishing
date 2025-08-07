@@ -993,10 +993,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private proceedToStripe(email: string, formData: any, draftId: string): void {
   console.log('✅ Proceeding to Stripe with draft ID:', draftId);
   
-  // ✅ Store draft ID for recovery (but not all the form data)
-  localStorage.setItem('lenderDraftId', draftId);
-  localStorage.setItem('lenderRegistrationEmail', email);
-
   runInInjectionContext(this.injector, () => {
     // Get payment data from service
     const paymentData = this.lenderFormService.getFormSection('payment');

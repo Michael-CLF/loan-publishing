@@ -7,6 +7,13 @@ import { LenderRegSuccessModalComponent } from '../../modals/lender-reg-success-
 import { take, finalize } from 'rxjs/operators';
 import { LenderFormService } from '../../services/lender-registration.service';
 import {
+  Query,
+  DocumentData,
+  QuerySnapshot,
+  QueryDocumentSnapshot
+} from 'firebase/firestore';
+
+import {
   Firestore,
   doc,
   query,
@@ -88,28 +95,11 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  private authenticateNewUser(email: string, sessionId: string): void {
-    this.authService.authenticateNewUser(email, sessionId).pipe(take(1)).subscribe({
-      next: () => {
-        console.log('✅ User authenticated successfully, showing success modal');
-        this.showProcessingSpinner.set(false);
-        this.showModalBasedOnRole(); // Continue flow based on role
-      },
-      error: (error) => {
-        console.error('❌ Failed to authenticate user:', error);
-        this.hasError.set(true);
-        this.showProcessingSpinner.set(false);
-        this.processingMessage.set('Authentication failed. Please try again or contact support.');
-      }
-    });
-  }
-
   private handleStripeCallback(): void {
     console.log('💳 Processing Stripe payment callback');
     this.processingMessage.set('Verifying your payment...');
 
-    const sessionId = this.route.snapshot.queryParams['session_id'];
-    const draftId = localStorage.getItem('lenderDraftId');
+    const sessionId = this.route.snapshot.queryParamMap.get('session_id');
 
     if (!sessionId) {
       console.error('❌ No session ID found in URL – retrying...');
@@ -125,44 +115,23 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       console.log(`⏳ Polling attempt #${attempts}`);
       attempts++;
 
-      const expectedEmail =
-        localStorage.getItem('lenderRegistrationEmail') ||
-        localStorage.getItem('originatorRegistrationEmail');
-
-      if (!expectedEmail) {
-        console.warn('⚠️ No expected email found in localStorage');
-        if (attempts >= maxAttempts) {
-          clearInterval(interval);
-          this.hasError.set(true);
-          this.showProcessingSpinner.set(false);
-          this.processingMessage.set('Registration verification failed. Please try again.');
-        }
-        return;
-      }
-
       for (const collectionName of ['originators', 'lenders']) {
         try {
-          const q = query(
+         const q: Query<DocumentData> = query(
             collection(this.firestore, collectionName),
-            where('email', '==', expectedEmail.toLowerCase().trim()),
             where('source', '==', 'stripe_checkout'),
             where('subscriptionStatus', '==', 'active'),
             where('stripeSessionId', '==', sessionId)
           );
 
-          const querySnapshot = await getDocs(q);
+          const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
           console.log(`📦 Checked collection ${collectionName}, query result empty:`, querySnapshot.empty);
           if (!querySnapshot.empty) {
-            const userDoc = querySnapshot.docs[0];
-            const userData = userDoc.data();
+            const userDoc: QueryDocumentSnapshot<DocumentData> = querySnapshot.docs[0];
+            const userData: any = userDoc.data();
             const userEmail = userData?.['email'];
 
-            if (userEmail !== expectedEmail.toLowerCase().trim()) {
-              console.error('🚨 EMAIL MISMATCH – expected vs found:', expectedEmail, userEmail);
-              continue;
-            }
-
-            const userSessionId = userData?.['stripeSessionId'];
+            const userSessionId: string = (userData as any)['stripeSessionId'];
             if (userSessionId !== sessionId) {
               console.error('🚨 SESSION MISMATCH – expected vs found:', sessionId, userSessionId);
               continue;
@@ -170,31 +139,23 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
             console.log('✅ Stripe verified. User authenticated:', userEmail);
             clearInterval(interval);
-
             this.userRole = userData?.['role'] || 'originator';
             this.processingMessage.set('Logging you in...');
 
-            if (this.userRole === 'lender' && draftId) {
-              await this.updateLenderFromDraft(userDoc.id, draftId);
-            }
-
             if (userEmail) {
               console.log('🚀 Calling authenticateNewUser with:', userEmail, sessionId);
-              this.authenticateNewUser(userEmail, sessionId);
             } else {
               console.error('❌ No email in verified user document');
               this.hasError.set(true);
               this.showProcessingSpinner.set(false);
               this.processingMessage.set('Email not found after verification.');
             }
-
             return;
           }
         } catch (err) {
           console.error(`⚠️ Error checking ${collectionName} collection:`, err);
         }
       }
-
       if (attempts >= maxAttempts) {
         clearInterval(interval);
         this.hasError.set(true);
@@ -205,8 +166,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       }
     }, intervalTime);
   }
-
-
   /**
    * ✅ Update lender document with complete data from draft
    */
