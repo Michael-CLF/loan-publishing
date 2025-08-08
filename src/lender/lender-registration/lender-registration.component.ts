@@ -970,7 +970,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   private async createPendingLenderDocument(formData: any): Promise<string> {
     // Generate a unique ID for this user
-    const userId = doc(collection(this.firestore, 'lenders')).id;
+    // Create a consistent UID format
+const userId = 'lender_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
 
     const lenderData = {
       id: userId,
