@@ -200,35 +200,6 @@ export class LenderService {
     return parseFloat(numericString) || 0;
   }
 
-  async updateLenderFromDraft(lenderId: string, draftId: string): Promise<void> {
-    console.log('📤 Updating lender from draft:', { lenderId, draftId });
-
-    try {
-      const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-      const draftSnap = await getDoc(draftRef);
-
-      if (draftSnap.exists()) {
-        const draftData = draftSnap.data();
-        console.log('✅ Draft data found:', draftData);
-
-        const lenderRef = doc(this.firestore, `lenders/${lenderId}`);
-        await updateDoc(lenderRef, {
-          productInfo: draftData['product'] || {},
-          footprintInfo: draftData['footprint'] || {},
-          updatedAt: serverTimestamp(),
-          createdAt: serverTimestamp(), // optional if not already set
-        });
-
-
-      } else {
-        console.warn('⚠️ No draft found with ID:', draftId);
-      }
-
-    } catch (err) {
-      console.error('❌ Error updating lender from draft:', err);
-      throw err;
-    }
-  }
 
   // Update an existing lender
   updateLender(id: string, data: Partial<Lender>): Observable<void> {

@@ -82,7 +82,6 @@ export interface CheckoutSessionRequest {
     phone: string;
     city: string;
     state: string;
-    draftId?: string;
   };
   promotion_code?: string;
   discount?: number;
@@ -853,7 +852,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // If form is valid, proceed
     if (currentForm.valid) {
-      // Save current step data to service (which handles drafts)
+      // Save current step data to service
       this.saveCurrentStepData();
 
       // For all steps, just proceed to next step
@@ -911,11 +910,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     return;
   }
   
-  // No drafts - go straight to payment
-  this.proceedToStripe(email, formData, '');
+  // Go straight to payment
+  this.proceedToStripe(email, formData);
 }
 
-  async proceedToStripe(email: string, formData: any, draftId: string): Promise<void> {
+  async proceedToStripe(email: string, formData: any ): Promise<void> {
     console.log('🚀 Starting new payment flow - creating document first');
 
     if (!email) {
@@ -1009,7 +1008,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     return userId;
   }
 
-  private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotion_code: string | null, billingInterval: string): void {
+  private createStripeCheckoutWithValidCode(email: string, formData: any, promotion_code: string | null, billingInterval: string): void {
     const payload: any = {
       hasPromotionCode: !!promotion_code,
       promotion_code: promotion_code?.toUpperCase() || null,
@@ -1023,7 +1022,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         phone: formData.contactInfo.contactPhone,
         city: formData.contactInfo.city,
         state: formData.contactInfo.state,
-        draftId: draftId,
       }
     };
 
@@ -1036,7 +1034,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     console.log('🚀 LENDER: Payload being sent to Stripe:', {
       hasPromotionCode: !!payload.promotion_code,
-      draftId: draftId,
       email: email,
       fullPayload: payload
     });

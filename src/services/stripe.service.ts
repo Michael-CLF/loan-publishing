@@ -20,7 +20,6 @@ export interface CheckoutSessionRequest {
     phone: string;
     city: string;
     state: string;
-    draftId?: string;
   };
   promotion_code?: string | null;
 }

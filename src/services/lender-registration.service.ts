@@ -65,8 +65,6 @@ export class LenderFormService {
 
   // New properties for draft management
   private firestore = inject(Firestore);
-  private draftIdSubject = new BehaviorSubject<string | null>(null);
-  public draftId$ = this.draftIdSubject.asObservable();
 
   constructor() {}
 
