@@ -894,27 +894,27 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   submitForm(): void {
-  // Mark form as submitted
-  this.isLoading = true;
-  
-  // Set terms accepted
-  this.lenderFormService.setFormSection('termsAccepted', true);
-  
-  // Get form data
-  const formData = this.lenderFormService.getFullForm();
-  const email = formData.contact?.contactEmail;
-  
-  if (!email) {
-    alert('Email is required');
-    this.isLoading = false;
-    return;
-  }
-  
-  // Go straight to payment
-  this.proceedToStripe(email, formData);
-}
+    // Mark form as submitted
+    this.isLoading = true;
 
-  async proceedToStripe(email: string, formData: any ): Promise<void> {
+    // Set terms accepted
+    this.lenderFormService.setFormSection('termsAccepted', true);
+
+    // Get form data
+    const formData = this.lenderFormService.getFullForm();
+    const email = formData.contact?.contactEmail;
+
+    if (!email) {
+      alert('Email is required');
+      this.isLoading = false;
+      return;
+    }
+
+    // Go straight to payment
+    this.proceedToStripe(email, formData);
+  }
+
+  async proceedToStripe(email: string, formData: any): Promise<void> {
     console.log('🚀 Starting new payment flow - creating document first');
 
     if (!email) {
@@ -951,7 +951,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create checkout session');
+        const errorText = await response.text();
+        console.error('Backend error:', errorText);
+        throw new Error(`Backend error: ${errorText}`);
       }
 
       const session = await response.json();
