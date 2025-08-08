@@ -10,7 +10,6 @@ import {
   sendSignInLinkToEmail,
   isSignInWithEmailLink,
   signInWithEmailLink,
-  signInWithCustomToken,
   signOut,
   signInWithPopup,
   GoogleAuthProvider
@@ -96,34 +95,7 @@ export class AuthService {
       })
     );
   }
-  authenticateNewUser(email: string, sessionId: string): Observable<void> {
-    console.log('🔍 Generating custom token for user:', email);
-
-    const tokenUrl = 'https://us-central1-loanpub.cloudfunctions.net/generateAuthToken';
-
-    return this.http.post<{ token: string }>(
-      tokenUrl,
-      { email: email.toLowerCase().trim(), sessionId },
-      { headers: { 'Content-Type': 'application/json' } }
-    ).pipe(
-      switchMap((response) => {
-        console.log('✅ Custom token received, signing in user...');
-
-        return from(signInWithCustomToken(this.auth, response.token)).pipe(
-          tap(() => {
-            console.log('✅ User authenticated with custom token');
-            localStorage.setItem('isLoggedIn', 'true');
-          }),
-          map(() => void 0) // Return void
-        );
-      }),
-      catchError((error) => {
-        console.error('❌ Error authenticating with custom token:', error);
-        return throwError(() => error);
-      })
-    );
-  }
-
+  
   // Emits whether auth has initialized
   authReady$ = authState(this.auth).pipe(map(user => !!user));
 
@@ -393,6 +365,11 @@ export class AuthService {
 
   getRegistrationSuccess(): boolean {
     return this.registrationSuccess;
+  }
+
+  get currentUserUid(): string | null {
+  const user = (this as any).afAuth?.currentUser ?? null;
+  return user ? (user as any).uid : null;
   }
 
   clearRegistrationSuccess(): void {

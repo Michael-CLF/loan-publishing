@@ -1,46 +1,39 @@
-// ✅ FIXED: auth.guard.ts - Updated to handle Stripe callback flow
+// ✅ FIXED: auth.guard.ts - Updated to handle Stripe callback flow and UID-based checks
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
-import { Observable, from, of } from 'rxjs';
-import { filter, map, take, switchMap, catchError, delay } from 'rxjs/operators';
+import { Observable, of, from, combineLatest } from 'rxjs';
+import { take, switchMap, map, catchError, delay } from 'rxjs/operators';
 import { AuthService } from './auth.service';
 import { FirestoreService } from './firestore.service';
 
+// -----------------------------------------------------
+// GUARD
+// -----------------------------------------------------
 export const authGuard: CanActivateFn = (
   route: ActivatedRouteSnapshot,
   state: RouterStateSnapshot
 ): Observable<boolean> | Promise<boolean> => {
-  console.log('🛡️ AUTH GUARD TRIGGERED for route:', state.url);
   const router = inject(Router);
   const authService = inject(AuthService);
   const firestoreService = inject(FirestoreService);
-  const firestore = firestoreService.firestore;
+  const firestore: Firestore = firestoreService.firestore;
 
-
-
-  // ✅ CRITICAL: Don't block Stripe callback routes
+  // ✅ Allow Stripe callback route
   if (state.url.includes('/payment-callback')) {
-    console.log('🔓 Auth guard allowing Stripe callback route');
     return of(true);
   }
 
-  // ✅ Check if this is right after a payment (user might be in transition)
+  // ✅ Post-payment leniency (webhook race)
   const isPostPayment = localStorage.getItem('showRegistrationModal') === 'true';
-
   if (isPostPayment) {
-    console.log('💳 Post-payment flow detected, allowing dashboard access with delay');
-    // ✅ Give Stripe callback time to update subscription status
     return of(true).pipe(
-      delay(2000), // 2 second delay
-      switchMap(() => {
-        // ✅ Now check normally but be more lenient
-        return performLenientAuthCheck(authService, firestore, router, state.url);
-      })
+      delay(2000),
+      switchMap(() => performLenientAuthCheck(authService, firestore, router))
     );
   }
 
- // ✅ Store the attempted URL for redirecting
+  // ✅ Store attempted URL for later redirect
   localStorage.setItem('redirectUrl', state.url);
 
   return authService.isLoggedIn$.pipe(
@@ -50,31 +43,28 @@ export const authGuard: CanActivateFn = (
         router.navigate(['/login']);
         return of(false);
       }
-
       return checkSubscriptionStatus(authService, firestore, router);
     }),
-    catchError(error => {
-      console.error('Auth guard error:', error);
+    catchError(err => {
+      console.error('Auth guard error:', err);
       router.navigate(['/login']);
       return of(false);
     })
   );
+};
 
-/**
- * ✅ NEW: Lenient auth check for post-payment flows
- */
+// -----------------------------------------------------
+// HELPERS
+// -----------------------------------------------------
 function performLenientAuthCheck(
   authService: AuthService,
   firestore: Firestore,
-  router: Router,
-  attemptedUrl: string
+  router: Router
 ): Observable<boolean> {
-
   return authService.isLoggedIn$.pipe(
     take(1),
     switchMap(isLoggedIn => {
       if (!isLoggedIn) {
-        console.log('🔒 User not logged in during lenient check, redirecting to login');
         router.navigate(['/login']);
         return of(false);
       }
@@ -87,94 +77,33 @@ function performLenientAuthCheck(
             return of(false);
           }
 
-          // ✅ For post-payment, be more lenient with subscription checks
-          return from(checkUserSubscriptionLenient(user.uid, firestore, router));
+          const uid = user.uid;
+          const lenderRef = doc(firestore, 'lenders', uid);
+          const originatorRef = doc(firestore, 'originators', uid);
+
+          return combineLatest([
+            from(getDoc(lenderRef)),
+            from(getDoc(originatorRef))
+          ]).pipe(
+            map(([lenderSnap, originatorSnap]) => {
+              const profile: any =
+                lenderSnap.exists() ? lenderSnap.data() :
+                originatorSnap.exists() ? originatorSnap.data() : null;
+
+              if (profile?.subscriptionStatus === 'active' || profile?.paymentPending === false) {
+                return true;
+              }
+
+              router.navigate(['/payment-pending']);
+              return false;
+            })
+          );
         })
       );
     })
   );
 }
 
-/**
- * ✅ NEW: More lenient subscription check that allows pending payments
- */
-async function checkUserSubscriptionLenient(
-  uid: string,
-  firestore: Firestore,
-  router: Router
-): Promise<boolean> {
-  const collections = ['originators', 'lenders'];
-
-  for (const collection of collections) {
-    try {
-      const userRef = doc(firestore, `${collection}/${uid}`);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-
-        const subscriptionStatus = userData['subscriptionStatus'];
-        const registrationCompleted = userData['registrationCompleted'];
-        const paymentPending = userData['paymentPending'];
-
-        console.log('🔍 Lenient subscription check:', {
-          subscriptionStatus,
-          registrationCompleted,
-          paymentPending,
-          collection,
-          fullUserData: userData
-        });
-
-        // ✅ Allow active subscriptions
-        if (subscriptionStatus === 'grandfathered' || subscriptionStatus === 'active') {
-          console.log('✅ Access granted - grandfathered or active subscription');
-          return true;
-        }
-
-        // ✅ LENIENT: Allow pending if payment was just made
-        if (subscriptionStatus === 'pending' && localStorage.getItem('showRegistrationModal') === 'true') {
-          console.log('✅ Access granted - payment just completed (pending status OK)');
-          return true;
-        }
-
-        // ✅ Check registration completion
-        if (registrationCompleted === false) {
-          console.log('🔒 Blocking access - registration not completed');
-          router.navigate(['/complete-registration']);
-          return false;
-        }
-
-        // ✅ Check for missing subscription (but be lenient during payment flow)
-        if (!subscriptionStatus && !localStorage.getItem('showRegistrationModal')) {
-          console.log('🔒 Blocking access - no subscription');
-          router.navigate(['/pricing']);
-          return false;
-        }
-
-        // ✅ Handle cancelled/past due subscriptions
-        if (subscriptionStatus === 'cancelled' || subscriptionStatus === 'past_due') {
-          console.log('🔒 Blocking access - subscription issues');
-          router.navigate(['/pricing']);
-          return false;
-        }
-
-        // ✅ Default allow during payment transition
-        console.log('✅ Access granted - payment transition period');
-        return true;
-      }
-    } catch (error) {
-      console.error(`Error checking user in ${collection}:`, error);
-    }
-  }
-
-  // ✅ User document not found - allow access with warning
-  console.warn('⚠️ User document not found in Firestore, allowing access');
-  return true;
-}
-
-/**
- * ✅ UPDATED: Original function with better error handling
- */
 function checkSubscriptionStatus(
   authService: AuthService,
   firestore: Firestore,
@@ -187,82 +116,54 @@ function checkSubscriptionStatus(
         router.navigate(['/login']);
         return of(false);
       }
-
       return from(checkUserSubscription(user.uid, firestore, router));
     })
   );
 }
 
-/**
- * ✅ UPDATED: Original subscription check function
- */
 async function checkUserSubscription(
   uid: string,
   firestore: Firestore,
   router: Router
 ): Promise<boolean> {
   const collections = ['originators', 'lenders'];
-  console.log('🔍 Auth Guard: Checking subscription for UID:', uid);
 
-  for (const collection of collections) {
+  for (const collectionName of collections) {
     try {
-      console.log(`🔍 Auth Guard: Checking collection: ${collection}`);
-      const userRef = doc(firestore, `${collection}/${uid}`);
-      const userSnap = await getDoc(userRef);
+      const ref = doc(firestore, `${collectionName}/${uid}`);
+      const snap = await getDoc(ref);
 
-      console.log(`🔍 Auth Guard: Document exists in ${collection}:`, userSnap.exists());
+      if (snap.exists()) {
+        const data: any = snap.data();
+        const status = data?.subscriptionStatus;
+        const registrationCompleted = data?.registrationCompleted;
 
-      if (userSnap.exists()) {
-        const userData = userSnap.data();
-        console.log(`🔍 Auth Guard: User data from ${collection}:`, userData)
+        if (status === 'active' || status === 'grandfathered') return true;
 
-        const subscriptionStatus = userData['subscriptionStatus'];
-        const registrationCompleted = userData['registrationCompleted'];
-
-        console.log('🔍 Subscription check:', {
-          subscriptionStatus,
-          registrationCompleted,
-          collection
-        });
-
-        // ✅ Active or grandfathered subscription grants access  
-        if (subscriptionStatus === 'active' || subscriptionStatus === 'grandfathered') {
-          console.log('✅ Access granted - active subscription');
-          return true;
-        }
-
-        // ✅ Check registration completion
         if (registrationCompleted === false) {
-          console.log('🔒 Blocking access - registration not completed');
           router.navigate(['/complete-registration']);
           return false;
         }
 
-        // ✅ Check for pending or missing subscription
-        if (subscriptionStatus === 'pending' || !subscriptionStatus) {
-          console.log('🔒 Blocking access - subscription pending or missing');
+        if (status === 'pending' || !status) {
           router.navigate(['/pricing']);
           return false;
         }
 
-        // ✅ Handle cancelled/past due subscriptions
-        if (subscriptionStatus === 'cancelled' || subscriptionStatus === 'past_due') {
-          console.log('🔒 Blocking access - subscription issues');
+        if (status === 'cancelled' || status === 'past_due') {
           router.navigate(['/pricing']);
           return false;
         }
 
-        // ✅ Default allow if we reach here
+        // Default allow if none of the above matched
         return true;
       }
-    } catch (error) {
-      console.error(`Error checking user in ${collection}:`, error);
-      console.error(`❌ Auth Guard Error in ${collection}:`, error);
+    } catch (err) {
+      console.error(`Auth Guard: error checking ${collectionName}`, err);
     }
   }
 
-  // ✅ User document not found - allow access with warning
-  console.warn('⚠️ User document not found in Firestore, allowing access');
+  // If no document found, allow with warning (can be tightened later)
+  console.warn('Auth Guard: user document not found; allowing access');
   return true;
-}
 }

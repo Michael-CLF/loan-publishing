@@ -1,11 +1,11 @@
-import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable, from } from 'rxjs';
-import { map, tap } from 'rxjs/operators';
-import { Firestore, doc, setDoc, getDoc, serverTimestamp } from '@angular/fire/firestore';
-import { inject } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
+import { BehaviorSubject, Observable, of, from } from 'rxjs';
+import { tap, catchError } from 'rxjs/operators';
+import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 
-
-// Define interfaces for better type safety
+// ----------------------------
+// Interfaces
+// ----------------------------
 export interface ContactInfo {
   company: string;
   firstName: string;
@@ -48,9 +48,25 @@ export interface LenderFormData {
   termsAccepted?: boolean;
 }
 
+// Minimal lender payload used for creation
+export interface Lender {
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  company?: string;
+  email?: string;
+  phone?: string;
+  city?: string;
+  state?: string;
+  contactInfo?: Partial<ContactInfo>;
+  productInfo?: Partial<ProductInfo>;
+  footprintInfo?: Partial<FootprintInfo>;
+  // any other fields you pass along from the form
+}
+
 @Injectable({ providedIn: 'root' })
 export class LenderFormService {
-  // Use BehaviorSubject for reactive state management
+  // Reactive form state
   private formDataSubject = new BehaviorSubject<LenderFormData>({
     contact: null,
     product: null,
@@ -58,68 +74,86 @@ export class LenderFormService {
     payment: null,
     termsAccepted: false,
   });
+  public formData$: Observable<LenderFormData> = this.formDataSubject.asObservable();
 
-  // Expose as observable for components to subscribe to
-  public formData$: Observable<LenderFormData> =
-    this.formDataSubject.asObservable();
-
-  // New properties for draft management
+  // Firestore
   private firestore = inject(Firestore);
 
   constructor() {}
 
-  // Set a section of the form with persistence
+  // ----------------------------
+  // Form state helpers
+  // ----------------------------
   setFormSection(
     section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted',
     data: any
   ): void {
-    const currentData = this.formDataSubject.getValue();
-
-    // Create a new object with updated section
-    const updatedData = {
-      ...currentData,
-      [section]: data,
-    };
-
-    // Update the BehaviorSubject
-    this.formDataSubject.next(updatedData);
-
+    const current = this.formDataSubject.getValue();
+    this.formDataSubject.next({ ...current, [section]: data });
   }
 
-  // Get a section of the form
   getFormSection(
     section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted'
   ): any {
     return this.formDataSubject.getValue()[section];
   }
 
-  // Get the full form data as a reactive observable
   getFormData$(): Observable<LenderFormData> {
     return this.formData$;
   }
 
-  // Get current snapshot of form data
   getFullForm(): LenderFormData {
     return this.formDataSubject.getValue();
   }
 
-  // Check if a form section is completed (has data)
   isSectionCompleted(section: 'contact' | 'product' | 'footprint'): boolean {
     const sectionData = this.getFormSection(section);
     return sectionData !== null && Object.keys(sectionData || {}).length > 0;
   }
 
-  // Clear the form and localStorage
   clearForm(): void {
-    const emptyData = {
+    this.formDataSubject.next({
       contact: null,
       product: null,
       footprint: null,
       payment: null,
       termsAccepted: false,
+    });
+  }
+
+  // ----------------------------
+  // Firestore write
+  // ----------------------------
+  /**
+   * Create/merge the lender profile at `/lenders/{uid}`.
+   * Sets subscription flags for pre-checkout and a YYYY-MM-DD createdAt.
+   */
+  createLenderProfile(uid: string, data: Partial<Lender>): Observable<void> {
+    if (!uid) {
+      console.error('❌ No UID provided when creating lender profile');
+      return of(undefined) as unknown as Observable<void>;
+    }
+
+    // YYYY-MM-DD (UTC-based ISO date)
+    const createdAt = new Date().toISOString().split('T')[0];
+
+    const ref = doc(this.firestore, `lenders/${uid}`);
+    const payload = {
+      uid,
+      ...data,
+      createdAt,                     // e.g., 2025-08-08
+      subscriptionStatus: 'inactive',
+      paymentPending: true,
     };
 
-    // Reset the form data
-    this.formDataSubject.next(emptyData);
+    console.log('📝 Creating/merging lender profile:', payload);
+
+    return from(setDoc(ref, payload, { merge: true })).pipe(
+      tap(() => console.log(`✅ Lender profile saved for UID: ${uid}`)),
+      catchError((err) => {
+        console.error('🔥 Error creating lender profile:', err);
+        throw err;
+      })
+    );
   }
 }
