@@ -42,8 +42,7 @@ import { LenderFormService } from '../../services/lender-registration.service';
 import { PromotionService } from './../../services/promotion.service';
 import { CouponValidationResponse } from '../../services/stripe.service';
 import { ActivatedRoute } from '@angular/router';
-
-
+import { Firestore, doc, setDoc, serverTimestamp, collection, } from '@angular/fire/firestore';
 
 import {
   PROPERTY_CATEGORIES,
@@ -119,6 +118,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private formCoordination = inject(FormCoordinationService);
   private lenderFormService = inject(LenderFormService);
   private promotionService = inject(PromotionService);
+  private firestore = inject(Firestore);
 
   states: FootprintLocation[] = [];
   lenderForm!: FormGroup;
@@ -984,52 +984,98 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         },
         error: (error) => {
           console.error('Failed to update draft:', error);
-          this.proceedToStripe(email, formData, draftId); // Proceed anyway with existing draft
+          this.proceedToStripe(email, formData, draftId);
         }
       });
     }
   }
 
-  private proceedToStripe(email: string, formData: any, draftId: string): void {
-  console.log('✅ Proceeding to Stripe with draft ID:', draftId);
+  async proceedToStripe(email: string, formData: any, draftId: string): Promise<void> {
+  console.log('🚀 Starting new payment flow - creating document first');
   
-  runInInjectionContext(this.injector, () => {
-    // Get payment data from service
-    const paymentData = this.lenderFormService.getFormSection('payment');
-    console.log('🔍 Payment data from service:', paymentData);
-
-    const promotion_code = paymentData?.validatedCouponCode?.trim();
-    const billingInterval = paymentData?.billingInterval || formData.interval || 'monthly';
-
-   if (promotion_code) {
-  console.log('🔍 Validating promotion code before Stripe checkout:', promotion_code);
   
-  this.promotionService.validatePromotionCode(promotion_code, 'lender', billingInterval)
-    .pipe(
-      takeUntil(this.destroy$),
-      catchError((httpError: any) => {
-        console.error('❌ HTTP error during validation:', httpError);
-        this.errorMessage = 'Network error validating promotion code. Please try again.';
-        this.isLoading = false;
-        return of({ valid: false, error: 'Network error' });
-      })
-    )
-    .subscribe(response => {
-      console.log('🔍 Validation response received:', response);
-      if (response && response.valid === true) {
-        console.log('✅ Final promotion code validation successful');
-        this.createStripeCheckoutWithValidCode(email, formData, draftId, promotion_code, billingInterval);
-      } else {
-        console.log('❌ Final promotion code validation failed:', response?.error);
-        this.errorMessage = response?.error || 'Invalid promotion code';
-        this.isLoading = false;
-      }
-    });
-    } else {
-      // No promotion code, proceed directly
-      this.createStripeCheckoutWithValidCode(email, formData, draftId, null, billingInterval);
-    }
-  });
+  if (!email) {
+    alert('Email is required');
+    return;
+  }
+
+  const paymentData = formData.payment;
+
+  try {
+    // 1. Create complete lender document FIRST
+    const userId = await this.createPendingLenderDocument(formData);
+    console.log('✅ Created pending lender document with ID:', userId);
+    
+    // 2. Create Stripe checkout with just the user ID
+    const checkoutData = {
+      email: email.toLowerCase(),
+      role: 'lender' as const,
+      interval: paymentData?.billingInterval || 'monthly',
+      userData: {
+        firstName: formData.contact?.firstName || '',
+        lastName: formData.contact?.lastName || '',
+        company: formData.contact?.company || '',
+        phone: formData.contact?.contactPhone || '',
+        city: formData.contact?.city || '',
+        state: formData.contact?.state || '',
+        userId: userId  // Just pass the document ID
+      },
+      promotion_code: paymentData?.validatedCouponCode || null
+    };
+
+    console.log('📤 Sending to Stripe with userId:', userId);
+    const session = await this.stripeService.createCheckoutSession(checkoutData);
+    
+    // 3. Redirect to Stripe
+    console.log('✅ Redirecting to Stripe checkout');
+    window.location.href = session.url;
+    
+  } catch (error) {
+    console.error('❌ Error in payment flow:', error);
+    alert('Failed to process payment. Please try again.');
+  }
+}
+
+private async createPendingLenderDocument(formData: any): Promise<string> {
+  // Generate a unique ID for this user
+  const userId = doc(collection(this.firestore, 'lenders')).id;
+  
+  const lenderData = {
+    id: userId,
+    uid: userId,
+    email: formData.contact?.contactEmail?.toLowerCase(),
+    
+    // Contact info
+    firstName: formData.contact?.firstName || '',
+    lastName: formData.contact?.lastName || '',
+    company: formData.contact?.company || '',
+    phone: formData.contact?.contactPhone || '',
+    city: formData.contact?.city || '',
+    state: formData.contact?.state || '',
+    
+    // Complete form data
+    contactInfo: formData.contact || {},
+    productInfo: formData.product || {},
+    footprintInfo: formData.footprint || {},
+    
+    // Payment status - PENDING
+    paymentPending: true,
+    subscriptionStatus: 'pending',
+    role: 'lender',
+    
+    // Timestamps
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  };
+  
+  // Create the document
+  const docRef = doc(this.firestore, `lenders/${userId}`);
+  await setDoc(docRef, lenderData);
+  
+  // Store userId for later use
+  localStorage.setItem('pendingLenderId', userId);
+  
+  return userId;
 }
 
 private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotion_code: string | null, billingInterval: string): void {

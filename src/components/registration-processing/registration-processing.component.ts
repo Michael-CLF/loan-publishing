@@ -123,30 +123,27 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
       for (const collectionName of ['originators', 'lenders']) {
         try {
-          const q: Query<DocumentData> = query(
-            collection(this.firestore, collectionName),
-            where('source', '==', 'stripe_checkout'),
-            where('subscriptionStatus', '==', 'active'),
-            where('stripeSessionId', '==', sessionId)
-          );
+          // Get the pending lender ID from localStorage
+          const pendingLenderId = localStorage.getItem('pendingLenderId');
+          if (!pendingLenderId) {
+            console.error('❌ No pending lender ID found for', collectionName);
+            continue;
+          }
 
-          const querySnapshot: QuerySnapshot<DocumentData> = await getDocs(q);
-          console.log(`📦 Checked collection ${collectionName}, query result empty:`, querySnapshot.empty);
-          if (!querySnapshot.empty) {
-            const userDoc: QueryDocumentSnapshot<DocumentData> = querySnapshot.docs[0];
-            const userData: any = userDoc.data();
+          // Direct document lookup - no complex query needed  
+          const docRef = doc(this.firestore, collectionName, pendingLenderId);
+          const docSnap = await getDoc(docRef);
+          console.log(`📦 Checked collection ${collectionName}, document exists:`, docSnap.exists());
+          if (docSnap.exists() && docSnap.data()['subscriptionStatus'] === 'active') {
+            const userData = docSnap.data();
             const userEmail = userData?.['email'];
-
-            const userSessionId: string = (userData as any)['stripeSessionId'];
-            if (userSessionId !== sessionId) {
-              console.error('🚨 SESSION MISMATCH – expected vs found:', sessionId, userSessionId);
-              continue;
-            }
 
             console.log('✅ Stripe verified. User authenticated:', userEmail);
             clearInterval(interval);
             this.userRole = userData?.['role'] || 'originator';
             this.processingMessage.set('Logging you in...');
+            // Clear the pending ID
+            localStorage.removeItem('pendingLenderId');
 
             if (userEmail) {
               console.log('🚀 Calling authenticateNewUser with:', userEmail, sessionId);
@@ -250,9 +247,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private showModalBasedOnRole(): void {
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
-     if (role === 'lender') {
-    this.loadAndProcessDraft();
-  }
+    if (role === 'lender') {
+      this.loadAndProcessDraft();
+    }
     this.showProcessingSpinner.set(false);
 
     setTimeout(() => {
