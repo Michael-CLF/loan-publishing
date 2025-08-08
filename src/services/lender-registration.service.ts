@@ -86,19 +86,6 @@ export class LenderFormService {
     // Update the BehaviorSubject
     this.formDataSubject.next(updatedData);
 
-    // AUTO-SAVE DRAFT IF WE HAVE AN EMAIL
-    if (section === 'contact' && data?.contactEmail) {
-      this.createOrUpdateDraft(data.contactEmail).subscribe({
-        next: (draftId) => console.log('Draft saved:', draftId),
-        error: (err) => console.error('Error saving draft:', err)
-      });
-    } else if (this.getCurrentDraftId() && currentData.contact?.contactEmail) {
-      // Update existing draft
-      this.createOrUpdateDraft(currentData.contact.contactEmail).subscribe({
-        next: (draftId) => console.log('Draft updated:', draftId),
-        error: (err) => console.error('Error updating draft:', err)
-      });
-    }
   }
 
   // Get a section of the form
@@ -136,89 +123,5 @@ export class LenderFormService {
 
     // Reset the form data
     this.formDataSubject.next(emptyData);
-  }
-
-  /**
-   * Create or update a draft document in Firestore
-   */
-  createOrUpdateDraft(email: string): Observable<string> {
-    const draftId = this.draftIdSubject.getValue() || this.generateDraftId();
-    const currentData = this.formDataSubject.getValue();
-
-    const draftData = {
-      ...currentData,
-      email: email.toLowerCase().trim(),
-      status: 'draft',
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    };
-
-    const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-
-    return from(setDoc(draftRef, draftData, { merge: true })).pipe(
-      tap(() => {
-        this.draftIdSubject.next(draftId);
-      }),
-      map(() => draftId)
-    );
-  }
-
-  /**
-   * Load draft from Firestore
-   */
-  loadDraft(draftId: string): Observable<LenderFormData | null> {
-    const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-
-    return from(getDoc(draftRef)).pipe(
-      map(snapshot => {
-        if (snapshot.exists()) {
-          const data = snapshot.data();
-          const formData: LenderFormData = {
-            contact: data['contact'] || null,
-            product: data['product'] || null,
-            footprint: data['footprint'] || null,
-            payment: data['payment'] || null,
-            termsAccepted: data['termsAccepted'] || false,
-          };
-
-          // Update our local state
-          this.formDataSubject.next(formData);
-          this.draftIdSubject.next(draftId);
-
-          return formData;
-        }
-        return null;
-      })
-    );
-  }
-
-  /**
-   * Get current draft ID
-   */
-  getCurrentDraftId(): string | null {
-    return this.draftIdSubject.getValue();
-  }
-
-  /**
-   * Generate a unique draft ID
-   */
-  private generateDraftId(): string {
-    return `draft_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  }
-
-  /**
-   * Clear draft data after successful registration
-   */
-  clearDraft(): void {
-    const draftId = this.draftIdSubject.getValue();
-    if (draftId) {
-      // Optionally delete from Firestore
-      const draftRef = doc(this.firestore, `lenderDrafts/${draftId}`);
-      setDoc(draftRef, { status: 'completed', completedAt: serverTimestamp() }, { merge: true });
-    }
-
-    this.draftIdSubject.next(null);
-    this.clearForm();
   }
 }

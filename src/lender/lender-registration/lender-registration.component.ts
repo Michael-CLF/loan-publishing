@@ -895,31 +895,25 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   submitForm(): void {
-    this.submitted = true;
-    this.markAllAsTouched(this.lenderForm);
-    this.errorMessage = '';
-    this.successMessage = '';
-    this.footprintForm.get('states')?.updateValueAndValidity();
-    console.log('Terms accepted:', this.lenderForm.get('termsAccepted')?.value);
-    console.log('Form valid:', this.lenderForm.valid);
-
-    if (!this.lenderForm.valid) {
-      this.isLoading = false;
-      this.errorMessage = this.getStepErrorMessage();
-      return;
-    }
-
-    this.isLoading = true;
-
-    const formData = this.lenderForm.value;
-    const email = formData.contactInfo?.contactEmail;
-
-    if (!email) {
-      this.errorMessage = 'Email is required';
-      this.isLoading = false;
-      return;
-    }
+  // Mark form as submitted
+  this.isLoading = true;
+  
+  // Set terms accepted
+  this.lenderFormService.setFormSection('termsAccepted', true);
+  
+  // Get form data
+  const formData = this.lenderFormService.getFullForm();
+  const email = formData.contact?.contactEmail;
+  
+  if (!email) {
+    alert('Email is required');
+    this.isLoading = false;
+    return;
   }
+  
+  // No drafts - go straight to payment
+  this.proceedToStripe(email, formData, '');
+}
 
   async proceedToStripe(email: string, formData: any, draftId: string): Promise<void> {
     console.log('🚀 Starting new payment flow - creating document first');
