@@ -64,11 +64,10 @@ export class PricingComponent {
     localStorage.setItem('selectedPlan', planType);
     localStorage.setItem('selectedBilling', billingCycle);
 
-    // Check if user is authenticated
-    this.authService
-  .getAuthStatus()
+   // Check if user is authenticated
+this.authService.isLoggedIn$
   .pipe(take(1))
-  .subscribe((isLoggedIn: boolean) => {
+  .subscribe((isLoggedIn) => {
     if (isLoggedIn) {
       this.router.navigate(['/loan']);
     } else {
