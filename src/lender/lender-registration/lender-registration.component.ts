@@ -942,7 +942,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
       console.log('📤 Sending to Stripe with userId:', userId);
       // Call the backend to create checkout session
-      const response = await fetch('https://us-central1-loanpost.cloudfunctions.net/createStripeCheckout', {
+      const response = await fetch('https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
