@@ -256,9 +256,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       } else if (role === 'lender') {
         console.log('🏢 Showing lender registration success modal');
         this.showLenderRegistrationSuccessModal.set(true);
-        if (role === 'lender') {
-          this.loadAndProcessDraft();
-        }
+        if (role === 'lender'){}
       } else {
         console.warn('⚠️ Unknown role, showing default originator modal');
         this.showRegistrationSuccessModal.set(true);
@@ -271,33 +269,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }, 200);
   }
 
-  private async loadAndProcessDraft(): Promise<void> {
-    const draftId = this.lenderFormService.getCurrentDraftId();
-
-    if (!draftId || this.userRole !== 'lender') {
-      return;
-    }
-
-    try {
-      const user = await firstValueFrom(this.authService.getCurrentFirebaseUser());
-      if (!user?.uid) {
-        console.warn('No authenticated user for draft processing');
-        return;
-      }
-
-      const draftData = await firstValueFrom(
-        this.lenderFormService.loadDraft(draftId)
-      );
-
-      if (draftData) {
-        console.log('✅ Processing draft after authentication');
-        await this.lenderService.updateLenderFromDraft(user.uid, draftId);
-        this.lenderFormService.clearDraft();
-      }
-    } catch (error) {
-      console.error('❌ Error processing draft:', error);
-    }
-  }
 
   closeRegistrationSuccessModal(): void {
     console.log('✅ Originator modal closed - redirecting to dashboard');
