@@ -668,60 +668,51 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.proceedToStripe(email, formData);
   }
 
-  // =========================================
-  // 🔑 UID-first flow: create doc, start checkout
-  // =========================================
-  async proceedToStripe(email: string, formData: any): Promise<void> {
-    console.log('🚀 Starting new payment flow - creating document first');
+async proceedToStripe(email: string, formData: any): Promise<void> {
+  this.isLoading = true;
+  this.errorMessage = '';
 
-    if (!email) {
-      alert('Email is required');
-      return;
-    }
+  try {
+    // Ensure we have a Firebase Auth session (anonymous if necessary)
+    const user = await this.authService.ensureSignedIn();
+    const uid = user.uid;
 
-    const uid = this.auth.currentUser?.uid || null;
-    if (!uid) {
-      console.error('❌ No authenticated Firebase UID found');
-      alert('Please log in to continue.');
-      return;
-    }
+    // Create/merge the lender document at /lenders/{uid}
+    await this.createOrMergeLenderDocument(uid, formData);
+    console.log('✅ Created/merged lender document with UID:', uid);
 
-    const paymentData = formData.payment;
+    // Build payload including UID and call backend via service
+    const interval: 'monthly' | 'annually' =
+      (this.lenderFormService.getFormSection('payment')?.billingInterval || 'monthly');
 
-    try {
-      // 1) Create/merge the lender document at /lenders/{uid}
-      await this.createOrMergeLenderDocument(uid, formData);
-      console.log('✅ Created/merged lender document with UID:', uid);
+    const promotionCode =
+      this.lenderFormService.getFormSection('payment')?.validatedCouponCode || null;
 
-      // 2) Build payload including UID and call backend via service
-      const checkoutPayload = {
-        email: email.toLowerCase(),
-        role: 'lender' as const,
-        interval: (paymentData?.billingInterval || 'monthly') as 'monthly' | 'annually',
-        userData: {
-          uid,
-          firstName: formData.contact?.firstName || '',
-          lastName: formData.contact?.lastName || '',
-          company: formData.contact?.company || '',
-          phone: formData.contact?.contactPhone || '',
-          city: formData.contact?.city || '',
-          state: formData.contact?.state || '',
-        },
-        promotion_code: paymentData?.validatedCouponCode || null
-      };
+    const checkoutResponse = await this.stripeService.createCheckoutSession({
+      email: email.toLowerCase().trim(),
+      role: 'lender',
+      interval,
+      userData: {
+        uid,
+        firstName: formData?.contact?.firstName || '',
+        lastName: formData?.contact?.lastName || '',
+        company: formData?.contact?.company || '',
+        phone: formData?.contact?.contactPhone || '',
+        city: formData?.contact?.city || '',
+        state: formData?.contact?.state || '',
+      },
+      promotion_code: promotionCode
+    });
 
-      console.log('📤 Sending to Stripe with uid:', uid, checkoutPayload);
+    // Redirect to Stripe
+    window.location.href = checkoutResponse.url;
 
-      const checkoutResponse = await this.stripeService.createCheckoutSession(checkoutPayload);
-      console.log('✅ Redirecting to Stripe checkout');
-      window.location.href = checkoutResponse.url;
-
-    } catch (error) {
-      console.error('❌ Error in payment flow:', error);
-      alert('Failed to process payment. Please try again.');
-    }
+  } catch (err: any) {
+    console.error('❌ Error in payment flow:', err);
+    this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
+    this.isLoading = false;
   }
-
+}
   private async createOrMergeLenderDocument(uid: string, formData: any): Promise<void> {
     const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 

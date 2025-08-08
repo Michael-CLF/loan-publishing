@@ -7,26 +7,28 @@ import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http
 import { Observable, of, throwError, firstValueFrom } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from '../environments/environment';
-import { AppCheckService } from './app-check.service';
 
 export interface CheckoutSessionRequest {
   email: string;
   role: 'originator' | 'lender';
   interval: 'monthly' | 'annually';
   userData: {
-    firstName: string;
-    lastName: string;
-    company: string;
-    phone: string;
-    city: string;
-    state: string;
+    /** REQUIRED: Firebase Auth UID to link Stripe session to the Firestore doc */
+    uid: string;
+    /** Optional: any display fields you still want to send */
+    firstName?: string;
+    lastName?: string;
+    company?: string;
+    phone?: string;
+    city?: string;
+    state?: string;
   };
+  /** Optional: validated promotion code (uppercase) */
   promotion_code?: string | null;
 }
 
 export interface CheckoutSessionResponse {
   url: string;
-  sessionId?: string;
 }
 
 export interface CouponValidationResponse {
@@ -47,116 +49,103 @@ export interface CouponValidationResponse {
   error?: string;
 }
 
-@Injectable({
-  providedIn: 'root'
-})
+@Injectable({ providedIn: 'root' })
 export class StripeService {
   private readonly http = inject(HttpClient);
-  private readonly appCheckService = inject(AppCheckService);
-  private readonly apiUrl = environment.apiUrl;
-  private readonly functionsUrl = 'https://us-central1-loanpub.cloudfunctions.net';
+  private readonly functionsUrl =
+    environment.stripeCheckoutUrl || 'https://us-central1-loanpub.cloudfunctions.net';
 
-  /**
-   * ✅ Create a Stripe Checkout Session
-   */
+  // ----------------------
+  // Create Checkout Session
+  // ----------------------
   async createCheckoutSession(requestData: CheckoutSessionRequest): Promise<CheckoutSessionResponse> {
-    console.log('📤 Sending checkout session request:', requestData);
+    this.validateCheckoutData(requestData);
+
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 
     try {
-      // Validate data before sending
-      this.validateCheckoutData(requestData);
-
-      // Call backend endpoint
-      const response = await firstValueFrom(
-        this.http.post<CheckoutSessionResponse>(
-          `${this.functionsUrl}/createStripeCheckout`,
-          requestData,
-          { headers: new HttpHeaders({ 'Content-Type': 'application/json' }) }
-        ).pipe(
-          catchError((error: HttpErrorResponse) => {
-            console.error('❌ Error creating Stripe checkout session:', error);
-            let message = 'Failed to create checkout session. Please try again.';
-            if (error.status === 400 && error.error?.error?.includes('promotion code')) {
-              message = 'Invalid promotion code provided.';
-            }
-            return throwError(() => new Error(message));
-          })
-        )
+      const res = await firstValueFrom(
+        this.http
+          .post<CheckoutSessionResponse>(
+            `${this.functionsUrl}/createStripeCheckout`,
+            requestData,
+            { headers }
+          )
+          .pipe(
+            catchError((error: HttpErrorResponse) => {
+              let message = 'Failed to create checkout session. Please try again.';
+              if (error.status === 400 && typeof error.error === 'object') {
+                if (error.error?.error) message = error.error.error;
+              }
+              return throwError(() => new Error(message));
+            })
+          )
       );
-
-      console.log('✅ Stripe session created successfully:', response);
-      return response;
-
-    } catch (error: any) {
-      console.error('❌ createCheckoutSession failed:', error);
-      throw new Error(error.message || 'Failed to create checkout session.');
+      return res;
+    } catch (err: any) {
+      throw new Error(err?.message || 'Failed to create checkout session.');
     }
   }
 
-  /**
-   * ✅ Retrieve an existing checkout session
-   */
+  // ----------------------
+  // Get/Cancel Session (optional helpers)
+  // ----------------------
   getCheckoutSession(sessionId: string): Observable<any> {
     return this.http.get(`${this.functionsUrl}/get-checkout-session`, {
-      params: { session_id: sessionId }
+      params: { session_id: sessionId },
     });
   }
 
-  /**
-   * ✅ Cancel a checkout session
-   */
   cancelCheckoutSession(sessionId: string): Observable<any> {
     return this.http.post(`${this.functionsUrl}/cancel-checkout-session`, {
-      session_id: sessionId
+      session_id: sessionId,
     });
-  }
-
-  /**
-   * ✅ Validate a promotion code
-   */
-  validatePromotionCode(promotion_code: string, role: string, interval: string): Observable<CouponValidationResponse> {
-    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
-
-    const body = {
-      code: promotion_code,
-      role,
-      interval
-    };
-
-    return this.http.post<CouponValidationResponse>(
-      `${this.functionsUrl}/validatePromotionCode`,
-      body,
-      { headers }
-    ).pipe(
-      catchError((error) => {
-        console.error('❌ Promotion code validation failed:', error);
-        return of({ valid: false, error: 'Error validating promotion code' });
-      })
-    );
   }
 
   // ----------------------
-  // ✅ HELPER FUNCTIONS
+  // Validate promotion code
+  // ----------------------
+  validatePromotionCode(
+    promotion_code: string,
+    role: 'originator' | 'lender',
+    interval: 'monthly' | 'annually'
+  ): Observable<CouponValidationResponse> {
+    const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+    const body = { code: promotion_code, role, interval };
+
+    return this.http
+      .post<CouponValidationResponse>(`${this.functionsUrl}/validatePromotionCode`, body, {
+        headers,
+      })
+      .pipe(
+        catchError(() => {
+          return of({ valid: false, error: 'Error validating promotion code' });
+        })
+      );
+  }
+
+  // ----------------------
+  // Helpers
   // ----------------------
   private validateCheckoutData(data: CheckoutSessionRequest): void {
     const errors: string[] = [];
 
-    if (!data.email || !this.isValidEmail(data.email)) errors.push('Valid email is required');
-    if (!data.userData.firstName?.trim()) errors.push('First name is required');
-    if (!data.userData.lastName?.trim()) errors.push('Last name is required');
-    if (!data.userData.company?.trim()) errors.push('Company name is required');
-    if (!data.userData.phone?.trim()) errors.push('Phone number is required');
-    if (!data.userData.city?.trim()) errors.push('City is required');
-    if (!data.userData.state?.trim()) errors.push('State is required');
-    if (!['monthly', 'annually'].includes(data.interval)) errors.push('Valid billing interval is required');
+    if (!data.email?.trim()) errors.push('Valid email is required');
     if (!['originator', 'lender'].includes(data.role)) errors.push('Valid role is required');
-    if (data.promotion_code && !data.promotion_code.trim()) errors.push('Promotion code cannot be empty if provided');
+    if (!['monthly', 'annually'].includes(data.interval)) errors.push('Valid billing interval is required');
 
-    if (errors.length > 0) throw new Error(`Validation failed: ${errors.join(', ')}`);
-  }
+    if (!data.userData || !data.userData.uid || !data.userData.uid.trim()) {
+      errors.push('Missing user UID');
+    }
 
-  private isValidEmail(email: string): boolean {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
+    if (data.promotion_code !== undefined && data.promotion_code !== null) {
+      if (!data.promotion_code.toString().trim()) {
+        errors.push('Promotion code cannot be empty if provided');
+      }
+    }
+
+    if (errors.length) {
+      throw new Error(`Validation failed: ${errors.join(', ')}`);
+    }
   }
 }

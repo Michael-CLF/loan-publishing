@@ -61,26 +61,18 @@ export const routes: Routes = [
   { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
   { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
   { path: 'complete-payment', component: CompletePaymentComponent },
-
-  // ✅ CONSOLIDATED: Payment callback now goes directly to registration processing
-  {
-    path: 'payment-callback',
-    component: RegistrationProcessingComponent
-  },
-
-  // ✅ SIMPLIFIED: Remove redundant payment redirects since we handle params directly
-  // Old routes for backward compatibility (optional - can remove these)
   {
     path: 'payment/success',
-    redirectTo: '/payment-callback?payment=success',
+    redirectTo: '/registration-processing?payment=success',
     pathMatch: 'full'
   },
   {
     path: 'payment/cancel',
-    redirectTo: '/payment-callback?payment=cancel',
+    redirectTo: '/registration-processing?payment=cancel',
     pathMatch: 'full'
   },
-    {
+
+  {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
     pathMatch: 'full'
@@ -91,7 +83,7 @@ export const routes: Routes = [
     path: 'registration-processing',
     component: RegistrationProcessingComponent
   },
-  
+
   {
     path: 'loan-details',
     component: LoanDetailsComponent,
@@ -130,6 +122,6 @@ export const routes: Routes = [
 
   // ✅ Testing route (can be removed in production)
   { path: 'test-processing', component: RegistrationProcessingComponent },
-  { path: '**', redirectTo: '', pathMatch: 'full' },
+  { path: '**', redirectTo: 'pricing', pathMatch: 'full' },
 
 ];
