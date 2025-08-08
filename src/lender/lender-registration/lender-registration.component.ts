@@ -1,11 +1,9 @@
-//Lender-registration.component.ts
+// Lender-registration.component.ts
 import {
   Component,
   OnInit,
   OnDestroy,
   inject,
-  Injector,
-  runInInjectionContext,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -20,15 +18,7 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { Subscription } from 'rxjs';
-import { catchError, takeUntil, finalize } from 'rxjs/operators';
-import { of } from 'rxjs';
-import { HttpErrorResponse } from '@angular/common/http';
-import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
-import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
-import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
-import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
-import { from, Subject } from 'rxjs';
+import { Subscription, Subject, of, from } from 'rxjs';
 import { EmailExistsValidator } from '../../services/email-exists.validator';
 import { AuthService } from '../../services/auth.service';
 import { ModalService } from '../../services/modal.service';
@@ -40,9 +30,17 @@ import { FootprintLocation } from '../../models/footprint-location.model';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 import { LenderFormService } from '../../services/lender-registration.service';
 import { PromotionService } from './../../services/promotion.service';
-import { CouponValidationResponse } from '../../services/stripe.service';
-import { ActivatedRoute } from '@angular/router';
-import { Firestore, doc, setDoc, serverTimestamp, collection, } from '@angular/fire/firestore';
+import { LenderContactComponent } from '../../lender/lender-contact/lender-contact.component';
+import { LenderProductComponent } from '../../lender/lender-product/lender-product.component';
+import { LenderFootprintComponent } from '../../lender/lender-footprint/lender-footprint.component';
+import { LenderReviewComponent } from '../../lender/lender-review/lender-review.component';
+
+import {
+  Firestore,
+  doc,
+  setDoc,
+} from '@angular/fire/firestore';
+import { Auth } from '@angular/fire/auth';
 
 import {
   PROPERTY_CATEGORIES,
@@ -55,39 +53,18 @@ export interface LenderTypeOption {
   value: string;
   name: string;
 }
-
 export interface LoanTypes {
   value: string;
   name: string;
 }
-
 export interface SubCategory {
   value: string;
   name: string;
 }
-
 export interface StateOption {
   value: string;
   name: string;
 }
-
-export interface CheckoutSessionRequest {
-  email: string;
-  role: string;
-  interval: 'monthly' | 'annually';
-  userData: {
-    firstName: string;
-    lastName: string;
-    company: string;
-    phone: string;
-    city: string;
-    state: string;
-  };
-  promotion_code?: string;
-  discount?: number;
-  discountType?: 'percentage' | 'fixed';
-}
-
 
 @Component({
   selector: 'app-lender-registration',
@@ -110,7 +87,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private modalService = inject(ModalService);
   private stripeService = inject(StripeService);
-  private injector = inject(Injector);
   private locationService = inject(LocationService);
   private emailExistsValidator = inject(EmailExistsValidator);
   public stepService = inject(StepManagementService);
@@ -118,6 +94,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private lenderFormService = inject(LenderFormService);
   private promotionService = inject(PromotionService);
   private firestore = inject(Firestore);
+  private auth = inject(Auth);
 
   states: FootprintLocation[] = [];
   lenderForm!: FormGroup;
@@ -180,12 +157,10 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     };
   });
 
-
   ngOnInit(): void {
     this.initializeForm();
     this.states = this.locationService.getFootprintLocations();
     this.initializeStateCountiesStructure();
-
 
     // Initialize payment section if it doesn't exist
     if (!this.lenderFormService.getFormSection('payment')) {
@@ -203,8 +178,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         this.currentStep = step;
         this.toggleStepValidation();
         this.errorMessage = '';
-
-        // Save form data to service when step changes
         this.saveCurrentStepData();
       })
     );
@@ -214,9 +187,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-
   private saveCurrentStepData(): void {
-    // Save the current step's data to the service
     switch (this.currentStep) {
       case 0:
         if (this.contactForm.valid) {
@@ -237,7 +208,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         this.lenderFormService.setFormSection('termsAccepted', this.lenderForm.get('termsAccepted')?.value);
         break;
       case 4:
-        // Payment step - save interval to service
         const paymentData = this.lenderFormService.getFormSection('payment') || {};
         this.lenderFormService.setFormSection('payment', {
           ...paymentData,
@@ -247,64 +217,40 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Getter methods for template access
+  // ------------------------
+  // Form getters
+  // ------------------------
   get validatedCouponCode(): string {
     return this.lenderFormService.getFormSection('payment')?.validatedCouponCode || '';
   }
-
   get couponApplied(): boolean {
     return this.lenderFormService.getFormSection('payment')?.couponApplied || false;
   }
-
   get appliedCouponDetails(): any {
     return this.lenderFormService.getFormSection('payment')?.appliedCouponDetails || null;
   }
 
-  // Type-safe getters for form groups
   get contactForm(): FormGroup {
     const form = this.lenderForm.get('contactInfo');
-    if (form instanceof FormGroup) {
-      return form;
-    }
+    if (form instanceof FormGroup) return form;
     throw new Error('contactInfo is not a FormGroup');
   }
-
   get productForm(): FormGroup {
     const form = this.lenderForm.get('productInfo');
-    if (form instanceof FormGroup) {
-      return form;
-    }
+    if (form instanceof FormGroup) return form;
     throw new Error('productInfo is not a FormGroup');
   }
-
   get footprintForm(): FormGroup {
     const form = this.lenderForm.get('footprintInfo');
-    if (form instanceof FormGroup) {
-      return form;
-    }
+    if (form instanceof FormGroup) return form;
     throw new Error('footprintInfo is not a FormGroup');
   }
 
-  // FormArray getters
-  get lenderTypesArray(): FormArray {
-    return this.productForm.get('lenderTypes') as FormArray;
-  }
-
-  get propertyCategoriesArray(): FormArray {
-    return this.productForm.get('propertyCategories') as FormArray;
-  }
-
-  get propertyTypesArray(): FormArray {
-    return this.productForm.get('propertyTypes') as FormArray;
-  }
-
-  get loanTypesArray(): FormArray {
-    return this.productForm.get('loanTypes') as FormArray;
-  }
-
-  get termsAccepted(): FormControl {
-    return this.lenderForm.get('termsAccepted') as FormControl;
-  }
+  get lenderTypesArray(): FormArray { return this.productForm.get('lenderTypes') as FormArray; }
+  get propertyCategoriesArray(): FormArray { return this.productForm.get('propertyCategories') as FormArray; }
+  get propertyTypesArray(): FormArray { return this.productForm.get('propertyTypes') as FormArray; }
+  get loanTypesArray(): FormArray { return this.productForm.get('loanTypes') as FormArray; }
+  get termsAccepted(): FormControl { return this.lenderForm.get('termsAccepted') as FormControl; }
 
   getLenderData() {
     return {
@@ -327,41 +273,28 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     console.log('Payment completed:', event);
     this.successMessage = event.message || 'Payment completed successfully!';
   }
-
   handlePaymentError(event: any) {
     console.log('Payment error:', event);
     this.errorMessage = event.error || 'Payment failed. Please try again.';
   }
 
   public getStepFormGroup(): FormGroup {
-    // Get appropriate form group based on current step (1-based)
     switch (this.currentStep) {
-      case 0:
-        return this.contactForm;     // Step 1: Contact
-      case 1:
-        return this.productForm;     // Step 2: Product
-      case 2:
-        return this.footprintForm;   // Step 3: Footprint
+      case 0: return this.contactForm;
+      case 1: return this.productForm;
+      case 2: return this.footprintForm;
       case 3:
-      case 4:
-        return this.lenderForm;      // Step 4: Review, Step 5: Payment
-      default:
-        return this.contactForm;     // Default fallback
+      case 4: return this.lenderForm;
+      default: return this.contactForm;
     }
   }
 
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.lenderForm.patchValue({ interval });
-
-    // Update service with new interval
     const currentPayment = this.lenderFormService.getFormSection('payment') || {};
-    this.lenderFormService.setFormSection('payment', {
-      ...currentPayment,
-      billingInterval: interval
-    });
+    this.lenderFormService.setFormSection('payment', { ...currentPayment, billingInterval: interval });
   }
 
-  // Custom validator for minimum checkbox selection
   private minSelectedCheckboxes(min = 1): ValidatorFn {
     return (formArray: AbstractControl): { [key: string]: any } | null => {
       if (formArray instanceof FormArray) {
@@ -373,110 +306,39 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   private initializeForm(): void {
-    // Create contact step form group
     const contactStep = this.fb.group({
-      company: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(2),
-          Validators.pattern(/^[A-Za-z0-9 ]+$/),
-        ],
-      ],
-      firstName: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(2),
-          Validators.pattern(/^[A-Za-z ]+$/),
-        ],
-      ],
-      lastName: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(2),
-          Validators.pattern(/^[A-Za-z ]+$/),
-        ],
-      ],
-      contactPhone: [
-        '',
-        [
-          Validators.required,
-          Validators.pattern(/^\(\d{3}\) \d{3}-\d{4}$/),
-        ],
-      ],
-      contactEmail: [
-        '',
-        [Validators.required, Validators.email],
-        this.emailExistsValidator.validate.bind(this.emailExistsValidator),
-      ],
-      city: [
-        '',
-        [
-          Validators.required,
-          Validators.minLength(2),
-          Validators.pattern(/^[A-Za-z ]+$/),
-        ],
-      ],
+      company: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z0-9 ]+$/)]],
+      firstName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
+      lastName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
+      contactPhone: ['', [Validators.required, Validators.pattern(/^\(\d{3}\) \d{3}-\d{4}$/)]],
+      contactEmail: ['', [Validators.required, Validators.email], this.emailExistsValidator.validate.bind(this.emailExistsValidator)],
+      city: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
       state: ['', Validators.required],
       couponCode: ['']
     });
 
-    // Create form arrays with explicit debug names
-    const lenderTypesArray = this.fb.array([], {
-      validators: [this.minSelectedCheckboxes(1)],
-      updateOn: 'change',
-    });
-
-    const propertyCategoriesArray = this.fb.array([], {
-      validators: [this.minSelectedCheckboxes(1)],
-      updateOn: 'change',
-    });
-
+    const lenderTypesArray = this.fb.array([], { validators: [this.minSelectedCheckboxes(1)], updateOn: 'change' });
+    const propertyCategoriesArray = this.fb.array([], { validators: [this.minSelectedCheckboxes(1)], updateOn: 'change' });
     const propertyTypesArray = this.fb.array([]);
-
-    // Explicitly create loan types array with validator
-    const loanTypesArray = this.fb.array([], {
-      validators: [this.minSelectedCheckboxes(1)],
-      updateOn: 'change',
-    });
-
-    // Create subcategory selections array
+    const loanTypesArray = this.fb.array([], { validators: [this.minSelectedCheckboxes(1)], updateOn: 'change' });
     const subcategorySelectionsArray = this.fb.array([]);
 
     const productStep = this.fb.group({
       lenderTypes: lenderTypesArray,
-      minLoanAmount: [
-        null,
-        [Validators.required, Validators.pattern(/^\d{6,}$/)],
-      ],
-      maxLoanAmount: [
-        null,
-        [Validators.required, Validators.pattern(/^\d{6,}$/)],
-      ],
-      ficoScore: [
-        '',
-        [
-          Validators.required,
-          Validators.min(300),
-          Validators.max(850),
-          Validators.pattern(/^\d+$/),
-        ],
-      ],
+      minLoanAmount: [null, [Validators.required, Validators.pattern(/^\d{6,}$/)]],
+      maxLoanAmount: [null, [Validators.required, Validators.pattern(/^\d{6,}$/)]],
+      ficoScore: ['', [Validators.required, Validators.min(300), Validators.max(850), Validators.pattern(/^\d+$/)]],
       propertyCategories: propertyCategoriesArray,
       propertyTypes: propertyTypesArray,
       loanTypes: loanTypesArray,
       subcategorySelections: subcategorySelectionsArray,
     });
 
-    // Create footprint step form group WITHOUT validators initially
     const footprintStep = this.fb.group({
       lendingFootprint: [[]],
       states: this.fb.group({}),
     });
 
-    // Initialize the main form
     this.lenderForm = this.fb.group({
       contactInfo: contactStep,
       productInfo: productStep,
@@ -486,41 +348,27 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       promotion_code: ['']
     });
 
-    // Initialize counties structure
     this.initializeStateCountiesStructure();
 
-    // Apply validators based on current step
     setTimeout(() => {
       this.toggleStepValidation();
-
-      // Log form status after initialization
       console.log('Form initialized with structure:');
       this.debugFormStructure(this.lenderForm);
     });
   }
 
-  // New method to toggle validators based on current step
   private toggleStepValidation(): void {
     console.log(`Toggling validation for step ${this.currentStep}`);
-
-    // First, disable all validators that should only be active in specific steps
     this.disableAllValidators();
+
     switch (this.currentStep) {
-      case 0:
-        this.enableContactValidators();
-        break;
-      case 1:
-        this.enableProductValidators();
-        break;
-      case 2:
-        this.enableFootprintValidators();
-        break;
+      case 0: this.enableContactValidators(); break;
+      case 1: this.enableProductValidators(); break;
+      case 2: this.enableFootprintValidators(); break;
       case 3:
-        // Enable all validators for review
         this.enableContactValidators();
         this.enableProductValidators();
         this.enableFootprintValidators();
-        // Terms acceptance only required at review step
         const termsControl = this.lenderForm.get('termsAccepted');
         if (termsControl) {
           termsControl.setValidators(Validators.requiredTrue);
@@ -528,7 +376,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         }
         break;
       case 5:
-        // Payment step - require billing interval
         const intervalControl = this.lenderForm.get('interval');
         if (intervalControl) {
           intervalControl.setValidators(Validators.required);
@@ -537,15 +384,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         break;
     }
 
-    // Force update validation status on all form groups
     this.contactForm.updateValueAndValidity({ emitEvent: false });
     this.productForm.updateValueAndValidity({ emitEvent: false });
     this.footprintForm.updateValueAndValidity({ emitEvent: false });
-
-    // Update the entire form
     this.lenderForm.updateValueAndValidity({ emitEvent: false });
 
-    // Add additional debug info for step 2 (footprint)
     if (this.currentStep === 2) {
       const statesGroup = this.footprintForm.get('states') as FormGroup;
       if (statesGroup) {
@@ -564,23 +407,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Disable all validators
   private disableAllValidators(): void {
-    // Remove validators from terms
     const termsControl = this.lenderForm.get('termsAccepted');
     if (termsControl) {
       termsControl.clearValidators();
       termsControl.updateValueAndValidity({ emitEvent: false });
     }
 
-    // Remove validators from footprint
     const lendingFootprint = this.footprintForm.get('lendingFootprint');
     if (lendingFootprint) {
       lendingFootprint.clearValidators();
       lendingFootprint.updateValueAndValidity({ emitEvent: false });
     }
 
-    // States validator is handled separately
     const statesGroup = this.footprintForm.get('states') as FormGroup;
     if (statesGroup) {
       statesGroup.clearValidators();
@@ -588,34 +427,24 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     }
   }
 
-  // Enable contact step validators
   private enableContactValidators(): void {
-    // Contact form validators are already set in initializeForm
     this.contactForm.updateValueAndValidity({ emitEvent: false });
   }
-
-  // Enable product step validators
   private enableProductValidators(): void {
-    // Product form validators are already set in initializeForm
     this.productForm.updateValueAndValidity({ emitEvent: false });
   }
-
-  // Enable footprint step validators
   private enableFootprintValidators(): void {
-    // Apply validation to lendingFootprint
     const lendingFootprint = this.footprintForm.get('lendingFootprint');
     if (lendingFootprint) {
       lendingFootprint.setValidators(Validators.required);
       lendingFootprint.updateValueAndValidity({ emitEvent: false });
     }
 
-    // This is the key change - apply validator directly to the states FormGroup
     const statesGroup = this.footprintForm.get('states') as FormGroup;
     if (statesGroup) {
       statesGroup.setValidators(this.atLeastOneStateValidator());
       statesGroup.updateValueAndValidity({ emitEvent: false });
 
-      // Add debug output to check selected states
       console.log(
         'States selection status:',
         Object.keys(statesGroup.controls)
@@ -627,51 +456,36 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     this.footprintForm.updateValueAndValidity({ emitEvent: false });
     console.log('Footprint form valid:', this.footprintForm.valid);
-    console.log('States group valid:', statesGroup?.valid);
+    console.log('States group valid:', (this.footprintForm.get('states') as FormGroup)?.valid);
   }
 
   private atLeastOneStateValidator(): ValidatorFn {
     return (control: AbstractControl): ValidationErrors | null => {
       const statesGroup = control as FormGroup;
+      if (!statesGroup) return { noStateSelected: true };
 
-      if (!statesGroup) {
-        console.error('States form group is null');
-        return { noStateSelected: true };
-      }
-
-      // Get all state controls (exclude counties)
       const stateControls = Object.keys(statesGroup.controls).filter(
         (key) => !key.includes('_counties')
       );
 
-      // Check if any state is selected (has value true)
       const selectedStates = stateControls.filter(
         (key) => statesGroup.get(key)?.value === true
       );
 
-      const anyStateSelected = selectedStates.length > 0;
-
-      console.log('State validator found selected states:', selectedStates);
-      console.log('Any state selected:', anyStateSelected);
-
-      return anyStateSelected ? null : { noStateSelected: true };
+      return selectedStates.length > 0 ? null : { noStateSelected: true };
     };
   }
 
-  // Add this new method for counties initialization
   private initializeStateCountiesStructure(): void {
     const statesFormGroup = this.footprintForm.get('states') as FormGroup;
 
-    // Pre-initialize state entries for all states
     this.states.forEach((state) => {
       const stateValue = state.value;
 
-      // Add state selection control if it doesn't exist
       if (!statesFormGroup.contains(stateValue)) {
         statesFormGroup.addControl(stateValue, this.fb.control(false));
       }
 
-      // Add a properly initialized counties FormGroup if it doesn't exist
       const countiesKey = `${stateValue}_counties`;
       if (!statesFormGroup.contains(countiesKey)) {
         statesFormGroup.addControl(countiesKey, this.fb.group({}));
@@ -679,33 +493,23 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Update the onLenderTypeChange method to enforce single selection
   onLenderTypeChange(event: any, typeValue: string): void {
-    event.stopPropagation(); // Prevent event bubbling
+    event.stopPropagation();
     const lenderTypesArray = this.lenderTypesArray;
 
-    // Clear the array first (to ensure radio button behavior)
     while (lenderTypesArray.length > 0) {
       lenderTypesArray.removeAt(0);
     }
 
-    // Find the full lender type object
-    const lenderTypeObject = this.lenderTypes.find(
-      (t) => t.value === typeValue
-    );
-
-    // Add only the selected type
+    const lenderTypeObject = this.lenderTypes.find((t) => t.value === typeValue);
     if (lenderTypeObject) {
       lenderTypesArray.push(this.fb.control(lenderTypeObject));
     }
 
-    // Update validation
     lenderTypesArray.updateValueAndValidity();
     this.productForm.updateValueAndValidity();
   }
 
-
-  // Add this helper method for deep form inspection
   private debugFormStructure(form: FormGroup, prefix = ''): void {
     Object.keys(form.controls).forEach((key) => {
       const control = form.get(key);
@@ -715,15 +519,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         console.log(`Group: ${path}, Valid: ${control.valid}`);
         this.debugFormStructure(control, path);
       } else if (control instanceof FormArray) {
-        console.log(
-          `Array: ${path}, Valid: ${control.valid}, Length: ${control.length}, Errors:`,
-          control.errors
-        );
+        console.log(`Array: ${path}, Valid: ${control.valid}, Length: ${control.length}, Errors:`, control.errors);
       } else if (control) {
-        console.log(
-          `Control: ${path}, Valid: ${control.valid}, Value: ${control.value}, Errors:`,
-          control.errors
-        );
+        console.log(`Control: ${path}, Valid: ${control.valid}, Value: ${control.value}, Errors:`, control.errors);
       }
     });
   }
@@ -745,16 +543,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Log for debugging
-    console.log(
-      'Property categories after change:',
-      propertyCategoriesArray.value
-    );
-    console.log('Property categories count:', propertyCategoriesArray.length);
-    console.log('Property categories valid:', propertyCategoriesArray.valid);
-    console.log('Property categories errors:', propertyCategoriesArray.errors);
-
-    // Update validation
     propertyCategoriesArray.updateValueAndValidity();
     this.productForm.updateValueAndValidity();
   }
@@ -774,12 +562,10 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       }
     }
 
-    // Update validation
     propertyTypesArray.updateValueAndValidity();
     this.productForm.updateValueAndValidity();
   }
 
-  // Helper method to check if a value is selected in a FormArray
   isOptionSelected(formArrayName: string, value: string): boolean {
     const formArray = this.productForm.get(formArrayName) as FormArray;
     return formArray.controls.some((control) =>
@@ -789,7 +575,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     );
   }
 
-  // Form validation methods
   isControlInvalid(controlName: string): boolean {
     const control = this.productForm.get(controlName);
     return !!control && control.invalid && (control.dirty || control.touched);
@@ -805,7 +590,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     if (control) control.markAsTouched();
   }
 
-  // Helper method to mark all controls in a form group as touched
   private markAllAsTouched(formGroup: FormGroup): void {
     Object.keys(formGroup.controls).forEach((key) => {
       const control = formGroup.get(key);
@@ -826,42 +610,23 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Next step handler - updated to use step service
   nextStep(): void {
     const currentForm = this.getStepFormGroup();
     this.markAllAsTouched(currentForm);
-
-    // Clear any previous error messages
     this.errorMessage = '';
 
     console.log('Form valid:', currentForm.valid);
     console.log('Form value:', currentForm.value);
-    if (this.productForm.valid) {
-      // allow next
-    } else {
-      console.log(this.productForm.value);
-      console.log(this.productForm.valid);
+
+    if (!currentForm.valid) {
+      this.errorMessage = this.getStepErrorMessage();
+      return;
     }
 
-    Object.keys(this.productForm.controls).forEach((controlName) => {
-      const control = this.productForm.get(controlName);
-      if (control?.invalid) {
-        console.log(`❌ Invalid control: ${controlName}`, control.errors);
-      }
-    });
+    this.saveCurrentStepData();
 
-    // If form is valid, proceed
-    if (currentForm.valid) {
-      // Save current step data to service
-      this.saveCurrentStepData();
-
-      // For all steps, just proceed to next step
-      if (this.currentStep < 5) {
-        this.stepService.moveToNextStep();
-      }
-    } else {
-      // Display appropriate error message based on the current step
-      this.errorMessage = this.getStepErrorMessage();
+    if (this.currentStep < 5) {
+      this.stepService.moveToNextStep();
     }
   }
 
@@ -873,18 +638,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   private getStepErrorMessage(): string {
     switch (this.currentStep) {
-      case 0:
-        return 'Please complete all required fields in the contact section';
-      case 1:
-        return 'Please complete all required fields in the product section';
-      case 2:
-        return 'Please select at least one state for your lending footprint';
-      case 3:
-        return 'Please review all information and agree to the terms';
-      case 4:
-        return 'Please select a billing option and complete payment';
-      default:
-        return 'Please complete all required fields';
+      case 0: return 'Please complete all required fields in the contact section';
+      case 1: return 'Please complete all required fields in the product section';
+      case 2: return 'Please select at least one state for your lending footprint';
+      case 3: return 'Please review all information and agree to the terms';
+      case 4: return 'Please select a billing option and complete payment';
+      default: return 'Please complete all required fields';
     }
   }
 
@@ -894,13 +653,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   submitForm(): void {
-    // Mark form as submitted
     this.isLoading = true;
-
-    // Set terms accepted
     this.lenderFormService.setFormSection('termsAccepted', true);
 
-    // Get form data
     const formData = this.lenderFormService.getFullForm();
     const email = formData.contact?.contactEmail;
 
@@ -910,10 +665,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
-    // Go straight to payment
     this.proceedToStripe(email, formData);
   }
 
+  // =========================================
+  // 🔑 UID-first flow: create doc, start checkout
+  // =========================================
   async proceedToStripe(email: string, formData: any): Promise<void> {
     console.log('🚀 Starting new payment flow - creating document first');
 
@@ -922,45 +679,42 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const uid = this.auth.currentUser?.uid || null;
+    if (!uid) {
+      console.error('❌ No authenticated Firebase UID found');
+      alert('Please log in to continue.');
+      return;
+    }
+
     const paymentData = formData.payment;
 
     try {
-      // 1. Create complete lender document FIRST
-      const userId = await this.createPendingLenderDocument(formData);
-      console.log('✅ Created pending lender document with ID:', userId);
+      // 1) Create/merge the lender document at /lenders/{uid}
+      await this.createOrMergeLenderDocument(uid, formData);
+      console.log('✅ Created/merged lender document with UID:', uid);
 
-      // 2. Create Stripe checkout with just the user ID
-      const checkoutData = {
+      // 2) Build payload including UID and call backend via service
+      const checkoutPayload = {
         email: email.toLowerCase(),
         role: 'lender' as const,
-        interval: paymentData?.billingInterval || 'monthly',
+        interval: (paymentData?.billingInterval || 'monthly') as 'monthly' | 'annually',
         userData: {
-          userId: userId
+          uid,
+          firstName: formData.contact?.firstName || '',
+          lastName: formData.contact?.lastName || '',
+          company: formData.contact?.company || '',
+          phone: formData.contact?.contactPhone || '',
+          city: formData.contact?.city || '',
+          state: formData.contact?.state || '',
         },
         promotion_code: paymentData?.validatedCouponCode || null
       };
 
-      console.log('📤 Sending to Stripe with userId:', userId);
-      // Call the backend to create checkout session
-      const response = await fetch('https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(checkoutData)
-      });
+      console.log('📤 Sending to Stripe with uid:', uid, checkoutPayload);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Backend error:', errorText);
-        throw new Error(`Backend error: ${errorText}`);
-      }
-
-      const session = await response.json();
-
-      // 3. Redirect to Stripe
+      const checkoutResponse = await this.stripeService.createCheckoutSession(checkoutPayload);
       console.log('✅ Redirecting to Stripe checkout');
-      window.location.href = session.url;
+      window.location.href = checkoutResponse.url;
 
     } catch (error) {
       console.error('❌ Error in payment flow:', error);
@@ -968,14 +722,12 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     }
   }
 
-  private async createPendingLenderDocument(formData: any): Promise<string> {
-    // Generate a unique ID for this user
-    // Create a consistent UID format
-const userId = 'lender_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+  private async createOrMergeLenderDocument(uid: string, formData: any): Promise<void> {
+    const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
     const lenderData = {
-      id: userId,
-      uid: userId,
+      id: uid,
+      uid,
       email: formData.contact?.contactEmail?.toLowerCase(),
 
       // Contact info
@@ -986,91 +738,31 @@ const userId = 'lender_' + Date.now() + '_' + Math.random().toString(36).substr(
       city: formData.contact?.city || '',
       state: formData.contact?.state || '',
 
-      // Complete form data
+      // Full form data
       contactInfo: formData.contact || {},
       productInfo: formData.product || {},
       footprintInfo: formData.footprint || {},
 
-      // Payment status - PENDING
+      // Pre-checkout flags
       paymentPending: true,
-      subscriptionStatus: 'pending',
+      subscriptionStatus: 'inactive',
       role: 'lender',
 
       // Timestamps
-      createdAt: serverTimestamp(),
-      updatedAt: serverTimestamp()
+      createdAt,
+      updatedAt: createdAt
     };
 
-    // Create the document
-    const docRef = doc(this.firestore, `lenders/${userId}`);
-    await setDoc(docRef, lenderData);
+    const ref = doc(this.firestore, `lenders/${uid}`);
+    await setDoc(ref, lenderData, { merge: true });
 
-    // Store userId for later use
-    localStorage.setItem('pendingLenderId', userId);
-
-    return userId;
+    // Kill legacy artifacts
+    localStorage.removeItem('pendingLenderId');
   }
 
-  private createStripeCheckoutWithValidCode(email: string, formData: any, promotion_code: string | null, billingInterval: string): void {
-    const payload: any = {
-      hasPromotionCode: !!promotion_code,
-      promotion_code: promotion_code?.toUpperCase() || null,
-      email,
-      role: 'lender',
-      interval: billingInterval,
-      userData: {
-        firstName: formData.contactInfo.firstName,
-        lastName: formData.contactInfo.lastName,
-        company: formData.contactInfo.company,
-        phone: formData.contactInfo.contactPhone,
-        city: formData.contactInfo.city,
-        state: formData.contactInfo.state,
-      }
-    };
-
-    if (promotion_code) {
-      console.log('✅ Lender coupon details being sent:', {
-        code: promotion_code,
-        interval: billingInterval
-      });
-    }
-
-    console.log('🚀 LENDER: Payload being sent to Stripe:', {
-      hasPromotionCode: !!payload.promotion_code,
-      email: email,
-      fullPayload: payload
-    });
-
-    from(this.stripeService.createCheckoutSession(payload)).pipe(
-      catchError((error: any) => {
-        this.isLoading = false;
-        console.error('❌ Stripe checkout error:', error);
-        this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-        return of(null);
-      })
-    ).subscribe({
-      next: (checkoutResponse) => {
-        if (checkoutResponse && checkoutResponse.url) {
-          console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-          try {
-            window.location.href = checkoutResponse.url;
-          } catch (err) {
-            console.error('❌ Redirect failed:', err);
-            window.open(checkoutResponse.url, '_self');
-          }
-        } else {
-          this.isLoading = false;
-          this.errorMessage = 'Invalid checkout response. Please try again.';
-        }
-      },
-      error: (error) => {
-        this.isLoading = false;
-        console.error('❌ Checkout error:', error);
-        this.errorMessage = 'An unexpected error occurred. Please try again.';
-      }
-    });
-  }
-
+  // ----------------------
+  // Misc helpers
+  // ----------------------
   private extractStringValues(input: any[]): string[] {
     return input?.map((i) => typeof i === 'object' && i?.value ? i.value : i) || [];
   }
@@ -1087,7 +779,6 @@ const userId = 'lender_' + Date.now() + '_' + Math.random().toString(36).substr(
 
   onCouponValidated(event: any): void {
     console.log('🎫 PARENT: Received coupon validation event:', event);
-    // Child component already updates the service, just log for debugging
     const paymentData = this.lenderFormService.getFormSection('payment');
     console.log('🎫 PARENT: Current payment state in service:', paymentData);
   }
