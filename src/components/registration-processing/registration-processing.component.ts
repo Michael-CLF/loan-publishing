@@ -247,9 +247,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private showModalBasedOnRole(): void {
     const role = this.userRole;
     console.log('🎭 Showing modal for role:', role);
-    if (role === 'lender') {
-      this.loadAndProcessDraft();
-    }
     this.showProcessingSpinner.set(false);
 
     setTimeout(() => {

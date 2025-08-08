@@ -958,186 +958,162 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       this.isLoading = false;
       return;
     }
-
-    // ✅ Save final form data and get draft ID
-    this.lenderFormService.setFormSection('termsAccepted', true);
-
-    // ✅ Get or create draft ID
-    const draftId = this.lenderFormService.getCurrentDraftId();
-    if (!draftId) {
-      // Create draft if somehow we don't have one
-      this.lenderFormService.createOrUpdateDraft(email).subscribe({
-        next: (newDraftId) => {
-          this.proceedToStripe(email, formData, newDraftId);
-        },
-        error: (error) => {
-          console.error('Failed to create draft:', error);
-          this.errorMessage = 'Failed to save registration data. Please try again.';
-          this.isLoading = false;
-        }
-      });
-    } else {
-      // Update existing draft one final time
-      this.lenderFormService.createOrUpdateDraft(email).subscribe({
-        next: () => {
-          this.proceedToStripe(email, formData, draftId);
-        },
-        error: (error) => {
-          console.error('Failed to update draft:', error);
-          this.proceedToStripe(email, formData, draftId);
-        }
-      });
-    }
   }
 
   async proceedToStripe(email: string, formData: any, draftId: string): Promise<void> {
-  console.log('🚀 Starting new payment flow - creating document first');
-  
-  
-  if (!email) {
-    alert('Email is required');
-    return;
+    console.log('🚀 Starting new payment flow - creating document first');
+
+    if (!email) {
+      alert('Email is required');
+      return;
+    }
+
+    const paymentData = formData.payment;
+
+    try {
+      // 1. Create complete lender document FIRST
+      const userId = await this.createPendingLenderDocument(formData);
+      console.log('✅ Created pending lender document with ID:', userId);
+
+      // 2. Create Stripe checkout with just the user ID
+      const checkoutData = {
+        email: email.toLowerCase(),
+        role: 'lender' as const,
+        interval: paymentData?.billingInterval || 'monthly',
+        userData: {
+          userId: userId
+        },
+        promotion_code: paymentData?.validatedCouponCode || null
+      };
+
+      console.log('📤 Sending to Stripe with userId:', userId);
+      // Call the backend to create checkout session
+      const response = await fetch('https://us-central1-loanpost.cloudfunctions.net/createStripeCheckout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(checkoutData)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create checkout session');
+      }
+
+      const session = await response.json();
+
+      // 3. Redirect to Stripe
+      console.log('✅ Redirecting to Stripe checkout');
+      window.location.href = session.url;
+
+    } catch (error) {
+      console.error('❌ Error in payment flow:', error);
+      alert('Failed to process payment. Please try again.');
+    }
   }
 
-  const paymentData = formData.payment;
+  private async createPendingLenderDocument(formData: any): Promise<string> {
+    // Generate a unique ID for this user
+    const userId = doc(collection(this.firestore, 'lenders')).id;
 
-  try {
-    // 1. Create complete lender document FIRST
-    const userId = await this.createPendingLenderDocument(formData);
-    console.log('✅ Created pending lender document with ID:', userId);
-    
-    // 2. Create Stripe checkout with just the user ID
-    const checkoutData = {
-      email: email.toLowerCase(),
-      role: 'lender' as const,
-      interval: paymentData?.billingInterval || 'monthly',
-      userData: {
-        firstName: formData.contact?.firstName || '',
-        lastName: formData.contact?.lastName || '',
-        company: formData.contact?.company || '',
-        phone: formData.contact?.contactPhone || '',
-        city: formData.contact?.city || '',
-        state: formData.contact?.state || '',
-        userId: userId  // Just pass the document ID
-      },
-      promotion_code: paymentData?.validatedCouponCode || null
+    const lenderData = {
+      id: userId,
+      uid: userId,
+      email: formData.contact?.contactEmail?.toLowerCase(),
+
+      // Contact info
+      firstName: formData.contact?.firstName || '',
+      lastName: formData.contact?.lastName || '',
+      company: formData.contact?.company || '',
+      phone: formData.contact?.contactPhone || '',
+      city: formData.contact?.city || '',
+      state: formData.contact?.state || '',
+
+      // Complete form data
+      contactInfo: formData.contact || {},
+      productInfo: formData.product || {},
+      footprintInfo: formData.footprint || {},
+
+      // Payment status - PENDING
+      paymentPending: true,
+      subscriptionStatus: 'pending',
+      role: 'lender',
+
+      // Timestamps
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp()
     };
 
-    console.log('📤 Sending to Stripe with userId:', userId);
-    const session = await this.stripeService.createCheckoutSession(checkoutData);
-    
-    // 3. Redirect to Stripe
-    console.log('✅ Redirecting to Stripe checkout');
-    window.location.href = session.url;
-    
-  } catch (error) {
-    console.error('❌ Error in payment flow:', error);
-    alert('Failed to process payment. Please try again.');
-  }
-}
+    // Create the document
+    const docRef = doc(this.firestore, `lenders/${userId}`);
+    await setDoc(docRef, lenderData);
 
-private async createPendingLenderDocument(formData: any): Promise<string> {
-  // Generate a unique ID for this user
-  const userId = doc(collection(this.firestore, 'lenders')).id;
-  
-  const lenderData = {
-    id: userId,
-    uid: userId,
-    email: formData.contact?.contactEmail?.toLowerCase(),
-    
-    // Contact info
-    firstName: formData.contact?.firstName || '',
-    lastName: formData.contact?.lastName || '',
-    company: formData.contact?.company || '',
-    phone: formData.contact?.contactPhone || '',
-    city: formData.contact?.city || '',
-    state: formData.contact?.state || '',
-    
-    // Complete form data
-    contactInfo: formData.contact || {},
-    productInfo: formData.product || {},
-    footprintInfo: formData.footprint || {},
-    
-    // Payment status - PENDING
-    paymentPending: true,
-    subscriptionStatus: 'pending',
-    role: 'lender',
-    
-    // Timestamps
-    createdAt: serverTimestamp(),
-    updatedAt: serverTimestamp()
-  };
-  
-  // Create the document
-  const docRef = doc(this.firestore, `lenders/${userId}`);
-  await setDoc(docRef, lenderData);
-  
-  // Store userId for later use
-  localStorage.setItem('pendingLenderId', userId);
-  
-  return userId;
-}
+    // Store userId for later use
+    localStorage.setItem('pendingLenderId', userId);
 
-private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotion_code: string | null, billingInterval: string): void {
-  const payload: any = {
-    hasPromotionCode: !!promotion_code,
-    promotion_code: promotion_code?.toUpperCase() || null,
-    email,
-    role: 'lender',
-    interval: billingInterval,
-    userData: {
-      firstName: formData.contactInfo.firstName,
-      lastName: formData.contactInfo.lastName,
-      company: formData.contactInfo.company,
-      phone: formData.contactInfo.contactPhone,
-      city: formData.contactInfo.city,
-      state: formData.contactInfo.state,
-      draftId: draftId,
-    }
-  };
-
-  if (promotion_code) {
-    console.log('✅ Lender coupon details being sent:', {
-      code: promotion_code,
-      interval: billingInterval
-    });
+    return userId;
   }
 
-      console.log('🚀 LENDER: Payload being sent to Stripe:', {
-        hasPromotionCode: !!payload.promotion_code,
+  private createStripeCheckoutWithValidCode(email: string, formData: any, draftId: string, promotion_code: string | null, billingInterval: string): void {
+    const payload: any = {
+      hasPromotionCode: !!promotion_code,
+      promotion_code: promotion_code?.toUpperCase() || null,
+      email,
+      role: 'lender',
+      interval: billingInterval,
+      userData: {
+        firstName: formData.contactInfo.firstName,
+        lastName: formData.contactInfo.lastName,
+        company: formData.contactInfo.company,
+        phone: formData.contactInfo.contactPhone,
+        city: formData.contactInfo.city,
+        state: formData.contactInfo.state,
         draftId: draftId,
-        email: email,
-        fullPayload: payload
-      });
+      }
+    };
 
-      from(this.stripeService.createCheckoutSession(payload)).pipe(
-        catchError((error: any) => {
-          this.isLoading = false;
-          console.error('❌ Stripe checkout error:', error);
-          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-          return of(null);
-        })
-      ).subscribe({
-        next: (checkoutResponse) => {
-          if (checkoutResponse && checkoutResponse.url) {
-            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-            try {
-              window.location.href = checkoutResponse.url;
-            } catch (err) {
-              console.error('❌ Redirect failed:', err);
-              window.open(checkoutResponse.url, '_self');
-            }
-          } else {
-            this.isLoading = false;
-            this.errorMessage = 'Invalid checkout response. Please try again.';
-          }
-        },
-        error: (error) => {
-          this.isLoading = false;
-          console.error('❌ Checkout error:', error);
-          this.errorMessage = 'An unexpected error occurred. Please try again.';
-        }
+    if (promotion_code) {
+      console.log('✅ Lender coupon details being sent:', {
+        code: promotion_code,
+        interval: billingInterval
       });
+    }
+
+    console.log('🚀 LENDER: Payload being sent to Stripe:', {
+      hasPromotionCode: !!payload.promotion_code,
+      draftId: draftId,
+      email: email,
+      fullPayload: payload
+    });
+
+    from(this.stripeService.createCheckoutSession(payload)).pipe(
+      catchError((error: any) => {
+        this.isLoading = false;
+        console.error('❌ Stripe checkout error:', error);
+        this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+        return of(null);
+      })
+    ).subscribe({
+      next: (checkoutResponse) => {
+        if (checkoutResponse && checkoutResponse.url) {
+          console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
+          try {
+            window.location.href = checkoutResponse.url;
+          } catch (err) {
+            console.error('❌ Redirect failed:', err);
+            window.open(checkoutResponse.url, '_self');
+          }
+        } else {
+          this.isLoading = false;
+          this.errorMessage = 'Invalid checkout response. Please try again.';
+        }
+      },
+      error: (error) => {
+        this.isLoading = false;
+        console.error('❌ Checkout error:', error);
+        this.errorMessage = 'An unexpected error occurred. Please try again.';
+      }
+    });
   }
 
   private extractStringValues(input: any[]): string[] {
