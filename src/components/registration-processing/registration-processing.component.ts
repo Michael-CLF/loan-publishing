@@ -1,16 +1,31 @@
 import { Component, OnDestroy, OnInit, inject, signal } from '@angular/core';
+import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+
 import { AuthService } from '../../services/auth.service';
+
+import { UserRegSuccessModalComponent } from 'src/modals/user-reg-success-modal/user-reg-success-modal.component';
+import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
+import { firstValueFrom } from 'rxjs';
+import { filter, take } from 'rxjs/operators';
+import { User } from '@angular/fire/auth';
+
 
 @Component({
   selector: 'app-registration-processing',
   standalone: true,
-  imports: [],
+  imports: [
+    CommonModule,
+    UserRegSuccessModalComponent,
+    LenderRegSuccessModalComponent,
+  ],
   templateUrl: './registration-processing.component.html',
   styleUrls: ['./registration-processing.component.css'],
 })
 export class RegistrationProcessingComponent implements OnInit, OnDestroy {
+  // Dependencies
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly firestore = inject(Firestore);
@@ -21,18 +36,27 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   processingMessage = signal('Verifying your payment…');
   hasError = signal(false);
 
-  private intervalHandle: any = null;
+  // Optional modal state (referenced by close methods)
+  showRegistrationSuccessModal = signal(false);
+  showLenderRegistrationSuccessModal = signal(false);
+
+  private intervalHandle: ReturnType<typeof setInterval> | null = null;
 
   async ngOnInit(): Promise<void> {
-    // Always ensure we have an auth session (anonymous if needed)
-    const user = await this.authService.ensureSignedIn();
-    const uid = user.uid;
+    const user = await firstValueFrom(
+  this.authService.getCurrentFirebaseUser().pipe(
+    filter((u): u is User => !!u), // narrow to Firebase User
+    take(1)
+  )
+);
+const uid = user.uid;
+
 
     const qp = this.route.snapshot.queryParamMap;
-    const paymentStatus = qp.get('payment'); // 'success' when coming back from Stripe
+    const paymentStatus = qp.get('payment'); // 'success' on return from Stripe
 
     if (paymentStatus === 'success') {
-      // We just returned from Stripe — be lenient while webhook flips flags
+      // Just returned from Stripe — be lenient while webhook flips flags
       localStorage.setItem('showRegistrationModal', 'true');
       this.startPostPaymentWatcher(uid);
       return;
@@ -51,11 +75,24 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     localStorage.removeItem('showRegistrationModal');
   }
 
-  // ----------------- Helpers -----------------
+  // ----------------- Public (template) helpers -----------------
+
+  closeRegistrationSuccessModal(): void {
+    this.showRegistrationSuccessModal.set(false);
+    this.navigateToDashboard();
+  }
+
+  closeLenderRegistrationSuccessModal(): void {
+    this.showLenderRegistrationSuccessModal.set(false);
+    this.navigateToDashboard();
+  }
+
+  // ----------------- Internal helpers -----------------
 
   private async handleSingleCheck(uid: string): Promise<void> {
     try {
       const profile = await this.getUserProfileByUid(uid);
+
       if (!profile) {
         // No profile yet; let the app take them to the right start
         this.processingMessage.set('No profile found. Redirecting…');
@@ -82,7 +119,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   private startPostPaymentWatcher(uid: string): void {
     this.processingMessage.set('Finalizing your account…');
 
-    const maxAttempts = 40;   // ~2 minutes @ 3s
+    const maxAttempts = 40; // ~2 minutes @ 3s
     const everyMs = 3000;
     let attempts = 0;
 
@@ -91,16 +128,18 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
       try {
         const profile = await this.getUserProfileByUid(uid);
+
         // If not found yet, keep polling — webhook may still be updating.
         if (profile) {
-          // Expect webhook to set: paymentPending=false and subscriptionStatus='active'
+          // Webhook should set: paymentPending=false and subscriptionStatus='active'
           const isActive = profile.subscriptionStatus === 'active';
-          const notPending = profile.paymentPending === false;
 
-          if (isActive || (isActive && notPending)) {
+          if (isActive) {
             this.processingMessage.set('Success! Redirecting to dashboard…');
-            clearInterval(this.intervalHandle);
-            this.intervalHandle = null;
+            if (this.intervalHandle) {
+              clearInterval(this.intervalHandle);
+              this.intervalHandle = null;
+            }
             this.finishToDashboard();
             return;
           }
@@ -111,12 +150,17 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       }
 
       if (attempts >= maxAttempts) {
-        clearInterval(this.intervalHandle);
-        this.intervalHandle = null;
+        if (this.intervalHandle) {
+          clearInterval(this.intervalHandle);
+          this.intervalHandle = null;
+        }
         this.hasError.set(true);
         this.showProcessingSpinner.set(false);
-        this.processingMessage.set('Payment verification timeout. Please contact support.');
-        this.navigateToDashboard(); // optional fallback
+        this.processingMessage.set(
+          'Payment verification timeout. Please contact support.'
+        );
+        // Optional fallback
+        this.navigateToDashboard();
       }
     }, everyMs);
   }

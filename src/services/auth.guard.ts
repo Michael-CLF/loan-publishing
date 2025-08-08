@@ -2,11 +2,10 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { Observable, of, from, combineLatest } from 'rxjs';
-import { catchError, map, switchMap, take, delay } from 'rxjs/operators';
-
+import { catchError, filter, map, switchMap, take, delay } from 'rxjs/operators';
+import { User } from '@angular/fire/auth';
 import { AuthService } from './auth.service';
 import { FirestoreService } from './firestore.service';
-
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 export const authGuard: CanActivateFn = (
@@ -25,15 +24,15 @@ export const authGuard: CanActivateFn = (
     return of(true);
   }
 
-  // 2) Make sure we can survive redirects & always have a UID
-  //    (ensureSignedIn() sets local persistence + anonymous if needed)
-  return from(auth.ensureSignedIn()).pipe(
-    switchMap(user => {
-      const uid = user.uid;
-      if (!uid) {
-        router.navigate(['/login']);
-        return of(false);
-      }
+return auth.getCurrentFirebaseUser().pipe(
+  filter((u): u is User => !!u),
+  take(1),
+  switchMap((user: User) => {
+    const uid = user.uid;
+    if (!uid) {
+      router.navigate(['/login']);
+      return of(false);
+    }
 
       // Remember where we were trying to go
       localStorage.setItem('redirectUrl', state.url);
@@ -52,7 +51,7 @@ export const authGuard: CanActivateFn = (
         map(([lenderSnap, originatorSnap]) => {
           const profile: any =
             lenderSnap.exists() ? lenderSnap.data() :
-            originatorSnap.exists() ? originatorSnap.data() : null;
+              originatorSnap.exists() ? originatorSnap.data() : null;
 
           // If no profile, allow (registration flow will create it)
           if (!profile) return true;

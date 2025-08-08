@@ -1,137 +1,250 @@
 // src/app/services/auth.service.ts
 import { Injectable, inject } from '@angular/core';
-import { Observable, of, from } from 'rxjs';
-import {  map, switchMap, catchError, shareReplay, take  } from 'rxjs/operators';
+import { Observable, of, from, BehaviorSubject } from 'rxjs';
+import { map, shareReplay, switchMap, catchError } from 'rxjs/operators';
+
+import {
+  Auth,
+  User,
+  UserCredential,
+  authState,
+  isSignInWithEmailLink,
+  sendSignInLinkToEmail,
+  signInWithEmailLink,
+  signInWithPopup,
+  GoogleAuthProvider,
+  signOut,
+  browserLocalPersistence,
+  setPersistence,
+  onAuthStateChanged,
+} from '@angular/fire/auth';
+
 import {
   Firestore,
   doc,
   getDoc,
+  setDoc,
+  collection,
+  query,
+  where,
+  getDocs,
 } from '@angular/fire/firestore';
-import {
-  Auth,
-  authState,
-  User,
-  UserCredential,
-  isSignInWithEmailLink,
-  signInWithEmailLink,
-  signOut,
-  browserLocalPersistence,
-  setPersistence,
-} from '@angular/fire/auth';
 
+import { environment } from '../environments/environment';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
 
+  // ---- Core reactive streams ----
+  private readonly _user$ = authState(this.auth).pipe(shareReplay(1));
+  /** Emits the current Firebase user (or null). */
+  users$: Observable<User | null> = this._user$;
 
-  /** Emits the current Firebase user (or null) and replays latest value. */
-readonly users$: Observable<User | null> = authState(this.auth).pipe(shareReplay(1));
-
-/** True when a Firebase user is signed in. */
-readonly isLoggedIn$: Observable<boolean> = this.users$.pipe(map(u => !!u));
-
-/** Convenience getter for current UID (null if signed out). */
-getCurrentUserUid(): string | null {
-  return this.auth.currentUser?.uid ?? null;
-}
-
-/** COMPAT: what your code calls in multiple places */
-getCurrentFirebaseUser(): Observable<User | null> {
-  return this.users$;
-}
-
-/** COMPAT: pricing.component.ts calls this */
-getAuthStatus(): Observable<boolean> {
-  return this.isLoggedIn$;
-}
-
-/** COMPAT: main.ts calls this at bootstrap */
-isEmailSignInLink(): Observable<boolean> {
-  const link = typeof window !== 'undefined' ? window.location.href : '';
-  return of(isSignInWithEmailLink(this.auth, link));
-}
-
-/** COMPAT: main.ts calls this */
-getStoredEmail(): string | null {
-  return localStorage.getItem('emailForSignIn');
-}
-
-/** COMPAT: main.ts calls this */
-loginWithEmailLink(email: string): Observable<UserCredential> {
-  const link = typeof window !== 'undefined' ? window.location.href : '';
-  if (!email) {
-    return from(Promise.reject(new Error('No email provided for sign-in')));
-  }
-  if (!isSignInWithEmailLink(this.auth, link)) {
-    return from(Promise.reject(new Error('Email link is invalid or expired')));
-  }
-  return from(signInWithEmailLink(this.auth, email, link));
-}
-
-/** COMPAT: many places treat logout as Observable so keep that shape */
-logout(): Observable<void> {
-  return from(signOut(this.auth));
-}
-
-/** COMPAT: navbar & others call this to load a Firestore profile doc */
-getUserProfile(): Observable<any | null> {
-  return this.getCurrentFirebaseUser().pipe(
-    take(1),
-    switchMap(user => {
-      if (!user?.uid) return of(null);
-      const uid = user.uid;
-
-      const lenderRef = doc(this.firestore, `lenders/${uid}`);
-      const originatorRef = doc(this.firestore, `originators/${uid}`);
-
-      return from(getDoc(lenderRef)).pipe(
-        switchMap(lenderSnap => {
-          if (lenderSnap.exists()) {
-            return of({ id: lenderSnap.id, ...(lenderSnap.data() as any) });
-          }
-          return from(getDoc(originatorRef)).pipe(
-            map(originatorSnap => {
-              if (originatorSnap.exists()) {
-                return { id: originatorSnap.id, ...(originatorSnap.data() as any) };
-              }
-              return null;
-            })
-          );
-        })
-      );
-    }),
-    catchError(err => {
-      console.error('getUserProfile error:', err);
-      return of(null);
-    })
-  );
-}
-
-/** Keep this around so sessions survive redirects (optional but nice). */
-async ensureSignedIn(): Promise<User> {
-  // If already signed in, use that user.
-  if (this.auth.currentUser) return this.auth.currentUser as User;
-
-  try {
-    await setPersistence(this.auth, browserLocalPersistence);
-  } catch (e) {
-    console.warn('Could not set persistence to local:', e);
-  }
-
-  // No anonymous sign-in here (passwordless app) — just reject.
-  throw new Error('Not signed in');
-}
+  /** Emits true/false when logged in changes. */
+  isLoggedIn$: Observable<boolean> = this._user$.pipe(map(u => !!u), shareReplay(1));
 
   /**
-   * Emits the current Firebase user (or null) and replays the latest value.
-   * Use this everywhere for reactive auth state.
+   * Emits "auth init ready" as boolean.
+   * We convert the first emission of authState into `true` and share it.
    */
-  readonly user$: Observable<User | null> = authState(this.auth).pipe(shareReplay(1));
+  authReady$: Observable<boolean> = this._user$.pipe(
+    map(() => true),
+    shareReplay(1)
+  );
 
-  /** Convenience getter for the current UID (null if not signed in). */
+  /** Convenience getter for the current UID (or null). */
   get currentUserUid(): string | null {
     return this.auth.currentUser?.uid ?? null;
+  }
+
+  // ---- Persistence ----
+  initAuthPersistence(): void {
+    setPersistence(this.auth, browserLocalPersistence)
+      .then(() => console.log('✅ Firebase Auth persistence set to local'))
+      .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
+  }
+
+  // ---- Compatibility helpers used around the app ----
+
+  /** Old name used around your codebase. */
+  getCurrentFirebaseUser(): Observable<User | null> {
+    return this._user$;
+  }
+
+  /** Force-refresh the current user from Firebase. */
+  refreshCurrentUser(): Promise<void> {
+    const u = this.auth.currentUser;
+    return u ? u.reload() : Promise.resolve();
+  }
+
+  /** Observable alias used by some places. */
+  getFirebaseUser(): Observable<User | null> {
+    return this._user$;
+  }
+
+  // ---- Email link (passwordless) flow ----
+  sendLoginLink(email: string): Observable<void> {
+    const actionCodeSettings = {
+      url: `${environment.frontendUrl}/dashboard`,
+      handleCodeInApp: true,
+    };
+
+    console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+
+    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+      map(() => {
+        localStorage.setItem('emailForSignIn', email);
+      }),
+      catchError((error) => {
+        console.error('❌ Error sending login link:', error);
+        throw error;
+      })
+    );
+  }
+
+  isEmailSignInLink(): Observable<boolean> {
+    return of(isSignInWithEmailLink(this.auth, window.location.href));
+  }
+
+  getStoredEmail(): string | null {
+    return localStorage.getItem('emailForSignIn');
+  }
+
+  loginWithEmailLink(email: string): Observable<UserCredential> {
+    const stored = email || localStorage.getItem('emailForSignIn');
+    if (!stored) {
+      throw new Error('No email stored for sign-in');
+    }
+    const url = window.location.href;
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      throw new Error('Email link is invalid or expired');
+    }
+    return from(signInWithEmailLink(this.auth, stored, url)).pipe(
+      map((cred) => {
+        localStorage.removeItem('emailForSignIn');
+        return cred;
+      })
+    );
+  }
+
+  // ---- Google sign-in (used in login component) ----
+  loginWithGoogle(): Observable<User | null> {
+    const provider = new GoogleAuthProvider();
+    return from(signInWithPopup(this.auth, provider)).pipe(map(res => res.user));
+  }
+
+  // ---- Logout ----
+  logout(): Observable<void> {
+    return from(signOut(this.auth));
+  }
+
+  // ---- Firestore profile helpers ----
+
+  /**
+   * Returns merged “UserData-like” object by checking lenders then originators.
+   * Matches previous behavior your navbar and other places rely on.
+   */
+  getUserProfile(): Observable<any | null> {
+    return this._user$.pipe(
+      switchMap(user => {
+        if (!user?.uid) return of(null);
+        const uid = user.uid;
+
+        const lenderRef = doc(this.firestore, `lenders/${uid}`);
+        const originRef = doc(this.firestore, `originators/${uid}`);
+
+        return from(getDoc(lenderRef)).pipe(
+          switchMap(lenderSnap => {
+            if (lenderSnap.exists()) {
+              return of({ id: lenderSnap.id, ...(lenderSnap.data() as any) });
+            }
+            return from(getDoc(originRef)).pipe(
+              map(originSnap => {
+                if (originSnap.exists()) {
+                  return { id: originSnap.id, ...(originSnap.data() as any) };
+                }
+                return null;
+              })
+            );
+          })
+        );
+      }),
+      catchError(err => {
+        console.error('❌ Error fetching user profile:', err);
+        return of(null);
+      })
+    );
+  }
+
+  /** Update role field on the signed-in user's doc. */
+  updateUserRole(role: 'lender' | 'originator'): Observable<void> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('User not authenticated');
+    const collectionName = role === 'lender' ? 'lenders' : 'originators';
+    const ref = doc(this.firestore, `${collectionName}/${uid}`);
+    return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
+  }
+
+  /**
+   * Check if an account exists by email across both collections,
+   * returning type and subscription info.
+   */
+  checkAccountExists(email: string): Observable<{
+    exists: boolean;
+    userType?: 'originator' | 'lender';
+    userId?: string;
+    subscriptionStatus?: string;
+    needsPayment?: boolean;
+  }> {
+    const normalized = email.toLowerCase().trim();
+
+    const originQ = query(
+      collection(this.firestore, 'originators'),
+      where('contactInfo.contactEmail', '==', normalized)
+    );
+    const lenderQ = query(
+      collection(this.firestore, 'lenders'),
+      where('contactInfo.contactEmail', '==', normalized)
+    );
+
+    return from(getDocs(originQ)).pipe(
+      switchMap(originSnap => {
+        if (!originSnap.empty) {
+          const d = originSnap.docs[0];
+          const data = d.data() as any;
+          const subscriptionStatus = data.subscriptionStatus || 'inactive';
+          return of({
+            exists: true,
+            userType: 'originator' as const,
+            userId: d.id,
+            subscriptionStatus,
+            needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
+          });
+        }
+        return from(getDocs(lenderQ)).pipe(
+          map(lenderSnap => {
+            if (!lenderSnap.empty) {
+              const d = lenderSnap.docs[0];
+              const data = d.data() as any;
+              const subscriptionStatus = data.subscriptionStatus || 'inactive';
+              return {
+                exists: true,
+                userType: 'lender' as const,
+                userId: d.id,
+                subscriptionStatus,
+                needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
+              };
+            }
+            return { exists: false };
+          })
+        );
+      }),
+      catchError(err => {
+        console.error('❌ Error checking account:', err);
+        return of({ exists: false });
+      })
+    );
   }
 }
