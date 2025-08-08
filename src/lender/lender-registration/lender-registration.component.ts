@@ -187,12 +187,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.states = this.locationService.getFootprintLocations();
     this.initializeStateCountiesStructure();
 
-    // Check for existing draft
-    const draftId = this.lenderFormService.getCurrentDraftId();
-    if (draftId) {
-      console.log('Found existing draft:', draftId);
-      this.loadDraftData(draftId);
-    }
+
     // Initialize payment section if it doesn't exist
     if (!this.lenderFormService.getFormSection('payment')) {
       this.lenderFormService.setFormSection('payment', {
@@ -220,40 +215,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.subscriptions.forEach((sub) => sub.unsubscribe());
   }
 
-  private loadDraftData(draftId: string): void {
-    this.lenderFormService.loadDraft(draftId).subscribe({
-      next: (draftData) => {
-        if (draftData) {
-          console.log('Loading draft data:', draftData);
-
-          // Populate form with draft data
-          if (draftData.contact) {
-            this.contactForm.patchValue(draftData.contact);
-          }
-          if (draftData.product) {
-            this.productForm.patchValue(draftData.product);
-          }
-          if (draftData.footprint) {
-            this.footprintForm.patchValue(draftData.footprint);
-          }
-          if (draftData.termsAccepted !== undefined) {
-            this.lenderForm.get('termsAccepted')?.setValue(draftData.termsAccepted);
-          }
-          // Load payment data from draft
-          if (draftData.payment) {
-            this.lenderFormService.setFormSection('payment', draftData.payment);
-            // Update the interval in the form
-            if (draftData.payment.billingInterval) {
-              this.lenderForm.get('interval')?.setValue(draftData.payment.billingInterval);
-            }
-          }
-        }
-      },
-      error: (error) => {
-        console.error('Error loading draft:', error);
-      }
-    });
-  }
 
   private saveCurrentStepData(): void {
     // Save the current step's data to the service
