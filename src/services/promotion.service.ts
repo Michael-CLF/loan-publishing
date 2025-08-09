@@ -70,6 +70,17 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     expiresAt: '2025-09-30',
     currentUses: 0,
   },
+  {
+  code: 'ORIGINATOR7TRIAL',
+  name: '7-Day Free Trial for Originators',
+  type: 'trial',
+  value: 7, // 7 days
+  validFor: ['originator'],
+  validIntervals: ['monthly', 'annually'],
+  active: true,
+  expiresAt: '2025-12-31',
+  currentUses: 0,
+}
 ];
 
 export interface CouponValidationResponse {
