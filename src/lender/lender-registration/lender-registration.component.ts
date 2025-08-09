@@ -690,6 +690,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       console.log('🔍 DEBUG: user.uid length:', user.uid?.length);
       // Also add this before the user extraction:
       console.log('🔍 DEBUG: Current auth state:', this.auth.currentUser);
+      console.log('🔍 DEBUG: Is this a real Firebase UID?', /^[a-zA-Z0-9]{28}$/.test(user.uid || ''));
 
       const uid = user.uid;
       console.log('🔍 DEBUG: User UID for Stripe:', uid); // Debug log
