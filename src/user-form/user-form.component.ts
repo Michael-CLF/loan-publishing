@@ -25,6 +25,7 @@ import { StripeService } from '../services/stripe.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
 import { PromotionService } from '../services/promotion.service';
+import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 
 
 export interface StateOption {
@@ -77,6 +78,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private stripeService = inject(StripeService);
   private modalService = inject(ModalService);
   private promotionService = inject(PromotionService);
+  private firestore = inject(Firestore);
 
 
   private destroy$ = new Subject<void>();
@@ -297,76 +299,109 @@ export class UserFormComponent implements OnInit, OnDestroy {
       }
     });
   }
-  private proceedToCheckout(): void {
-    this.isLoading = true;
-    this.errorMessage = '';
+  private async proceedToCheckout(): Promise<void> {
+  this.isLoading = true;
+  this.errorMessage = '';
 
+  try {
     const formData = this.userForm.value;
+    
+    console.log('🔍 Creating originator document and proceeding to payment for:', formData.email);
 
-    // Prepare user registration data for backend
-    const registrationData = {
-      email: formData.email,
-      role: 'originator',
-      userData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-      }
+    // Step 1: Create originator document in Firestore (no authentication)
+    const uid = this.generateUserUID();
+    await this.createOriginatorDocument(uid, formData);
+    
+    console.log('✅ Originator document created with UID:', uid);
+
+    // Step 2: Build payload for Stripe
+    const promotionCode = this.couponApplied && this.appliedCouponDetails 
+      ? this.appliedCouponDetails.code 
+      : null;
+
+    const userData = {
+      userId: uid,
+      firstName: formData.firstName,
+      lastName: formData.lastName,
+      company: formData.company,
+      phone: formData.phone,
+      city: formData.city,
+      state: formData.state,
     };
 
-    // Prepare Stripe checkout data
-    const checkoutData: any = {
-      email: formData.email,
+    console.log('🔍 Creating Stripe checkout session with:', userData);
+
+    // Step 3: Create Stripe checkout session
+    const checkoutResponse = await this.stripeService.createCheckoutSession({
+      email: formData.email.toLowerCase().trim(),
       role: 'originator',
-      interval: formData.interval as 'monthly' | 'annually',
-      userData: {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        company: formData.company,
-        phone: formData.phone,
-        city: formData.city,
-        state: formData.state,
-      },
-    };
+      interval: formData.interval,
+      userData,
+      promotion_code: promotionCode
+    });
 
-    if (this.couponApplied && this.appliedCouponDetails) {
-      const couponDetails = this.appliedCouponDetails;
-      checkoutData.promotion_code = couponDetails.code;
-      checkoutData.discount = couponDetails.discount;
-      checkoutData.discountType = couponDetails.discountType;
-    }
+    console.log('✅ Stripe checkout response:', checkoutResponse);
 
-    console.log('🔵 Creating Stripe checkout session with registration data');
-    from(this.stripeService.createCheckoutSession(checkoutData))
-      .pipe(
-        takeUntil(this.destroy$),
-        catchError((error: any) => {
-          this.isLoading = false;
-          console.error('❌ Stripe checkout error:', error);
-          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-          return of(null);
-        })
-      )
-      .subscribe({
-        next: (checkoutResponse) => {
-          if (checkoutResponse && checkoutResponse.url) {
-            console.log('✅ Stripe checkout session created, redirecting to:', checkoutResponse.url);
-            localStorage.setItem('pendingRegistration', JSON.stringify(formData));
-            window.location.href = checkoutResponse.url;
-          } else {
-            this.isLoading = false;
-            this.errorMessage = 'Invalid checkout response. Please try again.';
-          }
-        },
-        error: (error) => {
-          this.isLoading = false;
-          console.error('❌ Checkout error:', error);
-          this.errorMessage = 'An unexpected error occurred. Please try again.';
-        }
-      });
+    // Step 4: Redirect to Stripe
+    window.location.href = checkoutResponse.url;
+
+  } catch (err: any) {
+    console.error('❌ Error in payment flow:', err);
+    this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
+    this.isLoading = false;
+  }
+}
+private generateUserUID(): string {
+  // Generate a Firebase-compatible UID (28 characters)
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 28; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+
+private async createOriginatorDocument(uid: string, formData: any): Promise<void> {
+  const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const originatorData = {
+    id: uid,
+    uid,
+    email: formData.email.toLowerCase(),
+
+    // Contact info
+    firstName: formData.firstName || '',
+    lastName: formData.lastName || '',
+    company: formData.company || '',
+    phone: formData.phone || '',
+    city: formData.city || '',
+    state: formData.state || '',
+
+    // Contact info nested
+    contactInfo: {
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      contactEmail: formData.email.toLowerCase(),
+      contactPhone: formData.phone || '',
+      company: formData.company || '',
+      city: formData.city || '',
+      state: formData.state || '',
+    },
+
+    // Payment and subscription flags
+    paymentPending: true,
+    subscriptionStatus: 'inactive',
+    role: 'originator',
+
+    // Timestamps
+    createdAt,
+    updatedAt: createdAt
   };
+
+  const ref = doc(this.firestore, `originators/${uid}`);
+  await setDoc(ref, originatorData, { merge: true });
+
+  console.log('✅ Firestore document created for UID:', uid);
+}
 }
 

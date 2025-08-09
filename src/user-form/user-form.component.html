@@ -203,19 +203,19 @@
     </div>
   </div>
 
-  <!-- Coupon Code field -->
+<!-- Coupon Code field -->
 <div class="form-group full-width">
-  <label class="coupon" for="couponCode">Coupon Code: Discount will be applied at checkout</label>
+  <label class="coupon" for="promotion_code">Coupon Code: Discount will be applied at checkout</label>
 
   <div class="coupon-input-container">
    <input 
     type="text" 
-    id="couponCode" 
-    formControlName="couponCode" 
+    id="promotion_code" 
+    formControlName="promotion_code" 
     placeholder="Enter coupon code"
     [ngClass]="{
-      invalid: userForm.get('couponCode')?.errors && userForm.get('couponCode')?.touched,
-      valid: couponApplied && userForm.get('couponCode')?.value
+      invalid: userForm.get('promotion_code')?.errors && userForm.get('promotion_code')?.touched,
+      valid: couponApplied && userForm.get('promotion_code')?.value
     }"
     (blur)="validateCoupon()"
     (keyup.enter)="validateCoupon()" />
@@ -225,7 +225,7 @@
    <button 
       type="button" 
       class="apply-coupon-btn"
-      [disabled]="!userForm.get('couponCode')?.value || isValidatingCoupon"
+      [disabled]="!userForm.get('promotion_code')?.value || isValidatingCoupon"
       (click)="validateCoupon()">
       <span *ngIf="!isValidatingCoupon">Apply</span>
       <span *ngIf="isValidatingCoupon">Applying...</span>
@@ -237,18 +237,18 @@
 </div>
   
  <!-- Error messages -->
-  <div *ngIf="userForm.get('couponCode')?.invalid && userForm.get('couponCode')?.touched" class="error">
-    <div *ngIf="userForm.get('couponCode')?.errors?.['invalidCoupon']">
+  <div *ngIf="userForm.get('promotion_code')?.invalid && userForm.get('promotion_code')?.touched" class="error">
+    <div *ngIf="userForm.get('promotion_code')?.errors?.['invalidCoupon']">
       *Invalid coupon code. Please check and try again.
     </div>
-    <div *ngIf="userForm.get('couponCode')?.errors?.['expiredCoupon']">
+    <div *ngIf="userForm.get('promotion_code')?.errors?.['expiredCoupon']">
       *This coupon has expired.
     </div>
-    <div *ngIf="userForm.get('couponCode')?.errors?.['couponError']">
-      *{{ userForm.get('couponCode')?.errors?.['couponError'] }}
+    <div *ngIf="userForm.get('promotion_code')?.errors?.['couponError']">
+      *{{ userForm.get('promotion_code')?.errors?.['couponError'] }}
     </div>
   </div>
-  <div class="wrong-plan" *ngIf="userForm.get('couponCode')?.errors?.['planMismatchError']">
+  <div class="wrong-plan" *ngIf="userForm.get('promotion_code')?.errors?.['planMismatchError']">
     *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan. Please select the correct plan or use a different code.
   </div>
 </div>

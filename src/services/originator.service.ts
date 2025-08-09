@@ -1,45 +1,53 @@
 import { Injectable, inject } from '@angular/core';
-import { Firestore, serverTimestamp, Timestamp } from '@angular/fire/firestore';
-import { FirestoreService } from './firestore.service';
-import { UserData } from '../models/user-data.model';
-import { Originator } from '../models/originator.model';
-import { Observable, timestamp } from 'rxjs';
+import { Firestore, doc, setDoc } from '@angular/fire/firestore';
+import { Observable, from } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class OriginatorService {
-  private firestoreService = inject(FirestoreService);
+  private firestore = inject(Firestore);
 
-  // Map user data to Originator document
- private mapUserToOriginator(user: UserData): Originator {
-  const timestamp = Timestamp.now()
+  /**
+   * Create originator document in Firestore
+   * This service is now optional since we create documents directly in the component
+   */
+  createOriginatorDocument(uid: string, formData: any): Observable<void> {
+    const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-  return {
-    id: user.id,
-    uid: user.id,
-    role: 'originator',
-    email: user.email || '',
-    firstName: user.firstName || '',
-    lastName: user.lastName || '',
-    company: user.company || '',
-    phone: user.phone || '',
-    city: user.city || '',
-    state: user.state || '',
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    contactInfo: {
-      firstName: user.firstName || '',
-      lastName: user.lastName || '',
-      contactEmail: user.email || '',
-      contactPhone: user.phone || '',
-      company: user.company || '',
-      city: user.city || '',
-      state: user.state || '',
-    }
-  };
-}
-  // Save Originator
-  saveOriginator(user: UserData): Observable<void> {
-    const originator = this.mapUserToOriginator(user);
-    return this.firestoreService.setDocument(`originators/${user.id}`, originator);
+    const originatorData = {
+      id: uid,
+      uid,
+      email: formData.email.toLowerCase(),
+
+      // Contact info
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      company: formData.company || '',
+      phone: formData.phone || '',
+      city: formData.city || '',
+      state: formData.state || '',
+
+      // Contact info nested
+      contactInfo: {
+        firstName: formData.firstName || '',
+        lastName: formData.lastName || '',
+        contactEmail: formData.email.toLowerCase(),
+        contactPhone: formData.phone || '',
+        company: formData.company || '',
+        city: formData.city || '',
+        state: formData.state || '',
+      },
+
+      // Payment and subscription flags
+      paymentPending: true,
+      subscriptionStatus: 'inactive',
+      role: 'originator',
+
+      // Timestamps
+      createdAt,
+      updatedAt: createdAt
+    };
+
+    const ref = doc(this.firestore, `originators/${uid}`);
+    return from(setDoc(ref, originatorData, { merge: true }));
   }
 }
