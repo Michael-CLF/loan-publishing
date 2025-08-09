@@ -1,7 +1,7 @@
 // src/app/services/auth.service.ts
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, from, BehaviorSubject } from 'rxjs';
-import { map, shareReplay, switchMap, catchError } from 'rxjs/operators';
+import { map, shareReplay, switchMap, catchError, tap } from 'rxjs/operators'; // ✅ ADD tap here
 
 import {
   Auth,
@@ -37,8 +37,34 @@ export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
 
+  // ✅ ADD THESE PROPERTIES for debugging
+  private wasLoggedIn = false;
+  private lastAuthStateChange = Date.now();
+
   // ---- Core reactive streams ----
-  private readonly _user$ = authState(this.auth).pipe(shareReplay(1));
+  private readonly _user$ = authState(this.auth).pipe(
+    // ✅ ADD THIS DEBUG TAP
+    tap(user => {
+      const now = Date.now();
+      const timeSinceLastChange = now - this.lastAuthStateChange;
+      
+      console.log('🔍 AUTH STATE CHANGED:', {
+        userId: user?.uid || 'none',
+        email: user?.email || 'none',
+        wasLoggedIn: this.wasLoggedIn,
+        isNowLoggedIn: !!user,
+        timeSinceLastChange: `${timeSinceLastChange}ms`,
+        timestamp: new Date().toISOString(),
+        isNewLogin: !this.wasLoggedIn && !!user,
+        isLogout: this.wasLoggedIn && !user
+      });
+
+      this.wasLoggedIn = !!user;
+      this.lastAuthStateChange = now;
+    }),
+    shareReplay(1)
+  );
+  
   /** Emits the current Firebase user (or null). */
   users$: Observable<User | null> = this._user$;
 
@@ -84,25 +110,25 @@ export class AuthService {
     return this._user$;
   }
 
-sendLoginLink(email: string): Observable<void> {
-  const actionCodeSettings = {
-    url: `${environment.frontendUrl}/dashboard`,
-    handleCodeInApp: true,
-  };
+  sendLoginLink(email: string): Observable<void> {
+    const actionCodeSettings = {
+      url: `${environment.frontendUrl}/dashboard`,
+      handleCodeInApp: true,
+    };
 
-  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+    console.log('🔗 Sending magic link with settings:', actionCodeSettings);
 
-  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
-    map(() => {
-      // Don't store email in localStorage for this flow
-      console.log('✅ Email link sent successfully');
-    }),
-    catchError((error) => {
-      console.error('❌ Error sending login link:', error);
-      throw error;
-    })
-  );
-}
+    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+      map(() => {
+        // Don't store email in localStorage for this flow
+        console.log('✅ Email link sent successfully');
+      }),
+      catchError((error) => {
+        console.error('❌ Error sending login link:', error);
+        throw error;
+      })
+    );
+  }
 
   isEmailSignInLink(): Observable<boolean> {
     return of(isSignInWithEmailLink(this.auth, window.location.href));
@@ -141,50 +167,57 @@ sendLoginLink(email: string): Observable<void> {
   }
 
   /**
- * Check if the current URL is an email sign-in link and handle authentication
- */
-handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
-  const url = window.location.href;
-  
-  if (!isSignInWithEmailLink(this.auth, url)) {
-    return of({ success: false, error: 'Not an email link' });
+   * Check if the current URL is an email sign-in link and handle authentication
+   */
+  handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
+    const url = window.location.href;
+    
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      return of({ success: false, error: 'Not an email link' });
+    }
+
+    // Try to get email from URL params or localStorage
+    const urlParams = new URLSearchParams(window.location.search);
+    let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
+
+    if (!email) {
+      // If no email found, we can't complete the sign-in
+      return of({ success: false, error: 'Email not found for sign-in' });
+    }
+
+    return from(signInWithEmailLink(this.auth, email, url)).pipe(
+      map((userCredential) => {
+        // Clear stored email
+        localStorage.removeItem('emailForSignIn');
+        
+        // Clear URL parameters
+        const cleanUrl = window.location.origin + window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+        
+        return { success: true, user: userCredential.user };
+      }),
+      catchError((error) => {
+        console.error('❌ Email link authentication failed:', error);
+        return of({ success: false, error: error.message });
+      })
+    );
   }
-
-  // Try to get email from URL params or localStorage
-  const urlParams = new URLSearchParams(window.location.search);
-  let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
-
-  if (!email) {
-    // If no email found, we can't complete the sign-in
-    return of({ success: false, error: 'Email not found for sign-in' });
-  }
-
-  return from(signInWithEmailLink(this.auth, email, url)).pipe(
-    map((userCredential) => {
-      // Clear stored email
-      localStorage.removeItem('emailForSignIn');
-      
-      // Clear URL parameters
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
-      
-      return { success: true, user: userCredential.user };
-    }),
-    catchError((error) => {
-      console.error('❌ Email link authentication failed:', error);
-      return of({ success: false, error: error.message });
-    })
-  );
-}
 
   // ---- Firestore profile helpers ----
 
   /**
-   * Returns merged “UserData-like” object by checking lenders then originators.
+   * Returns merged "UserData-like" object by checking lenders then originators.
    * Matches previous behavior your navbar and other places rely on.
    */
   getUserProfile(): Observable<any | null> {
     return this._user$.pipe(
+      // ✅ ADD THIS DEBUG TAP
+      tap(user => {
+        console.log('🔍 GET USER PROFILE CALLED:', {
+          userId: user?.uid || 'none',
+          timestamp: new Date().toISOString()
+        });
+      }),
       switchMap(user => {
         if (!user?.uid) return of(null);
         const uid = user.uid;
@@ -195,13 +228,31 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
         return from(getDoc(lenderRef)).pipe(
           switchMap(lenderSnap => {
             if (lenderSnap.exists()) {
+              // ✅ ADD THIS DEBUG LOG
+              console.log('🔍 LOADED LENDER PROFILE:', {
+                userId: uid,
+                hasData: !!lenderSnap.data(),
+                timestamp: new Date().toISOString()
+              });
               return of({ id: lenderSnap.id, ...(lenderSnap.data() as any) });
             }
             return from(getDoc(originRef)).pipe(
               map(originSnap => {
                 if (originSnap.exists()) {
+                  // ✅ ADD THIS DEBUG LOG
+                  console.log('🔍 LOADED ORIGINATOR PROFILE:', {
+                    userId: uid,
+                    hasData: !!originSnap.data(),
+                    timestamp: new Date().toISOString()
+                  });
                   return { id: originSnap.id, ...(originSnap.data() as any) };
                 }
+                
+                // ✅ ADD THIS DEBUG LOG
+                console.log('🔍 NO PROFILE FOUND:', {
+                  userId: uid,
+                  timestamp: new Date().toISOString()
+                });
                 return null;
               })
             );

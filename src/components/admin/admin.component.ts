@@ -66,6 +66,22 @@ export class AdminComponent implements OnInit {
   loanSortColumn = '';
   loanSortDirection: 'asc' | 'desc' = 'asc';
 
+  testTimestampFix(): void {
+  console.log('🧪 TESTING TIMESTAMP FIXES:');
+  
+  // Test with your actual data format
+  const stringDate = "07/30/2025, 5:03 PM";
+  const firestoreTimestamp = new Date(); // Simulating current Firestore timestamp
+  
+  console.log('Original string date:', stringDate);
+  console.log('Normalized string date:', this.normalizeTimestamp(stringDate));
+  console.log('Formatted string date:', this.formatDate(stringDate));
+  
+  console.log('Firestore timestamp:', firestoreTimestamp);
+  console.log('Normalized Firestore timestamp:', this.normalizeTimestamp(firestoreTimestamp));
+  console.log('Formatted Firestore timestamp:', this.formatDate(firestoreTimestamp));
+}
+
   ngOnInit() {
     const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
     this.adminAuthenticated.set(isAuthenticated);
@@ -172,37 +188,46 @@ export class AdminComponent implements OnInit {
     return this.locationService.formatValueForDisplay(state);
   }
 
-  // Helper method to standardize timestamp handling
-  private normalizeTimestamp(timestamp: any): Date {
-    if (!timestamp) return new Date();
+// In admin.component.ts, replace your current normalizeTimestamp method with this:
 
-    // Handle Firestore Timestamp objects
-    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-      return timestamp.toDate();
+private normalizeTimestamp(timestamp: any): Date {
+  if (!timestamp) return new Date();
+
+  // ✅ FIX: Handle string dates FIRST (this was missing)
+  if (typeof timestamp === 'string') {
+    const date = new Date(timestamp);
+    if (!isNaN(date.getTime())) {
+      return date;
     }
-
-    // Handle timestamp objects with seconds/nanoseconds
-    if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
-      return new Date(timestamp.seconds * 1000);
-    }
-
-    // Handle raw serverTimestamp objects
-    if (
-      timestamp &&
-      typeof timestamp === 'object' &&
-      timestamp._methodName === 'serverTimestamp'
-    ) {
-      return new Date(); // Current date for display purposes
-    }
-
-    // Handle JavaScript Date objects
-    if (timestamp instanceof Date) {
-      return timestamp;
-    }
-
-    // Default fallback
-    return new Date();
   }
+
+  // Handle Firestore Timestamp objects  
+  if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+    return timestamp.toDate();
+  }
+
+  // Handle timestamp objects with seconds/nanoseconds
+  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+    return new Date(timestamp.seconds * 1000);
+  }
+
+  // Handle raw serverTimestamp objects
+  if (
+    timestamp &&
+    typeof timestamp === 'object' &&
+    timestamp._methodName === 'serverTimestamp'
+  ) {
+    return new Date(); // Current date for display purposes
+  }
+
+  // Handle JavaScript Date objects
+  if (timestamp instanceof Date) {
+    return timestamp;
+  }
+
+  // Default fallback
+  return new Date();
+}
 
   getFormattedDate(date: any): string {
     if (!date) return 'N/A';
