@@ -28,7 +28,8 @@ export class RegistrationProcessingComponent implements OnInit {
       this.processingMessage.set('Registration Successful!');
       setTimeout(() => {
         this.router.navigate(['/']);
-      }, 4000);
+      }, 8000);
+
 
     } else if (paymentStatus === 'cancel') {
       // Payment cancelled
