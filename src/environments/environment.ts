@@ -2,7 +2,7 @@ export const environment = {
   production: false,
   apiUrl: 'https://us-central1-loanpub.cloudfunctions.net/api',
 
-   registerUserUrl: 'https://us-central1-loanpub.cloudfunctions.net/registerUser',
+  
    frontendUrl: 'https://dailyloanpost.com', 
    stripeCheckoutUrl: 'https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout',
 

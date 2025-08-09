@@ -37,6 +37,7 @@ import { LenderReviewComponent } from '../../lender/lender-review/lender-review.
 import { firstValueFrom } from 'rxjs';
 import { filter, take } from 'rxjs/operators';
 import { User } from '@angular/fire/auth';
+import { environment } from '../../environments/environment';
 
 import {
   Firestore,
@@ -671,115 +672,115 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.proceedToStripe(email, formData);
   }
 
-  async proceedToStripe(email: string, formData: any): Promise<void> {
-    this.isLoading = true;
-    this.errorMessage = '';
+async proceedToStripe(email: string, formData: any): Promise<void> {
+  this.isLoading = true;
+  this.errorMessage = '';
 
-    try {
-      // ✅ FIX: Ensure we have a Firebase Auth session first
-      const user = await firstValueFrom(
-        this.authService.getCurrentFirebaseUser().pipe(
-          filter((u): u is User => !!u),
-          take(1)
-        )
-      );
+  try {
+    console.log('🔍 Creating user document and proceeding to payment for:', email);
 
-      console.log('🔍 DEBUG: Full Firebase user object:', user);
-      console.log('🔍 DEBUG: user.uid:', user.uid);
-      console.log('🔍 DEBUG: typeof user.uid:', typeof user.uid);
-      console.log('🔍 DEBUG: user.uid length:', user.uid?.length);
-      // Also add this before the user extraction:
-      console.log('🔍 DEBUG: Current auth state:', this.auth.currentUser);
-      console.log('🔍 DEBUG: Is this a real Firebase UID?', /^[a-zA-Z0-9]{28}$/.test(user.uid || ''));
+    // Step 1: Create user document in Firestore (no authentication)
+    const userCreationResponse = await this.createUserDocument(email, formData);
+    console.log('✅ User document created with UID:', userCreationResponse.uid);
 
-      const uid = user.uid;
-      console.log('🔍 DEBUG: User UID for Stripe:', uid); // Debug log
+    // Step 2: Build payload for Stripe
+    const interval: 'monthly' | 'annually' =
+      (this.lenderFormService.getFormSection('payment')?.billingInterval || 'monthly');
 
-      if (!uid) {
-        throw new Error('No authenticated user found');
-      }
+    const promotionCode =
+      this.lenderFormService.getFormSection('payment')?.validatedCouponCode || null;
 
-      // Create/merge the lender document at /lenders/{uid}
-      await this.createOrMergeLenderDocument(uid, formData);
-      console.log('✅ Created/merged lender document with UID:', uid);
-
-      // ✅ FIX: Build payload with confirmed UID
-      const interval: 'monthly' | 'annually' =
-        (this.lenderFormService.getFormSection('payment')?.billingInterval || 'monthly');
-
-      const promotionCode =
-        this.lenderFormService.getFormSection('payment')?.validatedCouponCode || null;
-
-      // ✅ FIX: Ensure userData object has all required fields
-      const userData = {
-        uid: uid, // ✅ CRITICAL: This must be set!
-        firstName: formData?.contact?.firstName || '',
-        lastName: formData?.contact?.lastName || '',
-        company: formData?.contact?.company || '',
-        phone: formData?.contact?.contactPhone || '',
-        city: formData?.contact?.city || '',
-        state: formData?.contact?.state || '',
-      };
-
-      console.log('🔍 DEBUG: userData being sent to Stripe:', userData); // Debug log
-
-      const checkoutResponse = await this.stripeService.createCheckoutSession({
-        email: email.toLowerCase().trim(),
-        role: 'lender',
-        interval,
-        userData, // ✅ This now has the UID
-        promotion_code: promotionCode
-      });
-
-      console.log('✅ Stripe checkout response:', checkoutResponse);
-
-      // Redirect to Stripe
-      window.location.href = checkoutResponse.url;
-
-    } catch (err: any) {
-      console.error('❌ Error in payment flow:', err);
-      this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
-      this.isLoading = false;
-    }
-  }
-
-  private async createOrMergeLenderDocument(uid: string, formData: any): Promise<void> {
-    const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-    const lenderData = {
-      id: uid,
-      uid,
-      email: formData.contact?.contactEmail?.toLowerCase(),
-
-      // Contact info
-      firstName: formData.contact?.firstName || '',
-      lastName: formData.contact?.lastName || '',
-      company: formData.contact?.company || '',
-      phone: formData.contact?.contactPhone || '',
-      city: formData.contact?.city || '',
-      state: formData.contact?.state || '',
-
-      // Full form data
-      contactInfo: formData.contact || {},
-      productInfo: formData.product || {},
-      footprintInfo: formData.footprint || {},
-
-      // Pre-checkout flags
-      paymentPending: true,
-      subscriptionStatus: 'inactive',
-      role: 'lender',
-
-      // Timestamps
-      createdAt,
-      updatedAt: createdAt
+    const userData = {
+      userId: userCreationResponse.uid,
+      firstName: formData?.contact?.firstName || '',
+      lastName: formData?.contact?.lastName || '',
+      company: formData?.contact?.company || '',
+      phone: formData?.contact?.contactPhone || '',
+      city: formData?.contact?.city || '',
+      state: formData?.contact?.state || '',
     };
 
-    const ref = doc(this.firestore, `lenders/${uid}`);
-    await setDoc(ref, lenderData, { merge: true });
+    console.log('🔍 Creating Stripe checkout session with:', userData);
 
-    // Kill legacy artifacts
-    localStorage.removeItem('pendingLenderId');
+    // Step 3: Create Stripe checkout session
+    const checkoutResponse = await this.stripeService.createCheckoutSession({
+      email: email.toLowerCase().trim(),
+      role: 'lender',
+      interval,
+      userData,
+      promotion_code: promotionCode
+    });
+
+    console.log('✅ Stripe checkout response:', checkoutResponse);
+
+    // Step 4: Redirect to Stripe
+    window.location.href = checkoutResponse.url;
+
+  } catch (err: any) {
+    console.error('❌ Error in payment flow:', err);
+    this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
+    this.isLoading = false;
   }
+}
+
+private async createUserDocument(email: string, formData: any): Promise<{ uid: string }> {
+  console.log('🔄 Creating user document for:', email);
+
+  // Generate a unique UID for the user document
+  const uid = this.generateUserUID();
+  
+  // Create the Firestore document directly
+  await this.createOrMergeLenderDocument(uid, formData, email);
+  
+  console.log('✅ User document created with UID:', uid);
+  return { uid };
+}
+
+private generateUserUID(): string {
+  // Generate a Firebase-compatible UID (28 characters)
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+  let result = '';
+  for (let i = 0; i < 28; i++) {
+    result += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
+  return result;
+}
+  private async createOrMergeLenderDocument(uid: string, formData: any, email: string): Promise<void> {
+  const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+  const lenderData = {
+    id: uid,
+    uid,
+    email: email.toLowerCase(),
+
+    // Contact info
+    firstName: formData.contact?.firstName || '',
+    lastName: formData.contact?.lastName || '',
+    company: formData.contact?.company || '',
+    phone: formData.contact?.contactPhone || '',
+    city: formData.contact?.city || '',
+    state: formData.contact?.state || '',
+
+    // Full form data
+    contactInfo: formData.contact || {},
+    productInfo: formData.product || {},
+    footprintInfo: formData.footprint || {},
+
+    // Payment and subscription flags
+    paymentPending: true,
+    subscriptionStatus: 'inactive',
+    role: 'lender',
+
+    // Timestamps
+    createdAt,
+    updatedAt: createdAt
+  };
+
+  const ref = doc(this.firestore, `lenders/${uid}`);
+  await setDoc(ref, lenderData, { merge: true });
+
+  console.log('✅ Firestore document created for UID:', uid);
+}
 
   // ----------------------
   // Misc helpers

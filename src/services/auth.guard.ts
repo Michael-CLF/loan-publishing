@@ -18,33 +18,25 @@ export const authGuard: CanActivateFn = (
   const fsService = inject(FirestoreService);
   const firestore: Firestore = fsService.firestore;
 
-  // 1) Allow the payment callback / processing route to load
-  //    (we still check subscription right after page renders)
+  // Allow registration-processing route to load without authentication
   if (state.url.includes('/registration-processing')) {
     return of(true);
   }
 
-return auth.getCurrentFirebaseUser().pipe(
-  filter((u): u is User => !!u),
-  take(1),
-  switchMap((user: User) => {
-    const uid = user.uid;
-    if (!uid) {
-      router.navigate(['/login']);
-      return of(false);
-    }
+  return auth.getCurrentFirebaseUser().pipe(
+    switchMap((user: User | null) => {
+      // If not authenticated, send to login
+      if (!user?.uid) {
+        localStorage.setItem('redirectUrl', state.url);
+        router.navigate(['/login']);
+        return of(false);
+      }
 
-      // Remember where we were trying to go
-      localStorage.setItem('redirectUrl', state.url);
-
-      // Post-payment leniency: if we’re coming right back from Stripe,
-      // let the spinner/processing page catch up for 2s before hard-blocking.
-      const isPostPayment = !!localStorage.getItem('showRegistrationModal');
-
+      const uid = user.uid;
       const lenderRef = doc(firestore, `lenders/${uid}`);
       const originatorRef = doc(firestore, `originators/${uid}`);
 
-      const checks$ = combineLatest([
+      return combineLatest([
         from(getDoc(lenderRef)),
         from(getDoc(originatorRef))
       ]).pipe(
@@ -53,35 +45,32 @@ return auth.getCurrentFirebaseUser().pipe(
             lenderSnap.exists() ? lenderSnap.data() :
               originatorSnap.exists() ? originatorSnap.data() : null;
 
-          // If no profile, allow (registration flow will create it)
-          if (!profile) return true;
+          // If no profile found, send to pricing
+          if (!profile) {
+            router.navigate(['/pricing']);
+            return false;
+          }
 
           const status = profile.subscriptionStatus;
           const pending = profile.paymentPending;
 
-          // Active/grandfathered = allow
-          if (status === 'active' || status === 'grandfathered') return true;
-
-          // During payment handoff we allow a brief window if pending just flipped
-          if (isPostPayment && (pending === true || status === 'pending' || !status)) {
+          // Active/grandfathered users can access everything
+          if (status === 'active' || status === 'grandfathered') {
             return true;
           }
 
-          // Registration not completed yet?
-          if (profile.registrationCompleted === false) {
-            router.navigate(['/complete-registration']);
+          // Payment pending - send to pricing
+          if (pending === true || status === 'inactive') {
+            router.navigate(['/pricing']);
             return false;
           }
 
-          // Otherwise, send to pricing
-          router.navigate(['/pricing']);
-          return false;
+          // Default: allow access
+          return true;
         })
       );
-
-      // If we just returned from Stripe, give webhook a moment to flip flags
-      return isPostPayment ? checks$.pipe(delay(2000)) : checks$;
     }),
+    take(1),
     catchError(err => {
       console.error('authGuard error:', err);
       router.navigate(['/login']);

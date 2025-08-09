@@ -50,6 +50,8 @@ export class AppComponent implements OnInit, OnDestroy {
   isAppInitialized = false;
 
   async ngOnInit(): Promise<void> {
+     this.checkForEmailLink();
+
     try {
       // ✅ Initialize App Check first for security
       // await this.initializeAppCheck();
@@ -66,6 +68,28 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isAppInitialized = true;
     }
   }
+  private checkForEmailLink(): void {
+    this.authService.handleEmailLinkAuthentication().subscribe({
+      next: (result) => {
+        if (result.success && result.user) {
+          console.log('✅ Email link authentication successful');
+          // Redirect to dashboard
+          this.router.navigate(['/dashboard']);
+        } else if (result.error && result.error !== 'Not an email link') {
+          console.error('❌ Email link authentication failed:', result.error);
+          // Optionally show error message or redirect to login
+          this.router.navigate(['/login'], { 
+            queryParams: { error: 'Authentication failed' } 
+          });
+        }
+        // If it's not an email link, do nothing (normal app startup)
+      },
+      error: (error) => {
+        console.error('❌ Email link handling error:', error);
+      }
+    });
+  }
+
 
   ngOnDestroy(): void {
     // ✅ Angular 18 Best Practice: Proper cleanup
@@ -91,8 +115,7 @@ export class AppComponent implements OnInit, OnDestroy {
       // Don't throw - allow app to continue
     }
   }
-
-  
+ 
 
   /**
    * ✅ Angular 18 Best Practice: Extract environment logging to separate method

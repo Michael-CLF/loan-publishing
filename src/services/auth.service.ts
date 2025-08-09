@@ -84,25 +84,25 @@ export class AuthService {
     return this._user$;
   }
 
-  // ---- Email link (passwordless) flow ----
-  sendLoginLink(email: string): Observable<void> {
-    const actionCodeSettings = {
-      url: `${environment.frontendUrl}/dashboard`,
-      handleCodeInApp: true,
-    };
+sendLoginLink(email: string): Observable<void> {
+  const actionCodeSettings = {
+    url: `${environment.frontendUrl}/dashboard`,
+    handleCodeInApp: true,
+  };
 
-    console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
 
-    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
-      map(() => {
-        localStorage.setItem('emailForSignIn', email);
-      }),
-      catchError((error) => {
-        console.error('❌ Error sending login link:', error);
-        throw error;
-      })
-    );
-  }
+  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+    map(() => {
+      // Don't store email in localStorage for this flow
+      console.log('✅ Email link sent successfully');
+    }),
+    catchError((error) => {
+      console.error('❌ Error sending login link:', error);
+      throw error;
+    })
+  );
+}
 
   isEmailSignInLink(): Observable<boolean> {
     return of(isSignInWithEmailLink(this.auth, window.location.href));
@@ -139,6 +139,43 @@ export class AuthService {
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
+
+  /**
+ * Check if the current URL is an email sign-in link and handle authentication
+ */
+handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
+  const url = window.location.href;
+  
+  if (!isSignInWithEmailLink(this.auth, url)) {
+    return of({ success: false, error: 'Not an email link' });
+  }
+
+  // Try to get email from URL params or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
+
+  if (!email) {
+    // If no email found, we can't complete the sign-in
+    return of({ success: false, error: 'Email not found for sign-in' });
+  }
+
+  return from(signInWithEmailLink(this.auth, email, url)).pipe(
+    map((userCredential) => {
+      // Clear stored email
+      localStorage.removeItem('emailForSignIn');
+      
+      // Clear URL parameters
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+      return { success: true, user: userCredential.user };
+    }),
+    catchError((error) => {
+      console.error('❌ Email link authentication failed:', error);
+      return of({ success: false, error: error.message });
+    })
+  );
+}
 
   // ---- Firestore profile helpers ----
 

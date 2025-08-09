@@ -14,7 +14,7 @@ export interface CheckoutSessionRequest {
   interval: 'monthly' | 'annually';
   userData: {
     /** REQUIRED: Firebase Auth UID to link Stripe session to the Firestore doc */
-    uid: string;
+    userId: string;
     /** Optional: any display fields you still want to send */
     firstName?: string;
     lastName?: string;
@@ -134,7 +134,7 @@ export class StripeService {
     if (!['originator', 'lender'].includes(data.role)) errors.push('Valid role is required');
     if (!['monthly', 'annually'].includes(data.interval)) errors.push('Valid billing interval is required');
 
-    if (!data.userData || !data.userData.uid || !data.userData.uid.trim()) {
+    if (!data.userData || !data.userData.userId || !data.userData.userId.trim()) {
       errors.push('Missing user UID');
     }
 

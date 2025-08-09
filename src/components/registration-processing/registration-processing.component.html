@@ -1,29 +1,50 @@
+<div class="processing-container">
+  <!-- Success Message -->
+  <div *ngIf="showSuccessMessage()" class="success-card">
+    <div class="success-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      </svg>
+    </div>
+    
+    <h2 class="success-title">{{ processingMessage() }}</h2>
+    <h4 class="success-subtitle">Your account has been created and payment processed successfully.</h4>
+    
+    <div class="email-instruction">
+      <p class="primary-message">
+        <strong>Please check your email</strong> for a secure link to access your dashboard.
+      </p>
+      <p class="secondary-message">
+        The email may take a few minutes to arrive. Don't forget to check your spam folder.
+      </p>
+    </div>
 
-<div *ngIf="showProcessingSpinner()" class="processing-screen">
-  <div class="processing-content">
-    <div class="spinner"></div>
-    <h3>{{ processingMessage().includes('payment') ? 'Processing Payment...' : 'Welcome!' }}</h3>
-    <p>{{ processingMessage() }}</p>
+    <div class="action-buttons">
+      <button (click)="goToLogin()" class="primary-button">
+        Already have the email? Sign In
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="showErrorMessage()" class="error-card">
+    <div class="error-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
+          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"></circle>
+        <line x1="15" y1="9" x2="9" y2="15"></line>
+        <line x1="9" y1="9" x2="15" y2="15"></line>
+      </svg>
+    </div>
+    
+    <h2 class="error-title">{{ processingMessage() }}</h2>
+    
+    <div class="action-buttons">
+      <button (click)="goToPricing()" class="primary-button">
+        Try Again
+      </button>
+    </div>
   </div>
 </div>
-
-<!-- ✅ Error Screen -->
-<div *ngIf="hasError()" class="processing-screen">
-  <div class="processing-content">
-    <div class="error-icon">❌</div>
-    <h3>Something went wrong</h3>
-    <p>Please try again or contact support if the issue persists.</p>
-  </div>
-</div>
-
-<!-- ✅ Originator Registration Success Modal -->
-<app-user-reg-success-modal 
-  *ngIf="showRegistrationSuccessModal()" 
-  (modalClosed)="closeRegistrationSuccessModal()">
-</app-user-reg-success-modal>
-
-<!-- ✅ Lender Registration Success Modal -->
-<app-lender-reg-success-modal 
-  *ngIf="showLenderRegistrationSuccessModal()"
-  (modalClosed)="closeLenderRegistrationSuccessModal()">
-</app-lender-reg-success-modal>
