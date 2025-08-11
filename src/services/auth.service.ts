@@ -165,76 +165,40 @@ export class AuthService {
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
-  /**
-   * Check if the current URL is an email sign-in link and handle authentication
-   */
-  handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
-    const url = window.location.href;
-
-    console.log('🔍 Checking URL for email link:', url);
-
-    if (!isSignInWithEmailLink(this.auth, url)) {
-      console.log('❌ Not a valid email sign-in link');
-      return of({ success: false, error: 'Not an email link' });
-    }
-
-    console.log('✅ Valid email link detected');
-
-
-    // Simple email extraction (same as lenders)
-    const urlParams = new URLSearchParams(window.location.search);
-    let email = urlParams.get('email') || localStorage.getItem('emailForSignIn') || '';
-
-    if (!email) {
-      console.error('❌ No email found for sign-in');
-      return of({ success: false, error: 'Email not found for sign-in. Please try requesting a new login link.' });
-    }
-
-    console.log('🔐 Attempting sign-in with email:', email);
-
-    return from(signInWithEmailLink(this.auth, email, url)).pipe(
-      map((userCredential) => {
-        console.log('✅ Email link sign-in successful for:', userCredential.user.email);
-
-        // Clear stored email and clean URL
-        localStorage.removeItem('emailForSignIn');
-
-        // Clean up URL parameters without breaking the page
-        try {
-          const cleanUrl = window.location.origin + window.location.pathname;
-          window.history.replaceState({}, document.title, cleanUrl);
-          console.log('✅ URL cleaned:', cleanUrl);
-        } catch (error) {
-          console.warn('⚠️ Could not clean URL:', error);
-        }
-
-        return { success: true, user: userCredential.user };
-      }),
-      catchError((error) => {
-        console.error('❌ Email link authentication failed:', error);
-
-        let errorMessage = 'Authentication failed';
-        if (error.code === 'auth/invalid-action-code') {
-          errorMessage = 'This login link has expired or been used already';
-        } else if (error.code === 'auth/expired-action-code') {
-          errorMessage = 'This login link has expired';
-        } else if (error.code === 'auth/invalid-email') {
-          errorMessage = 'Invalid email address';
-        } else if (error.message) {
-          errorMessage = error.message;
-        }
-
-        return of({ success: false, error: errorMessage });
-      })
-    );
+handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
+  const url = window.location.href;
+  
+  if (!isSignInWithEmailLink(this.auth, url)) {
+    return of({ success: false, error: 'Not an email link' });
   }
 
-  // ---- Firestore profile helpers ----
+  // Try to get email from URL params or localStorage
+  const urlParams = new URLSearchParams(window.location.search);
+  let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
 
-  /**
-   * Returns merged "UserData-like" object by checking lenders then originators.
-   * Matches previous behavior your navbar and other places rely on.
-   */
+  if (!email) {
+    // If no email found, we can't complete the sign-in
+    return of({ success: false, error: 'Email not found for sign-in' });
+  }
+
+  return from(signInWithEmailLink(this.auth, email, url)).pipe(
+    map((userCredential) => {
+      // Clear stored email
+      localStorage.removeItem('emailForSignIn');
+      
+      // Clear URL parameters
+      const cleanUrl = window.location.origin + window.location.pathname;
+      window.history.replaceState({}, document.title, cleanUrl);
+      
+      return { success: true, user: userCredential.user };
+    }),
+    catchError((error) => {
+      console.error('❌ Email link authentication failed:', error);
+      return of({ success: false, error: error.message });
+    })
+  );
+}
+
   getUserProfile(): Observable<any | null> {
     return this._user$.pipe(
       // ✅ ADD THIS DEBUG TAP
