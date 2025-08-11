@@ -185,6 +185,11 @@ export class AuthService {
     const urlParams = new URLSearchParams(window.location.search);
     let email = urlParams.get('email') || localStorage.getItem('emailForSignIn') || '';
 
+    if (!email) {
+      console.error('❌ No email found for sign-in');
+      return of({ success: false, error: 'Email not found for sign-in. Please try requesting a new login link.' });
+    }
+
     console.log('🔐 Attempting sign-in with email:', email);
 
     return from(signInWithEmailLink(this.auth, email, url)).pipe(
