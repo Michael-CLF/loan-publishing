@@ -120,8 +120,13 @@ export const routes: Routes = [
     component: ContactComponent,
   },
 
-  // ✅ Testing route (can be removed in production)
+  
   { path: 'test-processing', component: RegistrationProcessingComponent },
-  { path: '**', redirectTo: 'pricing', pathMatch: 'full' },
+  {
+  path: 'auth',
+  component: EmailLoginComponent,
+  data: { authCallback: true }
+},
+  { path: '**', redirectTo: '', pathMatch: 'full' },
 
 ];
