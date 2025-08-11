@@ -47,7 +47,7 @@ export class AuthService {
     tap(user => {
       const now = Date.now();
       const timeSinceLastChange = now - this.lastAuthStateChange;
-      
+
       console.log('🔍 AUTH STATE CHANGED:', {
         userId: user?.uid || 'none',
         email: user?.email || 'none',
@@ -64,7 +64,7 @@ export class AuthService {
     }),
     shareReplay(1)
   );
-  
+
   /** Emits the current Firebase user (or null). */
   users$: Observable<User | null> = this._user$;
 
@@ -165,108 +165,64 @@ export class AuthService {
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
-/**
- * Check if the current URL is an email sign-in link and handle authentication
- */
-handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
-  const url = window.location.href;
-  
-  console.log('🔍 Checking URL for email link:', url);
-  
-  if (!isSignInWithEmailLink(this.auth, url)) {
-    console.log('❌ Not a valid email sign-in link');
-    return of({ success: false, error: 'Not an email link' });
-  }
+  /**
+   * Check if the current URL is an email sign-in link and handle authentication
+   */
+  handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
+    const url = window.location.href;
 
-  console.log('✅ Valid email link detected');
+    console.log('🔍 Checking URL for email link:', url);
 
-  // ✅ ENHANCED: Try multiple methods to get the email
-  let email = '';
-  
-  try {
-    // Method 1: Direct email parameter
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      console.log('❌ Not a valid email sign-in link');
+      return of({ success: false, error: 'Not an email link' });
+    }
+
+    console.log('✅ Valid email link detected');
+
+
+    // Simple email extraction (same as lenders)
     const urlParams = new URLSearchParams(window.location.search);
-    email = urlParams.get('email') || '';
-    console.log('🔍 Email from direct param:', email);
+    let email = urlParams.get('email') || localStorage.getItem('emailForSignIn') || '';
 
-    // Method 2: Extract from continueUrl (where Firebase often puts it)
-    if (!email && url.includes('continueUrl=')) {
-      const continueUrlMatch = url.match(/continueUrl=([^&]+)/);
-      if (continueUrlMatch) {
-        const continueUrl = decodeURIComponent(continueUrlMatch[1]);
-        console.log('🔍 Decoded continueUrl:', continueUrl);
-        
-        // Try to extract email from continueUrl
-        const emailMatch = continueUrl.match(/[?&]email=([^&]+)/);
-        if (emailMatch) {
-          email = decodeURIComponent(emailMatch[1]);
-          console.log('🔍 Email extracted from continueUrl:', email);
+    console.log('🔐 Attempting sign-in with email:', email);
+
+    return from(signInWithEmailLink(this.auth, email, url)).pipe(
+      map((userCredential) => {
+        console.log('✅ Email link sign-in successful for:', userCredential.user.email);
+
+        // Clear stored email and clean URL
+        localStorage.removeItem('emailForSignIn');
+
+        // Clean up URL parameters without breaking the page
+        try {
+          const cleanUrl = window.location.origin + window.location.pathname;
+          window.history.replaceState({}, document.title, cleanUrl);
+          console.log('✅ URL cleaned:', cleanUrl);
+        } catch (error) {
+          console.warn('⚠️ Could not clean URL:', error);
         }
-      }
-    }
 
-    // Method 3: Check localStorage (for regular login requests)
-    if (!email) {
-      email = localStorage.getItem('emailForSignIn') || '';
-      console.log('🔍 Email from localStorage:', email);
-    }
+        return { success: true, user: userCredential.user };
+      }),
+      catchError((error) => {
+        console.error('❌ Email link authentication failed:', error);
 
-    // Method 4: Prompt user if still no email found
-    if (!email) {
-      console.log('⚠️ No email found, prompting user');
-      email = prompt('Please enter the email address you used to request this login link:') || '';
-      if (email) {
-        console.log('🔍 Email from user prompt:', email);
-      }
-    }
+        let errorMessage = 'Authentication failed';
+        if (error.code === 'auth/invalid-action-code') {
+          errorMessage = 'This login link has expired or been used already';
+        } else if (error.code === 'auth/expired-action-code') {
+          errorMessage = 'This login link has expired';
+        } else if (error.code === 'auth/invalid-email') {
+          errorMessage = 'Invalid email address';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
 
-  } catch (error) {
-    console.error('❌ Error extracting email:', error);
+        return of({ success: false, error: errorMessage });
+      })
+    );
   }
-
-  if (!email) {
-    console.error('❌ No email found for sign-in');
-    return of({ success: false, error: 'Email not found for sign-in. Please try requesting a new login link.' });
-  }
-
-  console.log('🔐 Attempting sign-in with email:', email);
-
-  return from(signInWithEmailLink(this.auth, email, url)).pipe(
-    map((userCredential) => {
-      console.log('✅ Email link sign-in successful for:', userCredential.user.email);
-      
-      // Clear stored email and clean URL
-      localStorage.removeItem('emailForSignIn');
-      
-      // Clean up URL parameters without breaking the page
-      try {
-        const cleanUrl = window.location.origin + window.location.pathname;
-        window.history.replaceState({}, document.title, cleanUrl);
-        console.log('✅ URL cleaned:', cleanUrl);
-      } catch (error) {
-        console.warn('⚠️ Could not clean URL:', error);
-      }
-      
-      return { success: true, user: userCredential.user };
-    }),
-    catchError((error) => {
-      console.error('❌ Email link authentication failed:', error);
-      
-      let errorMessage = 'Authentication failed';
-      if (error.code === 'auth/invalid-action-code') {
-        errorMessage = 'This login link has expired or been used already';
-      } else if (error.code === 'auth/expired-action-code') {
-        errorMessage = 'This login link has expired';
-      } else if (error.code === 'auth/invalid-email') {
-        errorMessage = 'Invalid email address';
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      return of({ success: false, error: errorMessage });
-    })
-  );
-}
 
   // ---- Firestore profile helpers ----
 
@@ -312,7 +268,7 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
                   });
                   return { id: originSnap.id, ...(originSnap.data() as any) };
                 }
-                
+
                 // ✅ ADD THIS DEBUG LOG
                 console.log('🔍 NO PROFILE FOUND:', {
                   userId: uid,
