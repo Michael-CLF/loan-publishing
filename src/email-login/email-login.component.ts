@@ -204,50 +204,68 @@ requestNewLink(): void {
       }
     });
   }
-
-  private handleEmailLink(): void {
+private handleEmailLink(): void {
   this.isVerifying = true;
   this.clearError();
 
-  const storedEmail = this.authService.getStoredEmail();
-  console.log('Stored email for verification:', storedEmail || 'Not found');
+  console.log('🔗 Handling email link authentication...');
 
-  if (!storedEmail) {
-    this.isVerifying = false;
-    this.showError('Please enter the email you used to request the login link.', 'general');
-    return;
-  }
-
-  this.authService.loginWithEmailLink(storedEmail).subscribe({
-    next: (userCredential) => {  // ✅ Get the userCredential
+  // ✅ FIX: Use the actual email link authentication method
+  this.authService.handleEmailLinkAuthentication().subscribe({
+    next: (result) => {
       this.isVerifying = false;
-      console.log('✅ Email link sign-in successful for:', userCredential.user?.email);
       
-      // ✅ CRITICAL FIX: Add navigation after successful auth
-      this.ngZone.run(() => {
-        localStorage.setItem('isLoggedIn', 'true');
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        console.log('🔄 Redirecting to:', redirectUrl);
+      if (result.success && result.user) {
+        console.log('✅ Email link authentication successful for:', result.user.email);
         
-        this.router.navigate([redirectUrl]).then(() => {
-          localStorage.removeItem('redirectUrl');
-          console.log('✅ Navigation completed successfully');
+        // ✅ CRITICAL: Verify user has proper access
+        this.authService.checkAccountExists(result.user.email!).subscribe({
+          next: (accountInfo) => {
+            if (!accountInfo.exists) {
+              this.showError('Account not found. Please contact support.', 'account-not-found');
+              return;
+            }
+
+            if (accountInfo.needsPayment) {
+              this.showError('Payment required to access your account.', 'payment-required');
+              return;
+            }
+
+            // ✅ SUCCESS: Navigate to dashboard
+            this.ngZone.run(() => {
+              localStorage.setItem('isLoggedIn', 'true');
+              const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+              console.log('🔄 Redirecting to:', redirectUrl);
+              
+              this.router.navigate([redirectUrl]).then(() => {
+                localStorage.removeItem('redirectUrl');
+                console.log('✅ Navigation completed successfully');
+              });
+            });
+          },
+          error: (error) => {
+            console.error('❌ Error validating account:', error);
+            this.showError('Unable to verify account. Please try again.', 'general');
+          }
         });
-      });
+      } else {
+        console.error('❌ Email link authentication failed:', result.error);
+        
+        if (result.error?.includes('expired')) {
+          this.showError('This login link has expired. Please request a new one.', 'general');
+        } else if (result.error?.includes('Email not found')) {
+          this.showError('Please enter the email you used to request the login link.', 'general');
+        } else {
+          this.showError(`Authentication failed: ${result.error}`, 'general');
+        }
+      }
     },
     error: (error: any) => {
       this.isVerifying = false;
-      console.error('❌ Email link sign-in error:', error);
-      
-      if (error.code === 'auth/invalid-action-code') {
-        this.showError('This login link has expired or been used already. Please request a new one.', 'general');
-      } else if (error.code === 'auth/expired-action-code') {
-        this.showError('This login link has expired. Please request a new one.', 'general');
-      } else {
-        this.showError(`Login failed: ${error.message}`, 'general');
-      }
-    },
-  });
+      console.error('❌ Email link authentication error:', error);
+      this.showError('Authentication failed. Please try again.', 'general');
+    }
+  });  
 }
 
   openRoleSelectionModal(): void {

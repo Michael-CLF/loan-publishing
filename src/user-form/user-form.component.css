@@ -391,3 +391,67 @@ button:disabled {
     padding: 10px 30px;
   }
 }
+
+/* ✅ Email validation styles */
+.email-exists-error {
+  background-color: #fee;
+  border: 1px solid #fcc;
+  border-radius: 4px;
+  padding: 12px;
+  margin-top: 8px;
+}
+
+.email-exists-error strong {
+  color: #c33;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.error-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  font-size: 0.9em;
+}
+
+.error-link {
+  color: #0066cc;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.error-link:hover {
+  color: #0052a3;
+}
+
+.checking-email {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #666;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.spinner {
+  width: 12px;
+  height: 12px;
+  border: 2px solid #f3f3f3;
+  border-top: 2px solid #666;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+input.checking {
+  border-color: #ccc;
+}
+
+input.error {
+  border-color: #ff6b6b;
+  background-color: #fff5f5;
+}
