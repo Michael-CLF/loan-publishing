@@ -68,27 +68,54 @@ export class AppComponent implements OnInit, OnDestroy {
       this.isAppInitialized = true;
     }
   }
+  
   private checkForEmailLink(): void {
-    this.authService.handleEmailLinkAuthentication().subscribe({
-      next: (result) => {
-        if (result.success && result.user) {
-          console.log('✅ Email link authentication successful');
-          // Redirect to dashboard
-          this.router.navigate(['/dashboard']);
-        } else if (result.error && result.error !== 'Not an email link') {
-          console.error('❌ Email link authentication failed:', result.error);
-          // Optionally show error message or redirect to login
-          this.router.navigate(['/login'], { 
-            queryParams: { error: 'Authentication failed' } 
-          });
-        }
-        // If it's not an email link, do nothing (normal app startup)
-      },
-      error: (error) => {
-        console.error('❌ Email link handling error:', error);
+  this.authService.handleEmailLinkAuthentication().subscribe({
+    next: (result) => {
+      if (result.success && result.user) {
+        console.log('✅ Email link authentication successful');
+        
+        // ✅ Verify account exists and has proper access
+        this.authService.checkAccountExists(result.user.email!).subscribe({
+          next: (accountInfo) => {
+            if (!accountInfo.exists) {
+              console.error('❌ Account not found after auth');
+              this.router.navigate(['/login'], { 
+                queryParams: { error: 'Account not found. Please contact support.' } 
+              });
+              return;
+            }
+
+            if (accountInfo.needsPayment) {
+              console.error('❌ Account needs payment');
+              this.router.navigate(['/login'], { 
+                queryParams: { error: 'Payment required to access your account.' } 
+              });
+              return;
+            }
+
+            // ✅ SUCCESS: Redirect to dashboard
+            console.log('✅ Email link auth complete, redirecting to dashboard');
+            this.router.navigate(['/dashboard']);
+          },
+          error: (error) => {
+            console.error('❌ Error validating account:', error);
+            this.router.navigate(['/login'], { 
+              queryParams: { error: 'Unable to verify account. Please try again.' } 
+            });
+          }
+        });
+      } else if (result.error && result.error !== 'Not an email link') {
+        console.error('❌ Email link authentication failed:', result.error);
+        // Don't redirect on email link failure - let the login page handle it
       }
-    });
-  }
+      // If it's not an email link, do nothing (normal app startup)
+    },
+    error: (error) => {
+      console.error('❌ Email link handling error:', error);
+    }
+  });
+}
 
 
   ngOnDestroy(): void {
