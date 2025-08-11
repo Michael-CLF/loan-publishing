@@ -364,39 +364,41 @@ private generateUserUID(): string {
 private async createOriginatorDocument(uid: string, formData: any): Promise<void> {
   const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
-  const originatorData = {
-    id: uid,
-    uid,
-    email: formData.email.toLowerCase(),
+const originatorData = {
+  // ✅ Match lender structure exactly
+  id: uid,
+  uid,
+  userId: uid,  // ✅ ADD: Lenders have this field
+  email: formData.email.toLowerCase(),
+  role: 'originator',
 
-    // Contact info
+  // ✅ Contact info at root level (match lender)
+  firstName: formData.firstName || '',
+  lastName: formData.lastName || '',
+  company: formData.company || '',
+  phone: formData.phone || '',
+  city: formData.city || '',
+  state: formData.state || '',
+
+  // ✅ Nested contactInfo (match lender structure exactly)
+  contactInfo: {
     firstName: formData.firstName || '',
     lastName: formData.lastName || '',
+    contactEmail: formData.email.toLowerCase(),
+    contactPhone: formData.phone || '',
     company: formData.company || '',
-    phone: formData.phone || '',
     city: formData.city || '',
     state: formData.state || '',
+  },
 
-    // Contact info nested
-    contactInfo: {
-      firstName: formData.firstName || '',
-      lastName: formData.lastName || '',
-      contactEmail: formData.email.toLowerCase(),
-      contactPhone: formData.phone || '',
-      company: formData.company || '',
-      city: formData.city || '',
-      state: formData.state || '',
-    },
+  // ✅ CRITICAL: Match lender payment/subscription structure
+  paymentPending: true,
+  subscriptionStatus: 'inactive',
 
-    // Payment and subscription flags
-    paymentPending: true,
-    subscriptionStatus: 'inactive',
-    role: 'originator',
-
-    // Timestamps
-    createdAt,
-    updatedAt: createdAt
-  };
+  // ✅ Timestamps (match lender format)
+  createdAt,
+  updatedAt: createdAt
+};
 
   const ref = doc(this.firestore, `originators/${uid}`);
   await setDoc(ref, originatorData, { merge: true });

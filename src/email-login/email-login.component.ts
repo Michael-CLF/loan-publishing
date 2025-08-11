@@ -210,7 +210,6 @@ private handleEmailLink(): void {
 
   console.log('🔗 Handling email link authentication...');
 
-  // ✅ FIX: Use the actual email link authentication method
   this.authService.handleEmailLinkAuthentication().subscribe({
     next: (result) => {
       this.isVerifying = false;
@@ -218,7 +217,7 @@ private handleEmailLink(): void {
       if (result.success && result.user) {
         console.log('✅ Email link authentication successful for:', result.user.email);
         
-        // ✅ CRITICAL: Verify user has proper access
+        // ✅ ENHANCED: Verify user has proper access
         this.authService.checkAccountExists(result.user.email!).subscribe({
           next: (accountInfo) => {
             if (!accountInfo.exists) {
@@ -254,7 +253,7 @@ private handleEmailLink(): void {
         if (result.error?.includes('expired')) {
           this.showError('This login link has expired. Please request a new one.', 'general');
         } else if (result.error?.includes('Email not found')) {
-          this.showError('Please enter the email you used to request the login link.', 'general');
+          this.showError('Authentication failed. Please try requesting a new login link.', 'general');
         } else {
           this.showError(`Authentication failed: ${result.error}`, 'general');
         }
@@ -265,7 +264,7 @@ private handleEmailLink(): void {
       console.error('❌ Email link authentication error:', error);
       this.showError('Authentication failed. Please try again.', 'general');
     }
-  });  
+  });
 }
 
   openRoleSelectionModal(): void {

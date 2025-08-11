@@ -16,6 +16,7 @@ import { Auth, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
+import { signInWithEmailLink } from '@angular/fire/auth';
 
 declare let gtag: Function;
 
@@ -69,7 +70,7 @@ export class AppComponent implements OnInit, OnDestroy {
     }
   }
   
-  private checkForEmailLink(): void {
+private checkForEmailLink(): void {
   this.authService.handleEmailLinkAuthentication().subscribe({
     next: (result) => {
       if (result.success && result.user) {
