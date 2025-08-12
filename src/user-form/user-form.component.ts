@@ -391,8 +391,6 @@ const originatorData = {
     state: formData.state || '',
   },
 
-  // ✅ CRITICAL: Match lender payment/subscription structure
-  paymentPending: true,
   subscriptionStatus: 'inactive',
 
   // ✅ Timestamps (match lender format)
