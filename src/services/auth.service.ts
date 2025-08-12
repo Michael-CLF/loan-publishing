@@ -112,9 +112,10 @@ export class AuthService {
 
   sendLoginLink(email: string): Observable<void> {
     const actionCodeSettings = {
-      url: `${environment.frontendUrl}/dashboard`,
-      handleCodeInApp: true,
-    };
+  url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(email.toLowerCase().trim())}`,
+  handleCodeInApp: true,
+};
+
 
     console.log('🔗 Sending magic link with settings:', actionCodeSettings);
 

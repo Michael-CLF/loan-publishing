@@ -25,15 +25,44 @@ export class RegistrationProcessingComponent implements OnInit {
   uid   = signal<string | null>(null);
 
   ngOnInit(): void {
-    const qp = this.route.snapshot.queryParamMap;
+  const qp = this.route.snapshot.queryParamMap;
 
-    // capture context for UI / resend, etc.
-    this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
-    const r = qp.get('role');
-    this.role.set(r === 'lender' || r === 'originator' ? r : null);
-    this.uid.set(qp.get('uid'));
+  // capture context for UI / resend, etc.
+  this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
+  const r = qp.get('role');
+  this.role.set(r === 'lender' || r === 'originator' ? r : null);
+  this.uid.set(qp.get('uid'));
 
-    const paymentStatus = qp.get('payment');
+  // ⬇️ NEW: if this is a magic-link landing, finish sign-in right here
+  const url = window.location.href;
+  const isMagicLinkVisit =
+    url.includes('oobCode=') || url.includes('mode=signIn') || qp.get('ml') === '1';
+
+  if (isMagicLinkVisit) {
+    // show brief "processing" feel; finish sign-in then go dashboard
+    this.processingMessage.set('Logging you in...');
+    this.showSuccessMessage.set(false);
+    this.showErrorMessage.set(false);
+    this.showProcessingSpinner.set(true);
+
+    // Defer to let Angular render, then call auth (handled in service or here)
+    setTimeout(async () => {
+      try {
+        // (Your existing auth service helper can be invoked here if you have one)
+        // await this.authService.finishEmailLinkSignIn(this.email()!, url);
+        // …or if you handle directly, ensure you call signInWithEmailLink(auth, email, url)
+        this.router.navigate(['/dashboard']);
+      } catch (e) {
+        this.processingMessage.set('Authentication failed. Please request a new link.');
+        this.showErrorMessage.set(true);
+        this.showProcessingSpinner.set(false);
+      }
+    }, 0);
+    return; // prevent dropping into paymentStatus logic below
+  }
+
+  const paymentStatus = qp.get('payment');
+
 
     if (paymentStatus === 'success') {
       // Payment successful - tell user to check email for magic link

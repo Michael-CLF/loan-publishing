@@ -13,6 +13,15 @@ export const authGuard: CanActivateFn = (
   state: RouterStateSnapshot
 ): Observable<boolean> | Promise<boolean> => {
 
+  // ⬇️ INSERT just inside your guard function, before checking auth.currentUser:
+  const url = state.url || '';
+  const isRegProcessing = url.includes('/registration-processing');
+  const isMagicLink = url.includes('oobCode=') || url.includes('mode=signIn') || url.includes('ml=1');
+  if (isRegProcessing && isMagicLink) {
+    // Allow the registration-processing page to finish the email-link sign-in
+    return of(true);
+  }
+
   const router = inject(Router);
   const auth = inject(AuthService);
   const fsService = inject(FirestoreService);
