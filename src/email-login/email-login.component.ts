@@ -43,40 +43,42 @@ export class EmailLoginComponent implements OnInit {
     });
   }
 
-  ngOnInit(): void {
-    console.log('Email login component initializing...');
+ngOnInit(): void {
+  console.log('Email login component initializing...');
+  
+  // Don't try to handle email links if we're not on the login page
+  // The registration-processing component handles auth actions
+  const currentUrl = window.location.href;
+  if (currentUrl.includes('/__/auth/action')) {
+    console.log('📧 Email login component: Skipping - auth action URL');
+    return;
+  }
+  this.authService.isEmailSignInLink().subscribe({
+    next: (isSignInLink) => {
+      console.log('Is email sign-in link:', isSignInLink);
+      this.isEmailLink = isSignInLink;
 
-    this.authService.isEmailSignInLink().subscribe({
-      next: (isSignInLink) => {
-        console.log('Is email sign-in link:', isSignInLink);
-        this.isEmailLink = isSignInLink;
-
-        if (this.isEmailLink) {
-          console.log('This is an email sign-in link, handling authentication...');
-          this.handleEmailLink();
-        } else {
-          console.log('This is not an email sign-in link');
-        }
-      },
+      if (this.isEmailLink) {
+        console.log('This is an email sign-in link, handling authentication...');
+        this.handleEmailLink();
+      } else {
+        console.log('This is not an email sign-in link');
+      }
+    },
       error: (error: Error) => {
         console.error('Error checking email sign-in link:', error);
         this.showError('Error checking authentication link', 'general');
       },
     });
   }
-
   get emailControl() {
     return this.loginForm.get('email');
-  }
-
-  
+  }  
 sendLoginLink(email: string): void {
   this.isLoading = true;
   this.successMessage = '';
   this.clearError();
-
   localStorage.setItem('redirectUrl', '/dashboard');
-
   this.authService.sendLoginLink(email).subscribe({
     next: () => {
       this.isLoading = false;
@@ -91,7 +93,6 @@ sendLoginLink(email: string): void {
     }
   });
 }  
-
   // ✅ NEW: Method to show error with dialog
   private showError(message: string, type: 'account-not-found' | 'payment-required' | 'general'): void {
     this.errorMessage = message;
