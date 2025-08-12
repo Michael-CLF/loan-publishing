@@ -35,27 +35,8 @@ export class HomeComponent implements OnInit, OnDestroy {
     private route: ActivatedRoute
   ) {}
 
- ngOnInit(): void {
-  console.log('🏠 Home Component - Checking for magic link or auth status');
+ ngOnInit(): void {}
   
-  // Check if this is a magic link first
-  this.authService.isEmailSignInLink().subscribe({
-    next: (isSignInLink) => {
-      if (isSignInLink) {
-        console.log('🔗 Magic link detected, processing authentication...');
-        this.handleMagicLink();
-      } else {
-        console.log('📋 Regular homepage visit, checking auth status...');
-        this.checkAuthAndRedirect();
-      }
-    },
-    error: (error) => {
-      console.error('❌ Error checking magic link:', error);
-      this.checkAuthAndRedirect(); // Fallback to normal auth check
-    }
-  });
-}
-  // ✅ Angular 18 Best Practice: Proper cleanup
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
@@ -66,8 +47,6 @@ export class HomeComponent implements OnInit, OnDestroy {
   console.log('Processing magic link for email:', storedEmail || 'Not found - will wait for auth completion');
 
   if (!storedEmail) {
-    // No stored email, but magic link might still work
-    // Let's wait a moment for Firebase to process the authentication
     console.log('⏳ No stored email, waiting for Firebase auth to complete...');
     
     // Give Firebase time to process the magic link authentication
