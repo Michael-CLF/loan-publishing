@@ -16,11 +16,11 @@ export const authGuard: CanActivateFn = (
   // ⬇️ INSERT just inside your guard function, before checking auth.currentUser:
   const url = state.url || '';
   const isRegProcessing = url.includes('/registration-processing');
+  const isFirebaseAction = url.includes('/__/auth/action'); 
   const isMagicLink = url.includes('oobCode=') || url.includes('mode=signIn') || url.includes('ml=1');
-  if (isRegProcessing && isMagicLink) {
-    // Allow the registration-processing page to finish the email-link sign-in
-    return of(true);
-  }
+ if ((isFirebaseAction && isMagicLink) || (isRegProcessing && isMagicLink)) {
+  return of(true);
+}
 
   const router = inject(Router);
   const auth = inject(AuthService);
