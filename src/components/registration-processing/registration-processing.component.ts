@@ -13,10 +13,10 @@ import { AuthService } from '../../services/auth.service';
 export class RegistrationProcessingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
-   private readonly authService = inject(AuthService);
+  private readonly authService = inject(AuthService);
 
   // UI state
-  showProcessingSpinner = signal<boolean>(true);      // <- keeps compatibility with your old tests
+  showProcessingSpinner = signal<boolean>(true);    
   showSuccessMessage    = signal<boolean>(false);
   showErrorMessage      = signal<boolean>(false);
   processingMessage     = signal<string>('');

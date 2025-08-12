@@ -31,7 +31,7 @@ export const authGuard: CanActivateFn = (
     switchMap((user: User | null) => {
       // If not authenticated, send to login
       if (!user?.uid) {
-        localStorage.setItem('redirectUrl', state.url);
+        localStorage.setItem('redirectUrl', url);
         router.navigate(['/login']);
         return of(false);
       }
