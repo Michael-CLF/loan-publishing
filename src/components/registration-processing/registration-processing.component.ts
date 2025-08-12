@@ -1,6 +1,7 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
+import { AuthService } from '../../services/auth.service';
 
 @Component({
   selector: 'app-registration-processing',
@@ -12,6 +13,7 @@ import { Router, ActivatedRoute } from '@angular/router';
 export class RegistrationProcessingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
+   private readonly authService = inject(AuthService);
 
   // UI state
   showProcessingSpinner = signal<boolean>(true);      // <- keeps compatibility with your old tests
@@ -45,19 +47,18 @@ export class RegistrationProcessingComponent implements OnInit {
     this.showErrorMessage.set(false);
     this.showProcessingSpinner.set(true);
 
-    // Defer to let Angular render, then call auth (handled in service or here)
-    setTimeout(async () => {
+       setTimeout(async () => {
       try {
-        // (Your existing auth service helper can be invoked here if you have one)
-        // await this.authService.finishEmailLinkSignIn(this.email()!, url);
-        // …or if you handle directly, ensure you call signInWithEmailLink(auth, email, url)
-        this.router.navigate(['/dashboard']);
+        // Use your existing AuthService method that completes the email link sign-in.
+        await this.authService.handleEmailLinkAuthentication();
+        await this.router.navigate(['/dashboard']);
       } catch (e) {
         this.processingMessage.set('Authentication failed. Please request a new link.');
         this.showErrorMessage.set(true);
         this.showProcessingSpinner.set(false);
       }
     }, 0);
+
     return; // prevent dropping into paymentStatus logic below
   }
 

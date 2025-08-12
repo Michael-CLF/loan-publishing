@@ -27,11 +27,6 @@ export const authGuard: CanActivateFn = (
   const fsService = inject(FirestoreService);
   const firestore: Firestore = fsService.firestore;
 
-  // Allow registration-processing route to load without authentication
-  if (state.url.includes('/registration-processing')) {
-    return of(true);
-  }
-
   return auth.getCurrentFirebaseUser().pipe(
     switchMap((user: User | null) => {
       // If not authenticated, send to login
