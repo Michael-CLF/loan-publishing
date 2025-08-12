@@ -173,21 +173,34 @@ sendLoginLink(email: string): Observable<void> {
   // Check if this is actually a Firebase magic link URL
   if (!isSignInWithEmailLink(this.auth, url)) {
     console.log('📧 Not a Firebase magic link URL, checking if already authenticated');
-    // Not a magic link - user might already be authenticated
     return of({ success: false, error: 'Not an email link' });
   }
 
-  // Try to get email from URL params or localStorage
-  const urlParams = new URLSearchParams(window.location.search);
-  let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
-
-  if (!email) {
-    // Prompt user for email if not found
-    const userEmail = prompt('Please enter your email address to complete sign-in:');
-    if (!userEmail) {
-      return of({ success: false, error: 'Email is required to complete sign-in' });
+  // Extract email from the continueUrl parameter in the magic link
+  let email: string | null = null;
+  
+  // Parse the continueUrl to get the email
+  const urlObj = new URL(url);
+  const continueUrl = urlObj.searchParams.get('continueUrl');
+  
+  if (continueUrl) {
+    try {
+      const continueUrlObj = new URL(decodeURIComponent(continueUrl));
+      email = continueUrlObj.searchParams.get('email');
+      console.log('📧 Extracted email from continueUrl:', email);
+    } catch (e) {
+      console.error('Failed to parse continueUrl:', e);
     }
-    email = userEmail;
+  }
+  
+  // Fallback to localStorage if not in URL
+  if (!email) {
+    email = localStorage.getItem('emailForSignIn');
+  }
+  
+  if (!email) {
+    console.error('❌ No email found for magic link authentication');
+    return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
   }
 
   return from(signInWithEmailLink(this.auth, email, url)).pipe(
