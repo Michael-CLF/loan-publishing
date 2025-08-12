@@ -265,11 +265,8 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
     return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
   }
 
-  /**
-   * Check if an account exists by email across both collections,
-   * returning type and subscription info.
-   */
-  checkAccountExists(email: string): Observable<{
+  
+checkAccountExists(email: string): Observable<{
     exists: boolean;
     userType?: 'originator' | 'lender';
     userId?: string;
@@ -278,46 +275,64 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
   }> {
     const normalized = email.toLowerCase().trim();
 
+    // Check both possible email field locations
     const originQ = query(
+      collection(this.firestore, 'originators'),
+      where('email', '==', normalized)
+    );
+    const originContactQ = query(
       collection(this.firestore, 'originators'),
       where('contactInfo.contactEmail', '==', normalized)
     );
     const lenderQ = query(
       collection(this.firestore, 'lenders'),
+      where('email', '==', normalized)
+    );
+    const lenderContactQ = query(
+      collection(this.firestore, 'lenders'),
       where('contactInfo.contactEmail', '==', normalized)
     );
 
-    return from(getDocs(originQ)).pipe(
-      switchMap(originSnap => {
-        if (!originSnap.empty) {
-          const d = originSnap.docs[0];
-          const data = d.data() as any;
+  return from(Promise.all([
+      getDocs(originQ),
+      getDocs(originContactQ),
+      getDocs(lenderQ),
+      getDocs(lenderContactQ)
+    ])).pipe(
+      map(([originSnap, originContactSnap, lenderSnap, lenderContactSnap]) => {
+        // Check originators (either email field)
+        const originDoc = !originSnap.empty ? originSnap.docs[0] : 
+                         !originContactSnap.empty ? originContactSnap.docs[0] : null;
+        
+        if (originDoc) {
+          const data = originDoc.data() as any;
           const subscriptionStatus = data.subscriptionStatus || 'inactive';
-          return of({
+          return {
             exists: true,
             userType: 'originator' as const,
-            userId: d.id,
+            userId: originDoc.id,
             subscriptionStatus,
             needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
-          });
+          };
         }
-        return from(getDocs(lenderQ)).pipe(
-          map(lenderSnap => {
-            if (!lenderSnap.empty) {
-              const d = lenderSnap.docs[0];
-              const data = d.data() as any;
-              const subscriptionStatus = data.subscriptionStatus || 'inactive';
-              return {
-                exists: true,
-                userType: 'lender' as const,
-                userId: d.id,
-                subscriptionStatus,
-                needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
-              };
-            }
-            return { exists: false };
-          })
-        );
+
+        // Check lenders (either email field)
+        const lenderDoc = !lenderSnap.empty ? lenderSnap.docs[0] : 
+                         !lenderContactSnap.empty ? lenderContactSnap.docs[0] : null;
+        
+        if (lenderDoc) {
+          const data = lenderDoc.data() as any;
+          const subscriptionStatus = data.subscriptionStatus || 'inactive';
+          return {
+            exists: true,
+            userType: 'lender' as const,
+            userId: lenderDoc.id,
+            subscriptionStatus,
+            needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
+          };
+        }
+
+        return { exists: false };
       }),
       catchError(err => {
         console.error('❌ Error checking account:', err);

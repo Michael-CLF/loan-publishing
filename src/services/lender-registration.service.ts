@@ -124,11 +124,8 @@ export class LenderFormService {
   // ----------------------------
   // Firestore write
   // ----------------------------
-  /**
-   * Create/merge the lender profile at `/lenders/{uid}`.
-   * Sets subscription flags for pre-checkout and a YYYY-MM-DD createdAt.
-   */
-  createLenderProfile(uid: string, data: Partial<Lender>): Observable<void> {
+ 
+createLenderProfile(uid: string, data: Partial<Lender>): Observable<void> {
     if (!uid) {
       console.error('❌ No UID provided when creating lender profile');
       return of(undefined) as unknown as Observable<void>;
@@ -143,7 +140,7 @@ export class LenderFormService {
       ...data,
       createdAt,                     // e.g., 2025-08-08
       subscriptionStatus: 'inactive',
-      paymentPending: true,
+      // Removed paymentPending - only using subscriptionStatus
     };
 
     console.log('📝 Creating/merging lender profile:', payload);

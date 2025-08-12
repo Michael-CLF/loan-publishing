@@ -66,17 +66,30 @@ getUserProfileByUid(uid: string): Observable<any | null> {
 
 checkUserByEmail(email: string): Observable<any | null> {
   const collections = ['lenders', 'originators'];
+  const normalizedEmail = email.toLowerCase().trim();
 
   return from(Promise.all(collections.map(async (collectionName) => {
-    const querySnapshot = await getDocs(
+    // Check both possible email locations
+    const emailQuery = await getDocs(
       query(
-        collection(this.db, collectionName),  // ✅ FIXED
-        where('email', '==', email.toLowerCase().trim()),
-        where('subscriptionStatus', '==', 'active'),
-        where('source', '==', 'stripe_checkout')
+        collection(this.db, collectionName),
+        where('email', '==', normalizedEmail)
       )
     );
-    return querySnapshot.empty ? null : { data: querySnapshot.docs[0].data(), id: querySnapshot.docs[0].id };
+    
+    if (!emailQuery.empty) {
+      return { data: emailQuery.docs[0].data(), id: emailQuery.docs[0].id };
+    }
+    
+    // Also check contactInfo.contactEmail
+    const contactEmailQuery = await getDocs(
+      query(
+        collection(this.db, collectionName),
+        where('contactInfo.contactEmail', '==', normalizedEmail)
+      )
+    );
+    
+    return contactEmailQuery.empty ? null : { data: contactEmailQuery.docs[0].data(), id: contactEmailQuery.docs[0].id };
   }))).pipe(
     map(results => results.find(result => result !== null) || null),
     catchError(error => {

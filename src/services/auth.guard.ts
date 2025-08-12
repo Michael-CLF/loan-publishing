@@ -2,7 +2,7 @@
 import { inject } from '@angular/core';
 import { CanActivateFn, Router, ActivatedRouteSnapshot, RouterStateSnapshot } from '@angular/router';
 import { Observable, of, from, combineLatest } from 'rxjs';
-import { catchError, filter, map, switchMap, take, delay } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 import { User } from '@angular/fire/auth';
 import { AuthService } from './auth.service';
 import { FirestoreService } from './firestore.service';
@@ -52,29 +52,29 @@ export const authGuard: CanActivateFn = (
           }
 
           const status = profile.subscriptionStatus;
-          const pending = profile.paymentPending;
 
           // Active/grandfathered users can access everything
           if (status === 'active' || status === 'grandfathered') {
             return true;
           }
 
-          // Payment pending - send to pricing
-          if (pending === true || status === 'inactive') {
+          // Inactive subscription - send to pricing
+          if (status === 'inactive' || !status) {
             router.navigate(['/pricing']);
             return false;
           }
 
-          // Default: allow access
-          return true;
+          // Handle other statuses (trial, cancelled, etc.) if needed
+          if (status === 'trial') {
+            // Allow trial users for now
+            return true;
+          }
+
+          // Default: deny access for unknown statuses
+          router.navigate(['/pricing']);
+          return false;
         })
       );
-    }),
-    take(1),
-    catchError(err => {
-      console.error('authGuard error:', err);
-      router.navigate(['/login']);
-      return of(false);
     })
   );
 };

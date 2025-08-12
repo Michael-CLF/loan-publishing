@@ -679,7 +679,7 @@ async proceedToStripe(email: string, formData: any): Promise<void> {
   try {
     console.log('🔍 Creating user document and proceeding to payment for:', email);
 
-    // Step 1: Create user document in Firestore (no authentication)
+    // Step 1: Create user document in Firestore with proper UID
     const userCreationResponse = await this.createUserDocument(email, formData);
     console.log('✅ User document created with UID:', userCreationResponse.uid);
 
@@ -726,25 +726,33 @@ async proceedToStripe(email: string, formData: any): Promise<void> {
 private async createUserDocument(email: string, formData: any): Promise<{ uid: string }> {
   console.log('🔄 Creating user document for:', email);
 
-  // Generate a unique UID for the user document
-  const uid = this.generateUserUID();
+  // Generate a proper Firebase-compatible UID
+  const uid = this.generateFirebaseUID();
   
-  // Create the Firestore document directly
+  // Create the Firestore document with inactive status
   await this.createOrMergeLenderDocument(uid, formData, email);
   
   console.log('✅ User document created with UID:', uid);
   return { uid };
 }
 
-private generateUserUID(): string {
-  // Generate a Firebase-compatible UID (28 characters)
+private generateFirebaseUID(): string {
+  // Generate a Firebase-compatible UID (28 characters, alphanumeric)
+  // Using timestamp prefix for uniqueness + random suffix
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).substring(2, 15);
+  const combined = (timestamp + randomPart).substring(0, 28);
+  
+  // Pad if necessary to ensure 28 characters
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 28; i++) {
+  let result = combined;
+  while (result.length < 28) {
     result += chars.charAt(Math.floor(Math.random() * chars.length));
   }
+  
   return result;
 }
+
   private async createOrMergeLenderDocument(uid: string, formData: any, email: string): Promise<void> {
   const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
 
@@ -766,8 +774,7 @@ private generateUserUID(): string {
     productInfo: formData.product || {},
     footprintInfo: formData.footprint || {},
 
-    // Payment and subscription flags
-    paymentPending: true,
+    // Subscription status only - no paymentPending field
     subscriptionStatus: 'inactive',
     role: 'lender',
 
