@@ -2,6 +2,7 @@ import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
+import { take } from 'rxjs/operators';
 
 @Component({
   selector: 'app-registration-processing',
@@ -26,8 +27,37 @@ export class RegistrationProcessingComponent implements OnInit {
   role  = signal<'lender' | 'originator' | null>(null);
   uid   = signal<string | null>(null);
 
-  ngOnInit(): void {
+ngOnInit(): void {
   const qp = this.route.snapshot.queryParamMap;
+
+   const url = window.location.href;
+  const isFirebaseAuthAction = url.includes('/__/auth/action');
+  
+  if (isFirebaseAuthAction && url.includes('mode=signIn')) {
+    // This is the actual Firebase magic link - let Firebase handle it
+    this.processingMessage.set('Authenticating...');
+    this.showProcessingSpinner.set(true);
+    
+    // Try to complete the sign-in
+    this.authService.handleEmailLinkAuthentication().subscribe({
+      next: (result) => {
+        if (result.success) {
+          // Successfully authenticated, redirect to dashboard
+          this.router.navigate(['/dashboard']);
+        } else {
+          this.processingMessage.set('Authentication failed. Please request a new link.');
+          this.showErrorMessage.set(true);
+          this.showProcessingSpinner.set(false);
+        }
+      },
+      error: (err) => {
+        this.processingMessage.set('Authentication failed. Please request a new link.');
+        this.showErrorMessage.set(true);
+        this.showProcessingSpinner.set(false);
+      }
+    });
+    return;
+  }
 
   // capture context for UI / resend, etc.
   this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
@@ -35,29 +65,39 @@ export class RegistrationProcessingComponent implements OnInit {
   this.role.set(r === 'lender' || r === 'originator' ? r : null);
   this.uid.set(qp.get('uid'));
 
-  // ⬇️ NEW: if this is a magic-link landing, finish sign-in right here
-  const url = window.location.href;
-  const isMagicLinkVisit =
-    url.includes('oobCode=') || url.includes('mode=signIn') || qp.get('ml') === '1';
-
-  if (isMagicLinkVisit) {
-    // show brief "processing" feel; finish sign-in then go dashboard
-    this.processingMessage.set('Logging you in...');
+  // Check if this is a redirect AFTER Firebase has already authenticated
+  const isMagicLinkReturn = qp.get('ml') === '1';
+  
+  if (isMagicLinkReturn) {
+    // User should already be authenticated by Firebase at this point
+    this.processingMessage.set('Completing login...');
     this.showSuccessMessage.set(false);
     this.showErrorMessage.set(false);
     this.showProcessingSpinner.set(true);
 
-       setTimeout(async () => {
+    // Just check if user is authenticated and redirect
+    setTimeout(async () => {
       try {
-        // Use your existing AuthService method that completes the email link sign-in.
-        await this.authService.handleEmailLinkAuthentication();
-        await this.router.navigate(['/dashboard']);
+        // Check if user is already authenticated (Firebase handled it)
+        const user = await this.authService.getCurrentFirebaseUser()
+          .pipe(take(1))
+          .toPromise();
+        
+        if (user) {
+          // User is authenticated, go to dashboard
+          await this.router.navigate(['/dashboard']);
+        } else {
+          // Not authenticated, something went wrong
+          this.processingMessage.set('Authentication failed. Please request a new link.');
+          this.showErrorMessage.set(true);
+          this.showProcessingSpinner.set(false);
+        }
       } catch (e) {
         this.processingMessage.set('Authentication failed. Please request a new link.');
         this.showErrorMessage.set(true);
         this.showProcessingSpinner.set(false);
       }
-    }, 0);
+    }, 100); // Small delay to ensure Firebase auth state is ready
 
     return; // prevent dropping into paymentStatus logic below
   }

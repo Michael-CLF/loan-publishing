@@ -13,14 +13,27 @@ export const authGuard: CanActivateFn = (
   state: RouterStateSnapshot
 ): Observable<boolean> | Promise<boolean> => {
 
-  // ⬇️ INSERT just inside your guard function, before checking auth.currentUser:
   const url = state.url || '';
+  
+  // Allow Firebase auth action handler to work without interference
+  const isFirebaseAuthAction = url.includes('/__/auth/action');
+  if (isFirebaseAuthAction) {
+    // Firebase will handle this URL directly - no guard needed
+    return of(true);
+  }
+  
+  // Allow registration-processing with ml=1 (post-magic-link redirect)
   const isRegProcessing = url.includes('/registration-processing');
-  const isFirebaseAction = url.includes('/__/auth/action'); 
-  const isMagicLink = url.includes('oobCode=') || url.includes('mode=signIn') || url.includes('ml=1');
- if ((isFirebaseAction && isMagicLink) || (isRegProcessing && isMagicLink)) {
-  return of(true);
-}
+  const isMagicLinkReturn = state.url.includes('ml=1');
+  if (isRegProcessing && isMagicLinkReturn) {
+    // User is returning from magic link, allow through to check auth status
+    return of(true);
+  }
+  
+  // For registration-processing with payment status, allow through
+  if (isRegProcessing && (url.includes('payment=success') || url.includes('payment=cancel'))) {
+    return of(true);
+  }
 
   const router = inject(Router);
   const auth = inject(AuthService);

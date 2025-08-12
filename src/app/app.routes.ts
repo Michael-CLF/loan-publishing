@@ -34,6 +34,11 @@ import { CompletePaymentComponent } from 'src/components/complete-payment/comple
 export const routes: Routes = [
   { path: 'admin', component: AdminComponent },
   {
+    path: '__/auth/action',
+    component: RegistrationProcessingComponent,  // Temporarily use this component
+    data: { skipAuth: true, isFirebaseAction: true }
+  },
+  {
     path: 'account/edit',
     component: EditAccountComponent,
     canActivate: [authGuard],

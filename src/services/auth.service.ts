@@ -110,26 +110,26 @@ export class AuthService {
     return this._user$;
   }
 
-  sendLoginLink(email: string): Observable<void> {
-    const actionCodeSettings = {
-  url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(email.toLowerCase().trim())}`,
-  handleCodeInApp: true,
-};
+sendLoginLink(email: string): Observable<void> {
+  const actionCodeSettings = {
+    url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(email.toLowerCase().trim())}`,
+    handleCodeInApp: true,
+  };
 
+  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
 
-    console.log('🔗 Sending magic link with settings:', actionCodeSettings);
-
-    return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
-      map(() => {
-        // Don't store email in localStorage for this flow
-        console.log('✅ Email link sent successfully');
-      }),
-      catchError((error) => {
-        console.error('❌ Error sending login link:', error);
-        throw error;
-      })
-    );
-  }
+  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+    map(() => {
+      // Store email for sign-in completion
+      localStorage.setItem('emailForSignIn', email.toLowerCase().trim());
+      console.log('✅ Email link sent successfully');
+    }),
+    catchError((error) => {
+      console.error('❌ Error sending login link:', error);
+      throw error;
+    })
+  );
+}
 
   isEmailSignInLink(): Observable<boolean> {
     return of(isSignInWithEmailLink(this.auth, window.location.href));
@@ -166,10 +166,14 @@ export class AuthService {
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
-handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
+
+  handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
   const url = window.location.href;
   
+  // Check if this is actually a Firebase magic link URL
   if (!isSignInWithEmailLink(this.auth, url)) {
+    console.log('📧 Not a Firebase magic link URL, checking if already authenticated');
+    // Not a magic link - user might already be authenticated
     return of({ success: false, error: 'Not an email link' });
   }
 
@@ -178,8 +182,12 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
   let email = urlParams.get('email') || localStorage.getItem('emailForSignIn');
 
   if (!email) {
-    // If no email found, we can't complete the sign-in
-    return of({ success: false, error: 'Email not found for sign-in' });
+    // Prompt user for email if not found
+    const userEmail = prompt('Please enter your email address to complete sign-in:');
+    if (!userEmail) {
+      return of({ success: false, error: 'Email is required to complete sign-in' });
+    }
+    email = userEmail;
   }
 
   return from(signInWithEmailLink(this.auth, email, url)).pipe(
@@ -187,14 +195,14 @@ handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; err
       // Clear stored email
       localStorage.removeItem('emailForSignIn');
       
-      // Clear URL parameters
-      const cleanUrl = window.location.origin + window.location.pathname;
-      window.history.replaceState({}, document.title, cleanUrl);
+      // Don't clear URL parameters here - let the component handle navigation
+      console.log('✅ Magic link authentication successful:', userCredential.user.email);
       
       return { success: true, user: userCredential.user };
     }),
     catchError((error) => {
       console.error('❌ Email link authentication failed:', error);
+      localStorage.removeItem('emailForSignIn');
       return of({ success: false, error: error.message });
     })
   );
