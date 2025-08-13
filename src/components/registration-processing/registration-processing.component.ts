@@ -4,6 +4,8 @@ import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
 import { AuthService } from '../../services/auth.service';
 import { take } from 'rxjs/operators';
+import { NgZone } from '@angular/core';
+
 
 @Component({
   selector: 'app-registration-processing',
@@ -16,6 +18,8 @@ export class RegistrationProcessingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
+  private readonly zone = inject(NgZone);
+
 
   // UI state
   showProcessingSpinner = signal<boolean>(true);
@@ -30,6 +34,13 @@ export class RegistrationProcessingComponent implements OnInit {
 
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
+
+    this.zone.run(() => {
+      this.router.navigateByUrl('/', { replaceUrl: true }).catch(() => {
+        window.location.href = '/';
+      });
+    });
+
 
     // Capture context for UI / resend, etc.
     this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
@@ -107,10 +118,23 @@ export class RegistrationProcessingComponent implements OnInit {
           if (user?.email) {
             this.afterAuth(user.email);
           } else {
-            // Not signed in yet — instruct the user to click the email link
-            this.processingMessage.set('Please open the email link we sent to finish signing in.');
+            // Default (post-Stripe success screen prompting for email link)
+            this.processingMessage.set('Registration Completed Successfully. Check your email to finish sign-in.');
             this.showProcessingSpinner.set(false);
             this.showSuccessMessage.set(true);
+
+            // 🚀 Unconditional redirect to homepage after a short delay
+            const REDIRECT_DELAY_MS = 6000;
+            setTimeout(() => {
+              console.log('↪️ Redirecting to homepage…');
+
+              // Try Angular Router first…
+              this.router.navigateByUrl('/', { replaceUrl: true }).catch(() => {
+                // …and hard-redirect as a fallback (bypasses guards/zone issues)
+                window.location.href = '/';
+              });
+            }, REDIRECT_DELAY_MS);
+
           }
         },
         error: () => {
