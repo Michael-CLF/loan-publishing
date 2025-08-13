@@ -19,14 +19,14 @@ export class RegistrationProcessingComponent implements OnInit {
 
   // UI state
   showProcessingSpinner = signal<boolean>(true);
-  showSuccessMessage   = signal<boolean>(false);
-  showErrorMessage     = signal<boolean>(false);
-  processingMessage    = signal<string>('');
+  showSuccessMessage = signal<boolean>(false);
+  showErrorMessage = signal<boolean>(false);
+  processingMessage = signal<string>('');
 
   // Extra context from Stripe success/cancel return
   email = signal<string | null>(null);
-  role  = signal<'lender' | 'originator' | null>(null);
-  uid   = signal<string | null>(null);
+  role = signal<'lender' | 'originator' | null>(null);
+  uid = signal<string | null>(null);
 
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
@@ -76,6 +76,18 @@ export class RegistrationProcessingComponent implements OnInit {
           this.processingMessage.set('Authentication link error. Please request a new link.');
           this.showErrorMessage.set(true);
           this.showProcessingSpinner.set(false);
+
+          // Auto-redirect to homepage after a short delay (only if still on this screen)
+          const REDIRECT_DELAY_MS = 6000; // 6 seconds
+          setTimeout(() => {
+            if (this.showSuccessMessage() && !this.showProcessingSpinner()) {
+              // SPA navigation (fallback to hard redirect if desired)
+              this.router.navigateByUrl('/');
+              // Or hard redirect: window.location.href = '/';
+              // Or to your env URL: window.location.href = 'https://dailyloanpost.com/';
+            }
+          }, REDIRECT_DELAY_MS);
+
         },
       });
 
@@ -107,12 +119,11 @@ export class RegistrationProcessingComponent implements OnInit {
           this.showErrorMessage.set(true);
         },
       });
-
       return;
     }
 
     // Default (post-Stripe success screen prompting for email link)
-    this.processingMessage.set('Registration complete. Check your email to finish sign-in.');
+    this.processingMessage.set('Registration Completed Successfully. Check your email to finish sign-in.');
     this.showProcessingSpinner.set(false);
     this.showSuccessMessage.set(true);
   }
