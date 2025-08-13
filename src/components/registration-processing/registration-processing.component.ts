@@ -35,11 +35,12 @@ export class RegistrationProcessingComponent implements OnInit {
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
 
-    this.zone.run(() => {
+    // ✅ Redirect AFTER showing that screen (not at the top of ngOnInit)
+    setTimeout(() => {
       this.router.navigateByUrl('/', { replaceUrl: true }).catch(() => {
         window.location.href = '/';
       });
-    });
+    }, 6000);
 
 
     // Capture context for UI / resend, etc.

@@ -43,8 +43,9 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly platformId = inject(PLATFORM_ID);
 
-  // ✅ Angular 18 Best Practice: Proper cleanup with takeUntil
   private readonly destroy$ = new Subject<void>();
+  private hasHandledEmailLink = false;
+
 
   title = 'Daily Loan Post';
   isRoleSelectionModalOpen = false;
@@ -71,64 +72,42 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private checkForEmailLink(): void {
-    // Don't handle email links if we're on the auth action page
-    // The registration-processing component will handle it
-    const currentUrl = window.location.href;
-    if (currentUrl.includes('/__/auth/action')) {
-      console.log('📧 Skipping email link check in app.component - handled by route');
-      console.log('🔐 Firebase auth action detected, completing sign-in...');
+  const href = window.location.href;
 
-      // Only check for email links on other pages (for backward compatibility)
-      this.authService.handleEmailLinkAuthentication().subscribe({
-        next: (result) => {
-          if (result.success && result.user) {
-            console.log('✅ Email link authentication successful');
+  // Detect Firebase magic link anywhere (including /__/auth/action)
+  const isEmailLink = href.includes('mode=signIn') && href.includes('oobCode=');
+  if (!isEmailLink || this.hasHandledEmailLink) return;
 
-            // ✅ Verify account exists and has proper access
-            this.authService.checkAccountExists(result.user.email!).subscribe({
-              next: (accountInfo) => {
-                if (!accountInfo.exists) {
-                  console.error('❌ Account not found after auth');
-                  this.router.navigate(['/login'], {
-                    queryParams: { error: 'Account not found. Please contact support.' }
-                  });
-                  return;
-                }
-                if (currentUrl.includes('/registration-processing')) {
-                  console.log('📧 On registration-processing page, skipping email link check');
-                  return;
-                }
-                if (accountInfo.needsPayment) {
-                  console.error('❌ Account needs payment');
-                  this.router.navigate(['/login'], {
-                    queryParams: { error: 'Payment required to access your account.' }
-                  });
-                  return;
-                }
+  this.hasHandledEmailLink = true;
+  console.log('📧 Email sign-in link detected. Completing authentication…');
 
-                // ✅ SUCCESS: Redirect to dashboard
-                console.log('✅ Email link auth complete, redirecting to dashboard');
-                this.router.navigate(['/dashboard']);
-              },
-              error: (error) => {
-                console.error('❌ Error validating account:', error);
-                this.router.navigate(['/login'], {
-                  queryParams: { error: 'Unable to verify account. Please try again.' }
-                });
-              }
-            });
-          } else if (result.error && result.error !== 'Not an email link') {
-            console.error('❌ Email link authentication failed:', result.error);
-            // Don't redirect on email link failure - let the login page handle it
-          }
-          // If it's not an email link, do nothing (normal app startup)
-        },
-        error: (error) => {
-          console.error('❌ Email link handling error:', error);
-        }
+  // Consume the link BEFORE any navigation
+  this.authService.handleEmailLinkAuthentication().pipe(take(1)).subscribe({
+    next: ({ success, user, error }) => {
+      if (success && user?.email) {
+        console.log('✅ Email link consumed for:', user.email);
+        // Hand off to the page that runs account checks → dashboard
+        this.router.navigate(['/registration-processing'], {
+          queryParams: { ml: '1', email: user.email },
+          replaceUrl: true,
+        });
+      } else {
+        console.error('❌ Magic link not consumed:', error);
+        this.router.navigate(['/registration-processing'], {
+          queryParams: { ml: '1', error: 'auth' },
+          replaceUrl: true,
+        });
+      }
+    },
+    error: (err) => {
+      console.error('❌ Error handling magic link:', err);
+      this.router.navigate(['/registration-processing'], {
+        queryParams: { ml: '1', error: 'auth' },
+        replaceUrl: true,
       });
-    }
-  }
+    },
+  });
+}
 
   ngOnDestroy(): void {
     // ✅ Angular 18 Best Practice: Proper cleanup
