@@ -22,19 +22,16 @@ export const authGuard: CanActivateFn = (
     return of(true);
   }
   
-  // Allow registration-processing with ml=1 (post-magic-link redirect)
+  // Allow ALL registration-processing routes
+  // This page handles its own authentication flow and polling
   const isRegProcessing = url.includes('/registration-processing');
-  const isMagicLinkReturn = state.url.includes('ml=1');
-  if (isRegProcessing && isMagicLinkReturn) {
-    // User is returning from magic link, allow through to check auth status
+  if (isRegProcessing) {
+    // Let the component handle all states:
+    // - Magic link returns (ml=1)
+    // - Payment success/cancel
+    // - Account setup polling for new users
     return of(true);
   }
-  
-  // For registration-processing with payment status, allow through
-  if (isRegProcessing && (url.includes('payment=success') || url.includes('payment=cancel'))) {
-    return of(true);
-  }
-
   const router = inject(Router);
   const auth = inject(AuthService);
   const fsService = inject(FirestoreService);

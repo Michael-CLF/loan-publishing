@@ -1,47 +1,67 @@
 <div class="processing-container">
-  <!-- Success Message -->
-  <div *ngIf="showSuccessMessage()" class="success-card">
+  <!-- Success State (Shows after payment) -->
+  <div *ngIf="showSuccessMessage() && !showProcessingSpinner()" class="success-card">
     <div class="success-icon">
-      <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
-        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-        <polyline points="22 4 12 14.01 9 11.01"></polyline>
+      <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
       </svg>
     </div>
-
+    
     <h2 class="success-title">{{ processingMessage() }}</h2>
-    <h4 class="success-subtitle">Your account has been created and payment processed successfully.</h4>
-
+    
+    <p class="success-subtitle">
+      Your account has been created and payment processed successfully.
+    </p>
+    
     <div class="email-instruction">
       <p class="primary-message">
-        <strong>Please check your email</strong> for a secure link to access your dashboard.
+        Please check your email for a secure link to access your dashboard.
       </p>
       <p class="secondary-message">
         The email may take a few minutes to arrive. Don't forget to check your spam folder.
       </p>
-      <p class="redirect-message">
-        You will be redirected to the homepage momentarily.
-      </p>
     </div>
+    
+    <p class="redirect-message">
+      You will be redirected to the homepage momentarily.
+    </p>
+  </div>
 
-
-    <!-- Error Message -->
-    <div *ngIf="showErrorMessage()" class="error-card">
-      <div class="error-icon">
-        <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24" fill="none"
-          stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="10"></circle>
-          <line x1="15" y1="9" x2="9" y2="15"></line>
-          <line x1="9" y1="9" x2="15" y2="15"></line>
-        </svg>
+  <!-- Loading State (Shows when clicking magic link) -->
+  <div *ngIf="showProcessingSpinner() && !showSuccessMessage()" class="success-card">
+    <div style="display: flex; justify-content: center; margin-bottom: 1.5rem;">
+      <div style="position: relative; width: 60px; height: 60px;">
+        <div style="position: absolute; border: 4px solid #e0e0e0; border-radius: 50%; width: 100%; height: 100%;"></div>
+        <div style="position: absolute; border: 4px solid #0a2463; border-top-color: transparent; border-radius: 50%; width: 100%; height: 100%; animation: spin 1s linear infinite;"></div>
       </div>
+    </div>
+    
+    <h2 class="success-title">
+      {{ processingMessage() || 'Loading your account...' }}
+    </h2>
+  </div>
 
-      <h2 class="error-title">{{ processingMessage() }}</h2>
-
-      <div class="action-buttons">
-        <button (click)="goToPricing()" class="primary-button">
-          Try Again
-        </button>
-      </div>
+  <!-- Error State -->
+  <div *ngIf="showErrorMessage() && !showProcessingSpinner()" class="error-card">
+    <div class="error-icon">
+      <svg width="48" height="48" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+      </svg>
+    </div>
+    
+    <h2 class="error-title">{{ processingMessage() }}</h2>
+    
+    <div class="action-buttons">
+      <button (click)="goToLogin()" class="primary-button">
+        Back to Login
+      </button>
     </div>
   </div>
+</div>
+
+<style>
+  @keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+  }
+</style>
