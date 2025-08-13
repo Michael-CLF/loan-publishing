@@ -76,53 +76,60 @@ export class AppComponent implements OnInit, OnDestroy {
     const currentUrl = window.location.href;
     if (currentUrl.includes('/__/auth/action')) {
       console.log('📧 Skipping email link check in app.component - handled by route');
-      return;
-    }
-    // Only check for email links on other pages (for backward compatibility)
-    this.authService.handleEmailLinkAuthentication().subscribe({
-      next: (result) => {
-        if (result.success && result.user) {
-          console.log('✅ Email link authentication successful');
+      console.log('🔐 Firebase auth action detected, completing sign-in...');
 
-          // ✅ Verify account exists and has proper access
-          this.authService.checkAccountExists(result.user.email!).subscribe({
-            next: (accountInfo) => {
-              if (!accountInfo.exists) {
-                console.error('❌ Account not found after auth');
+      // Only check for email links on other pages (for backward compatibility)
+      this.authService.handleEmailLinkAuthentication().subscribe({
+        next: (result) => {
+          if (result.success && result.user) {
+            console.log('✅ Email link authentication successful');
+
+            // ✅ Verify account exists and has proper access
+            this.authService.checkAccountExists(result.user.email!).subscribe({
+              next: (accountInfo) => {
+                if (!accountInfo.exists) {
+                  console.error('❌ Account not found after auth');
+                  this.router.navigate(['/login'], {
+                    queryParams: { error: 'Account not found. Please contact support.' }
+                  });
+                  return;
+                }
+                if (currentUrl.includes('/registration-processing')) {
+                  console.log('📧 On registration-processing page, skipping email link check');
+                  return;
+                }
+                if (accountInfo.needsPayment) {
+                  console.error('❌ Account needs payment');
+                  this.router.navigate(['/login'], {
+                    queryParams: { error: 'Payment required to access your account.' }
+                  });
+                  return;
+                }
+
+                // ✅ SUCCESS: Redirect to dashboard
+                console.log('✅ Email link auth complete, redirecting to dashboard');
+                this.router.navigate(['/dashboard']);
+              },
+              error: (error) => {
+                console.error('❌ Error validating account:', error);
                 this.router.navigate(['/login'], {
-                  queryParams: { error: 'Account not found. Please contact support.' }
+                  queryParams: { error: 'Unable to verify account. Please try again.' }
                 });
-                return;
               }
-              if (accountInfo.needsPayment) {
-                console.error('❌ Account needs payment');
-                this.router.navigate(['/login'], {
-                  queryParams: { error: 'Payment required to access your account.' }
-                });
-                return;
-              }
-              // ✅ SUCCESS: Redirect to dashboard
-              console.log('✅ Email link auth complete, redirecting to dashboard');
-              this.router.navigate(['/dashboard']);
-            },
-            error: (error) => {
-              console.error('❌ Error validating account:', error);
-              this.router.navigate(['/login'], {
-                queryParams: { error: 'Unable to verify account. Please try again.' }
-              });
-            }
-          });
-        } else if (result.error && result.error !== 'Not an email link') {
-          console.error('❌ Email link authentication failed:', result.error);
-          // Don't redirect on email link failure - let the login page handle it
+            });
+          } else if (result.error && result.error !== 'Not an email link') {
+            console.error('❌ Email link authentication failed:', result.error);
+            // Don't redirect on email link failure - let the login page handle it
+          }
+          // If it's not an email link, do nothing (normal app startup)
+        },
+        error: (error) => {
+          console.error('❌ Email link handling error:', error);
         }
-        // If it's not an email link, do nothing (normal app startup)
-      },
-      error: (error) => {
-        console.error('❌ Email link handling error:', error);
-      }
-    });
+      });
+    }
   }
+
   ngOnDestroy(): void {
     // ✅ Angular 18 Best Practice: Proper cleanup
     this.destroy$.next();
