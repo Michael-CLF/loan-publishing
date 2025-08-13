@@ -1,8 +1,7 @@
 // src/app/services/auth.service.ts
 import { Injectable, inject } from '@angular/core';
 import { Observable, of, from, BehaviorSubject } from 'rxjs';
-import { map, shareReplay, switchMap, catchError, tap } from 'rxjs/operators'; // ✅ ADD tap here
-
+import { map, shareReplay, switchMap, catchError, tap, take } from 'rxjs/operators';
 import {
   Auth,
   User,
@@ -111,19 +110,22 @@ export class AuthService {
   }
 
 sendLoginLink(email: string): Observable<void> {
+  const normalized = email.toLowerCase().trim();
   const actionCodeSettings = {
-    url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(email.toLowerCase().trim())}`,
+    url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(normalized)}`,
     handleCodeInApp: true,
   };
 
   console.log('🔗 Sending magic link with settings:', actionCodeSettings);
 
-  return from(sendSignInLinkToEmail(this.auth, email, actionCodeSettings)).pipe(
+  return from(sendSignInLinkToEmail(this.auth, normalized, actionCodeSettings)).pipe(
     map(() => {
-      // Store email for sign-in completion
-      localStorage.setItem('emailForSignIn', email.toLowerCase().trim());
-      console.log('✅ Email link sent successfully');
+      // Store email for same-device sign-in completion
+      localStorage.setItem('emailForSignIn', normalized);
+
     }),
+
+    
     catchError((error) => {
       console.error('❌ Error sending login link:', error);
       throw error;
@@ -176,34 +178,30 @@ sendLoginLink(email: string): Observable<void> {
     return of({ success: false, error: 'Not an email link' });
   }
 
-  // Extract email from the continueUrl parameter in the magic link
-  let email: string | null = null;
-  
-  // Parse the continueUrl to get the email
-  const urlObj = new URL(url);
-  const continueUrl = urlObj.searchParams.get('continueUrl');
-  
-  if (continueUrl) {
-    try {
-      const continueUrlObj = new URL(decodeURIComponent(continueUrl));
-      email = continueUrlObj.searchParams.get('email');
-      console.log('📧 Extracted email from continueUrl:', email);
-    } catch (e) {
-      console.error('Failed to parse continueUrl:', e);
-    }
+ // Extract email from the continueUrl parameter in the magic link (different-device case)
+let emailFromUrl = '';
+try {
+  const outer = new URL(url);
+  const cont = outer.searchParams.get('continueUrl');
+  if (cont) {
+    const inner = new URL(decodeURIComponent(cont));
+    emailFromUrl = (inner.searchParams.get('email') ?? '').trim();
   }
-  
-  // Fallback to localStorage if not in URL
-  if (!email) {
-    email = localStorage.getItem('emailForSignIn');
-  }
-  
-  if (!email) {
-    console.error('❌ No email found for magic link authentication');
-    return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
-  }
+} catch (e) {
+  console.error('Failed to parse continueUrl:', e);
+}
 
-  return from(signInWithEmailLink(this.auth, email, url)).pipe(
+// Prefer same-device stored email, else parsed from URL
+const stored = (localStorage.getItem('emailForSignIn') ?? '').trim();
+const normalized = (stored || emailFromUrl).toLowerCase();
+
+if (!normalized) {
+  console.error('❌ No email found for magic link authentication');
+  return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
+}
+
+return from(signInWithEmailLink(this.auth, normalized, url)).pipe(
+
     map((userCredential) => {
       // Clear stored email
       localStorage.removeItem('emailForSignIn');

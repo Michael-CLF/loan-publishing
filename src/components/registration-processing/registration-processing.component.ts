@@ -1,3 +1,4 @@
+// registration-processing.component.ts
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, ActivatedRoute } from '@angular/router';
@@ -11,7 +12,6 @@ import { take } from 'rxjs/operators';
   templateUrl: './registration-processing.component.html',
   styleUrls: ['./registration-processing.component.css'],
 })
-
 export class RegistrationProcessingComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -19,227 +19,195 @@ export class RegistrationProcessingComponent implements OnInit {
 
   // UI state
   showProcessingSpinner = signal<boolean>(true);
-  showSuccessMessage = signal<boolean>(false);
-  showErrorMessage = signal<boolean>(false);
-  processingMessage = signal<string>('');
+  showSuccessMessage   = signal<boolean>(false);
+  showErrorMessage     = signal<boolean>(false);
+  processingMessage    = signal<string>('');
 
   // Extra context from Stripe success/cancel return
   email = signal<string | null>(null);
-  role = signal<'lender' | 'originator' | null>(null);
-  uid = signal<string | null>(null);
+  role  = signal<'lender' | 'originator' | null>(null);
+  uid   = signal<string | null>(null);
 
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
 
-    // NEW: Handle Firebase auth action (when Firebase redirects here)
-    const url = window.location.href;
-    const isFirebaseAuthAction = url.includes('/__/auth/action');
-    
-    if (isFirebaseAuthAction && url.includes('mode=signIn')) {
-      // Firebase will auto-process the auth, just wait and check auth state
-      this.processingMessage.set('Completing authentication...');
-      this.showProcessingSpinner.set(true);
-      
-      // Give Firebase a moment to process, then check if user is authenticated
-      setTimeout(() => {
-        this.authService.getCurrentFirebaseUser()
-          .pipe(take(1))
-          .subscribe(user => {
-            if (user) {
-              console.log('✅ User authenticated:', user.email);
-              
-              // Check if this is a new user by checking their subscription status
-              this.authService.checkAccountExists(user.email!).subscribe({
-                next: (accountInfo) => {
-                  if (accountInfo.exists && accountInfo.subscriptionStatus === 'inactive') {
-                    console.log('🆕 New user detected - waiting for account activation');
-                    this.processingMessage.set('Setting up your account...');
-                    
-                    // Poll for subscription status to become active
-                    this.pollForAccountActivation(user.email!, 0);
-                  } else if (accountInfo.exists && !accountInfo.needsPayment) {
-                    // Existing active user - redirect immediately
-                    console.log('✅ Active user, redirecting to dashboard');
-                    this.router.navigate(['/dashboard']);
-                  } else {
-                    // Unexpected state
-                    this.processingMessage.set('Account setup incomplete. Please contact support.');
-                    this.showErrorMessage.set(true);
-                    this.showProcessingSpinner.set(false);
-                  }
-                },
-                error: (error) => {
-                  console.error('❌ Error checking account status:', error);
-                  this.processingMessage.set('Error verifying account. Please try again.');
-                  this.showErrorMessage.set(true);
-                  this.showProcessingSpinner.set(false);
-                }
-              });
-            } else {
-              // Authentication failed or not complete yet, try manual auth
-              console.log('⚠️ User not authenticated yet, attempting redirect');
-              
-              // Extract continueUrl to get to the redirect page
-              const urlObj = new URL(url);
-              const continueUrl = urlObj.searchParams.get('continueUrl');
-              if (continueUrl) {
-                // Redirect to the continue URL (registration-processing with ml=1)
-                window.location.href = decodeURIComponent(continueUrl);
-              } else {
-                this.processingMessage.set('Authentication failed. Please request a new link.');
-                this.showErrorMessage.set(true);
-                this.showProcessingSpinner.set(false);
-              }
-            }
-          });
-      }, 600); 
-      return;
-    }
-
-    // capture context for UI / resend, etc.
+    // Capture context for UI / resend, etc.
     this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
     const r = qp.get('role');
     this.role.set(r === 'lender' || r === 'originator' ? r : null);
     this.uid.set(qp.get('uid'));
 
-    // Check if this is a redirect AFTER Firebase has already authenticated
-    const isMagicLinkReturn = qp.get('ml') === '1';
+    // 🔐 Magic-link handling (handleCodeInApp: true)
+    // If the current URL is a Firebase email sign-in link, consume it here.
+    const url = window.location.href;
+    const isMagicEmailLink = url.includes('mode=signIn') && url.includes('oobCode=');
 
-    if (isMagicLinkReturn) {
-  // User should already be authenticated by Firebase at this point
-  this.processingMessage.set('Loading your account...');
-  this.showSuccessMessage.set(false);
-  this.showErrorMessage.set(false);
-  this.showProcessingSpinner.set(true);
+    if (isMagicEmailLink) {
+      this.processingMessage.set('Completing secure sign-in…');
+      this.showProcessingSpinner.set(true);
 
-  // Give Firebase Auth more time to propagate the authentication state
-  let attempts = 0;
-  const maxAttempts = 5;
-  
-  const checkAuth = async () => {
-    attempts++;
-    
-    try {
-      // Force refresh the auth state
-      await this.authService.refreshCurrentUser();
-      
-      const user = await this.authService.getCurrentFirebaseUser()
-        .pipe(take(1))
-        .toPromise();
-
-      if (user) {
-        console.log('✅ User authenticated, checking account status');
-        
-        // For new users, check if account is active
-        this.authService.checkAccountExists(user.email!).subscribe({
-          next: (accountInfo) => {
-            if (accountInfo.subscriptionStatus === 'inactive') {
-              // New user - poll for activation
-              this.pollForAccountActivation(user.email!, 0);
-            } else {
-              // Active user - go to dashboard
-              console.log('✅ Active user, redirecting to dashboard');
-              this.router.navigate(['/dashboard']);
-            }
-          },
-          error: () => {
-            this.processingMessage.set('Error verifying account. Please try again.');
+      this.authService.handleEmailLinkAuthentication().pipe(take(1)).subscribe({
+        next: ({ success, user, error }) => {
+          if (!success) {
+            console.error('Magic link not consumed:', error);
+            this.processingMessage.set('Authentication link error. Please request a new link.');
             this.showErrorMessage.set(true);
             this.showProcessingSpinner.set(false);
+            return;
           }
-        });
-      } else if (attempts < maxAttempts) {
-        // Try again after a delay
-        console.log(`⏳ Auth not ready, attempt ${attempts}/${maxAttempts}`);
-        setTimeout(checkAuth, 1000);
-      } else {
-        // Failed after max attempts
-        this.processingMessage.set('Authentication failed. Please request a new link.');
-        this.showErrorMessage.set(true);
-        this.showProcessingSpinner.set(false);
-      }
-    } catch (e) {
-      if (attempts < maxAttempts) {
-        setTimeout(checkAuth, 1000);
-      } else {
-        this.processingMessage.set('Authentication failed. Please request a new link.');
-        this.showErrorMessage.set(true);
-        this.showProcessingSpinner.set(false);
-      }
-    }
-  };
-  
-  // Start checking after a brief delay
-  setTimeout(checkAuth, 600);
-  return;
-}
-}
 
-  // This method is OUTSIDE ngOnInit, as a separate class method
+          // Derive a guaranteed string email (same-device or different-device)
+          const email = (user?.email ?? qp.get('email') ?? '').trim();
+          if (!email) {
+            console.error('Could not determine user email after magic link.');
+            this.processingMessage.set(
+              'We could not confirm your email. Please open the link from the same device or request a new link.'
+            );
+            this.showErrorMessage.set(true);
+            this.showProcessingSpinner.set(false);
+            return;
+          }
+
+          // Auth completed — verify account and route
+          this.afterAuth(email);
+        },
+        error: (err) => {
+          console.error('Error handling magic link:', err);
+          this.processingMessage.set('Authentication link error. Please request a new link.');
+          this.showErrorMessage.set(true);
+          this.showProcessingSpinner.set(false);
+        },
+      });
+
+      // Stop here so any legacy branches don’t also run
+      return;
+    }
+
+    // Fallback: page reached with ?ml=1 (not a magic link URL). If the user
+    // is already authenticated, finish the flow; otherwise show the normal post-Stripe UI.
+    const isMagicLinkReturn = qp.get('ml') === '1';
+    if (isMagicLinkReturn) {
+      this.processingMessage.set('Loading your account…');
+      this.showProcessingSpinner.set(true);
+
+      this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
+        next: (user) => {
+          if (user?.email) {
+            this.afterAuth(user.email);
+          } else {
+            // Not signed in yet — instruct the user to click the email link
+            this.processingMessage.set('Please open the email link we sent to finish signing in.');
+            this.showProcessingSpinner.set(false);
+            this.showSuccessMessage.set(true);
+          }
+        },
+        error: () => {
+          this.processingMessage.set('Unable to verify sign-in. Please try the email link again.');
+          this.showProcessingSpinner.set(false);
+          this.showErrorMessage.set(true);
+        },
+      });
+
+      return;
+    }
+
+    // Default (post-Stripe success screen prompting for email link)
+    this.processingMessage.set('Registration complete. Check your email to finish sign-in.');
+    this.showProcessingSpinner.set(false);
+    this.showSuccessMessage.set(true);
+  }
+
+  /**
+   * After Firebase Auth is true, verify account status and route accordingly.
+   */
+  private afterAuth(email: string): void {
+    this.processingMessage.set('Verifying your account…');
+    this.showErrorMessage.set(false);
+    this.showSuccessMessage.set(false);
+    this.showProcessingSpinner.set(true);
+
+    this.authService.checkAccountExists(email).subscribe({
+      next: (accountInfo) => {
+        if (accountInfo.exists && (accountInfo.subscriptionStatus === 'active' || accountInfo.subscriptionStatus === 'grandfathered' || !accountInfo.needsPayment)) {
+          // Active → dashboard
+          this.router.navigate(['/dashboard']);
+          return;
+        }
+
+        if (accountInfo.exists && accountInfo.subscriptionStatus === 'inactive') {
+          // Newly created but not active yet — poll until webhook flips to active
+          this.processingMessage.set('Setting up your account. Please wait.');
+          this.pollForAccountActivation(email, 0);
+          return;
+        }
+
+        // Unexpected state
+        this.processingMessage.set('Account setup incomplete. Please contact support.');
+        this.showErrorMessage.set(true);
+        this.showProcessingSpinner.set(false);
+      },
+      error: (err) => {
+        console.error('Error verifying account after auth:', err);
+        this.processingMessage.set('Error verifying account. Please try again.');
+        this.showErrorMessage.set(true);
+        this.showProcessingSpinner.set(false);
+      },
+    });
+  }
+
+  /**
+   * Poll Firestore for the subscription to become active (webhook delay).
+   */
   private pollForAccountActivation(email: string, attemptCount: number): void {
-    const MAX_ATTEMPTS = 20; // Poll for up to 60 seconds (20 * 3 seconds)
-    const POLL_INTERVAL = 3000; // Check every 3 seconds
-    
+    const MAX_ATTEMPTS = 20;   // ~60s (20 * 3s)
+    const POLL_INTERVAL = 3000;
+
     if (attemptCount >= MAX_ATTEMPTS) {
-      console.error('❌ Account activation timeout');
-      this.processingMessage.set('Account setup is taking longer than expected. Please try refreshing the page or contact support.');
+      console.error('Account activation timeout');
+      this.processingMessage.set(
+        'Account setup is taking longer than expected. Please refresh the page or contact support.'
+      );
       this.showErrorMessage.set(true);
       this.showProcessingSpinner.set(false);
       return;
     }
-    
-    // Check account status
+
     this.authService.checkAccountExists(email).subscribe({
       next: (accountInfo) => {
-        console.log(`🔄 Polling attempt ${attemptCount + 1}: Status = ${accountInfo.subscriptionStatus}`);
-        
         if (accountInfo.subscriptionStatus === 'active' || accountInfo.subscriptionStatus === 'grandfathered') {
-          // Success! Account is now active
-          console.log('✅ Account activated successfully!');
-          this.processingMessage.set('Account ready! Redirecting to dashboard...');
-          
-          // Small delay for user to see the success message
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 1000);
-        } else if (accountInfo.subscriptionStatus === 'inactive') {
-          // Still waiting for webhook to complete
-          console.log('⏳ Still waiting for account activation...');
-          
-          // Update message every few attempts to show progress
-          if (attemptCount % 3 === 0) {
-            this.processingMessage.set('Setting up your account... Please wait...');
-          }
-          
-          // Continue polling
-          setTimeout(() => {
-            this.pollForAccountActivation(email, attemptCount + 1);
-          }, POLL_INTERVAL);
-        } else {
-          // Unexpected status
-          console.error('❌ Unexpected subscription status:', accountInfo.subscriptionStatus);
-          this.processingMessage.set('Account setup error. Please contact support.');
-          this.showErrorMessage.set(true);
-          this.showProcessingSpinner.set(false);
+          this.processingMessage.set('Account ready! Redirecting to dashboard…');
+          setTimeout(() => this.router.navigate(['/dashboard']), 800);
+          return;
         }
+
+        if (accountInfo.subscriptionStatus === 'inactive') {
+          if (attemptCount % 3 === 0) {
+            this.processingMessage.set('Setting up your account… Please wait…');
+          }
+          setTimeout(() => this.pollForAccountActivation(email, attemptCount + 1), POLL_INTERVAL);
+          return;
+        }
+
+        // Unexpected status
+        console.error('Unexpected subscription status:', accountInfo.subscriptionStatus);
+        this.processingMessage.set('Account setup error. Please contact support.');
+        this.showErrorMessage.set(true);
+        this.showProcessingSpinner.set(false);
       },
       error: (error) => {
-        console.error('❌ Error polling account status:', error);
-        
-        // Retry on error up to max attempts
+        console.error('Error polling account status:', error);
         if (attemptCount < MAX_ATTEMPTS - 1) {
-          setTimeout(() => {
-            this.pollForAccountActivation(email, attemptCount + 1);
-          }, POLL_INTERVAL);
+          setTimeout(() => this.pollForAccountActivation(email, attemptCount + 1), POLL_INTERVAL);
         } else {
           this.processingMessage.set('Unable to verify account status. Please refresh the page.');
           this.showErrorMessage.set(true);
           this.showProcessingSpinner.set(false);
         }
-      }
+      },
     });
   }
 
+  // Utility navigation helpers (kept from your version)
   goToPricing(): void {
     this.router.navigate(['/pricing']);
   }
@@ -247,13 +215,12 @@ export class RegistrationProcessingComponent implements OnInit {
   goToLogin(): void {
     this.router.navigate(['/login']);
   }
-  
+
   refreshPage(): void {
-  // Navigate to current route to trigger a clean reload
-  this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
-    this.router.navigate(['/registration-processing'], { 
-      queryParams: this.route.snapshot.queryParams 
+    this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
+      this.router.navigate(['/registration-processing'], {
+        queryParams: this.route.snapshot.queryParams,
+      });
     });
-  });
-}
+  }
 }
