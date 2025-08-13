@@ -19,14 +19,14 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
   // UI state
   showProcessingSpinner = signal<boolean>(true);
-  showSuccessMessage   = signal<boolean>(false);
-  showErrorMessage     = signal<boolean>(false);
-  processingMessage    = signal<string>('');
+  showSuccessMessage = signal<boolean>(false);
+  showErrorMessage = signal<boolean>(false);
+  processingMessage = signal<string>('');
 
-  // Context from Stripe return (used for UI/resend)
+  // Context from Stripe return
   email = signal<string | null>(null);
-  role  = signal<'lender' | 'originator' | null>(null);
-  uid   = signal<string | null>(null);
+  role = signal<'lender' | 'originator' | null>(null);
+  uid = signal<string | null>(null);
 
   // Timer used only on the post-Stripe success screen
   private redirectTimerId: number | null = null;
@@ -40,13 +40,13 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     const qp = this.route.snapshot.queryParamMap;
 
-    // capture context for UI / resend, etc.
+    // Capture context (for UI / resend)
     this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
     const r = qp.get('role');
     this.role.set(r === 'lender' || r === 'originator' ? r : null);
     this.uid.set(qp.get('uid'));
 
-    // ---- Magic-link handling (handleCodeInApp: true) ----
+    // ---- Direct magic-link URL (contains oobCode) ----
     const href = window.location.href;
     const isMagicEmailLink = (href.includes('mode=SignIn') || href.includes('mode=signIn')) && href.includes('oobCode=');
 
@@ -83,34 +83,52 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
         }
       });
 
-      return; // stop — rest continues after sign-in
-    }
-
-    // ---- Return with ?ml=1 (already signed in) ----
-    const isMagicLinkReturn = qp.get('ml') === '1';
-    if (isMagicLinkReturn) {
-      this.processingMessage.set('Loading your account…');
-      this.showProcessingSpinner.set(true);
-
-      this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
-        next: (user) => {
-          if (user?.email) {
-            this.afterAuth(user.email);
-          } else {
-            this.showCheckEmailScreenWithRedirect();
-          }
-        },
-        error: () => {
-          this.processingMessage.set('Unable to verify sign-in. Please try the email link again.');
-          this.showProcessingSpinner.set(false);
-          this.showErrorMessage.set(true);
-        }
-      });
-
       return;
     }
 
-    // ---- Default (post-Stripe success screen prompting for email link) ----
+    // ---- Magic-link return (?ml=1) — wait briefly for auth instead of showing success card ----
+    const isMagicLinkReturn = qp.get('ml') === '1';
+    if (isMagicLinkReturn) {
+      this.clearRedirectTimer();
+      this.processingMessage.set('Completing sign-in…');
+      this.showProcessingSpinner.set(true);
+
+      let attempts = 0;
+      const MAX_ATTEMPTS = 8;     // ~5–6s total
+      const DELAY_MS = 700;
+
+      const checkAuth = () => {
+        attempts++;
+        this.authService.refreshCurrentUser().then(() => {
+          this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
+            next: (user) => {
+              if (user?.email) {
+                this.afterAuth(user.email);
+              } else if (attempts < MAX_ATTEMPTS) {
+                setTimeout(checkAuth, DELAY_MS);
+              } else {
+                // Auth never arrived — fall back to the post-Stripe screen
+                this.showCheckEmailScreenWithRedirect();
+              }
+            },
+            error: () => {
+              if (attempts < MAX_ATTEMPTS) {
+                setTimeout(checkAuth, DELAY_MS);
+              } else {
+                this.processingMessage.set('Unable to verify sign-in. Please try the email link again.');
+                this.showProcessingSpinner.set(false);
+                this.showErrorMessage.set(true);
+              }
+            }
+          });
+        });
+      };
+
+      checkAuth();
+      return;
+    }
+
+    // ---- Default (post-Stripe success) ----
     this.showCheckEmailScreenWithRedirect();
   }
 
@@ -118,7 +136,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     this.clearRedirectTimer();
   }
 
-  // Show the “check your email” screen and schedule a safe redirect to home
+  // Shows the post-Stripe “check your email” card and safely redirects to home.
   private showCheckEmailScreenWithRedirect(): void {
     this.processingMessage.set('Registration Completed Successfully. Check your email to finish sign-in.');
     this.showProcessingSpinner.set(false);
@@ -126,7 +144,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
     this.clearRedirectTimer();
     this.redirectTimerId = window.setTimeout(() => {
-      // Only redirect if we’re still on this page (prevents pulling user off /dashboard)
+      // Only redirect if we’re still on this page (prevents pulling the user off /dashboard)
       if (this.router.url.startsWith('/registration-processing')) {
         this.router.navigateByUrl('/', { replaceUrl: true }).catch(() => {
           window.location.href = '/';
@@ -145,9 +163,12 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
     this.authService.checkAccountExists(email).subscribe({
       next: (accountInfo) => {
-        if (accountInfo.exists && (accountInfo.subscriptionStatus === 'active'
-          || accountInfo.subscriptionStatus === 'grandfathered'
-          || !accountInfo.needsPayment)) {
+        if (
+          accountInfo.exists &&
+          (accountInfo.subscriptionStatus === 'active' ||
+            accountInfo.subscriptionStatus === 'grandfathered' ||
+            !accountInfo.needsPayment)
+        ) {
           this.router.navigate(['/dashboard']);
           return;
         }
@@ -173,7 +194,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
   // Poll Firestore for the subscription to become active (webhook delay).
   private pollForAccountActivation(email: string, attemptCount: number): void {
-    const MAX_ATTEMPTS = 20;   // ~60s
+    const MAX_ATTEMPTS = 20;     // ~60s
     const POLL_INTERVAL = 3000;
 
     if (attemptCount >= MAX_ATTEMPTS) {
@@ -185,6 +206,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
 
     this.authService.checkAccountExists(email).subscribe({
       next: (accountInfo) => {
+        // ✅ corrected
         if (accountInfo.subscriptionStatus === 'active' || accountInfo.subscriptionStatus === 'grandfathered') {
           this.processingMessage.set('Account ready! Redirecting to dashboard…');
           this.clearRedirectTimer();
@@ -216,15 +238,9 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Utility navigation helpers
-  goToPricing(): void {
-    this.router.navigate(['/pricing']);
-  }
-
-  goToLogin(): void {
-    this.router.navigate(['/login']);
-  }
-
+  // Optional helpers used by the template
+  goToPricing(): void { this.router.navigate(['/pricing']); }
+  goToLogin(): void { this.router.navigate(['/login']); }
   refreshPage(): void {
     this.router.navigateByUrl('/', { skipLocationChange: true }).then(() => {
       this.router.navigate(['/registration-processing'], {
