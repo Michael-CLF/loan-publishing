@@ -111,6 +111,50 @@
 
                 <div class="detail-section">
                     <h3 class="section-title">Contact Information</h3>
+                    <!-- Add this right after the Contact Information h3 -->
+<div class="detail-section">
+    <h3 class="section-title">Contact Information</h3>
+    
+    <!-- 🔍 DEBUG SECTION - Remove after fixing -->
+    <div style="background: #ffe6e6; border: 2px solid #ff4444; padding: 15px; margin: 10px 0; border-radius: 5px;">
+        <h4 style="color: #cc0000; margin: 0 0 10px 0;">🔍 DEBUG INFO</h4>
+        <div style="font-family: monospace; font-size: 12px; line-height: 1.4;">
+            <strong>user() signal status:</strong><br>
+            • Is user() truthy: {{ !!user() }}<br>
+            • user() value: <pre style="background: #f0f0f0; padding: 5px; margin: 5px 0;">{{ user() | json }}</pre>
+            
+            <strong>Individual property checks:</strong><br>
+            • firstName exists: {{ !!user()?.firstName }} | Value: "{{ user()?.firstName }}"<br>
+            • lastName exists: {{ !!user()?.lastName }} | Value: "{{ user()?.lastName }}"<br>
+            • company exists: {{ !!user()?.company }} | Value: "{{ user()?.company }}"<br>
+            • email exists: {{ !!user()?.email }} | Value: "{{ user()?.email }}"<br>
+            • phone exists: {{ !!user()?.phone }} | Value: "{{ user()?.phone }}"<br>
+            
+            <strong>Alternative signal checks:</strong><br>
+            • originatorDetails() exists: {{ !!originatorDetails() }}<br>
+            • originatorDetails() value: <pre style="background: #f0f0f0; padding: 5px; margin: 5px 0;">{{ originatorDetails() | json }}</pre>
+        </div>
+    </div>
+    <!-- 🔍 END DEBUG SECTION -->
+    
+    <!-- Your existing contact rows -->
+    <div class="detail-row" *ngIf="user()?.firstName || user()?.lastName">
+        <span class="detail-label">Contact:</span>
+        <span class="detail-value">{{ user()?.firstName }} {{ user()?.lastName }}</span>
+    </div>
+    <div class="detail-row" *ngIf="user()?.company">
+        <span class="detail-label">Company:</span>
+        <span class="detail-value">{{ user()?.company }}</span>
+    </div>
+    <div class="detail-row" *ngIf="user()?.email">
+        <span class="detail-label">Email:</span>
+        <span class="detail-value">{{ user()?.email }}</span>
+    </div>
+    <div class="detail-row" *ngIf="user()?.phone">
+        <span class="detail-label">Phone:</span>
+        <span class="detail-value">{{ formatPhoneNumber(user()?.phone) }}</span>
+    </div>
+</div>
                     <div class="detail-row" *ngIf="user()?.firstName || user()?.lastName">
                         <span class="detail-label">Contact:</span>
                         <span class="detail-value">{{ user()?.firstName }} {{ user()?.lastName }}</span>
