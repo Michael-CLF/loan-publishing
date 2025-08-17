@@ -236,7 +236,7 @@ async loadCurrentUserData(): Promise<void> {
   });
 }
 
-// 👇 ADD THIS NEW METHOD HERE
+// Find this method and replace it
 loadLoanCreatorData(creatorId: string): void {
   if (!creatorId) {
     console.log('No creator ID available for this loan');
@@ -245,20 +245,19 @@ loadLoanCreatorData(creatorId: string): void {
 
   console.log('Loading loan creator (originator) data for ID:', creatorId);
 
-  // Use the proven auth service method that already works
   this.authService.getUserProfile(creatorId).subscribe({
     next: (profile) => {
       if (profile) {
         console.log('Found originator profile:', profile);
 
-        // Map to your User interface using the same logic as navbar
+        // FIX: Map the nested contactInfo fields correctly
         const user: User = {
           uid: profile.id,
           firstName: profile.contactInfo?.firstName || profile.firstName || '',
           lastName: profile.contactInfo?.lastName || profile.lastName || '',
-          email: profile.contactInfo?.contactEmail || profile.email || '',
+          email: profile.contactInfo?.contactEmail || profile.email || '',  // ← CHANGED
           company: profile.contactInfo?.company || profile.company || '',
-          phone: profile.contactInfo?.contactPhone || profile.phone || '',
+          phone: profile.contactInfo?.contactPhone || profile.phone || '',  // ← CHANGED
           city: profile.contactInfo?.city || profile.city || '',
           state: profile.contactInfo?.state || profile.state || '',
           role: profile.role || 'originator',
