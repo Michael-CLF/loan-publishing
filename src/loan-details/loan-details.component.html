@@ -140,7 +140,7 @@
     <!-- Your existing contact rows -->
     <div class="detail-row" *ngIf="user()?.firstName || user()?.lastName">
         <span class="detail-label">Contact:</span>
-        <span class="detail-value">{{ user()?.firstName }} {{ user()?.lastName }}</span>
+        <span class="detail-value">{{ userData.firstName }} {{ userData.lastName }}</span>
     </div>
     <div class="detail-row" *ngIf="user()?.company">
         <span class="detail-label">Company:</span>
