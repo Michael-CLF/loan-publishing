@@ -3,46 +3,31 @@
     <img class="nav-image" src="assets/images/DLP_LOGO_Fav.webp" alt="DLP Logo" />
   </div>
 
-  <!-- Single navigation container for all nav items -->
-  <div class="navbar-navigation">
-    <!-- Lenders link -->
-    <a *ngIf="isLoggedIn && userRole === 'originator'" 
-       routerLink="/lender-list" 
-       class="nav-link">
-      Lenders
-    </a>
+  <div class="navbar-actions" style="width: 30%;">
+    <!-- Keep your exact original structure, just group navigation items together -->
+    <div class="nav-menu">
+      <a *ngIf="isLoggedIn && userRole === 'originator'" routerLink="/lender-list"
+        class="all-loans">Lenders</a>
+      <a *ngIf="isLoggedIn && userRole === 'lender'" routerLink="/loans" class="all-loans">Loans</a>
+    </div>
 
-    <!-- Loans link -->
-    <a *ngIf="isLoggedIn && userRole === 'lender'" 
-       routerLink="/loans" 
-       class="nav-link all-loans">
-      Loans
-    </a>
+    <div *ngIf="isLoggedIn" class="auth-links">
+      <a routerLink="/login" class="login-btn" id="login">Log In</a>
+      <a routerLink="/pricing" class="pricing" id="view-pricing">Pricing</a>
+    </div>
 
-    <!-- Dashboard link -->
-    <a *ngIf="isLoggedIn" 
-       [routerLink]="userRole === 'lender' ? '/dashboard' : '/dashboard'" 
-       class="nav-link dashboard-link">
-      Dashboard
-    </a>
+    <div *ngIf="isLoggedIn" class="user-menu">
+      <a [routerLink]="userRole === 'lender' ? '/dashboard' : '/dashboard'" class="dashboard-link">
+        Dashboard
+      </a>
+    </div>
 
-    <!-- Contact link -->
-    <a routerLink="/contact" 
-       class="nav-link contact-btn" 
-       id="contact">
-      Contact
-    </a>
-
-    <!-- My Account dropdown -->
-    <div *ngIf="isLoggedIn" class="account-dropdown-wrapper">
-      <button type="button" 
-              (click)="toggleAccountDropdown($event)" 
-              class="nav-link account-link"
-              id="my-account-btn">
+    <div class="account-dropdown">
+      <button type="button" (click)="toggleAccountDropdown($event)" class="account-link"
+        id="my-account-btn">
         My Account
       </button>
 
-      <!-- Dropdown content -->
       <div *ngIf="isDropdownOpen" class="dropdown-content">
         <div *ngIf="loading" class="dropdown-loading">Loading...</div>
         
@@ -68,10 +53,8 @@
       </div>
     </div>
 
-    <!-- Auth links for non-logged in users -->
-    <div *ngIf="!isLoggedIn" class="auth-links">
-      <a routerLink="/login" class="nav-link login-btn" id="login">Log In</a>
-      <a routerLink="/pricing" class="nav-link pricing" id="view-pricing">Pricing</a>
+    <div class="contact">
+      <a routerLink="/contact" class="contact-btn" id="contact">Contact</a>
     </div>
   </div>
 </div>
