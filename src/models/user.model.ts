@@ -21,6 +21,82 @@ export interface UserData {
   [key: string]: any; // Allow for additional properties
 }
 
+export interface UserProfile {
+  id?: string;
+  userId?: string;
+  role: 'lender' | 'originator' ;
+  
+  // Contact information in nested structure
+  contactInfo?: {
+    firstName: string;
+    lastName: string;
+    contactEmail: string;
+    contactPhone: string;
+    company: string;
+    city: string;
+    state: string;
+  };
+
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  company?: string;
+  city?: string;
+  state?: string;
+  
+  // Subscription and metadata
+  subscriptionStatus?: string;
+  createdAt?: any; // Firestore Timestamp
+  updatedAt?: any; // Firestore Timestamp
+  
+  // Lender-specific fields
+  productInfo?: {
+    lenderTypes: string[];
+    loanTypes: string[];
+    propertyCategories: string[];
+    minLoanAmount: number;
+    maxLoanAmount: number;
+  };
+  
+  footprintInfo?: {
+    lendingFootprint: string[]; // State abbreviations
+    states?: Record<string, boolean>; // State map
+  };
+}
+
+export function mapProfileToUser(profile: UserProfile): User {
+    return {
+      uid: profile.id || profile.userId || '',
+      firstName: profile.contactInfo?.firstName || profile.firstName || '',
+      lastName: profile.contactInfo?.lastName || profile.lastName || '',
+      email: profile.contactInfo?.contactEmail || profile.email || '',
+      company: profile.contactInfo?.company || profile.company || '',
+      phone: profile.contactInfo?.contactPhone || profile.phone || '',
+      city: profile.contactInfo?.city || profile.city || '',
+      state: profile.contactInfo?.state || profile.state || '',
+      role: profile.role || 'originator',
+      createdAt: profile.createdAt?.toDate ? profile.createdAt.toDate() : new Date(),
+    };
+  }
+
+   export function getFullName(user: User | null): string {
+    if (!user) return '';
+    const parts = [user.firstName, user.lastName].filter(Boolean);
+    return parts.join(' ').trim();
+  }
+
+  /**
+   * Formats a phone number for display
+   */
+  export function formatPhoneNumber(phone?: string): string {
+    if (!phone) return '';
+    const cleaned = phone.replace(/\D/g, '');
+    const match = cleaned.match(/^(\d{3})(\d{3})(\d{4})$/);
+    return match ? `(${match[1]}) ${match[2]}-${match[3]}` : phone;
+  }
+
+
 // Complete User interface with required fields for application use
 export interface User {
   uid: string;
