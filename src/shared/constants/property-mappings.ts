@@ -98,12 +98,15 @@ export const PROPERTY_SUBCATEGORIES: Record<string, string> = {
   'office:flex': 'Office/industrial',
 
   // Residential subcategories
-  'residential:1_4_units': '1-4 Units',
-  'residential:co_op': 'Co-op',
-  'residential:condominium': 'Condominium',
-  'residential:quadplex': 'Quadplex',
+  'residential:portfolio': 'Residential Portfolio',
   'residential:single_family': 'Single Family',
-  'residential:triplex': 'Triplex',
+  'residential:condo': 'Condominium',
+  'residential:coop': 'Co-op',
+  'residential:manufactured_home': 'Manufactured Home',
+  'residential:mobile_home_single_wide': 'Mobile Home Single Wide',
+  'residential:mobile_home_double_wide': 'Mobile Home Double Wide',
+  'residential:modular_home': 'Modular Home',
+  'residential:townhome': 'Townhome',
 
   // Retail subcategories
   'retail:anchored_center': 'Anchored Center',
