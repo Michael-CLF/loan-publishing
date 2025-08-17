@@ -1,59 +1,77 @@
-<nav class="navbar">
-    <div class="navbar-container">
-        <div class="navbar-logo">
-            <a routerLink="/">
-                <img class="nav-image" src="assets/images/DLP_LOGO_Fav.webp" alt="DLP Logo" />
-            </a>
+<div class="navbar-container">
+  <div class="navbar-logo">
+    <img class="nav-image" src="assets/images/DLP_LOGO_Fav.webp" alt="DLP Logo" />
+  </div>
+
+  <!-- Single navigation container for all nav items -->
+  <div class="navbar-navigation">
+    <!-- Lenders link -->
+    <a *ngIf="isLoggedIn && userRole === 'originator'" 
+       routerLink="/lender-list" 
+       class="nav-link">
+      Lenders
+    </a>
+
+    <!-- Loans link -->
+    <a *ngIf="isLoggedIn && userRole === 'lender'" 
+       routerLink="/loans" 
+       class="nav-link all-loans">
+      Loans
+    </a>
+
+    <!-- Dashboard link -->
+    <a *ngIf="isLoggedIn" 
+       [routerLink]="userRole === 'lender' ? '/dashboard' : '/dashboard'" 
+       class="nav-link dashboard-link">
+      Dashboard
+    </a>
+
+    <!-- Contact link -->
+    <a routerLink="/contact" 
+       class="nav-link contact-btn" 
+       id="contact">
+      Contact
+    </a>
+
+    <!-- My Account dropdown -->
+    <div *ngIf="isLoggedIn" class="account-dropdown-wrapper">
+      <button type="button" 
+              (click)="toggleAccountDropdown($event)" 
+              class="nav-link account-link"
+              id="my-account-btn">
+        My Account
+      </button>
+
+      <!-- Dropdown content -->
+      <div *ngIf="isDropdownOpen" class="dropdown-content">
+        <div *ngIf="loading" class="dropdown-loading">Loading...</div>
+        
+        <div *ngIf="userData && !loading" class="user-info">
+          <div class="user-name">{{ userData.firstName }} {{ userData.lastName }}</div>
+          <div class="user-email">{{ userData.email }}</div>
+          <div class="user-details">
+            <strong>Account #:</strong> {{ accountNumber | uppercase }}
+          </div>
+          <div class="user-details">
+            <strong>Phone:</strong> {{ formatPhoneNumber(userData.phone) }}
+          </div>
+          <div class="user-details">
+            <strong>Company:</strong> {{ userData.company }}
+          </div>
+          <div class="user-details">
+            <strong>Location:</strong> {{ userData.city }}, {{ userData.state }}
+          </div>
+          <button (click)="logout()" class="logout-button" id="logout">
+            Logout
+          </button>
         </div>
-
-
-        <div class="navbar-actions">
-            <div class="register" *ngIf="!isLoggedIn">
-                <a (click)="openRoleSelectionModal()" id="nav-register" class="nav-reg-btn">Register</a>
-            </div>
-
-            <div class="nav-menu">
-                <a *ngIf="isLoggedIn && userRole === 'originator'" routerLink="/lender-list"
-                    class="all-loans">Lenders</a>
-                <a *ngIf="isLoggedIn && userRole === 'lender'" routerLink="/loans" class="all-loans">Loans</a>
-            </div>
-
-            <div *ngIf="!isLoggedIn" class="auth-links">
-                <a routerLink="/login" class="login-btn" id="login">Log In</a>
-                <a routerLink="/pricing" class="pricing" id="view-pricing">Pricing</a>
-            </div>
-
-
-
-            <div *ngIf="isLoggedIn" class="user-menu">
-                <a [routerLink]="userRole === 'lender' ? '/dashboard' : '/dashboard'" class="dashboard-link">
-                    Dashboard
-                </a>
-
-                <div class="account-dropdown">
-                    <button type="button" (click)="toggleAccountDropdown($event)" class="account-link"
-                        id="my-account-btn">
-                        My Account
-                    </button>
-
-                    <div *ngIf="isDropdownOpen" class="dropdown-content">
-                        <div *ngIf="loading" class="dropdown-loading">Loading...</div>
-
-                        <div *ngIf="userData && !loading" class="user-info">
-                            <p class="user-name">{{ userData.firstName }} {{ userData.lastName }}</p>
-                            <p class="user-email">{{ userData.email }}</p>
-                            <p><strong>Account #:</strong> {{ accountNumber | uppercase }}</p>
-                            <p><strong>Phone:</strong> {{ formatPhoneNumber(userData.phone) }}</p>
-                            <p><strong>Company:</strong> {{ userData.company }}</p>
-                            <p><strong>Location:</strong> {{ userData.city }}, {{ userData.state }}</p>
-                            <button (click)="logout()" class="logout-button" id="logout">Logout</button>
-                        </div>
-                    </div>
-                    <div class="contact">
-                        <a routerLink="/contact" class="contact-btn" id="contact">Contact</a>
-                    </div>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
-</nav>
+
+    <!-- Auth links for non-logged in users -->
+    <div *ngIf="!isLoggedIn" class="auth-links">
+      <a routerLink="/login" class="nav-link login-btn" id="login">Log In</a>
+      <a routerLink="/pricing" class="nav-link pricing" id="view-pricing">Pricing</a>
+    </div>
+  </div>
+</div>
