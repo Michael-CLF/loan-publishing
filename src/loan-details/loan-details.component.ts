@@ -245,36 +245,50 @@ loadLoanCreatorData(creatorId: string): void {
 
   console.log('Loading loan creator (originator) data for ID:', creatorId);
 
-  this.authService.getUserProfile(creatorId).subscribe({
-    next: (profile) => {
-      if (profile) {
-        console.log('Found originator profile:', profile);
+  // ✅ Fetch directly from originators/{uid}, fallback to lenders/{uid}, then users/{uid}
+  this.firestoreService
+    .getDocument(`originators/${creatorId}`)
+    .pipe(
+      catchError((err) => {
+        console.warn('Originator not found in originators/, trying lenders/:', err);
+        return this.firestoreService.getDocument(`lenders/${creatorId}`);
+      }),
+      switchMap((maybeProfile) => {
+        if (maybeProfile) return of(maybeProfile);
+        console.warn('Not in lenders/, trying users/…');
+        return this.firestoreService.getDocument(`users/${creatorId}`);
+      })
+    )
+    .subscribe({
+      next: (profile: any | null) => {
+        if (!profile) {
+          console.log('No profile found for creator ID:', creatorId);
+          return;
+        }
 
-        // FIX: Map the nested contactInfo fields correctly
+        // Map nested contactInfo OR top-level fields
         const user: User = {
-          uid: profile.id,
-          firstName: profile.contactInfo?.firstName || profile.firstName || '',
-          lastName: profile.contactInfo?.lastName || profile.lastName || '',
-          email: profile.contactInfo?.contactEmail || profile.email || '',  // ← CHANGED
-          company: profile.contactInfo?.company || profile.company || '',
-          phone: profile.contactInfo?.contactPhone || profile.phone || '',  // ← CHANGED
-          city: profile.contactInfo?.city || profile.city || '',
-          state: profile.contactInfo?.state || profile.state || '',
-          role: profile.role || 'originator',
-          createdAt: profile.createdAt?.toDate() || new Date(),
+          uid: profile.id || creatorId,
+          firstName: profile.contactInfo?.firstName ?? profile.firstName ?? '',
+          lastName:  profile.contactInfo?.lastName  ?? profile.lastName  ?? '',
+          email:     profile.contactInfo?.contactEmail ?? profile.email ?? '',
+          company:   profile.contactInfo?.company ?? profile.company ?? '',
+          phone:     profile.contactInfo?.contactPhone ?? profile.phone ?? '',
+          city:      profile.contactInfo?.city ?? profile.city ?? '',
+          state:     profile.contactInfo?.state ?? profile.state ?? '',
+          role:      profile.role ?? 'originator',
+          createdAt: profile.createdAt?.toDate ? profile.createdAt.toDate() : (profile.createdAt ?? new Date()),
         };
 
         this.userData = user;
-        console.log('User data set successfully:', this.userData);
-      } else {
-        console.log('No profile found for creator ID:', creatorId);
+        console.log('User data set successfully from creator profile:', this.userData);
+      },
+      error: (error) => {
+        console.error('Error loading creator data:', error);
       }
-    },
-    error: (error) => {
-      console.error('Error loading creator data:', error);
-    }
-  });
+    });
 }
+
 
   loadOriginatorDetails(originatorId: string): void {
     console.log('Loading originator details for ID:', originatorId);
