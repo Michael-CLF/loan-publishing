@@ -81,7 +81,6 @@ async ngOnInit(): Promise<void> {
           );
 
           if (userProfile) {
-            this.userRole = (userProfile as any).role || null; // 🔁 Keep your existing logic
             await this.loadUserData(userProfile); // ✅ Use your existing method
           }
         } catch (err) {
@@ -92,6 +91,7 @@ async ngOnInit(): Promise<void> {
         // ✅ User is not logged in, clear data
         this.userData = null;
         this.accountNumber = '';
+        this.userRole = null;
         this.loading = false;
       }
     }
@@ -157,7 +157,11 @@ async loadUserData(user: User): Promise<void> {
       accountNumber: this.accountNumber,
     };
 
+    // ✅ Set userRole from the Firestore data
+    this.userRole = userProfile.role || null;
+
     console.log('NavbarComponent - Final userData:', this.userData);
+    console.log('NavbarComponent - userRole set to:', this.userRole);
     console.log('NavbarComponent - Original userProfile:', userProfile);
 
   } catch (error) {
@@ -168,6 +172,7 @@ async loadUserData(user: User): Promise<void> {
       email: user.email || 'Unknown email',
       accountNumber: user.uid?.substring(0, 8) || '',
     };
+    this.userRole = null;
   } finally {
     this.loading = false;
   }
@@ -193,6 +198,7 @@ async loadUserData(user: User): Promise<void> {
           console.log('NavbarComponent - Logout successful');
           this.userData = null;
           this.accountNumber = '';
+          this.userRole = null;
           this.isLoggedIn = false;
 
           localStorage.removeItem('isLoggedIn');
