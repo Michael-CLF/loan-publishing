@@ -219,18 +219,20 @@ return from(signInWithEmailLink(this.auth, normalized, url)).pipe(
   );
 }
 
-  getUserProfile(): Observable<any | null> {
+getUserProfile(userId?: string): Observable<any | null> {
     return this._user$.pipe(
       // ✅ ADD THIS DEBUG TAP
       tap(user => {
         console.log('🔍 GET USER PROFILE CALLED:', {
-          userId: user?.uid || 'none',
+          currentUserId: user?.uid || 'none',
+          requestedUserId: userId || 'using current user',
           timestamp: new Date().toISOString()
         });
       }),
       switchMap(user => {
-        if (!user?.uid) return of(null);
-        const uid = user.uid;
+        // Use provided userId or fall back to current user
+        const uid = userId || user?.uid;
+        if (!uid) return of(null);
 
         const lenderRef = doc(this.firestore, `lenders/${uid}`);
         const originRef = doc(this.firestore, `originators/${uid}`);

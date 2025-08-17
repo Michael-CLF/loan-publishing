@@ -6,15 +6,7 @@ import { AuthService } from '../services/auth.service';
 import { switchMap, catchError, tap, map } from 'rxjs/operators';
 import { of, Subscription } from 'rxjs';
 import { Loan } from '../models/loan-model.model';
-import {
-  Firestore,
-  collection,
-  query,
-  doc,
-  getDoc,
-  where,
-  getDocs,
-} from '@angular/fire/firestore';
+import { Firestore} from '@angular/fire/firestore';
 import { User } from '../models/user.model';
 import { LoanTypeService } from '../services/loan-type.service';
 import { FirestoreService } from '../services/firestore.service';
@@ -203,105 +195,87 @@ allLoanTypeOptions: LoanTypeOption[] = [
       .subscribe();
   }
 
-  loadLoanCreatorData(creatorId: string): void {
-    if (!creatorId) {
-      console.log('No creator ID available for this loan');
-      return;
-    }
-
-    console.log('Loading loan creator (originator) data for ID:', creatorId);
-
-    // First check the 'users' collection which should have the originator
-    const userDocRef = doc(this.firestore, 'users', creatorId);
-
-    getDoc(userDocRef)
-      .then((docSnap) => {
-        if (docSnap.exists()) {
-          const userData = docSnap.data();
-          console.log('Found originator data in users collection:', userData);
-
-          // Create a properly structured User object with type assertion
-          const user: User = {
-            uid: docSnap.id,
-            firstName: userData['firstName'] || '',
-            lastName: userData['lastName'] || '',
-            email: userData['email'] || '',
-            company:
-              userData['company'] || userData['contactInfo']?.['company'] || '',
-            phone: userData['phone'] || '',
-            city: userData['city'] || '',
-            state: userData['state'] || '',
-            role: 'originator' as 'originator', // Type assertion
-            createdAt: userData['createdAt']?.toDate() || new Date(),
-          };
-
-          this.userData = user;
-          console.log('Originator user data set to:', this.userData);
-        } else {
-          // If not found in users, try the originators collection
-          const originatorDocRef = doc(
-            this.firestore,
-            'originators',
-            creatorId
-          );
-          getDoc(originatorDocRef).then((originatorSnap) => {
-            if (originatorSnap.exists()) {
-              const originatorData = originatorSnap.data();
-              console.log(
-                'Found originator in originators collection:',
-                originatorData
-              );
-
-              // Standardize the data structure with proper typing
-              const user: User = {
-                uid: originatorSnap.id,
-                firstName:
-                  originatorData['contactInfo']?.['firstName'] ||
-                  originatorData['firstName'] ||
-                  '',
-                lastName:
-                  originatorData['contactInfo']?.['lastName'] ||
-                  originatorData['lastName'] ||
-                  '',
-                email:
-                  originatorData['contactInfo']?.['contactEmail'] ||
-                  originatorData['email'] ||
-                  '',
-                company:
-                  originatorData['contactInfo']?.['company'] ||
-                  originatorData['company'] ||
-                  '',
-                phone:
-                  originatorData['contactInfo']?.['contactPhone'] ||
-                  originatorData['phone'] ||
-                  '',
-                city:
-                  originatorData['contactInfo']?.['city'] ||
-                  originatorData['city'] ||
-                  '',
-                state:
-                  originatorData['contactInfo']?.['state'] ||
-                  originatorData['state'] ||
-                  '',
-                role: 'originator' as 'originator', // Type assertion
-                createdAt: originatorData['createdAt']?.toDate() || new Date(),
-              };
-
-              this.userData = user;
-              console.log(
-                'Originator user data set from originators collection:',
-                this.userData
-              );
-            } else {
-              console.log('No originator found with ID:', creatorId);
-            }
-          });
-        }
-      })
-      .catch((error) => {
-        console.error('Error finding originator by ID:', error);
-      });
+async loadCurrentUserData(): Promise<void> {
+  // Don't reload user data if we already have it from the loan's creator
+  if (this.loan() && this.loan()?.createdBy && this.userData) {
+    console.log('LOAN DETAILS: User data already loaded from loan creator');
+    return;
   }
+
+  console.log('LOAN DETAILS: Loading current user data');
+
+  // Use the proven auth service method
+  this.authService.getUserProfile().subscribe({
+    next: (profile) => {
+      if (profile) {
+        console.log('Found current user profile:', profile);
+
+        // Map using the same logic as navbar and creator data loading
+        const user: User = {
+          uid: profile.id,
+          firstName: profile.contactInfo?.firstName || profile.firstName || '',
+          lastName: profile.contactInfo?.lastName || profile.lastName || '',
+          email: profile.contactInfo?.contactEmail || profile.email || '',
+          company: profile.contactInfo?.company || profile.company || '',
+          phone: profile.contactInfo?.contactPhone || profile.phone || '',
+          city: profile.contactInfo?.city || profile.city || '',
+          state: profile.contactInfo?.state || profile.state || '',
+          role: profile.role || 'originator',
+          createdAt: profile.createdAt?.toDate() || new Date(),
+        };
+
+        this.userData = user;
+        console.log('Current user data set successfully:', this.userData);
+      } else {
+        console.log('No profile found for current user');
+      }
+    },
+    error: (error) => {
+      console.error('Error loading current user data:', error);
+    }
+  });
+}
+
+// 👇 ADD THIS NEW METHOD HERE
+loadLoanCreatorData(creatorId: string): void {
+  if (!creatorId) {
+    console.log('No creator ID available for this loan');
+    return;
+  }
+
+  console.log('Loading loan creator (originator) data for ID:', creatorId);
+
+  // Use the proven auth service method that already works
+  this.authService.getUserProfile(creatorId).subscribe({
+    next: (profile) => {
+      if (profile) {
+        console.log('Found originator profile:', profile);
+
+        // Map to your User interface using the same logic as navbar
+        const user: User = {
+          uid: profile.id,
+          firstName: profile.contactInfo?.firstName || profile.firstName || '',
+          lastName: profile.contactInfo?.lastName || profile.lastName || '',
+          email: profile.contactInfo?.contactEmail || profile.email || '',
+          company: profile.contactInfo?.company || profile.company || '',
+          phone: profile.contactInfo?.contactPhone || profile.phone || '',
+          city: profile.contactInfo?.city || profile.city || '',
+          state: profile.contactInfo?.state || profile.state || '',
+          role: profile.role || 'originator',
+          createdAt: profile.createdAt?.toDate() || new Date(),
+        };
+
+        this.userData = user;
+        console.log('User data set successfully:', this.userData);
+      } else {
+        console.log('No profile found for creator ID:', creatorId);
+      }
+    },
+    error: (error) => {
+      console.error('Error loading creator data:', error);
+    }
+  });
+}
 
   loadOriginatorDetails(originatorId: string): void {
     console.log('Loading originator details for ID:', originatorId);
@@ -394,41 +368,7 @@ allLoanTypeOptions: LoanTypeOption[] = [
     return this.loanTypeService.getLoanTypeName(loanType);
   }
 
-async loadCurrentUserData(): Promise<void> {
-  // Don't reload user data if we already have it from the loan's creator
-  if (this.loan() && this.loan()?.createdBy && this.userData) {
-    console.log('LOAN DETAILS: User data already loaded from loan creator');
-    return;
-  }
 
-  console.log('LOAN DETAILS: Loading current user data');
-
- try {
-  const currentUser = await firstValueFrom(this.authService.getCurrentFirebaseUser());
-
-  if (currentUser && currentUser.email) {
-    console.log('LOAN DETAILS: Current user email:', currentUser.email);
-
-    const usersRef = collection(this.firestore, 'users');
-    const q = query(usersRef, where('email', '==', currentUser.email));
-    const snapshot = await getDocs(q);
-
-    if (!snapshot.empty) {
-      const userDoc = snapshot.docs[0];
-      const userData = userDoc.data() as User;
-      userData.uid = userDoc.id;
-
-      console.log('LOAN DETAILS: Found user data:', userData);
-      this.userData = userData;
-    } else {
-      console.log('LOAN DETAILS: No user found with current user email');
-    }
-  } else {
-    console.warn('LOAN DETAILS: No current user or email');
-  }
-} catch (error) {
-  console.error('LOAN DETAILS: Error finding user by email:', error);
-}}
 
   ngOnDestroy(): void {
     if (this.authSubscription) {
