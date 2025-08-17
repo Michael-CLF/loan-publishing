@@ -57,7 +57,7 @@ export class LoanDetailsComponent implements OnInit, OnDestroy {
 
   // State management with signals
   loan = signal<Loan | null>(null);
-  user = signal<User | null>(null);
+  userData: User | null = null;
   isLoading = signal<boolean>(true);
   errorMessage = signal<string | null>(null);
   isAuthenticated = signal<boolean>(false);
@@ -235,8 +235,8 @@ allLoanTypeOptions: LoanTypeOption[] = [
             createdAt: userData['createdAt']?.toDate() || new Date(),
           };
 
-          this.user.set(user);
-          console.log('Originator user data set to:', this.user());
+          this.userData = user;
+          console.log('Originator user data set to:', this.userData);
         } else {
           // If not found in users, try the originators collection
           const originatorDocRef = doc(
@@ -287,10 +287,10 @@ allLoanTypeOptions: LoanTypeOption[] = [
                 createdAt: originatorData['createdAt']?.toDate() || new Date(),
               };
 
-              this.user.set(user);
+              this.userData = user;
               console.log(
                 'Originator user data set from originators collection:',
-                this.user()
+                this.userData
               );
             } else {
               console.log('No originator found with ID:', creatorId);
@@ -347,7 +347,7 @@ allLoanTypeOptions: LoanTypeOption[] = [
 
             // ADDITION: Also set the user data if not already set
             // This ensures both signals have the data
-            if (!this.user()) {
+            if (!this.userData) {
               const user: User = {
                 uid: data.id,
                 firstName: data.contactInfo?.firstName || '',
@@ -360,10 +360,10 @@ allLoanTypeOptions: LoanTypeOption[] = [
                 role: 'originator' as 'originator',
                 createdAt: new Date(),
               };
-              this.user.set(user);
+              this.userData = user;
               console.log(
                 'User signal set from originator details:',
-                this.user()
+                this.userData
               );
             }
           } else {
@@ -396,7 +396,7 @@ allLoanTypeOptions: LoanTypeOption[] = [
 
 async loadCurrentUserData(): Promise<void> {
   // Don't reload user data if we already have it from the loan's creator
-  if (this.loan() && this.loan()?.createdBy && this.user()) {
+  if (this.loan() && this.loan()?.createdBy && this.userData) {
     console.log('LOAN DETAILS: User data already loaded from loan creator');
     return;
   }
@@ -419,7 +419,7 @@ async loadCurrentUserData(): Promise<void> {
       userData.uid = userDoc.id;
 
       console.log('LOAN DETAILS: Found user data:', userData);
-      this.user.set(userData);
+      this.userData = userData;
     } else {
       console.log('LOAN DETAILS: No user found with current user email');
     }
@@ -553,11 +553,11 @@ async loadCurrentUserData(): Promise<void> {
   }
 
 isLender(): boolean {
-  return this.user()?.role === 'lender';
+  return this.userData?.role === 'lender';
 }
 
 isOriginator(): boolean {
-  return this.user()?.role === 'originator';
+  return this.userData?.role === 'originator';
 }
 
 returnToDashboard(): void {
