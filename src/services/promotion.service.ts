@@ -27,12 +27,12 @@ interface LocalCoupon {
 const LOCAL_COUPONS: LocalCoupon[] = [
   // 🔥 ACTIVE PROMOTIONS - Edit these weekly as needed
   {
-    code: 'LENDER30TRIAL',
-    name: '30-Day Free Trial',
+    code: 'LENDER7TRIAL',
+    name: '7-Day Free Trial',
     type: 'trial',
     trialDays: 30,
     validFor: ['lender'],
-    validIntervals: ['annually'],
+    validIntervals: ['monthly', 'annually'],
     active: true,
     maxUses: 100,
     currentUses: 0,

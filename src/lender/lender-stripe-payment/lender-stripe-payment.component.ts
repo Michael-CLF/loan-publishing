@@ -214,16 +214,16 @@ export class LenderStripePaymentComponent implements OnInit {
       let couponDetails: any; // ✅ Declare outside the if/else blocks
 
       // ✅ Handle special LENDER30TRIAL case
-      if (response.promotion_code.code === 'LENDER30TRIAL') {
+      if (response.promotion_code.code === 'LENDER7TRIAL') {
         couponDetails = {
           promotion_code: response.promotion_code.code,
           displayCode: response.promotion_code.code,
           discount: 0, // No discount, just trial
           discountType: 'trial' as any,
-          description: '30-Day Free Trial',
+          description: '7-Day Free Trial',
         };
 
-        console.log('✅ Applied LENDER30TRIAL special case');
+        console.log('✅ Applied LENDER7TRIAL special case');
       } else {
         // ✅ Handle regular Stripe promotion codes
         couponDetails = {
