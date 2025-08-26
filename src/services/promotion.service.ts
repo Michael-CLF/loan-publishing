@@ -91,6 +91,17 @@ const LOCAL_COUPONS: LocalCoupon[] = [
   active: true,
   expiresAt: '2025-12-31',
   currentUses: 0,
+},
+{
+  code: 'BROKER30',
+  name: '30-Day Free Trial for My Contacts',
+  type: 'trial',
+  value: 30, // 30 days
+  validFor: ['originator'],
+  validIntervals: ['monthly', 'annually'],
+  active: true,
+  expiresAt: '2025-12-31',
+  currentUses: 0,
 }
 ];
 
