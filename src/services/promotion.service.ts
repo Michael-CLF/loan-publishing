@@ -6,9 +6,8 @@ import { Observable, of } from 'rxjs';
 import { catchError, map } from 'rxjs/operators';
 
 // ========================================
-// 🎯 LOCAL COUPON CONFIGURATION
+// 🎯 UPDATED LOCAL COUPON INTERFACE
 // ========================================
-// Edit this section weekly to manage your promotion codes locally
 
 interface LocalCoupon {
   code: string;
@@ -22,32 +21,33 @@ interface LocalCoupon {
   maxUses?: number;
   currentUses?: number;
   trialDays?: number;
+  setupFee?: number; // ✅ NEW: Setup fee in cents for special promotions
 }
 
 const LOCAL_COUPONS: LocalCoupon[] = [
   // 🔥 ACTIVE PROMOTIONS - Edit these weekly as needed
   {
-  code: 'LENDER7TRIAL',
-  name: '30-Day Free Trial',
-  type: 'trial',
-  trialDays: 30,
-  validFor: ['lender'],
-  validIntervals: ['annually'],
-  active: true,
-  maxUses: 100,
-  currentUses: 0,
-},
-{
-  code: 'LENDERMONTHLY7',
-  name: '7-Day Free Trial',
-  type: 'trial',
-  trialDays: 7,
-  validFor: ['lender'],
-  validIntervals: ['monthly'],
-  active: true,
-  maxUses: 100,
-  currentUses: 0,
-},
+    code: 'LENDER7TRIAL',
+    name: '30-Day Free Trial',
+    type: 'trial',
+    trialDays: 30,
+    validFor: ['lender'],
+    validIntervals: ['annually'],
+    active: true,
+    maxUses: 100,
+    currentUses: 0,
+  },
+  {
+    code: 'LENDERMONTHLY7',
+    name: '7-Day Free Trial',
+    type: 'trial',
+    trialDays: 7,
+    validFor: ['lender'],
+    validIntervals: ['monthly'],
+    active: true,
+    maxUses: 100,
+    currentUses: 0,
+  },
   {
     code: 'ORIGINATOR50',
     name: '50% Off First Month',
@@ -82,28 +82,46 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-  code: 'ORIGINATOR7TRIAL',
-  name: '7-Day Free Trial for Originators',
-  type: 'trial',
-  value: 7, // 7 days
-  validFor: ['originator'],
-  validIntervals: ['monthly', 'annually'],
-  active: true,
-  expiresAt: '2025-12-31',
-  currentUses: 0,
-},
-{
-  code: 'BROKER30',
-  name: '30-Day Free Trial for My Contacts',
-  type: 'trial',
-  value: 30, // 30 days
-  validFor: ['originator'],
-  validIntervals: ['monthly', 'annually'],
-  active: true,
-  expiresAt: '2025-12-31',
-  currentUses: 0,
-}
+    code: 'ORIGINATOR7TRIAL',
+    name: '7-Day Free Trial for Originators',
+    type: 'trial',
+    value: 7, // 7 days
+    validFor: ['originator'],
+    validIntervals: ['monthly', 'annually'],
+    active: true,
+    expiresAt: '2025-12-31',
+    currentUses: 0,
+  },
+  {
+    code: 'BROKER30',
+    name: '30-Day Free Trial for My Contacts',
+    type: 'trial',
+    value: 30, // 30 days
+    validFor: ['originator'],
+    validIntervals: ['monthly', 'annually'],
+    active: true,
+    expiresAt: '2025-12-31',
+    currentUses: 0,
+  },
+  // ✅ NEW: LABORDAY6 Promotion
+  {
+    code: 'LABORDAY6',
+    name: '6-Month Free Trial + $100 Setup Fee',
+    type: 'trial',
+    trialDays: 180, // 6 months ≈ 180 days
+    setupFee: 10000, // $100 in cents
+    validFor: ['originator', 'lender'],
+    validIntervals: ['monthly', 'annually'],
+    active: true,
+    expiresAt: '2025-12-31', // Set appropriate expiration
+    maxUses: 500,
+    currentUses: 0,
+  },
 ];
+
+// ========================================
+// 🎯 UPDATED VALIDATION RESPONSE INTERFACE
+// ========================================
 
 export interface CouponValidationResponse {
   valid: boolean;
@@ -118,6 +136,9 @@ export interface CouponValidationResponse {
       name?: string;
       duration?: string;
       duration_in_months?: number;
+      // ✅ NEW: Setup fee information for special promotions
+      setup_fee?: number;
+      trial_days?: number;
     };
   };
   error?: string;
@@ -149,13 +170,13 @@ export class PromotionService {
       return of({ valid: false, error: 'Promotion code cannot be empty.' });
     }
 
-    // 🎯 NEW: Try local validation first
+    // 🎯 Try local validation first
     const localCoupon = this.coupons.find((c) => c.code === cleanedCode);
     if (localCoupon) {
       return of(this.validateLocalCoupon(localCoupon, role, interval));
     }
 
-    // 🔄 Original: Fallback to Stripe validation
+    // 🔄 Fallback to Stripe validation
     return this.http
       .post<any>(`${this.functionsUrl}/validatePromotionCode`, {
         code: cleanedCode,
@@ -166,7 +187,6 @@ export class PromotionService {
         map((resp: any): CouponValidationResponse => {
           // ✅ Canonical shape from backend
           if (resp?.valid && resp?.promotion_code) {
-            // Ensure code is present on the object
             return {
               valid: true,
               promotion_code: {
@@ -205,7 +225,7 @@ export class PromotionService {
       );
   }
 
-  // 🎯 NEW: Local coupon validation
+  // 🎯 Updated local coupon validation with setup fee support
   private validateLocalCoupon(
     coupon: LocalCoupon,
     role: 'originator' | 'lender',
@@ -251,7 +271,7 @@ export class PromotionService {
     // 🎉 Valid - increment usage
     coupon.currentUses = (coupon.currentUses || 0) + 1;
 
-    // Return in Stripe format
+    // Return in Stripe format with setup fee support
     return {
       valid: true,
       promotion_code: {
@@ -262,7 +282,7 @@ export class PromotionService {
     };
   }
 
-  // Map local coupon to Stripe format
+  // ✅ Updated mapping to include setup fee
   private mapToStripeFormat(coupon: LocalCoupon) {
     const result: any = {
       id: `local_${coupon.code}`,
@@ -270,18 +290,48 @@ export class PromotionService {
       duration: 'once',
     };
 
+    // Add setup fee if present
+    if (coupon.setupFee) {
+      result.setup_fee = coupon.setupFee;
+    }
+
+    // Add trial days if present
+    if (coupon.trialDays) {
+      result.trial_days = coupon.trialDays;
+    }
+
     if (coupon.type === 'percentage') {
       result.percent_off = coupon.value;
     } else if (coupon.type === 'fixed') {
       result.amount_off = coupon.value;
       result.currency = 'USD';
     } else if (coupon.type === 'trial') {
-      result.percent_off = 100;
+      // For trials with setup fee, don't set 100% off
+      if (coupon.setupFee) {
+        result.percent_off = 0; // No discount on subscription, just trial + setup fee
+      } else {
+        result.percent_off = 100; // Full trial
+      }
       result.duration = 'repeating';
-      result.duration_in_months = 1;
-      result.trial_days = coupon.trialDays || 30;
+      result.duration_in_months = Math.ceil((coupon.trialDays || 30) / 30);
     }
 
     return result;
+  }
+
+  /**
+   * ✅ NEW: Helper method to check if a coupon has a setup fee
+   */
+  hasSetupFee(code: string): boolean {
+    const coupon = this.coupons.find(c => c.code === code.toUpperCase());
+    return !!(coupon?.setupFee && coupon.setupFee > 0);
+  }
+
+  /**
+   * ✅ NEW: Get setup fee amount for a coupon
+   */
+  getSetupFee(code: string): number {
+    const coupon = this.coupons.find(c => c.code === code.toUpperCase());
+    return coupon?.setupFee || 0;
   }
 }
