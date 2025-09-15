@@ -53,7 +53,7 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     name: '100% Off Until 2025 ends',
     type: 'percentage',
     value: 100,
-    validFor: ['originator'],
+    validFor: ['originator', 'lender'],
     validIntervals: ['monthly'],
     active: true,
     expiresAt: '2025-12-31',
