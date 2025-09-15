@@ -49,10 +49,10 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-    code: 'ORIGINATOR50',
-    name: '50% Off First Month',
+    code: 'ORIGINATOR100',
+    name: '100% Off Until 2025 ends',
     type: 'percentage',
-    value: 50,
+    value: 100,
     validFor: ['originator'],
     validIntervals: ['monthly'],
     active: true,
