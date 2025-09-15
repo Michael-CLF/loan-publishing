@@ -82,10 +82,10 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-    code: 'ORIGINATOR7TRIAL',
-    name: '7-Day Free Trial for Originators',
+    code: 'ORIGINATOR100',
+    name: 'Free Trial for Originators',
     type: 'trial',
-    value: 7, // 7 days
+    value: 90, // 90 days
     validFor: ['originator'],
     validIntervals: ['monthly', 'annually'],
     active: true,
