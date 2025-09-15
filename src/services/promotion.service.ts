@@ -25,40 +25,54 @@ interface LocalCoupon {
 }
 
 const LOCAL_COUPONS: LocalCoupon[] = [
-  // 🔥 ACTIVE PROMOTIONS - Edit these weekly as needed
+  // 🔥 UPDATED PROMOTIONS - 100% off until Dec 31, 2025
   {
     code: 'LENDER7TRIAL',
-    name: '30-Day Free Trial',
-    type: 'trial',
-    trialDays: 30,
+    name: '100% Off Until Dec 31, 2025',
+    type: 'percentage',
+    value: 100, // ✅ CHANGED: 100% off instead of trial
     validFor: ['lender'],
     validIntervals: ['annually'],
     active: true,
+    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
     maxUses: 100,
     currentUses: 0,
   },
   {
     code: 'LENDERMONTHLY7',
-    name: '7-Day Free Trial',
-    type: 'trial',
-    trialDays: 7,
+    name: '100% Off Until Dec 31, 2025',
+    type: 'percentage',
+    value: 100, // ✅ CHANGED: 100% off instead of trial
     validFor: ['lender'],
     validIntervals: ['monthly'],
     active: true,
+    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
     maxUses: 100,
     currentUses: 0,
   },
   {
     code: 'ORIGINATOR50',
-    name: '50% Off First Month',
+    name: '100% Off Until Dec 31, 2025',
     type: 'percentage',
-    value: 50,
+    value: 100, // ✅ CHANGED: From 50% to 100%
     validFor: ['originator'],
     validIntervals: ['monthly'],
     active: true,
-    expiresAt: '2025-12-31',
+    expiresAt: '2025-12-31', // ✅ Already correct
     currentUses: 0,
   },
+  {
+    code: 'BROKER30',
+    name: '100% Off Until Dec 31, 2025',
+    type: 'percentage',
+    value: 100, // ✅ CHANGED: 100% off instead of trial
+    validFor: ['originator'],
+    validIntervals: ['monthly'],
+    active: true,
+    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
+    currentUses: 0,
+  },
+  // Keep other codes unchanged if they're still needed
   {
     code: 'NEWLENDER20',
     name: '20% Off Annual Plan',
@@ -74,7 +88,7 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     code: 'SAVE25',
     name: '$25 Off Any Plan',
     type: 'fixed',
-    value: 2500, // $25 in cents
+    value: 2500,
     validFor: ['originator', 'lender'],
     validIntervals: ['monthly', 'annually'],
     active: true,
@@ -82,38 +96,15 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-    code: 'ORIGINATOR7TRIAL',
-    name: '7-Day Free Trial for Originators',
-    type: 'trial',
-    value: 7, // 7 days
-    validFor: ['originator'],
-    validIntervals: ['monthly', 'annually'],
-    active: true,
-    expiresAt: '2025-12-31',
-    currentUses: 0,
-  },
-  {
-    code: 'BROKER30',
-    name: '30-Day Free Trial for My Contacts',
-    type: 'trial',
-    value: 30, // 30 days
-    validFor: ['originator'],
-    validIntervals: ['monthly', 'annually'],
-    active: true,
-    expiresAt: '2025-12-31',
-    currentUses: 0,
-  },
-  // ✅ NEW: LABORDAY6 Promotion
-  {
     code: 'LABORDAY6',
     name: '6-Month Free Trial + $100 Setup Fee',
     type: 'trial',
-    trialDays: 180, // 6 months ≈ 180 days
-    setupFee: 10000, // $100 in cents
+    trialDays: 180,
+    setupFee: 10000,
     validFor: ['originator', 'lender'],
     validIntervals: ['monthly', 'annually'],
     active: true,
-    expiresAt: '2025-12-31', // Set appropriate expiration
+    expiresAt: '2025-12-31',
     maxUses: 500,
     currentUses: 0,
   },
