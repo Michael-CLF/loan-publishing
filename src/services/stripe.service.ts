@@ -105,11 +105,17 @@ export class StripeService {
   // ----------------------
   // Validate promotion code
   // ----------------------
-  validatePromotionCode(
-    promotion_code: string,
-    role: 'originator' | 'lender',
-    interval: 'monthly' | 'annually'
-  ): Observable<CouponValidationResponse> {
+ validatePromotionCode(
+  promotion_code: string,
+  role: 'originator' | 'lender',
+  interval: 'monthly' | 'annually'
+): Observable<CouponValidationResponse> {
+  console.error('🚨 STRIPE SERVICE VALIDATE CALLED - THIS SHOULD NOT HAPPEN', {
+    promotion_code,
+    role,
+    interval,
+    stack: new Error().stack
+  });
     const headers = new HttpHeaders({ 'Content-Type': 'application/json' });
     const body = { code: promotion_code, role, interval };
 
