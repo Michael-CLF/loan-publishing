@@ -49,11 +49,11 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-    code: 'ORIGINATOR100',
-    name: '100% Off Until 2025 ends',
+    code: 'ORIGINATOR50',
+    name: '50% Off First Month',
     type: 'percentage',
-    value: 100,
-    validFor: ['originator', 'lender'],
+    value: 50,
+    validFor: ['originator'],
     validIntervals: ['monthly'],
     active: true,
     expiresAt: '2025-12-31',
@@ -82,10 +82,10 @@ const LOCAL_COUPONS: LocalCoupon[] = [
     currentUses: 0,
   },
   {
-    code: 'ORIGINATOR100',
-    name: 'Free Trial for Originators',
+    code: 'ORIGINATOR7TRIAL',
+    name: '7-Day Free Trial for Originators',
     type: 'trial',
-    value: 90, // 90 days
+    value: 7, // 7 days
     validFor: ['originator'],
     validIntervals: ['monthly', 'annually'],
     active: true,
