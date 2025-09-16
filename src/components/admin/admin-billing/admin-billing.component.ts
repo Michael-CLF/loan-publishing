@@ -5,11 +5,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
 import { PromotionService } from '../../../services/promotion.service';
-import { 
-  PromotionCode, 
-  CreatePromotionRequest, 
+import {
+  PromotionCode,
+  CreatePromotionRequest,
   UpdatePromotionRequest,
-  PromotionOperationResponse 
+  PromotionOperationResponse
 } from '../../../interfaces/promotion-code.interface';
 
 @Component({
@@ -29,12 +29,12 @@ export class AdminBillingComponent implements OnInit {
   promotionCodes = signal<PromotionCode[]>([]);
   loading = signal(false);
   error = signal<string | null>(null);
-  
+
   // Modal state
   showCreateModal = signal(false);
   showEditModal = signal(false);
   selectedCode = signal<PromotionCode | null>(null);
-  
+
   // Form
   promotionForm!: FormGroup;
   formLoading = signal(false);
@@ -46,7 +46,7 @@ export class AdminBillingComponent implements OnInit {
   ngOnInit(): void {
     this.initializeForm();
     this.loadPromotionCodes();
-    
+
     // Check for query params
     const action = this.route.snapshot.queryParamMap.get('action');
     if (action === 'create') {
@@ -66,7 +66,19 @@ export class AdminBillingComponent implements OnInit {
       expiresAt: [''],
       maxUses: [null, [Validators.min(1)]]
     });
+
+    // ADD THIS RIGHT AFTER LINE 69:
+    this.promotionForm.get('type')?.valueChanges.subscribe(type => {
+      const valueControl = this.promotionForm.get('value');
+      if (type === 'free') {
+        valueControl?.setValue(100);
+        valueControl?.disable();
+      } else {
+        valueControl?.enable();
+      }
+    });
   }
+
 
   async loadPromotionCodes(): Promise<void> {
     this.loading.set(true);
@@ -88,11 +100,11 @@ export class AdminBillingComponent implements OnInit {
   // Computed filtered codes
   get filteredCodes(): PromotionCode[] {
     let codes = this.promotionCodes();
-    
+
     // Filter by active status
     const activeFilter = this.filterActive();
     if (activeFilter !== 'all') {
-      codes = codes.filter(code => 
+      codes = codes.filter(code =>
         activeFilter === 'active' ? code.active : !code.active
       );
     }
@@ -148,7 +160,7 @@ export class AdminBillingComponent implements OnInit {
     if (this.promotionForm.invalid) return;
 
     this.formLoading.set(true);
-    
+
     try {
       const formData = this.promotionForm.value;
       const request: CreatePromotionRequest = {
@@ -164,7 +176,7 @@ export class AdminBillingComponent implements OnInit {
       };
 
       const response = await this.promotionService.createPromotionCode(request).toPromise();
-      
+
       if (response?.success) {
         await this.loadPromotionCodes();
         this.closeModals();
@@ -184,7 +196,7 @@ export class AdminBillingComponent implements OnInit {
     if (this.promotionForm.invalid || !this.selectedCode()) return;
 
     this.formLoading.set(true);
-    
+
     try {
       const formData = this.promotionForm.value;
       const request: UpdatePromotionRequest = {
@@ -199,10 +211,10 @@ export class AdminBillingComponent implements OnInit {
       };
 
       const response = await this.promotionService.updatePromotionCode(
-        this.selectedCode()!.id, 
+        this.selectedCode()!.id,
         request
       ).toPromise();
-      
+
       if (response?.success) {
         await this.loadPromotionCodes();
         this.closeModals();
@@ -221,10 +233,10 @@ export class AdminBillingComponent implements OnInit {
   async toggleCodeStatus(code: PromotionCode): Promise<void> {
     try {
       const response = await this.promotionService.togglePromotionCodeStatus(
-        code.id, 
+        code.id,
         !code.active
       ).toPromise();
-      
+
       if (response?.success) {
         await this.loadPromotionCodes();
         this.showSuccessMessage(`Promotion code ${!code.active ? 'activated' : 'deactivated'}!`);
@@ -242,7 +254,7 @@ export class AdminBillingComponent implements OnInit {
 
     try {
       const response = await this.promotionService.deletePromotionCode(code.id).toPromise();
-      
+
       if (response?.success) {
         await this.loadPromotionCodes();
         this.showSuccessMessage('Promotion code deleted successfully!');
@@ -259,10 +271,10 @@ export class AdminBillingComponent implements OnInit {
     console.log('Success:', message);
   }
 
-formatDate(date: Date | string | undefined): string {
-  if (!date) return 'No expiration';
-  return new Date(date).toLocaleDateString();
-}
+  formatDate(date: Date | string | undefined): string {
+    if (!date) return 'No expiration';
+    return new Date(date).toLocaleDateString();
+  }
 
   formatValue(code: PromotionCode): string {
     if (code.type === 'percentage') {
@@ -272,29 +284,29 @@ formatDate(date: Date | string | undefined): string {
     }
     return 'Free';
   }
-   toggleValidFor(role: string): void {
+  toggleValidFor(role: string): void {
     const currentValues = this.promotionForm.get('validFor')?.value || [];
     let newValues: string[];
-    
+
     if (currentValues.includes(role)) {
       newValues = currentValues.filter((r: string) => r !== role);
     } else {
       newValues = [...currentValues, role];
     }
-    
+
     this.promotionForm.patchValue({ validFor: newValues });
   }
 
   toggleValidInterval(interval: string): void {
     const currentValues = this.promotionForm.get('validIntervals')?.value || [];
     let newValues: string[];
-    
+
     if (currentValues.includes(interval)) {
       newValues = currentValues.filter((i: string) => i !== interval);
     } else {
       newValues = [...currentValues, interval];
     }
-    
+
     this.promotionForm.patchValue({ validIntervals: newValues });
   }
 
