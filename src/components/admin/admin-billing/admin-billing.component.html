@@ -194,6 +194,21 @@
               {{ promotionForm.get('type')?.value === 'percentage' ? 'Enter percentage (1-100)' : 'Enter amount in cents ($25.00 = 2500)' }}
             </small>
           </div>
+          
+<div class="form-group">
+  <label>Duration Type *</label>
+  <select formControlName="durationType" class="form-control">
+    <option value="once">One-time (First payment only)</option>
+    <option value="repeating">Multiple months</option>
+    <option value="forever">Forever</option>
+  </select>
+</div>
+
+<div class="form-group" *ngIf="promotionForm.get('durationType')?.value === 'repeating'">
+  <label>Duration (Months) *</label>
+  <input type="number" formControlName="durationInMonths" class="form-control" 
+         placeholder="Number of months" min="1" max="36">
+</div>
 
           <div class="form-group">
             <label>Valid For *</label>

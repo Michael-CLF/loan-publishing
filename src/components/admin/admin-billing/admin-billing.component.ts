@@ -54,18 +54,21 @@ export class AdminBillingComponent implements OnInit {
     }
   }
 
-  initializeForm(): void {
-    this.promotionForm = this.fb.group({
-      code: ['', [Validators.required, Validators.pattern(/^[A-Z0-9_]+$/)]],
-      name: ['', [Validators.required, Validators.minLength(3)]],
-      description: [''],
-      type: ['percentage', [Validators.required]],
-      value: [0, [Validators.required, Validators.min(1)]],
-      validFor: [['originator', 'lender'], [Validators.required]],
-      validIntervals: [['monthly', 'annually'], [Validators.required]],
-      expiresAt: [''],
-      maxUses: [null, [Validators.min(1)]]
-    });
+ initializeForm(): void {
+  this.promotionForm = this.fb.group({
+    code: ['', [Validators.required, Validators.pattern(/^[A-Z0-9]+$/)]],
+    name: ['', Validators.required],
+    description: [''],
+    type: ['percentage', Validators.required],
+    value: [0, [Validators.required, Validators.min(1)]],
+    validFor: [['originator'], Validators.required],
+    validIntervals: [['monthly'], Validators.required],
+    expiresAt: [''],
+    maxUses: [null, [Validators.min(1)]],
+    durationType: ['once', Validators.required],
+    durationInMonths: [1, [Validators.min(1), Validators.max(36)]]
+  });
+
 
     // ADD THIS RIGHT AFTER LINE 69:
     this.promotionForm.get('type')?.valueChanges.subscribe(type => {
