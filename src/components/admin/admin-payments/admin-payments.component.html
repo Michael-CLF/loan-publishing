@@ -1,0 +1,199 @@
+
+<!-- src/app/components/admin/admin-payments/admin-payments.component.html -->
+
+<div class="payments-container">
+  <!-- Header -->
+  <div class="payments-header">
+    <div class="header-left">
+      <button (click)="navigateBack()" class="back-btn">← Back to Dashboard</button>
+      <h1 class="page-title">Payment History</h1>
+    </div>
+    <div class="header-actions">
+      <button (click)="exportPayments()" class="export-btn">
+        📥 Export CSV
+      </button>
+      <button (click)="loadPayments()" class="refresh-btn">
+        🔄 Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Stats Overview -->
+  <div class="stats-grid">
+    <div class="stat-card total">
+      <div class="stat-icon">💳</div>
+      <div class="stat-content">
+        <h3 class="stat-label">Total Payments</h3>
+        <span class="stat-value">{{ totalPayments() }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card success">
+      <div class="stat-icon">✅</div>
+      <div class="stat-content">
+        <h3 class="stat-label">Successful</h3>
+        <span class="stat-value">{{ successfulPayments() }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card failed">
+      <div class="stat-icon">❌</div>
+      <div class="stat-content">
+        <h3 class="stat-label">Failed</h3>
+        <span class="stat-value">{{ failedPayments() }}</span>
+      </div>
+    </div>
+
+    <div class="stat-card revenue">
+      <div class="stat-icon">💰</div>
+      <div class="stat-content">
+        <h3 class="stat-label">Total Revenue</h3>
+        <span class="stat-value">{{ formatAmount(totalRevenue()) }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label>Status:</label>
+        <select [(ngModel)]="statusFilter" class="filter-select">
+          <option value="all">All Status</option>
+          <option value="succeeded">Successful</option>
+          <option value="failed">Failed</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+
+      <div class="filter-group">
+        <label>User Type:</label>
+        <select [(ngModel)]="roleFilter" class="filter-select">
+          <option value="all">All Users</option>
+          <option value="originator">Originators</option>
+          <option value="lender">Lenders</option>
+        </select>
+      </div>
+
+      <div class="search-group">
+        <input 
+          type="text" 
+          [(ngModel)]="searchTerm" 
+          placeholder="Search payments..." 
+          class="search-input"
+        />
+      </div>
+
+      <button (click)="clearFilters()" class="clear-filters-btn">
+        Clear Filters
+      </button>
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error()" class="error-banner">
+    {{ error() }}
+    <button (click)="error.set(null)" class="close-error">×</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading payment records...</p>
+  </div>
+
+  <!-- Payments Table -->
+  <div *ngIf="!loading()" class="table-container">
+    <table class="payments-table">
+      <thead>
+        <tr>
+          <th>Payment ID</th>
+          <th>Customer</th>
+          <th>Amount</th>
+          <th>Status</th>
+          <th>Method</th>
+          <th>Description</th>
+          <th>User Type</th>
+          <th>Date</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let payment of filteredPayments; trackBy: trackByPayment" 
+            [ngClass]="getStatusClass(payment.status)">
+          <td class="payment-id-cell">
+            <span class="payment-id">{{ payment.id }}</span>
+          </td>
+          <td>
+            <div class="customer-info">
+              <strong>{{ payment.customerEmail }}</strong>
+              <small *ngIf="payment.customerId">ID: {{ payment.customerId }}</small>
+            </div>
+          </td>
+          <td class="amount-cell">
+            <span class="amount">{{ formatAmount(payment.amount) }}</span>
+          </td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(payment.status)">
+              {{ payment.status | titlecase }}
+            </span>
+            <small *ngIf="payment.failureReason" class="failure-reason">
+              {{ payment.failureReason | titlecase }}
+            </small>
+          </td>
+          <td class="method-cell">
+            {{ getPaymentMethodDisplay(payment.paymentMethod) }}
+          </td>
+          <td class="description-cell">
+            <div class="description">
+              {{ payment.description }}
+              <small *ngIf="payment.subscriptionId">
+                Sub: {{ payment.subscriptionId }}
+              </small>
+            </div>
+          </td>
+          <td>
+            <span class="role-badge" [ngClass]="'role-' + payment.userRole">
+              {{ payment.userRole | titlecase }}
+            </span>
+          </td>
+          <td class="date-cell">
+            {{ formatDate(payment.createdAt) }}
+          </td>
+          <td class="actions-cell">
+            <button 
+              (click)="viewPaymentDetails(payment)" 
+              class="view-btn" 
+              title="View Details"
+            >
+              👁️
+            </button>
+            <button 
+              *ngIf="payment.status === 'succeeded'"
+              (click)="refundPayment(payment)" 
+              class="refund-btn" 
+              title="Refund"
+            >
+              💸
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredPayments.length === 0">
+          <td colspan="9" class="no-data">
+            No payment records found
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Summary Footer -->
+  <div *ngIf="!loading() && filteredPayments.length > 0" class="summary-footer">
+    <div class="summary-info">
+      <span>Showing {{ filteredPayments.length }} of {{ totalPayments() }} payments</span>
+      <span *ngIf="filteredPayments.length !== totalPayments()" class="filtered-note">
+        (filtered from {{ totalPayments() }} total)
+      </span>
+    </div>
+  </div>
+</div>

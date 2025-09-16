@@ -24,33 +24,16 @@ import { LocationService } from 'src/services/location.service';
 import { StripeService } from '../services/stripe.service';
 import { EmailService } from '../services/email.service';
 import { ModalService } from '../services/modal.service';
+import { PromotionValidationResponse } from '../interfaces/promotion-code.interface';
 import { PromotionService } from '../services/promotion.service';
 import { Firestore, doc, setDoc } from '@angular/fire/firestore';
+
 
 
 export interface StateOption {
   value: string;
   name: string;
 }
-
-interface CouponValidationResponse {
-  valid: boolean;
-  promotion_code?: {
-    id: string;
-    code: string;
-    coupon: {
-      id: string;
-      percent_off?: number | null;
-      amount_off?: number | null;
-      currency?: string | null;
-      name?: string;
-      duration?: string;
-      duration_in_months?: number | null;
-    };
-  };
-  error?: string;
-}
-
 
 interface AppliedCouponDetails {
   code: string;
@@ -153,7 +136,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     }
   }
 
-  validateCoupon(): void {
+ validateCoupon(): void {
     // Don't validate if we're in the middle of resetting
     if (this.isResettingCoupon) {
       return;
@@ -174,8 +157,12 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
     this.isValidatingCoupon = true;
 
-    // ✅ CORRECT - Use your StripeService
-    this.promotionService.validatePromotionCode(promotion_code, 'originator', this.userForm.get('interval')?.value || 'monthly')
+    // Use the new PromotionService
+    this.promotionService.validatePromotionCode(
+      promotion_code, 
+      'originator', 
+      this.userForm.get('interval')?.value || 'monthly'
+    )
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isValidatingCoupon = false),
@@ -192,7 +179,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  private handleCouponValidationResponse(response: any): void {
+  private handleCouponValidationResponse(response: PromotionValidationResponse): void {
     if (response.valid && response.promotion_code) {
       this.couponApplied = true;
 
@@ -210,16 +197,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.setCouponError(response.error || 'Invalid coupon code');
     }
   }
-  private setCouponError(errorMessage: string): void {
-    const control = this.userForm.get('promotion_code');
-    if (control) {
-      if (errorMessage.includes('not valid for the selected plan')) {
-        control.setErrors({ planMismatchError: true });
-      } else {
-        control.setErrors({ couponError: errorMessage });
-      }
-    }
-  }
+
 
   private clearCouponErrors(): void {
     const control = this.userForm.get('promotion_code');
@@ -241,6 +219,17 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.isResettingCoupon = false;
     }, 100);
   }
+
+  private setCouponError(errorMessage: string): void {
+  const control = this.userForm.get('promotion_code');
+  if (control) {
+    if (errorMessage.includes('not valid for the selected plan')) {
+      control.setErrors({ planMismatchError: true });
+    } else {
+      control.setErrors({ couponError: errorMessage });
+    }
+  }
+}
 
   onSubmit(): void {
     console.log('🚨 FORM SUBMITTED - onSubmit() called!');

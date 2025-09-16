@@ -21,7 +21,6 @@ import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
 import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { VerificationComponent } from 'src/components/verification/verification.component';
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
-import { AdminComponent } from 'src/components/admin/admin.component';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
@@ -29,15 +28,34 @@ import { EventRegistrationComponent } from 'src/components/event-registration/ev
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
 import { ContactComponent } from 'src/components/contact/contact.component'
 import { CompletePaymentComponent } from 'src/components/complete-payment/complete-payment.component';
+import { AdminDashboardComponent } from 'src/components/admin/admin-dashboard/admin-dashboard.component';
+import { AdminBillingComponent } from 'src/components/admin/admin-billing/admin-billing.component';
+import { AdminPaymentsComponent } from 'src/components/admin/admin-payments/admin-payments.component';
+import { AdminUsersComponent } from 'src/components/admin/admin-users/admin-users.component';
 
 
 export const routes: Routes = [
-  { path: 'admin', component: AdminComponent },
   {
     path: '__/auth/action',
     component: RegistrationProcessingComponent,  // Temporarily use this component
     data: { skipAuth: true, isFirebaseAction: true }
   },
+  {
+  path: 'admin/dashboard',
+  component: AdminDashboardComponent
+},
+{
+  path: 'admin/billing',
+  component: AdminBillingComponent,
+},
+{
+  path: 'admin/users',
+  component: AdminUsersComponent,
+},
+{
+  path: 'admin/payments',
+  component: AdminPaymentsComponent,
+},
   {
     path: 'account/edit',
     component: EditAccountComponent,

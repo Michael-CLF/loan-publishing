@@ -1,0 +1,333 @@
+<!-- src/app/components/admin/admin-billing/admin-billing.component.html -->
+
+<div class="billing-container">
+  <!-- Header -->
+  <div class="billing-header">
+    <div class="header-left">
+      <button (click)="navigateBack()" class="back-btn">← Back to Dashboard</button>
+      <h1 class="page-title">Billing & Promotions</h1>
+    </div>
+    <button (click)="openCreateModal()" class="create-btn">
+      + Create Promotion Code
+    </button>
+  </div>
+
+  <!-- Filters -->
+  <div class="filters-section">
+    <div class="filter-group">
+      <label>Status:</label>
+      <select [(ngModel)]="filterActive" class="filter-select">
+        <option value="all">All Codes</option>
+        <option value="active">Active Only</option>
+        <option value="inactive">Inactive Only</option>
+      </select>
+    </div>
+
+    <div class="search-group">
+      <input 
+        type="text" 
+        [(ngModel)]="searchTerm" 
+        placeholder="Search codes..." 
+        class="search-input"
+      />
+    </div>
+  </div>
+
+  <!-- Error Message -->
+  <div *ngIf="error()" class="error-banner">
+    {{ error() }}
+    <button (click)="error.set(null)" class="close-error">×</button>
+  </div>
+
+  <!-- Loading State -->
+  <div *ngIf="loading()" class="loading-state">
+    <div class="spinner"></div>
+    <p>Loading promotion codes...</p>
+  </div>
+
+  <!-- Promotion Codes Table -->
+  <div *ngIf="!loading()" class="table-container">
+    <table class="codes-table">
+      <thead>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Value</th>
+          <th>Valid For</th>
+          <th>Usage</th>
+          <th>Expires</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let code of filteredCodes; trackBy: trackByCode" 
+            [ngClass]="getStatusClass(code)">
+          <td class="code-cell">
+            <span class="code-badge">{{ code.code }}</span>
+          </td>
+          <td>
+            <div class="name-cell">
+              <strong>{{ code.name }}</strong>
+              <small *ngIf="code.description">{{ code.description }}</small>
+            </div>
+          </td>
+          <td>
+            <span class="type-badge" [ngClass]="'type-' + code.type">
+              {{ code.type | titlecase }}
+            </span>
+          </td>
+          <td class="value-cell">{{ formatValue(code) }}</td>
+          <td>
+            <div class="tags">
+              <span *ngFor="let role of code.validFor" class="role-tag">
+                {{ role | titlecase }}
+              </span>
+            </div>
+          </td>
+          <td class="usage-cell">
+            <div class="usage-info">
+              <span>{{ code.currentUses }}</span>
+              <span *ngIf="code.maxUses">/ {{ code.maxUses }}</span>
+              <span *ngIf="!code.maxUses">/ ∞</span>
+            </div>
+          </td>
+          <td>{{ formatDate(code.expiresAt) }}</td>
+          <td>
+            <span class="status-badge" [ngClass]="getStatusClass(code)">
+              {{ code.active ? 'Active' : 'Inactive' }}
+            </span>
+          </td>
+          <td class="actions-cell">
+            <button (click)="openEditModal(code)" class="edit-btn" title="Edit">
+              ✏️
+            </button>
+            <button 
+              (click)="toggleCodeStatus(code)" 
+              class="toggle-btn"
+              [title]="code.active ? 'Deactivate' : 'Activate'"
+            >
+              {{ code.active ? '⏸️' : '▶️' }}
+            </button>
+            <button (click)="deleteCode(code)" class="delete-btn" title="Delete">
+              🗑️
+            </button>
+          </td>
+        </tr>
+        <tr *ngIf="filteredCodes.length === 0">
+          <td colspan="9" class="no-data">
+            No promotion codes found
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Create Modal -->
+  <div *ngIf="showCreateModal()" class="modal-overlay" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Create Promotion Code</h2>
+        <button (click)="closeModals()" class="close-btn">×</button>
+      </div>
+
+      <form [formGroup]="promotionForm" (ngSubmit)="createPromotion()" class="promotion-form">
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="code">Code *</label>
+            <input 
+              type="text" 
+              id="code"
+              formControlName="code" 
+              placeholder="SUMMER2024"
+              [class.invalid]="isFieldInvalid('code')"
+            />
+            <small *ngIf="isFieldInvalid('code')" class="error-text">
+              {{ getFieldError('code') }}
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label for="name">Display Name *</label>
+            <input 
+              type="text" 
+              id="name"
+              formControlName="name" 
+              placeholder="Summer 2024 Discount"
+              [class.invalid]="isFieldInvalid('name')"
+            />
+            <small *ngIf="isFieldInvalid('name')" class="error-text">
+              {{ getFieldError('name') }}
+            </small>
+          </div>
+
+          <div class="form-group full-width">
+            <label for="description">Description</label>
+            <textarea 
+              id="description"
+              formControlName="description" 
+              placeholder="Optional description..."
+              rows="2"
+            ></textarea>
+          </div>
+
+          <div class="form-group">
+            <label for="type">Discount Type *</label>
+            <select id="type" formControlName="type">
+              <option value="percentage">Percentage</option>
+              <option value="fixed">Fixed Amount</option>
+              <option value="free">Free (100%)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="value">Value *</label>
+            <input 
+              type="number" 
+              id="value"
+              formControlName="value" 
+              [placeholder]="promotionForm.get('type')?.value === 'percentage' ? '25' : '2500'"
+              [class.invalid]="isFieldInvalid('value')"
+            />
+            <small class="help-text">
+              {{ promotionForm.get('type')?.value === 'percentage' ? 'Enter percentage (1-100)' : 'Enter amount in cents ($25.00 = 2500)' }}
+            </small>
+          </div>
+
+          <div class="form-group">
+            <label>Valid For *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  value="originator"
+                  [checked]="promotionForm.get('validFor')?.value?.includes('originator')"
+                  (change)="toggleValidFor('originator')"
+                />
+                Originators
+              </label>
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  value="lender"
+                  [checked]="promotionForm.get('validFor')?.value?.includes('lender')"
+                  (change)="toggleValidFor('lender')"
+                />
+                Lenders
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label>Valid Intervals *</label>
+            <div class="checkbox-group">
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  value="monthly"
+                  [checked]="promotionForm.get('validIntervals')?.value?.includes('monthly')"
+                  (change)="toggleValidInterval('monthly')"
+                />
+                Monthly
+              </label>
+              <label class="checkbox-label">
+                <input 
+                  type="checkbox" 
+                  value="annually"
+                  [checked]="promotionForm.get('validIntervals')?.value?.includes('annually')"
+                  (change)="toggleValidInterval('annually')"
+                />
+                Annually
+              </label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="expiresAt">Expiration Date</label>
+            <input type="date" id="expiresAt" formControlName="expiresAt" />
+          </div>
+
+          <div class="form-group">
+            <label for="maxUses">Max Uses</label>
+            <input 
+              type="number" 
+              id="maxUses"
+              formControlName="maxUses" 
+              placeholder="Leave empty for unlimited"
+            />
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeModals()" class="cancel-btn">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="save-btn"
+            [disabled]="promotionForm.invalid || formLoading()"
+          >
+            {{ formLoading() ? 'Creating...' : 'Create Code' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Edit Modal -->
+  <div *ngIf="showEditModal()" class="modal-overlay" (click)="closeModals()">
+    <div class="modal-content" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h2>Edit Promotion Code</h2>
+        <button (click)="closeModals()" class="close-btn">×</button>
+      </div>
+
+      <form [formGroup]="promotionForm" (ngSubmit)="updatePromotion()" class="promotion-form">
+        <!-- Same form structure as create modal -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label for="edit-code">Code</label>
+            <input 
+              type="text" 
+              id="edit-code"
+              formControlName="code" 
+              readonly
+              class="readonly"
+            />
+            <small class="help-text">Code cannot be changed after creation</small>
+          </div>
+
+          <!-- Rest of the form fields same as create modal -->
+          <div class="form-group">
+            <label for="edit-name">Display Name *</label>
+            <input 
+              type="text" 
+              id="edit-name"
+              formControlName="name"
+              [class.invalid]="isFieldInvalid('name')"
+            />
+            <small *ngIf="isFieldInvalid('name')" class="error-text">
+              {{ getFieldError('name') }}
+            </small>
+          </div>
+
+          <!-- Add remaining form fields here - same as create modal -->
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" (click)="closeModals()" class="cancel-btn">
+            Cancel
+          </button>
+          <button 
+            type="submit" 
+            class="save-btn"
+            [disabled]="promotionForm.invalid || formLoading()"
+          >
+            {{ formLoading() ? 'Updating...' : 'Update Code' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>

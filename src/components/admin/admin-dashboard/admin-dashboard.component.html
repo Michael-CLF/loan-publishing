@@ -1,0 +1,141 @@
+
+<!-- src/app/components/admin/admin-dashboard/admin-dashboard.component.html -->
+
+<div class="admin-container">
+  <!-- Admin Login Screen -->
+  <div *ngIf="!adminAuthenticated()" class="admin-login">
+    <h1 class="login-title">Admin Access</h1>
+    <p class="login-subtitle">Enter admin code to continue</p>
+
+    <div *ngIf="codeError()" class="error-message">
+      Invalid admin code. Please try again.
+    </div>
+
+    <div class="code-form">
+      <input 
+        type="password" 
+        [(ngModel)]="enteredCode" 
+        placeholder="Enter admin code" 
+        class="code-input"
+        (keyup.enter)="verifyAdminCode()" 
+      />
+      <button (click)="verifyAdminCode()" class="submit-btn">
+        Continue
+      </button>
+    </div>
+  </div>
+
+  <!-- Admin Dashboard Content -->
+  <div *ngIf="adminAuthenticated()" class="dashboard-content">
+    <!-- Header -->
+    <div class="dashboard-header">
+      <div class="header-info">
+        <h1 class="dashboard-title">Admin Dashboard</h1>
+        <p class="welcome-text">Welcome back, Admin!</p>
+      </div>
+      <button (click)="exitAdminMode()" class="exit-btn">
+        Exit Admin
+      </button>
+    </div>
+
+    <!-- Stats Overview -->
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-icon users-icon"></div>
+        <div class="stat-content">
+          <h3 class="stat-label">Total Originators</h3>
+          <span class="stat-value">{{ totalOriginators() }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon lenders-icon"></div>
+        <div class="stat-content">
+          <h3 class="stat-label">Total Lenders</h3>
+          <span class="stat-value">{{ totalLenders() }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon loans-icon"></div>
+        <div class="stat-content">
+          <h3 class="stat-label">Total Loans</h3>
+          <span class="stat-value">{{ totalLoans() }}</span>
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-icon promotions-icon"></div>
+        <div class="stat-content">
+          <h3 class="stat-label">Active Promotions</h3>
+          <span class="stat-value">{{ activePromotions() }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="actions-section">
+      <h2 class="section-title">Quick Actions</h2>
+      
+      <div class="actions-grid">
+        <!-- User Management -->
+        <div class="action-card" (click)="navigateToUsers()">
+          <div class="action-icon users-action-icon"></div>
+          <div class="action-content">
+            <h3 class="action-title">Manage Users</h3>
+            <p class="action-description">View, edit, and manage originators and lenders</p>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+
+        <!-- Billing & Promotions -->
+        <div class="action-card" (click)="navigateToBilling()">
+          <div class="action-icon billing-action-icon"></div>
+          <div class="action-content">
+            <h3 class="action-title">Billing & Promotions</h3>
+            <p class="action-description">Manage promotion codes and subscription billing</p>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+
+        <!-- Payment History -->
+        <div class="action-card" (click)="navigateToPayments()">
+          <div class="action-icon payments-action-icon"></div>
+          <div class="action-content">
+            <h3 class="action-title">Payment History</h3>
+            <p class="action-description">View transactions, refunds, and payment issues</p>
+          </div>
+          <div class="action-arrow">→</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Quick Tasks -->
+    <div class="tasks-section">
+      <h2 class="section-title">Quick Tasks</h2>
+      
+      <div class="tasks-grid">
+        <button class="task-btn primary" (click)="createNewPromotion()">
+          <span class="task-icon">+</span>
+          Create Promotion Code
+        </button>
+
+        <button class="task-btn secondary" (click)="viewRecentPayments()">
+          <span class="task-icon">📊</span>
+          View Recent Payments
+        </button>
+
+        <button class="task-btn secondary" (click)="downloadUserReport()">
+          <span class="task-icon">📥</span>
+          Download User Report
+        </button>
+      </div>
+    </div>
+
+    <!-- Loading State -->
+    <div *ngIf="loading()" class="loading-overlay">
+      <div class="loading-spinner"></div>
+      <p class="loading-text">Loading dashboard data...</p>
+    </div>
+  </div>
+</div>

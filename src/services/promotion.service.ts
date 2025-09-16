@@ -1,328 +1,167 @@
 // src/app/services/promotion.service.ts
 
 import { Injectable, inject } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable, of } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
-
-// ========================================
-// 🎯 UPDATED LOCAL COUPON INTERFACE
-// ========================================
-
-interface LocalCoupon {
-  code: string;
-  name: string;
-  type: 'percentage' | 'fixed' | 'trial';
-  value?: number; // percentage (1-100) or fixed amount in cents
-  validFor: ('originator' | 'lender')[];
-  validIntervals: ('monthly' | 'annually')[];
-  active: boolean;
-  expiresAt?: string; // ISO date string
-  maxUses?: number;
-  currentUses?: number;
-  trialDays?: number;
-  setupFee?: number; // ✅ NEW: Setup fee in cents for special promotions
-}
-
-const LOCAL_COUPONS: LocalCoupon[] = [
-  // 🔥 UPDATED PROMOTIONS - 100% off until Dec 31, 2025
-  {
-    code: 'LENDER7TRIAL',
-    name: '100% Off Until Dec 31, 2025',
-    type: 'percentage',
-    value: 100, // ✅ CHANGED: 100% off instead of trial
-    validFor: ['lender'],
-    validIntervals: ['annually'],
-    active: true,
-    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
-    maxUses: 100,
-    currentUses: 0,
-  },
-  {
-    code: 'LENDERMONTHLY7',
-    name: '100% Off Until Dec 31, 2025',
-    type: 'percentage',
-    value: 100, // ✅ CHANGED: 100% off instead of trial
-    validFor: ['lender'],
-    validIntervals: ['monthly'],
-    active: true,
-    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
-    maxUses: 100,
-    currentUses: 0,
-  },
-  {
-    code: 'ORIGINATOR50',
-    name: '100% Off Until Dec 31, 2025',
-    type: 'percentage',
-    value: 100, // ✅ CHANGED: From 50% to 100%
-    validFor: ['originator'],
-    validIntervals: ['monthly'],
-    active: true,
-    expiresAt: '2025-12-31', // ✅ Already correct
-    currentUses: 0,
-  },
-  {
-    code: 'BROKER30',
-    name: '100% Off Until Dec 31, 2025',
-    type: 'percentage',
-    value: 100, // ✅ CHANGED: 100% off instead of trial
-    validFor: ['originator'],
-    validIntervals: ['monthly'],
-    active: true,
-    expiresAt: '2025-12-31', // ✅ CHANGED: Set expiration
-    currentUses: 0,
-  },
-  // Keep other codes unchanged if they're still needed
-  {
-    code: 'NEWLENDER20',
-    name: '20% Off Annual Plan',
-    type: 'percentage',
-    value: 20,
-    validFor: ['lender'],
-    validIntervals: ['annually'],
-    active: true,
-    maxUses: 50,
-    currentUses: 0,
-  },
-  {
-    code: 'SAVE25',
-    name: '$25 Off Any Plan',
-    type: 'fixed',
-    value: 2500,
-    validFor: ['originator', 'lender'],
-    validIntervals: ['monthly', 'annually'],
-    active: true,
-    expiresAt: '2025-09-30',
-    currentUses: 0,
-  },
-  {
-    code: 'LABORDAY6',
-    name: '6-Month Free Trial + $100 Setup Fee',
-    type: 'trial',
-    trialDays: 180,
-    setupFee: 10000,
-    validFor: ['originator', 'lender'],
-    validIntervals: ['monthly', 'annually'],
-    active: true,
-    expiresAt: '2025-12-31',
-    maxUses: 500,
-    currentUses: 0,
-  },
-];
-
-// ========================================
-// 🎯 UPDATED VALIDATION RESPONSE INTERFACE
-// ========================================
-
-export interface CouponValidationResponse {
-  valid: boolean;
-  promotion_code?: {
-    id?: string;
-    code: string;
-    coupon: {
-      id?: string;
-      percent_off?: number;
-      amount_off?: number;
-      currency?: string;
-      name?: string;
-      duration?: string;
-      duration_in_months?: number;
-      // ✅ NEW: Setup fee information for special promotions
-      setup_fee?: number;
-      trial_days?: number;
-    };
-  };
-  error?: string;
-}
+import { catchError, map, debounceTime, distinctUntilChanged, shareReplay } from 'rxjs/operators';
+import { environment } from '../environments/environment';
+import { 
+  PromotionValidationRequest, 
+  PromotionValidationResponse,
+  PromotionCode,
+  CreatePromotionRequest,
+  UpdatePromotionRequest,
+  PromotionOperationResponse,
+  PromotionListResponse
+} from '../interfaces/promotion-code.interface';
 
 @Injectable({
-  providedIn: 'root',
+  providedIn: 'root'
 })
 export class PromotionService {
   private readonly http = inject(HttpClient);
-  private readonly functionsUrl =
-    'https://us-central1-loanpub.cloudfunctions.net';
-
-  // Keep local copy for usage tracking
-  private coupons = [...LOCAL_COUPONS];
+  private readonly functionsUrl = environment.stripeCheckoutUrl || 'https://us-central1-loanpub.cloudfunctions.net';
+  
+  private readonly headers = new HttpHeaders({ 'Content-Type': 'application/json' });
 
   /**
-   * Validate a promotion code against role/interval.
-   * Always returns the canonical { promotion_code: { ... } } shape when valid.
+   * Validate a promotion code for user registration
    */
   validatePromotionCode(
     code: string,
     role: 'originator' | 'lender',
     interval: 'monthly' | 'annually'
-  ): Observable<CouponValidationResponse> {
+  ): Observable<PromotionValidationResponse> {
     const cleanedCode = (code ?? '').trim().toUpperCase();
 
     if (!cleanedCode) {
-      return of({ valid: false, error: 'Promotion code cannot be empty.' });
+      return of({ valid: true }); // No code = valid (no discount)
     }
 
-    // 🎯 Try local validation first
-    const localCoupon = this.coupons.find((c) => c.code === cleanedCode);
-    if (localCoupon) {
-      return of(this.validateLocalCoupon(localCoupon, role, interval));
-    }
+    const request: PromotionValidationRequest = {
+      code: cleanedCode,
+      role,
+      interval
+    };
 
-    // 🔄 Fallback to Stripe validation
-    return this.http
-      .post<any>(`${this.functionsUrl}/validatePromotionCode`, {
-        code: cleanedCode,
-        role,
-        interval,
-      })
-      .pipe(
-        map((resp: any): CouponValidationResponse => {
-          // ✅ Canonical shape from backend
-          if (resp?.valid && resp?.promotion_code) {
-            return {
-              valid: true,
-              promotion_code: {
-                code: resp.promotion_code.code ?? cleanedCode,
-                id: resp.promotion_code.id,
-                coupon: { ...(resp.promotion_code.coupon ?? {}) },
-              },
-            };
-          }
-
-          // 🛟 Legacy shape support: { valid, coupon }
-          if (resp?.valid && resp?.coupon) {
-            return {
-              valid: true,
-              promotion_code: {
-                code: cleanedCode,
-                id: resp.coupon?.id,
-                coupon: { ...resp.coupon },
-              },
-            };
-          }
-
-          // Invalid / error case
+    return this.http.post<PromotionValidationResponse>(
+      `${this.functionsUrl}/validatePromotionCode`,
+      request,
+      { headers: this.headers }
+    ).pipe(
+      debounceTime(300),
+      distinctUntilChanged(),
+      shareReplay(1),
+      map((response): PromotionValidationResponse => {
+        // Ensure consistent response format
+        if (response?.valid && response?.promotion_code) {
           return {
-            valid: false,
-            error: resp?.error || 'Invalid promotion code.',
+            valid: true,
+            promotion_code: {
+              code: response.promotion_code.code ?? cleanedCode,
+              id: response.promotion_code.id,
+              coupon: { ...(response.promotion_code.coupon ?? {}) }
+            }
           };
-        }),
-        catchError((error) => {
-          console.error('❌ Error validating promotion code:', error);
-          return of({
-            valid: false,
-            error: 'Failed to validate promotion code. Please try again.',
-          });
-        })
-      );
+        }
+
+        return {
+          valid: false,
+          error: response?.error || 'Invalid promotion code'
+        };
+      }),
+      catchError((error) => {
+        console.error('Error validating promotion code:', error);
+        return of({
+          valid: false,
+          error: 'Failed to validate promotion code. Please try again.'
+        });
+      })
+    );
   }
 
-  // 🎯 Updated local coupon validation with setup fee support
-  private validateLocalCoupon(
-    coupon: LocalCoupon,
-    role: 'originator' | 'lender',
-    interval: 'monthly' | 'annually'
-  ): CouponValidationResponse {
-    // Check if active
-    if (!coupon.active) {
-      return {
-        valid: false,
-        error: 'This promotion code is no longer active.',
-      };
-    }
+  // ============================================
+  // ADMIN METHODS (for admin dashboard)
+  // ============================================
 
-    // Check expiration
-    if (coupon.expiresAt && new Date() > new Date(coupon.expiresAt)) {
-      return { valid: false, error: 'This promotion code has expired.' };
-    }
-
-    // Check role
-    if (!coupon.validFor.includes(role)) {
-      return {
-        valid: false,
-        error: `This promotion code is not valid for ${role}s.`,
-      };
-    }
-
-    // Check interval
-    if (!coupon.validIntervals.includes(interval)) {
-      return {
-        valid: false,
-        error: `This promotion code is not valid for ${interval} billing.`,
-      };
-    }
-
-    // Check usage limit
-    if (coupon.maxUses && (coupon.currentUses || 0) >= coupon.maxUses) {
-      return {
-        valid: false,
-        error: 'This promotion code has reached its maximum usage limit.',
-      };
-    }
-
-    // 🎉 Valid - increment usage
-    coupon.currentUses = (coupon.currentUses || 0) + 1;
-
-    // Return in Stripe format with setup fee support
-    return {
-      valid: true,
-      promotion_code: {
-        code: coupon.code,
-        id: `local_${coupon.code}`,
-        coupon: this.mapToStripeFormat(coupon),
-      },
-    };
-  }
-
-  // ✅ Updated mapping to include setup fee
-  private mapToStripeFormat(coupon: LocalCoupon) {
-    const result: any = {
-      id: `local_${coupon.code}`,
-      name: coupon.name,
-      duration: 'once',
-    };
-
-    // Add setup fee if present
-    if (coupon.setupFee) {
-      result.setup_fee = coupon.setupFee;
-    }
-
-    // Add trial days if present
-    if (coupon.trialDays) {
-      result.trial_days = coupon.trialDays;
-    }
-
-    if (coupon.type === 'percentage') {
-      result.percent_off = coupon.value;
-    } else if (coupon.type === 'fixed') {
-      result.amount_off = coupon.value;
-      result.currency = 'USD';
-    } else if (coupon.type === 'trial') {
-      // For trials with setup fee, don't set 100% off
-      if (coupon.setupFee) {
-        result.percent_off = 0; // No discount on subscription, just trial + setup fee
-      } else {
-        result.percent_off = 100; // Full trial
-      }
-      result.duration = 'repeating';
-      result.duration_in_months = Math.ceil((coupon.trialDays || 30) / 30);
-    }
-
-    return result;
+  /**
+   * Get all promotion codes (admin only)
+   */
+  getAllPromotionCodes(): Observable<PromotionListResponse> {
+    return this.http.get<PromotionListResponse>(
+      `${this.functionsUrl}/getPromotionCodes`,
+      { headers: this.headers }
+    ).pipe(
+      catchError((error) => {
+        console.error('Error fetching promotion codes:', error);
+        return of({ codes: [], total: 0 });
+      })
+    );
   }
 
   /**
-   * ✅ NEW: Helper method to check if a coupon has a setup fee
+   * Create a new promotion code (admin only)
    */
-  hasSetupFee(code: string): boolean {
-    const coupon = this.coupons.find(c => c.code === code.toUpperCase());
-    return !!(coupon?.setupFee && coupon.setupFee > 0);
+  createPromotionCode(request: CreatePromotionRequest): Observable<PromotionOperationResponse> {
+    return this.http.post<PromotionOperationResponse>(
+      `${this.functionsUrl}/createPromotionCode`,
+      request,
+      { headers: this.headers }
+    ).pipe(
+      catchError((error) => {
+        console.error('Error creating promotion code:', error);
+        return of({
+          success: false,
+          message: 'Failed to create promotion code',
+          error: error?.error?.message || 'Unknown error'
+        });
+      })
+    );
   }
 
   /**
-   * ✅ NEW: Get setup fee amount for a coupon
+   * Update an existing promotion code (admin only)
    */
-  getSetupFee(code: string): number {
-    const coupon = this.coupons.find(c => c.code === code.toUpperCase());
-    return coupon?.setupFee || 0;
+  updatePromotionCode(id: string, request: UpdatePromotionRequest): Observable<PromotionOperationResponse> {
+    return this.http.put<PromotionOperationResponse>(
+      `${this.functionsUrl}/updatePromotionCode/${id}`,
+      request,
+      { headers: this.headers }
+    ).pipe(
+      catchError((error) => {
+        console.error('Error updating promotion code:', error);
+        return of({
+          success: false,
+          message: 'Failed to update promotion code',
+          error: error?.error?.message || 'Unknown error'
+        });
+      })
+    );
+  }
+
+  /**
+   * Delete a promotion code (admin only)
+   */
+  deletePromotionCode(id: string): Observable<PromotionOperationResponse> {
+    return this.http.delete<PromotionOperationResponse>(
+      `${this.functionsUrl}/deletePromotionCode/${id}`,
+      { headers: this.headers }
+    ).pipe(
+      catchError((error) => {
+        console.error('Error deleting promotion code:', error);
+        return of({
+          success: false,
+          message: 'Failed to delete promotion code',
+          error: error?.error?.message || 'Unknown error'
+        });
+      })
+    );
+  }
+
+  /**
+   * Toggle promotion code active status (admin only)
+   */
+  togglePromotionCodeStatus(id: string, active: boolean): Observable<PromotionOperationResponse> {
+    return this.updatePromotionCode(id, { active });
   }
 }

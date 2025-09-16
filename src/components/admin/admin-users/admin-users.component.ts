@@ -11,21 +11,21 @@ import {
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
-import { LoanService } from '../../services/loan.service';
+import { LoanService } from '../../../services/loan.service';
 import { DestroyRef } from '@angular/core';
-import { FirestoreService } from '../../services/firestore.service';
+import { FirestoreService } from '../../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
-import { LocationService } from '../../services/location.service';
-import { CsvExportService } from '../../utils/csv-export.service';
+import { LocationService } from '../../../services/location.service';
+import { CsvExportService } from '../../../utils/csv-export.service';
 
 @Component({
-  selector: 'app-admin',
+  selector: 'app-admin-users',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './admin.component.html',
-  styleUrls: ['./admin.component.css'],
+  templateUrl: './admin-users.component.html',
+  styleUrls: ['./admin-users.component.css'],
 })
-export class AdminComponent implements OnInit {
+export class AdminUsersComponent implements OnInit {
   private firestore = inject(Firestore);
   private router = inject(Router);
   private loanService = inject(LoanService);
