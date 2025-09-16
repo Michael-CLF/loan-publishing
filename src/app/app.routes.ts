@@ -40,6 +40,12 @@ export const routes: Routes = [
     component: RegistrationProcessingComponent,  // Temporarily use this component
     data: { skipAuth: true, isFirebaseAction: true }
   },
+    {
+    path: 'admin',
+    redirectTo: 'admin/dashboard',
+    pathMatch: 'full'
+  },
+
   {
   path: 'admin/dashboard',
   component: AdminDashboardComponent
