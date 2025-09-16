@@ -17,7 +17,7 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './admin-billing.component.html',
-  styleUrls: ['./admin-billing.component.scss']
+  styleUrls: ['./admin-billing.component.css']
 })
 export class AdminBillingComponent implements OnInit {
   private readonly router = inject(Router);
@@ -259,10 +259,10 @@ export class AdminBillingComponent implements OnInit {
     console.log('Success:', message);
   }
 
-  formatDate(date: Date | string): string {
-    if (!date) return 'No expiration';
-    return new Date(date).toLocaleDateString();
-  }
+formatDate(date: Date | string | undefined): string {
+  if (!date) return 'No expiration';
+  return new Date(date).toLocaleDateString();
+}
 
   formatValue(code: PromotionCode): string {
     if (code.type === 'percentage') {
