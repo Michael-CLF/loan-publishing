@@ -8,7 +8,6 @@ import { environment } from '../environments/environment';
 import { 
   PromotionValidationRequest, 
   PromotionValidationResponse,
-  PromotionCode,
   CreatePromotionRequest,
   UpdatePromotionRequest,
   PromotionOperationResponse,
@@ -18,11 +17,27 @@ import {
 @Injectable({
   providedIn: 'root'
 })
+@Injectable({
+  providedIn: 'root'
+})
 export class PromotionService {
-  private readonly http = inject(HttpClient);
-  private readonly functionsUrl = environment.stripeCheckoutUrl || 'https://us-central1-loanpub.cloudfunctions.net';
-  
+
+  // Use a neutral base (no trailing slash, no function name)
+  private readonly functionsBase =
+    (environment.functionsBaseUrl || 'https://us-central1-loanpub.cloudfunctions.net').replace(/\/+$/, '');
+
   private readonly headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+
+  // Safe join helper
+// Safe join helper
+private endpoint = (path: string) => `${this.functionsBase}/${path.replace(/^\/+/, '')}`;
+
+
+  constructor(private http: HttpClient) {}
+
+   getPromotionCodes(): Observable<any> {
+    return this.http.get(this.endpoint('getPromotionCodes'));
+  }
 
   /**
    * Validate a promotion code for user registration
@@ -45,10 +60,10 @@ export class PromotionService {
     };
 
     return this.http.post<PromotionValidationResponse>(
-      `${this.functionsUrl}/validatePromotionCode`,
-      request,
-      { headers: this.headers }
-    ).pipe(
+  this.endpoint('validatePromotionCode'),
+  request,
+  { headers: this.headers }
+).pipe(
       debounceTime(300),
       distinctUntilChanged(),
       shareReplay(1),
@@ -84,12 +99,9 @@ export class PromotionService {
   // ADMIN METHODS (for admin dashboard)
   // ============================================
 
-  /**
-   * Get all promotion codes (admin only)
-   */
-  getAllPromotionCodes(): Observable<PromotionListResponse> {
+    getAllPromotionCodes(): Observable<PromotionListResponse> {
     return this.http.get<PromotionListResponse>(
-      `${this.functionsUrl}/getPromotionCodes`,
+      this.endpoint('getPromotionCodes'),
       { headers: this.headers }
     ).pipe(
       catchError((error) => {
@@ -99,12 +111,10 @@ export class PromotionService {
     );
   }
 
-  /**
-   * Create a new promotion code (admin only)
-   */
-  createPromotionCode(request: CreatePromotionRequest): Observable<PromotionOperationResponse> {
+
+    createPromotionCode(request: CreatePromotionRequest): Observable<PromotionOperationResponse> {
     return this.http.post<PromotionOperationResponse>(
-      `${this.functionsUrl}/createPromotionCode`,
+      this.endpoint('createPromotionCode'),
       request,
       { headers: this.headers }
     ).pipe(
@@ -119,13 +129,11 @@ export class PromotionService {
     );
   }
 
-  /**
-   * Update an existing promotion code (admin only)
-   */
-  updatePromotionCode(id: string, request: UpdatePromotionRequest): Observable<PromotionOperationResponse> {
+
+   updatePromotionCode(id: string, request: UpdatePromotionRequest): Observable<PromotionOperationResponse> {
     return this.http.put<PromotionOperationResponse>(
-      `${this.functionsUrl}/updatePromotionCode/${id}`,
-      request,
+      this.endpoint('updatePromotionCode'),
+      { ...request, id },
       { headers: this.headers }
     ).pipe(
       catchError((error) => {
@@ -139,13 +147,15 @@ export class PromotionService {
     );
   }
 
-  /**
-   * Delete a promotion code (admin only)
-   */
+
   deletePromotionCode(id: string): Observable<PromotionOperationResponse> {
-    return this.http.delete<PromotionOperationResponse>(
-      `${this.functionsUrl}/deletePromotionCode/${id}`,
-      { headers: this.headers }
+    return this.http.request<PromotionOperationResponse>(
+      'DELETE',
+      this.endpoint('deletePromotionCode'),
+      {
+        body: { id },
+        headers: this.headers
+      }
     ).pipe(
       catchError((error) => {
         console.error('Error deleting promotion code:', error);
@@ -157,6 +167,7 @@ export class PromotionService {
       })
     );
   }
+
 
   /**
    * Toggle promotion code active status (admin only)
