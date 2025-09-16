@@ -7,6 +7,8 @@ export interface PromotionValidationRequest {
   code: string;
   role: 'originator' | 'lender';
   interval: 'monthly' | 'annually';
+    durationType?: 'once' | 'repeating' | 'forever';
+  durationInMonths?: number;
 }
 
 /**
@@ -23,8 +25,6 @@ export interface PromotionValidationResponse {
       percent_off?: number;
       amount_off?: number;
       currency?: string;
-      duration: string;
-      duration_in_months?: number;
     };
   };
   error?: string;
@@ -60,6 +60,8 @@ export interface PromotionCode {
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
+    durationType?: 'once' | 'repeating' | 'forever';
+  durationInMonths?: number;
 }
 
 /**

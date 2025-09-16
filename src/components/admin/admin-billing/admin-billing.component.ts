@@ -136,20 +136,36 @@ export class AdminBillingComponent implements OnInit {
   }
 
   openEditModal(code: PromotionCode): void {
-    this.selectedCode.set(code);
-    this.promotionForm.patchValue({
-      code: code.code,
-      name: code.name,
-      description: code.description,
-      type: code.type,
-      value: code.value,
-      validFor: code.validFor,
-      validIntervals: code.validIntervals,
-      expiresAt: code.expiresAt ? new Date(code.expiresAt).toISOString().split('T')[0] : '',
-      maxUses: code.maxUses
-    });
-    this.showEditModal.set(true);
+  this.selectedCode.set(code);
+  
+  // Handle date formatting for the form
+  let expiresAtValue = '';
+  if (code.expiresAt) {
+    // Handle Firestore Timestamp format
+    if ((code.expiresAt as any)._seconds) {
+      expiresAtValue = new Date((code.expiresAt as any)._seconds * 1000).toISOString().split('T')[0];
+    } else {
+      // Handle regular date string or Date object
+      expiresAtValue = new Date(code.expiresAt).toISOString().split('T')[0];
+    }
   }
+  
+  this.promotionForm.patchValue({
+    code: code.code,
+    name: code.name,
+    description: code.description,
+    type: code.type,
+    value: code.value,
+    validFor: code.validFor,
+    validIntervals: code.validIntervals,
+    expiresAt: expiresAtValue,
+    maxUses: code.maxUses,
+    durationType: code.durationType || 'once' || 'repeating' || 'forever',// Add this
+    durationInMonths: code.durationInMonths || 1  // Add this
+  });
+  
+  this.showEditModal.set(true);
+}
 
   closeModals(): void {
     this.showCreateModal.set(false);
@@ -274,10 +290,21 @@ export class AdminBillingComponent implements OnInit {
     console.log('Success:', message);
   }
 
-  formatDate(date: Date | string | undefined): string {
-    if (!date) return 'No expiration';
-    return new Date(date).toLocaleDateString();
+ formatDate(date: any): string {
+  if (!date) return 'No expiration';
+  
+  try {
+    // Handle Firestore Timestamp
+    if (date._seconds) {
+      return new Date(date._seconds * 1000).toLocaleDateString();
+    }
+    // Handle ISO string or Date object
+    const d = new Date(date);
+    return isNaN(d.getTime()) ? 'Invalid Date' : d.toLocaleDateString();
+  } catch {
+    return 'Invalid Date';
   }
+}
 
   formatValue(code: PromotionCode): string {
     if (code.type === 'percentage') {
