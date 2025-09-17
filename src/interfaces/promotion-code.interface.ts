@@ -60,7 +60,7 @@ export interface PromotionCode {
   createdAt: Date;
   updatedAt: Date;
   createdBy?: string;
-    durationType?: 'once' | 'repeating' | 'forever';
+  durationType?: 'once' | 'repeating' | 'forever';
   durationInMonths?: number;
 }
 
@@ -77,6 +77,8 @@ export interface CreatePromotionRequest {
   validIntervals: ('monthly' | 'annually')[];
   expiresAt?: Date;
   maxUses?: number;
+  durationType?: 'once' | 'repeating' | 'forever';  // ADD THIS
+  durationInMonths?: number;  // ADD THIS
 }
 
 /**
@@ -84,6 +86,8 @@ export interface CreatePromotionRequest {
  */
 export interface UpdatePromotionRequest extends Partial<CreatePromotionRequest> {
   active?: boolean;
+  durationType?: 'once' | 'repeating' | 'forever';  // ADD THIS
+  durationInMonths?: number;  // ADD THIS
 }
 
 /**
