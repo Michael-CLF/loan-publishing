@@ -160,8 +160,8 @@ export class AdminBillingComponent implements OnInit {
       validIntervals: code.validIntervals,
       expiresAt: expiresAtValue,
       maxUses: code.maxUses,
-      durationType: code.durationType || 'once' || 'repeating' || 'forever',// Add this
-      durationInMonths: code.durationInMonths || 1  // Add this
+      durationType: code.durationType || 'once' || 'repeating' || 'forever',
+      durationInMonths: code.durationInMonths || 1
     });
 
     this.showEditModal.set(true);
@@ -233,7 +233,7 @@ export class AdminBillingComponent implements OnInit {
         durationType: formData.durationType,  // ADD THIS
         durationInMonths: formData.durationInMonths  // ADD THIS
       };
-
+      console.log('Sending to backend:', request);
       const response = await this.promotionService.updatePromotionCode(
         this.selectedCode()!.id,
         request
