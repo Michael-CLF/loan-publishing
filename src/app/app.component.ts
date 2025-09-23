@@ -17,6 +17,7 @@ import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
 import { signInWithEmailLink } from '@angular/fire/auth';
+import { ClarityService } from '../services/clarity.services'
 
 declare let gtag: Function;
 
@@ -46,6 +47,8 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly destroy$ = new Subject<void>();
   private hasHandledEmailLink = false;
 
+   constructor(private clarityService: ClarityService) {}
+
 
   title = 'Daily Loan Post';
   isRoleSelectionModalOpen = false;
@@ -53,6 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async ngOnInit(): Promise<void> {
     this.checkForEmailLink();
+     this.clarityService.initializeClarity();
 
     try {
       // ✅ Initialize App Check first for security
