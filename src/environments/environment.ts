@@ -1,6 +1,6 @@
 export const environment = {
   production: false,
-  clarityProjectId: 'tf82bk61fu',
+  clarityProjectId: 'tf9hb3r6wp',
  apiUrl: 'https://us-central1-loanpub.cloudfunctions.net/api',
 
    frontendUrl: 'https://dailyloanpost.com', 
