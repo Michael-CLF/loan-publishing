@@ -27,6 +27,7 @@ import { ModalService } from '../services/modal.service';
 import { PromotionValidationResponse } from '../interfaces/promotion-code.interface';
 import { PromotionService } from '../services/promotion.service';
 import { Firestore, doc, setDoc } from '@angular/fire/firestore';
+import { EmailExistsValidator } from 'src/services/email-exists.validator';
 
 
 
@@ -62,7 +63,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private modalService = inject(ModalService);
   private promotionService = inject(PromotionService);
   private firestore = inject(Firestore);
-
+  private emailValidator = inject(EmailExistsValidator);
 
   private destroy$ = new Subject<void>();
 
@@ -89,7 +90,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
       company: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z0-9 ]+$/)]],
-      email: ['', [Validators.required, Validators.email]],
+      email: ['', [Validators.required, Validators.email], [this.emailValidator.validate.bind(this.emailValidator)],],
       phone: ['', [Validators.required, Validators.pattern(/^[\d\(\)\-\+\s]*$/), Validators.minLength(14)]],
       city: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
       state: ['', [Validators.required]],
