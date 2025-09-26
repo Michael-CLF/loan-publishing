@@ -341,3 +341,223 @@ th:hover {
   cursor: pointer;
   transition: background-color 0.2s ease;
 }
+/* Login Status Indicators */
+.login-status {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.status-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* Lender Cards Layout */
+.lenders-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.lender-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  transition: box-shadow 0.2s ease;
+}
+
+.lender-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 15px;
+  border-bottom: 1px solid #f3f4f6;
+  padding-bottom: 10px;
+}
+
+.company-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.login-status-indicator {
+  display: flex;
+  align-items: center;
+}
+
+.card-content {
+  margin-bottom: 15px;
+}
+
+.contact-info {
+  margin-bottom: 15px;
+}
+
+.contact-name {
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.contact-email {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin-bottom: 2px;
+}
+
+.contact-phone {
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.lender-details {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.detail-label {
+  font-weight: 500;
+  color: #6b7280;
+  font-size: 0.9rem;
+}
+
+.detail-value {
+  color: #1f2937;
+  font-size: 0.9rem;
+  text-align: right;
+  max-width: 60%;
+  word-break: break-word;
+}
+
+.card-actions {
+  display: flex;
+  gap: 10px;
+  border-top: 1px solid #f3f4f6;
+  padding-top: 15px;
+}
+
+.card-actions .view-btn,
+.card-actions .delete-btn {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.no-lenders-message {
+  grid-column: 1 / -1;
+  text-align: center;
+  padding: 40px;
+  color: #6b7280;
+  font-style: italic;
+}
+
+/* Status Classes */
+.status-recent {
+  color: #10b981;
+}
+
+.status-moderate {
+  color: #f59e0b;
+}
+
+.status-old {
+  color: #ef4444;
+}
+
+.status-never {
+  color: #6b7280;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .lenders-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+  }
+  
+  .detail-value {
+    text-align: left;
+    max-width: 100%;
+  }
+}/* Originators Cards - Similar to Lenders */
+.section-stats {
+    font-size: 0.9rem;
+    color: #6b7280;
+    background: #f3f4f6;
+    padding: 4px 8px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    width: fit-content;
+}
+
+.originators-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+    gap: 20px;
+    margin-top: 15px;
+}
+
+.originator-card {
+    background: white;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+.originator-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+}
+
+.originator-details {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.no-originators-message {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 60px 20px;
+    color: #6b7280;
+}
+
+/* Responsive for originators */
+@media (max-width: 768px) {
+    .originators-grid {
+        grid-template-columns: 1fr;
+    }
+}

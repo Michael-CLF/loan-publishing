@@ -1,0 +1,102 @@
+<!-- src/app/components/admin/admin-loans/admin-loans.component.html -->
+
+<div class="loans-section">
+  <div class="section-header">
+    <h2 class="section-title">Loans</h2>
+    <div class="section-stats">
+      {{ filteredLoans().length }} of {{ loans().length }} loans
+    </div>
+  </div>
+
+  <div class="loans-container">
+    <div class="table-container">
+      <table class="loans-table">
+        <thead>
+          <tr>
+            <th class="loan-header" (click)="sortLoans('id')">
+              Loan ID {{ getSortIcon('id') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('loanAmount')">
+              Amount {{ getSortIcon('loanAmount') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('propertyTypeCategory')">
+              Property Type {{ getSortIcon('propertyTypeCategory') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('city')">
+              Location {{ getSortIcon('city') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('originatorName')">
+              Originator {{ getSortIcon('originatorName') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('status')">
+              Status {{ getSortIcon('status') }}
+            </th>
+            <th class="loan-header" (click)="sortLoans('createdAt')">
+              Created {{ getSortIcon('createdAt') }}
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let loan of filteredLoans(); let i = index"
+              [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }"
+              class="loan-row"
+              [class]="getUrgencyClass(loan)">
+            
+            <td class="loan-cell loan-id">
+              <div class="id-container">
+                <span class="id-text">{{ getShortLoanId(loan.id) }}</span>
+                <span class="id-full" title="{{ loan.id }}">{{ loan.id }}</span>
+              </div>
+            </td>
+            
+            <td class="loan-cell loan-amount">
+              <div class="amount-container">
+                <span class="amount-value">{{ formatCurrency(loan.loanAmount) }}</span>
+                <span class="amount-range">{{ getLoanAmountRange(loan.loanAmount) }}</span>
+              </div>
+            </td>
+            
+            <td class="loan-cell property-type">
+              {{ formatPropertyType(loan.propertyTypeCategory, loan.propertySubCategory) }}
+            </td>
+            
+            <td class="loan-cell location">
+              {{ getLocation(loan) }}
+            </td>
+            
+            <td class="loan-cell originator">
+              <div class="originator-info">
+                <span class="originator-name">{{ loan.originatorName || 'N/A' }}</span>
+                <span class="originator-contact">{{ loan.contact || loan.email || 'N/A' }}</span>
+              </div>
+            </td>
+            
+            <td class="loan-cell status">
+              <span class="status-badge" [ngClass]="getStatusClass(loan)">
+                {{ loan.status || 'Pending' }}
+              </span>
+            </td>
+            
+            <td class="loan-cell created-date">
+              <div class="date-container">
+                <span class="date-value">{{ formatDate(loan.createdAt) }}</span>
+                <span class="days-ago">{{ getDaysSinceCreated(loan.createdAt) }} days ago</span>
+              </div>
+            </td>
+          </tr>
+          
+          <tr *ngIf="filteredLoans().length === 0">
+            <td colspan="7" class="no-data">
+              <div class="no-data-content">
+                <div class="no-data-icon">📋</div>
+                <div class="no-data-text">
+                  {{ loans().length === 0 ? 'No loans found' : 'No loans match your filter' }}
+                </div>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

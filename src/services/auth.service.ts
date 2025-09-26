@@ -30,33 +30,48 @@ import {
 } from '@angular/fire/firestore';
 
 import { environment } from '../environments/environment';
+import { UserActivityService } from './user-activity.service';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
+  private readonly userActivityService = inject(UserActivityService);
 
-  // ✅ ADD THESE PROPERTIES for debugging
+  // Properties for debugging and login tracking
   private wasLoggedIn = false;
   private lastAuthStateChange = Date.now();
 
   // ---- Core reactive streams ----
   private readonly _user$ = authState(this.auth).pipe(
-    // ✅ ADD THIS DEBUG TAP
     tap(user => {
       const now = Date.now();
       const timeSinceLastChange = now - this.lastAuthStateChange;
 
-      console.log('🔍 AUTH STATE CHANGED:', {
+      const isNewLogin = !this.wasLoggedIn && !!user;
+      const isLogout = this.wasLoggedIn && !user;
+
+      console.log('AUTH STATE CHANGED:', {
         userId: user?.uid || 'none',
         email: user?.email || 'none',
         wasLoggedIn: this.wasLoggedIn,
         isNowLoggedIn: !!user,
         timeSinceLastChange: `${timeSinceLastChange}ms`,
         timestamp: new Date().toISOString(),
-        isNewLogin: !this.wasLoggedIn && !!user,
-        isLogout: this.wasLoggedIn && !user
+        isNewLogin,
+        isLogout
       });
+
+      // Track login if this is a new login (not just token refresh)
+      if (isNewLogin && user?.uid) {
+        console.log('AuthService: New login detected, tracking activity');
+        // Determine login method based on recent auth actions
+        const loginMethod = this.getRecentLoginMethod();
+        this.userActivityService.trackLogin(user, loginMethod).subscribe({
+          next: () => console.log('AuthService: Login activity tracked'),
+          error: (error) => console.error('AuthService: Failed to track login:', error)
+        });
+      }
 
       this.wasLoggedIn = !!user;
       this.lastAuthStateChange = now;
@@ -87,8 +102,8 @@ export class AuthService {
   // ---- Persistence ----
   initAuthPersistence(): void {
     setPersistence(this.auth, browserLocalPersistence)
-      .then(() => console.log('✅ Firebase Auth persistence set to local'))
-      .catch(err => console.error('❌ Failed to set Firebase persistence:', err));
+      .then(() => console.log('Firebase Auth persistence set to local'))
+      .catch(err => console.error('Failed to set Firebase persistence:', err));
   }
 
   // ---- Compatibility helpers used around the app ----
@@ -109,29 +124,26 @@ export class AuthService {
     return this._user$;
   }
 
-sendLoginLink(email: string): Observable<void> {
-  const normalized = email.toLowerCase().trim();
-  const actionCodeSettings = {
-    url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(normalized)}`,
-    handleCodeInApp: true,
-  };
+  sendLoginLink(email: string): Observable<void> {
+    const normalized = email.toLowerCase().trim();
+    const actionCodeSettings = {
+      url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(normalized)}`,
+      handleCodeInApp: true,
+    };
 
-  console.log('🔗 Sending magic link with settings:', actionCodeSettings);
+    console.log('Sending magic link with settings:', actionCodeSettings);
 
-  return from(sendSignInLinkToEmail(this.auth, normalized, actionCodeSettings)).pipe(
-    map(() => {
-      // Store email for same-device sign-in completion
-      localStorage.setItem('emailForSignIn', normalized);
-
-    }),
-
-    
-    catchError((error) => {
-      console.error('❌ Error sending login link:', error);
-      throw error;
-    })
-  );
-}
+    return from(sendSignInLinkToEmail(this.auth, normalized, actionCodeSettings)).pipe(
+      map(() => {
+        // Store email for same-device sign-in completion
+        localStorage.setItem('emailForSignIn', normalized);
+      }),
+      catchError((error) => {
+        console.error('Error sending login link:', error);
+        throw error;
+      })
+    );
+  }
 
   isEmailSignInLink(): Observable<boolean> {
     return of(isSignInWithEmailLink(this.auth, window.location.href));
@@ -153,6 +165,7 @@ sendLoginLink(email: string): Observable<void> {
     return from(signInWithEmailLink(this.auth, stored, url)).pipe(
       map((cred) => {
         localStorage.removeItem('emailForSignIn');
+        console.log('AuthService: Email link login completed, user state will update via authState listener');
         return cred;
       })
     );
@@ -161,7 +174,14 @@ sendLoginLink(email: string): Observable<void> {
   // ---- Google sign-in (used in login component) ----
   loginWithGoogle(): Observable<User | null> {
     const provider = new GoogleAuthProvider();
-    return from(signInWithPopup(this.auth, provider)).pipe(map(res => res.user));
+    return from(signInWithPopup(this.auth, provider)).pipe(
+      map(res => res.user),
+      tap(user => {
+        if (user?.uid) {
+          console.log('AuthService: Google login completed, user state will update via authState listener');
+        }
+      })
+    );
   }
 
   // ---- Logout ----
@@ -170,60 +190,58 @@ sendLoginLink(email: string): Observable<void> {
   }
 
   handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
-  const url = window.location.href;
-  
-  // Check if this is actually a Firebase magic link URL
-  if (!isSignInWithEmailLink(this.auth, url)) {
-    console.log('📧 Not a Firebase magic link URL, checking if already authenticated');
-    return of({ success: false, error: 'Not an email link' });
+    const url = window.location.href;
+    
+    // Check if this is actually a Firebase magic link URL
+    if (!isSignInWithEmailLink(this.auth, url)) {
+      console.log('Not a Firebase magic link URL, checking if already authenticated');
+      return of({ success: false, error: 'Not an email link' });
+    }
+
+    // Extract email from the continueUrl parameter in the magic link (different-device case)
+    let emailFromUrl = '';
+    try {
+      const outer = new URL(url);
+      const cont = outer.searchParams.get('continueUrl');
+      if (cont) {
+        const inner = new URL(decodeURIComponent(cont));
+        emailFromUrl = (inner.searchParams.get('email') ?? '').trim();
+      }
+    } catch (e) {
+      console.error('Failed to parse continueUrl:', e);
+    }
+
+    // Prefer same-device stored email, else parsed from URL
+    const stored = (localStorage.getItem('emailForSignIn') ?? '').trim();
+    const normalized = (stored || emailFromUrl).toLowerCase();
+
+    if (!normalized) {
+      console.error('No email found for magic link authentication');
+      return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
+    }
+
+    return from(signInWithEmailLink(this.auth, normalized, url)).pipe(
+      map((userCredential) => {
+        // Clear stored email
+        localStorage.removeItem('emailForSignIn');
+        
+        // Don't clear URL parameters here - let the component handle navigation
+        console.log('Magic link authentication successful:', userCredential.user.email);
+        
+        return { success: true, user: userCredential.user };
+      }),
+      catchError((error) => {
+        console.error('Email link authentication failed:', error);
+        localStorage.removeItem('emailForSignIn');
+        return of({ success: false, error: error.message });
+      })
+    );
   }
 
- // Extract email from the continueUrl parameter in the magic link (different-device case)
-let emailFromUrl = '';
-try {
-  const outer = new URL(url);
-  const cont = outer.searchParams.get('continueUrl');
-  if (cont) {
-    const inner = new URL(decodeURIComponent(cont));
-    emailFromUrl = (inner.searchParams.get('email') ?? '').trim();
-  }
-} catch (e) {
-  console.error('Failed to parse continueUrl:', e);
-}
-
-// Prefer same-device stored email, else parsed from URL
-const stored = (localStorage.getItem('emailForSignIn') ?? '').trim();
-const normalized = (stored || emailFromUrl).toLowerCase();
-
-if (!normalized) {
-  console.error('❌ No email found for magic link authentication');
-  return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
-}
-
-return from(signInWithEmailLink(this.auth, normalized, url)).pipe(
-
-    map((userCredential) => {
-      // Clear stored email
-      localStorage.removeItem('emailForSignIn');
-      
-      // Don't clear URL parameters here - let the component handle navigation
-      console.log('✅ Magic link authentication successful:', userCredential.user.email);
-      
-      return { success: true, user: userCredential.user };
-    }),
-    catchError((error) => {
-      console.error('❌ Email link authentication failed:', error);
-      localStorage.removeItem('emailForSignIn');
-      return of({ success: false, error: error.message });
-    })
-  );
-}
-
-getUserProfile(userId?: string): Observable<any | null> {
+  getUserProfile(userId?: string): Observable<any | null> {
     return this._user$.pipe(
-      // ✅ ADD THIS DEBUG TAP
       tap(user => {
-        console.log('🔍 GET USER PROFILE CALLED:', {
+        console.log('GET USER PROFILE CALLED:', {
           currentUserId: user?.uid || 'none',
           requestedUserId: userId || 'using current user',
           timestamp: new Date().toISOString()
@@ -240,8 +258,7 @@ getUserProfile(userId?: string): Observable<any | null> {
         return from(getDoc(lenderRef)).pipe(
           switchMap(lenderSnap => {
             if (lenderSnap.exists()) {
-              // ✅ ADD THIS DEBUG LOG
-              console.log('🔍 LOADED LENDER PROFILE:', {
+              console.log('LOADED LENDER PROFILE:', {
                 userId: uid,
                 hasData: !!lenderSnap.data(),
                 timestamp: new Date().toISOString()
@@ -251,8 +268,7 @@ getUserProfile(userId?: string): Observable<any | null> {
             return from(getDoc(originRef)).pipe(
               map(originSnap => {
                 if (originSnap.exists()) {
-                  // ✅ ADD THIS DEBUG LOG
-                  console.log('🔍 LOADED ORIGINATOR PROFILE:', {
+                  console.log('LOADED ORIGINATOR PROFILE:', {
                     userId: uid,
                     hasData: !!originSnap.data(),
                     timestamp: new Date().toISOString()
@@ -260,8 +276,7 @@ getUserProfile(userId?: string): Observable<any | null> {
                   return { id: originSnap.id, ...(originSnap.data() as any) };
                 }
 
-                // ✅ ADD THIS DEBUG LOG
-                console.log('🔍 NO PROFILE FOUND:', {
+                console.log('NO PROFILE FOUND:', {
                   userId: uid,
                   timestamp: new Date().toISOString()
                 });
@@ -272,7 +287,7 @@ getUserProfile(userId?: string): Observable<any | null> {
         );
       }),
       catchError(err => {
-        console.error('❌ Error fetching user profile:', err);
+        console.error('Error fetching user profile:', err);
         return of(null);
       })
     );
@@ -287,8 +302,7 @@ getUserProfile(userId?: string): Observable<any | null> {
     return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
   }
 
-  
-checkAccountExists(email: string): Observable<{
+  checkAccountExists(email: string): Observable<{
     exists: boolean;
     userType?: 'originator' | 'lender';
     userId?: string;
@@ -315,7 +329,7 @@ checkAccountExists(email: string): Observable<{
       where('contactInfo.contactEmail', '==', normalized)
     );
 
-  return from(Promise.all([
+    return from(Promise.all([
       getDocs(originQ),
       getDocs(originContactQ),
       getDocs(lenderQ),
@@ -357,9 +371,23 @@ checkAccountExists(email: string): Observable<{
         return { exists: false };
       }),
       catchError(err => {
-        console.error('❌ Error checking account:', err);
+        console.error('Error checking account:', err);
         return of({ exists: false });
       })
     );
+  }
+
+  /**
+   * Determine the recent login method based on auth state
+   * This is a simple heuristic - you could make it more sophisticated
+   */
+  private getRecentLoginMethod(): 'magic-link' | 'google' {
+    // Check if we're currently handling an email link
+    if (isSignInWithEmailLink(this.auth, window.location.href)) {
+      return 'magic-link';
+    }
+    
+    // Default to google for other cases (you could enhance this logic)
+    return 'google';
   }
 }

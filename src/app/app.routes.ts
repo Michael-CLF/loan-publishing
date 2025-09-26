@@ -33,6 +33,8 @@ import { AdminBillingComponent } from 'src/components/admin/admin-billing/admin-
 import { AdminPaymentsComponent } from 'src/components/admin/admin-payments/admin-payments.component';
 import { AdminUsersComponent } from 'src/components/admin/admin-users/admin-users.component';
 import { FirebaseVideoComponent } from 'src/components/firebase-video/firebase-video.component';
+import { AdminLendersComponent } from 'src/components/admin/admin-lenders/admin-lenders.component';
+import { AdminLoansComponent } from 'src/components/admin/admin-loans/admin-loans.component';
 
 export const routes: Routes = [
   {
@@ -45,7 +47,6 @@ export const routes: Routes = [
     redirectTo: 'admin/dashboard',
     pathMatch: 'full',
   },
-
   {
     path: 'admin/dashboard',
     component: AdminDashboardComponent,
@@ -57,6 +58,13 @@ export const routes: Routes = [
   {
     path: 'admin/users',
     component: AdminUsersComponent,
+  },
+  {
+   path: 'admin/lenders',
+    component: AdminLendersComponent,
+  },
+  { path: 'admin/loans',
+    component: AdminLoansComponent,
   },
   {
     path: 'admin/payments',

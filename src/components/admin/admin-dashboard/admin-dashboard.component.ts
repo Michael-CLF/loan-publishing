@@ -79,9 +79,18 @@ export class AdminDashboardComponent implements OnInit {
   }
 
   // Navigation methods
-  navigateToUsers(): void {
-    this.router.navigate(['/admin/users']);
-  }
+  // Navigation methods for new management cards
+navigateToOriginators(): void {
+  this.router.navigate(['/admin/users']);
+}
+
+navigateToLenders(): void {
+  this.router.navigate(['/admin/lenders']);
+}
+
+navigateToLoans(): void {
+  this.router.navigate(['/admin/loans']);
+}
 
   navigateToBilling(): void {
     this.router.navigate(['/admin/billing']);

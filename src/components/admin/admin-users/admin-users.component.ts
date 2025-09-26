@@ -17,6 +17,8 @@ import { FirestoreService } from '../../../services/firestore.service';
 import { ModalService } from 'src/services/modal.service';
 import { LocationService } from '../../../services/location.service';
 import { CsvExportService } from '../../../utils/csv-export.service';
+import { DateUtilsService } from '../../../utils/date-utils.service';
+import { UserWithActivity } from '../../../interfaces/user-activity.interface';
 
 @Component({
   selector: 'app-admin-users',
@@ -34,19 +36,18 @@ export class AdminUsersComponent implements OnInit {
   private modalService = inject(ModalService);
   private locationService = inject(LocationService);
   private csvExportService = inject(CsvExportService);
+  private dateUtils = inject(DateUtilsService);
+  private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
 
   userFilter = '';
-  filteredLenders = signal<any[]>([]);
-  filteredOriginators = signal<any[]>([]);
-
-  private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
+  filteredLenders = signal<UserWithActivity[]>([]);
+  filteredOriginators = signal<UserWithActivity[]>([]);
+  lenders = signal<UserWithActivity[]>([]);
+  originators = signal<UserWithActivity[]>([]);
 
   adminAuthenticated = signal(false);
   enteredCode = '';
   codeError = signal(false);
-
-  lenders = signal<any[]>([]);
-  originators = signal<any[]>([]);
   loans = signal<any[]>([]);
 
   loading = signal(false);
@@ -67,20 +68,20 @@ export class AdminUsersComponent implements OnInit {
   loanSortDirection: 'asc' | 'desc' = 'asc';
 
   testTimestampFix(): void {
-  console.log('🧪 TESTING TIMESTAMP FIXES:');
-  
-  // Test with your actual data format
-  const stringDate = "07/30/2025, 5:03 PM";
-  const firestoreTimestamp = new Date(); // Simulating current Firestore timestamp
-  
-  console.log('Original string date:', stringDate);
-  console.log('Normalized string date:', this.normalizeTimestamp(stringDate));
-  console.log('Formatted string date:', this.formatDate(stringDate));
-  
-  console.log('Firestore timestamp:', firestoreTimestamp);
-  console.log('Normalized Firestore timestamp:', this.normalizeTimestamp(firestoreTimestamp));
-  console.log('Formatted Firestore timestamp:', this.formatDate(firestoreTimestamp));
-}
+    console.log('🧪 TESTING TIMESTAMP FIXES:');
+
+    // Test with your actual data format
+    const stringDate = "07/30/2025, 5:03 PM";
+    const firestoreTimestamp = new Date(); // Simulating current Firestore timestamp
+
+    console.log('Original string date:', stringDate);
+    console.log('Normalized string date:', this.normalizeTimestamp(stringDate));
+    console.log('Formatted string date:', this.formatDate(stringDate));
+
+    console.log('Firestore timestamp:', firestoreTimestamp);
+    console.log('Normalized Firestore timestamp:', this.normalizeTimestamp(firestoreTimestamp));
+    console.log('Formatted Firestore timestamp:', this.formatDate(firestoreTimestamp));
+  }
 
   ngOnInit() {
     const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
@@ -188,46 +189,46 @@ export class AdminUsersComponent implements OnInit {
     return this.locationService.formatValueForDisplay(state);
   }
 
-// In admin.component.ts, replace your current normalizeTimestamp method with this:
+  // In admin.component.ts, replace your current normalizeTimestamp method with this:
 
-private normalizeTimestamp(timestamp: any): Date {
-  if (!timestamp) return new Date();
+  private normalizeTimestamp(timestamp: any): Date {
+    if (!timestamp) return new Date();
 
-  // ✅ FIX: Handle string dates FIRST (this was missing)
-  if (typeof timestamp === 'string') {
-    const date = new Date(timestamp);
-    if (!isNaN(date.getTime())) {
-      return date;
+    // ✅ FIX: Handle string dates FIRST (this was missing)
+    if (typeof timestamp === 'string') {
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) {
+        return date;
+      }
     }
-  }
 
-  // Handle Firestore Timestamp objects  
-  if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
-    return timestamp.toDate();
-  }
+    // Handle Firestore Timestamp objects  
+    if (timestamp && typeof timestamp === 'object' && 'toDate' in timestamp) {
+      return timestamp.toDate();
+    }
 
-  // Handle timestamp objects with seconds/nanoseconds
-  if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
-    return new Date(timestamp.seconds * 1000);
-  }
+    // Handle timestamp objects with seconds/nanoseconds
+    if (timestamp && typeof timestamp === 'object' && 'seconds' in timestamp) {
+      return new Date(timestamp.seconds * 1000);
+    }
 
-  // Handle raw serverTimestamp objects
-  if (
-    timestamp &&
-    typeof timestamp === 'object' &&
-    timestamp._methodName === 'serverTimestamp'
-  ) {
-    return new Date(); // Current date for display purposes
-  }
+    // Handle raw serverTimestamp objects
+    if (
+      timestamp &&
+      typeof timestamp === 'object' &&
+      timestamp._methodName === 'serverTimestamp'
+    ) {
+      return new Date(); // Current date for display purposes
+    }
 
-  // Handle JavaScript Date objects
-  if (timestamp instanceof Date) {
-    return timestamp;
-  }
+    // Handle JavaScript Date objects
+    if (timestamp instanceof Date) {
+      return timestamp;
+    }
 
-  // Default fallback
-  return new Date();
-}
+    // Default fallback
+    return new Date();
+  }
 
   getFormattedDate(date: any): string {
     if (!date) return 'N/A';
@@ -245,136 +246,111 @@ private normalizeTimestamp(timestamp: any): Date {
     }
   }
 
-  // ✅ FIXED: Replace the loadOriginatorsAndLenders method in your admin.component.ts
-
   async loadOriginatorsAndLenders() {
-    try {
-      // Clear existing maps
-      this.originatorsMap.clear();
-      this.lendersMap.clear();
-      this.originatorNames.clear();
+  try {
+    // Clear existing maps
+    this.originatorsMap.clear();
+    this.lendersMap.clear();
+    this.originatorNames.clear();
 
-      // Load originators
-      const originatorsRef = collection(this.firestore, 'originators');
-      const originatorsSnapshot = await getDocs(originatorsRef);
+    // Load originators
+    const originatorsRef = collection(this.firestore, 'originators');
+    const originatorsSnapshot = await getDocs(originatorsRef);
 
-      const originatorsData = originatorsSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const contactInfo = data['contactInfo'] || {};
+    const originatorsData = originatorsSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const contactInfo = data['contactInfo'] || {};
 
-        const originator = {
-          id: doc.id,
-          accountNumber: doc.id.substring(0, 8).toUpperCase(),
-          firstName: contactInfo['firstName'] || data['firstName'] || '',
-          lastName: contactInfo['lastName'] || data['lastName'] || '',
-          email: contactInfo['contactEmail'] || data['email'] || '',
-          company: contactInfo['company'] || data['company'] || '',
-          city: contactInfo['city'] || data['city'] || '',
-          state: contactInfo['state'] || data['state'] || '',
-          createdAt: this.normalizeTimestamp(data['createdAt']),
-          role: 'originator',
-        };
+      const createdAt = this.dateUtils.normalizeTimestamp(data['createdAt']);
+      const lastLoginAt = data['lastLoginAt'] ? this.dateUtils.normalizeTimestamp(data['lastLoginAt']) : null;
+      const daysSinceLastLogin = this.dateUtils.getDaysSinceLastLogin(lastLoginAt);
+      const loginStatus = this.dateUtils.getLoginStatus(daysSinceLastLogin);
 
-        // Store in maps for reference
-        const userId = data['userId'] || doc.id;
-        this.originatorsMap.set(userId, originator);
-        this.originatorNames.set(
-          userId,
-          `${originator.firstName} ${originator.lastName}`.trim() ||
-            originator.email ||
-            'N/A'
-        );
+      const originator: UserWithActivity = {
+        id: doc.id,
+        accountNumber: doc.id.substring(0, 8).toUpperCase(),
+        firstName: contactInfo['firstName'] || data['firstName'] || '',
+        lastName: contactInfo['lastName'] || data['lastName'] || '',
+        email: contactInfo['contactEmail'] || data['email'] || '',
+        company: contactInfo['company'] || data['company'] || '',
+        city: contactInfo['city'] || data['city'] || '',
+        state: contactInfo['state'] || data['state'] || '',
+        createdAt,
+        lastLoginAt,
+        daysSinceLastLogin,
+        loginStatus,
+        role: 'originator',
+      };
 
-        return originator;
-      });
+      // Store in maps for reference
+      const userId = data['userId'] || doc.id;
+      this.originatorsMap.set(userId, originator);
+      this.originatorNames.set(
+        userId,
+        `${originator.firstName} ${originator.lastName}`.trim() ||
+          originator.email ||
+          'N/A'
+      );
 
-      // ✅ FIXED: Load lenders with comprehensive fallback handling
-      const lendersRef = collection(this.firestore, 'lenders');
-      const lendersSnapshot = await getDocs(lendersRef);
+      return originator;
+    });
 
-      const lendersData = lendersSnapshot.docs.map((doc) => {
-        const data = doc.data();
-        const contactInfo = data['contactInfo'] || {};
-        const productInfo = data['productInfo'] || {};
+    // Load lenders with comprehensive fallback handling
+    const lendersRef = collection(this.firestore, 'lenders');
+    const lendersSnapshot = await getDocs(lendersRef);
 
-        console.log(`Processing lender ${doc.id}:`, {
-          hasContactInfo: !!contactInfo,
-          hasProductInfo: !!productInfo,
-          rootKeys: Object.keys(data),
-          contactInfoKeys: Object.keys(contactInfo),
-          productInfoKeys: Object.keys(productInfo),
-        });
+    const lendersData = lendersSnapshot.docs.map((doc) => {
+      const data = doc.data();
+      const contactInfo = data['contactInfo'] || {};
+      const productInfo = data['productInfo'] || {};
 
-        const lender = {
-          id: doc.id,
-          accountNumber: doc.id.substring(0, 8).toUpperCase(),
+      const createdAt = this.dateUtils.normalizeTimestamp(data['createdAt']);
+      const lastLoginAt = data['lastLoginAt'] ? this.dateUtils.normalizeTimestamp(data['lastLoginAt']) : null;
+      const daysSinceLastLogin = this.dateUtils.getDaysSinceLastLogin(lastLoginAt);
+      const loginStatus = this.dateUtils.getLoginStatus(daysSinceLastLogin);
 
-          // ✅ ENHANCED: Try all possible locations for name data
-          firstName: data['firstName'] || contactInfo['firstName'] || '',
-          lastName: data['lastName'] || contactInfo['lastName'] || '',
+      const lender: UserWithActivity = {
+        id: doc.id,
+        accountNumber: doc.id.substring(0, 8).toUpperCase(),
+        firstName: data['firstName'] || contactInfo['firstName'] || '',
+        lastName: data['lastName'] || contactInfo['lastName'] || '',
+        company: data['company'] || contactInfo['company'] || '',
+        city: data['city'] || contactInfo['city'] || '',
+        state: data['state'] || contactInfo['state'] || '',
+        email: data['email'] || contactInfo['contactEmail'] || contactInfo['email'] || '',
+        phone: data['phone'] || contactInfo['contactPhone'] || contactInfo['phone'] || '',
+        createdAt,
+        lastLoginAt,
+        daysSinceLastLogin,
+        loginStatus,
+        role: 'lender',
+        lenderTypes: productInfo['lenderTypes'] || data['lenderTypes'] || [],
+        productInfo: productInfo,
+        contactInfo: contactInfo,
+        _rawData: data,
+      };
 
-          // ✅ ENHANCED: Try all possible locations for company data
-          company: data['company'] || contactInfo['company'] || '',
+      // Store in map for quick lookup
+      this.lendersMap.set(doc.id, lender);
+      return lender;
+    });
 
-          // ✅ ENHANCED: Try all possible locations for location data
-          city: data['city'] || contactInfo['city'] || '',
-          state: data['state'] || contactInfo['state'] || '',
+    // Update signals
+    this.lenders.set(lendersData);
+    this.originators.set(originatorsData);
 
-          // ✅ ENHANCED: Try all possible locations for contact data
-          email:
-            data['email'] ||
-            contactInfo['contactEmail'] ||
-            contactInfo['email'] ||
-            '',
-          phone:
-            data['phone'] ||
-            contactInfo['contactPhone'] ||
-            contactInfo['phone'] ||
-            '',
-
-          createdAt: this.normalizeTimestamp(data['createdAt']),
-          role: 'lender',
-
-          // ✅ ENHANCED: Try all possible locations for lender types
-          lenderTypes: productInfo['lenderTypes'] || data['lenderTypes'] || [],
-
-          // ✅ Keep full objects for detailed access if needed
-          productInfo: productInfo,
-          contactInfo: contactInfo,
-
-          // ✅ Add raw data for debugging
-          _rawData: data,
-        };
-
-        // ✅ Debug logging for problematic lenders
-        if (!lender.firstName && !lender.lastName) {
-          console.warn(`Lender ${doc.id} missing name data:`, lender);
-        }
-        if (!lender.company) {
-          console.warn(`Lender ${doc.id} missing company data:`, lender);
-        }
-
-        // Store in map for quick lookup
-        this.lendersMap.set(doc.id, lender);
-        return lender;
-      });
-
-      // ✅ Debug: Log summary of data loading
-      console.log('Lenders loaded:', {
-        total: lendersData.length,
-        withNames: lendersData.filter((l) => l.firstName || l.lastName).length,
-        withCompanies: lendersData.filter((l) => l.company).length,
-        withTypes: lendersData.filter((l) => l.lenderTypes?.length > 0).length,
-      });
-
-      // Update signals
-      this.lenders.set(lendersData);
-      this.originators.set(originatorsData);
-    } catch (err) {
-      console.error('Error loading originators and lenders:', err);
-      throw err;
-    }
+    console.log('Admin: Loaded users with login tracking:', {
+      lenders: lendersData.length,
+      originators: originatorsData.length,
+      lendersWithLogins: lendersData.filter(l => l.lastLoginAt).length,
+      originatorsWithLogins: originatorsData.filter(o => o.lastLoginAt).length
+    });
+  } catch (err) {
+    console.error('Error loading originators and lenders:', err);
+    throw err;
   }
+}
+ 
 
   // ✅ ENHANCED: Updated getLenderTypes method for admin component
   getLenderTypes(lender: any): string {
@@ -566,9 +542,8 @@ private normalizeTimestamp(timestamp: any): Date {
 
     const originator = this.originatorsMap.get(uid);
     if (originator) {
-      const name = `${originator.firstName || ''} ${
-        originator.lastName || ''
-      }`.trim();
+      const name = `${originator.firstName || ''} ${originator.lastName || ''
+        }`.trim();
       return name || originator.email || 'N/A';
     }
 
@@ -860,6 +835,40 @@ private normalizeTimestamp(timestamp: any): Date {
     return `status-${status}`;
   }
 
+  // Get formatted last login text
+getLastLoginText(user: UserWithActivity): string {
+  return this.dateUtils.formatDaysAgo(user.daysSinceLastLogin);
+}
+
+// Get status indicator class
+getLoginStatusClass(user: UserWithActivity): string {
+  return this.dateUtils.getStatusClass(user.loginStatus);
+}
+
+// Get status indicator color
+getLoginStatusColor(user: UserWithActivity): string {
+  return this.dateUtils.getStatusColor(user.loginStatus);
+}
+
+// Format creation date consistently
+formatCreatedDate(date: Date): string {
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// Format last login date consistently  
+formatLastLoginDate(date: Date | null): string {
+  if (!date) return 'Never';
+  return date.toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
   // Sorting methods
   sortLenders(column: string): void {
     if (this.lenderSortColumn === column) {
@@ -925,9 +934,8 @@ private normalizeTimestamp(timestamp: any): Date {
         .trim()
         .toLowerCase();
     } else if (column === 'location') {
-      return `${item.city || ''} ${
-        this.getFormattedStateName(item.state) || ''
-      }`
+      return `${item.city || ''} ${this.getFormattedStateName(item.state) || ''
+        }`
         .trim()
         .toLowerCase();
     } else if (column === 'type') {

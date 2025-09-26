@@ -1,0 +1,274 @@
+/* src/app/components/admin/admin-loans/admin-loans.component.css */
+
+.loans-section {
+  margin-bottom: 30px;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+  border-bottom: 2px solid #e5e7eb;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.section-stats {
+  font-size: 0.9rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+/* Table Styling */
+.loans-container {
+  background: white;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.table-container {
+  overflow-x: auto;
+}
+
+.loans-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 800px;
+}
+
+.loan-header {
+  background: #f8fafc;
+  color: #374151;
+  font-weight: 600;
+  padding: 12px 16px;
+  text-align: left;
+  border-bottom: 2px solid #e5e7eb;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.loan-header:hover {
+  background: #f1f5f9;
+}
+
+.loan-row {
+  transition: background-color 0.2s ease;
+}
+
+.row-even {
+  background: #ffffff;
+}
+
+.row-odd {
+  background: #f9fafb;
+}
+
+.loan-row:hover {
+  background: #f3f4f6;
+}
+
+.loan-cell {
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  vertical-align: top;
+  font-size: 0.9rem;
+}
+
+/* Specific Cell Styling */
+.loan-id .id-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.id-text {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.id-full {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-family: monospace;
+}
+
+.loan-amount .amount-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.amount-value {
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.amount-range {
+  font-size: 0.75rem;
+  color: #6b7280;
+  background: #f3f4f6;
+  padding: 2px 6px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+.property-type {
+  color: #374151;
+  line-height: 1.4;
+}
+
+.location {
+  color: #374151;
+}
+
+.originator .originator-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.originator-name {
+  font-weight: 500;
+  color: #1f2937;
+}
+
+.originator-contact {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+/* Status Badges */
+.status-badge {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-transform: capitalize;
+}
+
+.status-pending {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.status-active {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-completed {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-approved {
+  background: #d1fae5;
+  color: #065f46;
+}
+
+.status-rejected {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.created-date .date-container {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.date-value {
+  color: #1f2937;
+}
+
+.days-ago {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Urgency Indicators */
+.urgency-new {
+  border-left: 4px solid #10b981;
+}
+
+.urgency-recent {
+  border-left: 4px solid #f59e0b;
+}
+
+.urgency-moderate {
+  border-left: 4px solid #ef4444;
+}
+
+.urgency-old {
+  border-left: 4px solid #6b7280;
+}
+
+/* No Data State */
+.no-data {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.no-data-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 15px;
+}
+
+.no-data-icon {
+  font-size: 3rem;
+  opacity: 0.5;
+}
+
+.no-data-text {
+  color: #6b7280;
+  font-size: 1.1rem;
+  font-style: italic;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+  
+  .table-container {
+    font-size: 0.8rem;
+  }
+  
+  .loan-header,
+  .loan-cell {
+    padding: 8px 12px;
+  }
+  
+  .amount-container,
+  .date-container,
+  .originator-info {
+    gap: 1px;
+  }
+  
+  .amount-range,
+  .days-ago,
+  .originator-contact {
+    font-size: 0.7rem;
+  }
+}

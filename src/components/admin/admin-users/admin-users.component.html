@@ -23,8 +23,8 @@
         </div>
 
         <div class="admin-header-actions">
-  <button class="export-btn" (click)="downloadUsersAsCSV()">Download All Users (CSV)</button>
-</div>
+            <button class="export-btn" (click)="downloadUsersAsCSV()">Download All Users (CSV)</button>
+        </div>
 
 
         <!-- Stats -->
@@ -51,164 +51,133 @@
             </div>
         </div>
 
-           <!-- Originators & Lenders -->
-        <div class="tables-two-column">
-            <!-- Originators -->
-            <div class="section-container">
-                <h2 class="sub-title">Originators</h2>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="user-label" (click)="sortOriginators('name')">
-                                    Name {{ getSortIcon('name', originatorSortColumn, originatorSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortOriginators('email')">
-                                    Email {{ getSortIcon('email', originatorSortColumn, originatorSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortOriginators('company')">
-                                    Company {{ getSortIcon('company', originatorSortColumn, originatorSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortOriginators('accountNumber')">
-                                    Account# {{ getSortIcon('accountNumber', originatorSortColumn, originatorSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortOriginators('createdAt')">
-                                    Created {{ getSortIcon('createdAt', originatorSortColumn, originatorSortDirection) }}
-                                </th>
-                                <th class="user-label">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let user of filteredOriginators(); let i = index"
-                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
-                                <td class="user-value">{{ getFullName(user) }}</td>
-                                <td class="user-value">{{ user.email || 'N/A' }}</td>
-                                <td class="user-value">{{ user.company || 'N/A' }}</td>
-                                <td class="user-value">{{ user.accountNumber || 'N/A' }}</td>
-                                <td class="user-value">{{ formatDate(user.createdAt) }}</td>
-                                <td class="user-value">
-                                    <button class="view-btn" (click)="viewUser(user)">View</button>
-                                    <button class="delete-btn" (click)="confirmDelete(user)">Delete</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="filteredOriginators().length === 0">
-                                <td colspan="6" class="no-data">
-                                    {{ originators().length === 0 ? 'No originators found' : 'No originators match your filter' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+        <!-- Originators -->
+<div class="section-container">
+    <h2 class="sub-title">Originators</h2>
+    <div class="section-stats">
+        {{ filteredOriginators().length }} of {{ originators().length }} originators
+    </div>
+    
+    <div class="originators-grid">
+        <div *ngFor="let originator of filteredOriginators()" class="originator-card">
+            <div class="card-header">
+                <div class="company-name">{{ originator.company || 'N/A' }}</div>
+                <div class="login-status-indicator">
+                    <span class="status-dot" [style.background-color]="getLoginStatusColor(originator)"></span>
                 </div>
             </div>
-
-            <!-- Lenders -->
-            <div class="section-container">
-                <h2 class="sub-title">Lenders</h2>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="user-label" (click)="sortLenders('name')">
-                                    Name {{ getSortIcon('name', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortLenders('company')">
-                                    Company {{ getSortIcon('company', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortLenders('type')">
-                                    Type {{ getSortIcon('type', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortLenders('location')">
-                                    Location {{ getSortIcon('location', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortLenders('accountNumber')">
-                                    Account# {{ getSortIcon('accountNumber', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label" (click)="sortLenders('createdAt')">
-                                    Created {{ getSortIcon('createdAt', lenderSortColumn, lenderSortDirection) }}
-                                </th>
-                                <th class="user-label">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let lender of filteredLenders(); let i = index"
-                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
-                                <td class="user-value">{{ getFullName(lender) }}</td>
-                                <td class="user-value">{{ lender.company || 'N/A' }}</td>
-                                <td class="user-value">{{ getLenderTypes(lender) }}</td>
-                                <td class="user-value">{{getFormattedStateName(lender.state) }}</td>
-                                <td class="user-value">{{ lender.accountNumber }}</td>
-                                <td class="user-value">{{ formatDate(lender.createdAt) }}</td>
-                                <td class="user-value">
-                                    <button class="view-btn" (click)="viewUser(lender)">View</button>
-                                    <button class="delete-btn" (click)="confirmDelete(lender)">Delete</button>
-                                </td>
-                            </tr>
-                            <tr *ngIf="filteredLenders().length === 0">
-                                <td colspan="7" class="no-data">
-                                    {{ lenders().length === 0 ? 'No lenders found' : 'No lenders match your filter' }}
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+            
+            <div class="card-content">
+                <div class="contact-info">
+                    <div class="contact-name">{{ getFullName(originator) }}</div>
+                    <div class="contact-email">{{ originator.email || 'N/A' }}</div>
+                    <div class="contact-phone">{{ originator.phone || 'N/A' }}</div>
+                </div>
+                
+                <div class="originator-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Account#:</span>
+                        <span class="detail-value">{{ originator.accountNumber }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Location:</span>
+                        <span class="detail-value">{{ getLocation(originator) }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Created:</span>
+                        <span class="detail-value">{{ formatCreatedDate(originator.createdAt) }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Last Login:</span>
+                        <span class="detail-value">{{ formatLastLoginDate(originator.lastLoginAt) }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Status:</span>
+                        <span class="detail-value status-badge" [ngClass]="'status-' + originator.loginStatus">
+                            {{ getLastLoginText(originator) }}
+                        </span>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Loans -->
-        <div class="section-container">
-            <h2 class="sub-title">Loans</h2>
-            <div class="table-container">
-                <table class="data-table">
-                    <thead>
-                        <tr>
-                            <th class="loan-label" (click)="sortLoans('id')">
-                                Loan ID {{ getSortIcon('id', loanSortColumn, loanSortDirection) }}
-                            </th>
-                            <th class="loan-label" (click)="sortLoans('loanAmount')">
-                                Amount {{ getSortIcon('loanAmount', loanSortColumn, loanSortDirection) }}
-                            </th>
-                            <th class="loan-label" (click)="sortLoans('propertyTypeCategory')">
-                                Property Type {{ getSortIcon('propertyTypeCategory', loanSortColumn, loanSortDirection) }}
-                            </th>
-                            <th class="loan-label" (click)="sortLoans('city')">
-                                Location {{ getSortIcon('city', loanSortColumn, loanSortDirection) }}
-                            </th>
-                            <th class="loan-label" (click)="sortLoans('originatorName')">
-                                Contact {{ getSortIcon('originatorName', loanSortColumn, loanSortDirection) }}
-                            </th>
-                            <th class="loan-label" (click)="sortLoans('createdAt')">
-                                Created {{ getSortIcon('createdAt', loanSortColumn, loanSortDirection) }}
-                            </th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr *ngFor="let loan of loans(); let i = index"
-                            [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
-                            <td class="loan-value">{{ loan.id?.substring(0, 8).toUpperCase() }}</td>
-                            <td class="loan-value">{{ formatCurrency(loan.loanAmount) }}</td>
-                            <td class="loan-value">{{ loan.propertyTypeCategory || 'N/A' }}</td>
-                            <td class="loan-value">{{ loan.city }}, {{ loan.state }}</td>
-                            <td class="loan-value">{{ loan.originatorName }}</td>
-                            <td class="loan-value">{{ formatDate(loan.createdAt) }}</td>
-                        </tr>
-                        <tr *ngIf="loans().length === 0">
-                            <td colspan="6" class="no-data">No loans found</td>
-                        </tr>
-                    </tbody>
-                </table>
+            
+            <div class="card-actions">
+                <button class="view-btn" (click)="viewUser(originator)">View Details</button>
+                <button class="delete-btn" (click)="confirmDelete(originator)">Delete</button>
             </div>
         </div>
-    </div>
-
-    <!-- Loading -->
-    <div *ngIf="loading()" class="loading-container">
-        <div class="loading-spinner"></div>
-        <p>Loading data...</p>
-    </div>
-
-    <!-- Error -->
-    <div *ngIf="error()" class="error-container">
-        <p class="error-message">{{ error() }}</p>
-        <button (click)="loadAllData()" class="retry-btn">Retry</button>
+        
+        <div *ngIf="filteredOriginators().length === 0" class="no-originators-message">
+            <div class="no-data-icon">📋</div>
+            <div class="no-data-text">
+                {{ originators().length === 0 ? 'No originators found' : 'No originators match your filter' }}
+            </div>
+        </div>
     </div>
 </div>
+            
+
+                    <div *ngIf="filteredLenders().length === 0" class="no-lenders-message">
+                        {{ lenders().length === 0 ? 'No lenders found' : 'No lenders match your filter' }}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Loans -->
+            <div class="section-container">
+                <h2 class="sub-title">Loans</h2>
+                <div class="table-container">
+                    <table class="data-table">
+                        <thead>
+                            <tr>
+                                <th class="loan-label" (click)="sortLoans('id')">
+                                    Loan ID {{ getSortIcon('id', loanSortColumn, loanSortDirection) }}
+                                </th>
+                                <th class="loan-label" (click)="sortLoans('loanAmount')">
+                                    Amount {{ getSortIcon('loanAmount', loanSortColumn, loanSortDirection) }}
+                                </th>
+                                <th class="loan-label" (click)="sortLoans('propertyTypeCategory')">
+                                    Property Type {{ getSortIcon('propertyTypeCategory', loanSortColumn,
+                                    loanSortDirection)
+                                    }}
+                                </th>
+                                <th class="loan-label" (click)="sortLoans('city')">
+                                    Location {{ getSortIcon('city', loanSortColumn, loanSortDirection) }}
+                                </th>
+                                <th class="loan-label" (click)="sortLoans('originatorName')">
+                                    Contact {{ getSortIcon('originatorName', loanSortColumn, loanSortDirection) }}
+                                </th>
+                                <th class="loan-label" (click)="sortLoans('createdAt')">
+                                    Created {{ getSortIcon('createdAt', loanSortColumn, loanSortDirection) }}
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr *ngFor="let loan of loans(); let i = index"
+                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
+                                <td class="loan-value">{{ loan.id?.substring(0, 8).toUpperCase() }}</td>
+                                <td class="loan-value">{{ formatCurrency(loan.loanAmount) }}</td>
+                                <td class="loan-value">{{ loan.propertyTypeCategory || 'N/A' }}</td>
+                                <td class="loan-value">{{ loan.city }}, {{ loan.state }}</td>
+                                <td class="loan-value">{{ loan.originatorName }}</td>
+                                <td class="loan-value">{{ formatDate(loan.createdAt) }}</td>
+                            </tr>
+                            <tr *ngIf="loans().length === 0">
+                                <td colspan="6" class="no-data">No loans found</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        
+
+        <!-- Loading -->
+        <div *ngIf="loading()" class="loading-container">
+            <div class="loading-spinner"></div>
+            <p>Loading data...</p>
+        </div>
+
+        <!-- Error -->
+        <div *ngIf="error()" class="error-container">
+            <p class="error-message">{{ error() }}</p>
+            <button (click)="loadAllData()" class="retry-btn">Retry</button>
+        </div>

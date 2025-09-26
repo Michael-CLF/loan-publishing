@@ -73,42 +73,90 @@
       </div>
     </div>
 
-    <!-- Quick Actions -->
-    <div class="actions-section">
-      <h2 class="section-title">Quick Actions</h2>
-      
-      <div class="actions-grid">
-        <!-- User Management -->
-        <div class="action-card" (click)="navigateToUsers()">
-          <div class="action-icon users-action-icon"></div>
-          <div class="action-content">
-            <h3 class="action-title">Manage Users</h3>
-            <p class="action-description">View, edit, and manage originators and lenders</p>
-          </div>
-          <div class="action-arrow">→</div>
-        </div>
-
-        <!-- Billing & Promotions -->
-        <div class="action-card" (click)="navigateToBilling()">
-          <div class="action-icon billing-action-icon"></div>
-          <div class="action-content">
-            <h3 class="action-title">Billing & Promotions</h3>
-            <p class="action-description">Manage promotion codes and subscription billing</p>
-          </div>
-          <div class="action-arrow">→</div>
-        </div>
-
-        <!-- Payment History -->
-        <div class="action-card" (click)="navigateToPayments()">
-          <div class="action-icon payments-action-icon"></div>
-          <div class="action-content">
-            <h3 class="action-title">Payment History</h3>
-            <p class="action-description">View transactions, refunds, and payment issues</p>
-          </div>
-          <div class="action-arrow">→</div>
+<!-- Management Cards -->
+<div class="actions-section">
+  <h2 class="section-title">Manage Platform</h2>
+  
+  <div class="management-grid">
+    <!-- Originators Management -->
+    <div class="management-card" (click)="navigateToOriginators()">
+      <div class="card-header">
+        <div class="action-icon users-action-icon"></div>
+        <div class="card-stats">{{ totalOriginators() }}</div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Originators</h3>
+        <p class="card-description">Manage originator accounts, login tracking, and registration data</p>
+        <div class="card-metrics">
+          <span class="metric">Registration tracking</span>
+          <span class="metric">Login monitoring</span>
         </div>
       </div>
+      <div class="action-arrow">→</div>
     </div>
+
+    <!-- Lenders Management -->
+    <div class="management-card" (click)="navigateToLenders()">
+      <div class="card-header">
+        <div class="action-icon lenders-action-icon"></div>
+        <div class="card-stats">{{ totalLenders() }}</div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Lenders</h3>
+        <p class="card-description">Manage lender profiles, products, footprint, and activity tracking</p>
+        <div class="card-metrics">
+          <span class="metric">Profile management</span>
+          <span class="metric">Activity tracking</span>
+        </div>
+      </div>
+      <div class="action-arrow">→</div>
+    </div>
+
+    <!-- Loans Management -->
+    <div class="management-card" (click)="navigateToLoans()">
+      <div class="card-header">
+        <div class="action-icon loans-action-icon"></div>
+        <div class="card-stats">{{ totalLoans() }}</div>
+      </div>
+      <div class="card-content">
+        <h3 class="card-title">Loans</h3>
+        <p class="card-description">View loan requests, track status, and manage loan-to-lender matching</p>
+        <div class="card-metrics">
+          <span class="metric">Request tracking</span>
+          <span class="metric">Status management</span>
+        </div>
+      </div>
+      <div class="action-arrow">→</div>
+    </div>
+  </div>
+</div>
+
+<!-- System Management -->
+<div class="system-section">
+  <h2 class="section-title">System Management</h2>
+  
+  <div class="system-grid">
+    <!-- Billing & Promotions -->
+    <div class="system-card" (click)="navigateToBilling()">
+      <div class="system-icon billing-action-icon"></div>
+      <div class="system-content">
+        <h3 class="system-title">Billing & Promotions</h3>
+        <p class="system-description">Manage promotion codes and subscription billing</p>
+      </div>
+      <div class="action-arrow">→</div>
+    </div>
+
+    <!-- Payment History -->
+    <div class="system-card" (click)="navigateToPayments()">
+      <div class="system-icon payments-action-icon"></div>
+      <div class="system-content">
+        <h3 class="system-title">Payment History</h3>
+        <p class="system-description">View transactions, refunds, and payment issues</p>
+      </div>
+      <div class="action-arrow">→</div>
+    </div>
+  </div>
+</div>    
 
     <!-- Quick Tasks -->
     <div class="tasks-section">
