@@ -27,21 +27,7 @@
         </div>
 
 
-        <!-- Stats -->
-        <div class="stats-container stats-three-column">
-            <div class="stat-card">
-                <h3 class="sub-title">Total Originators</h3>
-                <span class="stat-value">{{ originators().length }}</span>
-            </div>
-            <div class="stat-card">
-                <h3 class="sub-title">Total Lenders</h3>
-                <span class="stat-value">{{ lenders().length }}</span>
-            </div>
-            <div class="stat-card">
-                <h3 class="sub-title">Total Loans</h3>
-                <span class="stat-value">{{ loans().length }}</span>
-            </div>
-        </div>
+   
         <!-- Add this right after the admin-header -->
         <div class="user-filter-container">
             <div class="filter-input-wrapper">
@@ -120,55 +106,7 @@
                         {{ lenders().length === 0 ? 'No lenders found' : 'No lenders match your filter' }}
                     </div>
                 </div>
-            </div>
-
-            <!-- Loans -->
-            <div class="section-container">
-                <h2 class="sub-title">Loans</h2>
-                <div class="table-container">
-                    <table class="data-table">
-                        <thead>
-                            <tr>
-                                <th class="loan-label" (click)="sortLoans('id')">
-                                    Loan ID {{ getSortIcon('id', loanSortColumn, loanSortDirection) }}
-                                </th>
-                                <th class="loan-label" (click)="sortLoans('loanAmount')">
-                                    Amount {{ getSortIcon('loanAmount', loanSortColumn, loanSortDirection) }}
-                                </th>
-                                <th class="loan-label" (click)="sortLoans('propertyTypeCategory')">
-                                    Property Type {{ getSortIcon('propertyTypeCategory', loanSortColumn,
-                                    loanSortDirection)
-                                    }}
-                                </th>
-                                <th class="loan-label" (click)="sortLoans('city')">
-                                    Location {{ getSortIcon('city', loanSortColumn, loanSortDirection) }}
-                                </th>
-                                <th class="loan-label" (click)="sortLoans('originatorName')">
-                                    Contact {{ getSortIcon('originatorName', loanSortColumn, loanSortDirection) }}
-                                </th>
-                                <th class="loan-label" (click)="sortLoans('createdAt')">
-                                    Created {{ getSortIcon('createdAt', loanSortColumn, loanSortDirection) }}
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr *ngFor="let loan of loans(); let i = index"
-                                [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }">
-                                <td class="loan-value">{{ loan.id?.substring(0, 8).toUpperCase() }}</td>
-                                <td class="loan-value">{{ formatCurrency(loan.loanAmount) }}</td>
-                                <td class="loan-value">{{ loan.propertyTypeCategory || 'N/A' }}</td>
-                                <td class="loan-value">{{ loan.city }}, {{ loan.state }}</td>
-                                <td class="loan-value">{{ loan.originatorName }}</td>
-                                <td class="loan-value">{{ formatDate(loan.createdAt) }}</td>
-                            </tr>
-                            <tr *ngIf="loans().length === 0">
-                                <td colspan="6" class="no-data">No loans found</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        
+            </div>    
 
         <!-- Loading -->
         <div *ngIf="loading()" class="loading-container">
