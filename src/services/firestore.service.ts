@@ -307,28 +307,27 @@ deleteDocument(path: string): Promise<void> {
   }
 
   checkIfEmailExists(email: string): Observable<boolean> {
-    const normalizedEmail = email.toLowerCase();
-    return this.runSafely(() => {
-      const usersCollection = collection(this.firestore, 'users');
-      const lendersCollection = collection(this.firestore, 'lenders');
-
-      const userQuery = query(usersCollection, where('email', '==', normalizedEmail));
-      const lenderQuery = query(lendersCollection, where('contactInfo.contactEmail', '==', normalizedEmail));
-
-      return from(getDocs(userQuery)).pipe(
-        switchMap((userSnapshot) => {
-          if (!userSnapshot.empty) return of(true);
-          return from(getDocs(lenderQuery)).pipe(map((lenderSnapshot) => !lenderSnapshot.empty));
-        }),
-        catchError(error => {
-          console.error('Error checking if email exists:', error);
-          return of(false);
-        }),
-        share()
-      );
-    });
-  }
-
+  const normalizedEmail = email.toLowerCase();
+  
+  const originatorsCollection = collection(this.firestore, 'originators');
+  const lendersCollection = collection(this.firestore, 'lenders');
+  
+  const originatorQuery = query(originatorsCollection, where('email', '==', normalizedEmail));
+  const lenderQuery = query(lendersCollection, where('email', '==', normalizedEmail));
+  
+  return from(Promise.all([
+    getDocs(originatorQuery),
+    getDocs(lenderQuery)
+  ])).pipe(
+    map(([originatorSnapshot, lenderSnapshot]) => {
+      return !originatorSnapshot.empty || !lenderSnapshot.empty;
+    }),
+    catchError(error => {
+      console.error('Error checking if email exists:', error);
+      return of(false);
+    })
+  );
+}
   /**
    * 🔧 FIXED: Filter lenders with corrected field mappings
    */
