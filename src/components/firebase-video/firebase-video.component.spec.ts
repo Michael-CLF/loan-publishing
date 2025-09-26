@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { HomeComponent } from './home.component';
+import { FirebaseVideoComponent } from './firebase-video.component';
 
-describe('HomeComponent', () => {
-  let component: HomeComponent;
-  let fixture: ComponentFixture<HomeComponent>;
+describe('FirebaseVideoComponent', () => {
+  let component: FirebaseVideoComponent;
+  let fixture: ComponentFixture<FirebaseVideoComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [HomeComponent]
+      imports: [FirebaseVideoComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(HomeComponent);
+    fixture = TestBed.createComponent(FirebaseVideoComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

@@ -1,1 +1,55 @@
 /* You can add global styles to this file, and also import other style files */
+/* ==============================
+   Color System (Variables)
+   ============================== */
+   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+:root {
+  /* Brand / Base */
+  --primary-color: #002463;      /* Teal/Navy trust color */
+  --secondary-color: #f7f8fa;    /* Light gray background */
+  --dark-color: #333333;         /* Neutral text */
+  --light-color: #ffffff;        /* Pure white */
+  --black-color: #000;
+
+  /* Accents */
+  --accent-color: #ff2a00;       /* Vibrant orange (primary CTA/action) */
+  --success-color: #116045;      /* Fresh green (prosperity/growth) */
+  --dark-green-color: #06402b;
+
+  /* Utility */
+  --muted-color: #888888;        /* Subtext/labels */
+  --border-color: #e0e0e0;
+  --error-color:#c00000;       /* Light dividers */
+}
+
+
+/* ==============================
+   Base Typography & Layout
+   ============================== */
+body {
+  font-family: 'Roboto', sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: var(--color-dark);
+  background-color: var(--color-secondary);
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5 {
+  color: var(--color-primary);
+  margin-top: 0;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+a:hover {
+  color: var(--color-accent);
+}

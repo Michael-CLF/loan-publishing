@@ -26,46 +26,50 @@ import { OriginatorDetailsComponent } from 'src/components/originator-details/or
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
 import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
-import { ContactComponent } from 'src/components/contact/contact.component'
+import { ContactComponent } from 'src/components/contact/contact.component';
 import { CompletePaymentComponent } from 'src/components/complete-payment/complete-payment.component';
 import { AdminDashboardComponent } from 'src/components/admin/admin-dashboard/admin-dashboard.component';
 import { AdminBillingComponent } from 'src/components/admin/admin-billing/admin-billing.component';
 import { AdminPaymentsComponent } from 'src/components/admin/admin-payments/admin-payments.component';
 import { AdminUsersComponent } from 'src/components/admin/admin-users/admin-users.component';
-
+import { FirebaseVideoComponent } from 'src/components/firebase-video/firebase-video.component';
 
 export const routes: Routes = [
   {
     path: '__/auth/action',
-    component: RegistrationProcessingComponent,  // Temporarily use this component
-    data: { skipAuth: true, isFirebaseAction: true }
+    component: RegistrationProcessingComponent, // Temporarily use this component
+    data: { skipAuth: true, isFirebaseAction: true },
   },
-    {
+  {
     path: 'admin',
     redirectTo: 'admin/dashboard',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
 
   {
-  path: 'admin/dashboard',
-  component: AdminDashboardComponent
-},
-{
-  path: 'admin/billing',
-  component: AdminBillingComponent,
-},
-{
-  path: 'admin/users',
-  component: AdminUsersComponent,
-},
-{
-  path: 'admin/payments',
-  component: AdminPaymentsComponent,
-},
+    path: 'admin/dashboard',
+    component: AdminDashboardComponent,
+  },
+  {
+    path: 'admin/billing',
+    component: AdminBillingComponent,
+  },
+  {
+    path: 'admin/users',
+    component: AdminUsersComponent,
+  },
+  {
+    path: 'admin/payments',
+    component: AdminPaymentsComponent,
+  },
   {
     path: 'account/edit',
     component: EditAccountComponent,
     canActivate: [authGuard],
+  },
+  {
+    path: 'firebase-video',
+    component: FirebaseVideoComponent,
   },
   {
     path: 'event-registration',
@@ -93,24 +97,24 @@ export const routes: Routes = [
   {
     path: 'payment/success',
     redirectTo: '/registration-processing?payment=success',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
   {
     path: 'payment/cancel',
     redirectTo: '/registration-processing?payment=cancel',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
 
   {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
-    pathMatch: 'full'
+    pathMatch: 'full',
   },
 
   // ✅ Main registration processing route
   {
     path: 'registration-processing',
-    component: RegistrationProcessingComponent
+    component: RegistrationProcessingComponent,
   },
 
   {
@@ -149,13 +153,11 @@ export const routes: Routes = [
     component: ContactComponent,
   },
 
-  
   { path: 'test-processing', component: RegistrationProcessingComponent },
   {
-  path: 'auth',
-  component: EmailLoginComponent,
-  data: { authCallback: true }
-},
+    path: 'auth',
+    component: EmailLoginComponent,
+    data: { authCallback: true },
+  },
   { path: '**', redirectTo: '', pathMatch: 'full' },
-
 ];

@@ -1,0 +1,28 @@
+<div class="video-container">
+  @if (videoUrl()) {
+    <div class="video-wrapper">
+      <video 
+        [src]="videoUrl()" 
+        controls 
+        preload="metadata" 
+        poster="/assets/images/DLP_banner.webp"
+        (click)="playVideo($event)"
+        #videoPlayer>
+        Your browser doesn't support video.
+      </video>
+      @if (!isPlaying()) {
+        <div class="play-button-overlay" (click)="playVideo($event)">
+          <div class="play-button">
+            <div class="play-triangle"></div>
+          </div>
+        </div>
+      }
+    </div>
+  }
+  @if (isLoading()) {
+    <div>Loading video...</div>
+  }
+  @if (hasError()) {
+    <div>Error loading video</div>
+  }
+</div>
