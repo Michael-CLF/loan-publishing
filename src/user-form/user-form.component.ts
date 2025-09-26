@@ -29,8 +29,6 @@ import { PromotionService } from '../services/promotion.service';
 import { Firestore, doc, setDoc } from '@angular/fire/firestore';
 import { EmailExistsValidator } from 'src/services/email-exists.validator';
 
-
-
 export interface StateOption {
   value: string;
   name: string;
@@ -78,8 +76,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
   successMessage: string = '';
 
 
-
   ngOnInit(): void {
+    console.log('Email validator injected?', this.emailValidator);
     const footprintLocations = this.locationService.getFootprintLocations();
     this.states = footprintLocations.map(location => ({
       value: location.value,
@@ -98,6 +96,16 @@ export class UserFormComponent implements OnInit, OnDestroy {
       interval: ['monthly', [Validators.required]],
       applyTrial: [false],
       promotion_code: ['']
+    });
+    // Debug the email field
+    const emailControl = this.userForm.get('email');
+    console.log('Email control:', emailControl);
+    console.log('Has async validator?', emailControl?.asyncValidator);
+
+    // Watch for validation changes
+    emailControl?.statusChanges.subscribe(status => {
+      console.log('Email validation status:', status);
+      console.log('Email errors:', emailControl.errors);
     });
     // Clear coupon errors when user starts typing
     this.userForm.get('promotion_code')?.valueChanges
@@ -137,7 +145,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
     }
   }
 
- validateCoupon(): void {
+  validateCoupon(): void {
     // Don't validate if we're in the middle of resetting
     if (this.isResettingCoupon) {
       return;
@@ -160,8 +168,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
     // Use the new PromotionService
     this.promotionService.validatePromotionCode(
-      promotion_code, 
-      'originator', 
+      promotion_code,
+      'originator',
       this.userForm.get('interval')?.value || 'monthly'
     )
       .pipe(
@@ -198,15 +206,12 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.setCouponError(response.error || 'Invalid coupon code');
     }
   }
-
-
   private clearCouponErrors(): void {
     const control = this.userForm.get('promotion_code');
     if (control) {
       control.setErrors(null);
     }
   }
-
   private resetCouponState(): void {
     this.isResettingCoupon = true;
     this.couponApplied = false;
@@ -222,20 +227,25 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   private setCouponError(errorMessage: string): void {
-  const control = this.userForm.get('promotion_code');
-  if (control) {
-    if (errorMessage.includes('not valid for the selected plan')) {
-      control.setErrors({ planMismatchError: true });
-    } else {
-      control.setErrors({ couponError: errorMessage });
+    const control = this.userForm.get('promotion_code');
+    if (control) {
+      if (errorMessage.includes('not valid for the selected plan')) {
+        control.setErrors({ planMismatchError: true });
+      } else {
+        control.setErrors({ couponError: errorMessage });
+      }
     }
   }
-}
 
   onSubmit(): void {
     console.log('🚨 FORM SUBMITTED - onSubmit() called!');
+    console.log('Form valid?', this.userForm.valid);
+    console.log('Form errors:', this.userForm.errors);
+    console.log('Email field errors:', this.userForm.get('email')?.errors);
+    console.log('Email field status:', this.userForm.get('email')?.status);
     runInInjectionContext(this.injector, () => {
       if (this.userForm.invalid) {
+        console.log('BLOCKING SUBMISSION - Email already exists!');
         console.log('🚨 FORM IS INVALID - STOPPING');
         Object.keys(this.userForm.controls).forEach((key) => {
           const control = this.userForm.get(key);
@@ -290,108 +300,108 @@ export class UserFormComponent implements OnInit, OnDestroy {
     });
   }
   private async proceedToCheckout(): Promise<void> {
-  this.isLoading = true;
-  this.errorMessage = '';
+    this.isLoading = true;
+    this.errorMessage = '';
 
-  try {
-    const formData = this.userForm.value;
-    
-    console.log('🔍 Creating originator document and proceeding to payment for:', formData.email);
+    try {
+      const formData = this.userForm.value;
 
-    // Step 1: Create originator document in Firestore (no authentication)
-    const uid = this.generateUserUID();
-    await this.createOriginatorDocument(uid, formData);
-    
-    console.log('✅ Originator document created with UID:', uid);
+      console.log('🔍 Creating originator document and proceeding to payment for:', formData.email);
 
-    // Step 2: Build payload for Stripe
-    const promotionCode = this.couponApplied && this.appliedCouponDetails 
-      ? this.appliedCouponDetails.code 
-      : null;
+      // Step 1: Create originator document in Firestore (no authentication)
+      const uid = this.generateUserUID();
+      await this.createOriginatorDocument(uid, formData);
 
-    const userData = {
-      userId: uid,
-      firstName: formData.firstName,
-      lastName: formData.lastName,
-      company: formData.company,
-      phone: formData.phone,
-      city: formData.city,
-      state: formData.state,
+      console.log('✅ Originator document created with UID:', uid);
+
+      // Step 2: Build payload for Stripe
+      const promotionCode = this.couponApplied && this.appliedCouponDetails
+        ? this.appliedCouponDetails.code
+        : null;
+
+      const userData = {
+        userId: uid,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        company: formData.company,
+        phone: formData.phone,
+        city: formData.city,
+        state: formData.state,
+      };
+
+      console.log('🔍 Creating Stripe checkout session with:', userData);
+
+      // Step 3: Create Stripe checkout session
+      const checkoutResponse = await this.stripeService.createCheckoutSession({
+        email: formData.email.toLowerCase().trim(),
+        role: 'originator',
+        interval: formData.interval,
+        userData,
+        promotion_code: promotionCode
+      });
+
+      console.log('✅ Stripe checkout response:', checkoutResponse);
+
+      // Step 4: Redirect to Stripe
+      window.location.href = checkoutResponse.url;
+
+    } catch (err: any) {
+      console.error('❌ Error in payment flow:', err);
+      this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
+      this.isLoading = false;
+    }
+  }
+  private generateUserUID(): string {
+    // Generate a Firebase-compatible UID (28 characters)
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < 28; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
+  private async createOriginatorDocument(uid: string, formData: any): Promise<void> {
+    const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+
+    const originatorData = {
+      // ✅ Match lender structure exactly
+      id: uid,
+      uid,
+      userId: uid,  // ✅ ADD: Lenders have this field
+      email: formData.email.toLowerCase(),
+      role: 'originator',
+
+      // ✅ Contact info at root level (match lender)
+      firstName: formData.firstName || '',
+      lastName: formData.lastName || '',
+      company: formData.company || '',
+      phone: formData.phone || '',
+      city: formData.city || '',
+      state: formData.state || '',
+
+      // ✅ Nested contactInfo (match lender structure exactly)
+      contactInfo: {
+        firstName: formData.firstName || '',
+        lastName: formData.lastName || '',
+        contactEmail: formData.email.toLowerCase(),
+        contactPhone: formData.phone || '',
+        company: formData.company || '',
+        city: formData.city || '',
+        state: formData.state || '',
+      },
+
+      subscriptionStatus: 'inactive',
+
+      // ✅ Timestamps (match lender format)
+      createdAt,
+      updatedAt: createdAt
     };
 
-    console.log('🔍 Creating Stripe checkout session with:', userData);
+    const ref = doc(this.firestore, `originators/${uid}`);
+    await setDoc(ref, originatorData, { merge: true });
 
-    // Step 3: Create Stripe checkout session
-    const checkoutResponse = await this.stripeService.createCheckoutSession({
-      email: formData.email.toLowerCase().trim(),
-      role: 'originator',
-      interval: formData.interval,
-      userData,
-      promotion_code: promotionCode
-    });
-
-    console.log('✅ Stripe checkout response:', checkoutResponse);
-
-    // Step 4: Redirect to Stripe
-    window.location.href = checkoutResponse.url;
-
-  } catch (err: any) {
-    console.error('❌ Error in payment flow:', err);
-    this.errorMessage = err?.message || 'Failed to process payment. Please try again.';
-    this.isLoading = false;
+    console.log('✅ Firestore document created for UID:', uid);
   }
-}
-private generateUserUID(): string {
-  // Generate a Firebase-compatible UID (28 characters)
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  let result = '';
-  for (let i = 0; i < 28; i++) {
-    result += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return result;
-}
-
-private async createOriginatorDocument(uid: string, formData: any): Promise<void> {
-  const createdAt = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-
-const originatorData = {
-  // ✅ Match lender structure exactly
-  id: uid,
-  uid,
-  userId: uid,  // ✅ ADD: Lenders have this field
-  email: formData.email.toLowerCase(),
-  role: 'originator',
-
-  // ✅ Contact info at root level (match lender)
-  firstName: formData.firstName || '',
-  lastName: formData.lastName || '',
-  company: formData.company || '',
-  phone: formData.phone || '',
-  city: formData.city || '',
-  state: formData.state || '',
-
-  // ✅ Nested contactInfo (match lender structure exactly)
-  contactInfo: {
-    firstName: formData.firstName || '',
-    lastName: formData.lastName || '',
-    contactEmail: formData.email.toLowerCase(),
-    contactPhone: formData.phone || '',
-    company: formData.company || '',
-    city: formData.city || '',
-    state: formData.state || '',
-  },
-
-  subscriptionStatus: 'inactive',
-
-  // ✅ Timestamps (match lender format)
-  createdAt,
-  updatedAt: createdAt
-};
-
-  const ref = doc(this.firestore, `originators/${uid}`);
-  await setDoc(ref, originatorData, { merge: true });
-
-  console.log('✅ Firestore document created for UID:', uid);
-}
 }
 

@@ -99,8 +99,6 @@ select {
   text-align: center;
   position: relative; /* override any accidental absolute positioning */
 }
-
-
 button {
   padding: 8px 25px;
   background-color: #0a2463;
@@ -393,18 +391,14 @@ button:disabled {
 }
 
 /* ✅ Email validation styles */
-.email-exists-error {
+.email-exists {
   background-color: #fee;
   border: 1px solid #fcc;
   border-radius: 4px;
   padding: 12px;
   margin-top: 8px;
-}
-
-.email-exists-error strong {
-  color: #c33;
-  display: block;
-  margin-bottom: 8px;
+  color: #c00000;
+  font-weight: 500;
 }
 
 .error-actions {
@@ -428,7 +422,7 @@ button:disabled {
   display: flex;
   align-items: center;
   gap: 8px;
-  color: #666;
+  color: #06402b;
   font-size: 0.9em;
   margin-top: 4px;
 }

@@ -308,6 +308,7 @@ deleteDocument(path: string): Promise<void> {
 
   checkIfEmailExists(email: string): Observable<boolean> {
   const normalizedEmail = email.toLowerCase();
+  console.log('Checking if email exists:', normalizedEmail);
   
   const originatorsCollection = collection(this.firestore, 'originators');
   const lendersCollection = collection(this.firestore, 'lenders');
@@ -320,6 +321,9 @@ deleteDocument(path: string): Promise<void> {
     getDocs(lenderQuery)
   ])).pipe(
     map(([originatorSnapshot, lenderSnapshot]) => {
+      const exists = !originatorSnapshot.empty || !lenderSnapshot.empty;
+      console.log('Email exists?', exists, 'Originator:', !originatorSnapshot.empty, 'Lender:', !lenderSnapshot.empty);
+      return exists;
       return !originatorSnapshot.empty || !lenderSnapshot.empty;
     }),
     catchError(error => {
