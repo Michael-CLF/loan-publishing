@@ -237,7 +237,8 @@
     color: #fff;
     margin: 0 auto;
     border-radius: 6px;
-    width: 1200px
+    max-width: 1200px;
+    width: 100%;
 }
 
 .stats-grid {
@@ -554,7 +555,7 @@ background: linear-gradient(to right, #0a2463, #008080);
 
 /* Container Cards */
 .container {
-    max-width: 1200px;
+    max-width: auto;
     margin: 0 auto;
     padding: 0 20px;
 }
@@ -954,4 +955,22 @@ background: linear-gradient(to right, #0a2463, #008080);
         font-size: 0.8rem;
         padding: 6px 12px;
     }
+}
+
+@media (min-width: 1300px) and (max-width: 1400px) {
+.ai-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0px, 1fr));
+  margin-bottom: 30px;
+}
+}
+@media (min-width: 1000px) and (max-width: 1100px) {
+.ai-features-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(0px, 1fr));
+  margin-bottom: 30px;
+}
+ .loan-grid .loan-card:nth-child(3) {
+    display: none !important;
+  }
 }
