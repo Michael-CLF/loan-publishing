@@ -1,7 +1,8 @@
 /* src/app/components/admin/admin-lenders/admin-lenders.component.css */
 
 .lenders-section {
-  margin-bottom: 30px;
+  width: 90%;
+  margin: 0 auto;
 }
 
 .section-header {
@@ -14,16 +15,17 @@
 }
 
 .section-title {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+  font-size: 2.5rem;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  text-align: center;
+  margin: 30px;
 }
 
 .section-stats {
-  font-size: 0.9rem;
-  color: #6b7280;
-  background: #f3f4f6;
+  font-size: 1.3rem;
+  color: #fff;
+  background: #008080;
   padding: 4px 8px;
   border-radius: 4px;
 }
@@ -185,21 +187,17 @@
 }
 
 .view-btn {
-  background: #3b82f6;
+  background: #008080;
   color: white;
 }
 
 .view-btn:hover {
-  background: #2563eb;
+  background: #02474d;
 }
 
 .delete-btn {
-  background: #ef4444;
+  background: #c00000;
   color: white;
-}
-
-.delete-btn:hover {
-  background: #dc2626;
 }
 
 /* No Data State */
