@@ -13,7 +13,7 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  min-height: 80vh;
+  min-height: 40vh;
   max-width: 400px;
   margin: 0 auto;
 }
@@ -21,14 +21,14 @@
 .login-title {
   font-size: 2.5rem;
   font-weight: 700;
-  color: #2d3748;
+  color: #02474d;
   margin-bottom: 8px;
   text-align: center;
 }
 
 .login-subtitle {
   font-size: 1.1rem;
-  color: #718096;
+  color: #000;
   margin-bottom: 32px;
   text-align: center;
 }
@@ -67,7 +67,7 @@
 
 .submit-btn {
   padding: 16px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: #013220;
   color: white;
   border: none;
   border-radius: 12px;
