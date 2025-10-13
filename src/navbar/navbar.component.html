@@ -11,6 +11,10 @@
         <a (click)="openRoleSelectionModal()" id="nav-register" class="nav-reg-btn">Register</a>
       </div>
 
+      <div class="register" *ngIf="!isLoggedIn">
+        <a routerLink="/ebooks" id="ebooks-navbar" class="ebooks-btn">eBooks</a>
+      </div>
+
       <div class="nav-menu">
         <a *ngIf="isLoggedIn && userRole === 'originator'" routerLink="/lender-list" class="all-loans">Lenders</a>
         <a *ngIf="isLoggedIn && userRole === 'lender'" routerLink="/loans" class="all-loans">Loans</a>

@@ -24,7 +24,6 @@ import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 import { PrivacyComponent } from 'src/components/privacy/privacy.component';
 import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
 import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
-import { EventRegistrationComponent } from 'src/components/event-registration/event-registration.component';
 import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
 import { ContactComponent } from 'src/components/contact/contact.component';
 import { CompletePaymentComponent } from 'src/components/complete-payment/complete-payment.component';
@@ -35,6 +34,7 @@ import { AdminUsersComponent } from 'src/components/admin/admin-users/admin-user
 import { FirebaseVideoComponent } from 'src/components/firebase-video/firebase-video.component';
 import { AdminLendersComponent } from 'src/components/admin/admin-lenders/admin-lenders.component';
 import { AdminLoansComponent } from 'src/components/admin/admin-loans/admin-loans.component';
+import { EbooksComponent } from 'src/components/ebooks/ebooks.component';
 
 export const routes: Routes = [
   {
@@ -80,8 +80,8 @@ export const routes: Routes = [
     component: FirebaseVideoComponent,
   },
   {
-    path: 'event-registration',
-    component: EventRegistrationComponent,
+    path: 'ebooks',
+    component: EbooksComponent,
   },
   { path: '', component: HomeComponent },
   { path: 'lender-details/:id', component: LenderDetailsComponent },
