@@ -83,7 +83,7 @@
             "optimization": false,
             "namedChunks": true,
             "vendorChunk": true,
-            "buildOptimizer": false
+            "buildOptimizer": true
           },
           "configurations": {
             "production": {
