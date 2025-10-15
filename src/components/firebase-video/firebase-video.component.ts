@@ -12,6 +12,8 @@ import { Storage, ref, getDownloadURL } from '@angular/fire/storage';
 export class FirebaseVideoComponent implements OnInit {
   private storage = inject(Storage);
 
+  readonly posterUrl = 'assets/images/DLP_Banner.webp';
+
   /** Example: "DLP.mp4" (required) */
   @Input({ required: true }) fileName!: string;
 
