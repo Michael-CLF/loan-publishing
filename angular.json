@@ -79,7 +79,7 @@
             ],
             "preserveSymlinks": true,
             "extractLicenses": false,
-            "sourceMap": true,
+            "sourceMap": false,
             "optimization": false,
             "namedChunks": true,
             "vendorChunk": true,
@@ -100,9 +100,9 @@
                 }
               ],
               "outputHashing": "all",
-              "sourceMap": true,
+              "sourceMap": false,
               "namedChunks": false,
-              "vendorChunk": false,
+              "vendorChunk": true,
               "buildOptimizer": true,
               "optimization": true,
               "extractLicenses": true,
@@ -117,7 +117,7 @@
               ],
               "optimization": false,
               "extractLicenses": true,
-              "sourceMap": true,
+              "sourceMap": false,
               "vendorChunk": true,
               "namedChunks": true,
               "buildOptimizer": false
@@ -127,7 +127,7 @@
               "outputHashing": "all",
               "sourceMap": false,
               "extractLicenses": true,
-              "vendorChunk": false,
+              "vendorChunk": true,
               "buildOptimizer": true
             }
           },
@@ -177,6 +177,9 @@
             "assets": [
               "src/favicon.ico",
               "src/assets",
+              "src/.htaccess",
+              "src/sitemap.xml",
+              "src/robots.txt",
               {
                 "glob": "**/*",
                 "input": "public",
@@ -279,7 +282,10 @@
             "tsConfig": "tsconfig.app.json",
             "assets": [
               "src/favicon.ico",
-              "src/assets"
+              "src/assets",
+              "src/.htaccess",
+              "src/sitemap.xml",
+              "src/robots.txt"
             ],
             "styles": [
               "src/styles.css"
