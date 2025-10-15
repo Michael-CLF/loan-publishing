@@ -8,8 +8,6 @@
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
@@ -26,11 +24,12 @@
 }
 
 .section-stats {
-  font-size: 0.9rem;
+  font-size: 1rem;
   color: #ffffff;
   background: #0a2463;
-  padding: 4px 8px;
+  padding: 6px 12px;
   border-radius: 4px;
+  width: 150px;
 }
 
 /* Table Styling */

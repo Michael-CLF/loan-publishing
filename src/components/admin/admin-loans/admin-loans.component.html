@@ -3,10 +3,10 @@
 <div class="loans-section">
   <div class="section-header">
     <h2 class="section-title">Loans</h2>
-    <div class="section-stats">
+   <div class="section-stats">
       {{ filteredLoans().length }} of {{ loans().length }} loans
     </div>
-  </div>
+     </div>
   <div class="dashboard-btn">
     <a routerLink="/admin" class="user-btn">Back to Dashboard</a>
   </div>
@@ -69,7 +69,6 @@
             <td class="loan-cell originator">
               <div class="originator-info">
                 <span class="originator-name">{{ loan.originatorName || 'N/A' }}</span>
-                <span class="originator-contact">{{ loan.contact || loan.email || 'N/A' }}</span>
               </div>
             </td>
 
