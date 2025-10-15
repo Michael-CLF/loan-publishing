@@ -1,18 +1,19 @@
 <div class="video-container">
   @if (videoUrl()) {
     <div class="video-wrapper">
-      <video 
-        [src]="videoUrl()" 
-        controls 
-        preload="none"
-        poster="../../assets/images/DLP_banner.webp"
-        (click)="playVideo($event)"
-        width="900"
-        height="506"
-        fetchpriority="high"
-        #videoPlayer>
-        Your browser doesn't support video.
-      </video>
+     <video
+  id="dlp-hero-video"
+  class="dlp-hero-video"
+  autoplay
+  muted
+  loop
+  playsinline
+  preload="none"
+  poster="../../assets/images/DLP_banner.webp"
+>
+  <!-- src added dynamically to avoid critical path fetch -->
+</video>
+
       @if (!isPlaying()) {
         <div class="play-button-overlay" (click)="playVideo($event)">
           <div class="play-button">
