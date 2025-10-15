@@ -27,10 +27,23 @@
   display: block;
 }
 
-.navbar-actions {
-  display: flex;
+/* Reserve the header height so the page below never jumps */
+.navbar-inner {
+  min-height: 64px; /* match your actual header height */
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
 }
+
+/* Reserve horizontal space for the actions area */
+.navbar-actions {
+  display: inline-grid;
+  grid-auto-flow: column;
+  gap: 8px;
+  width: 220px;   /* set to your real max occupied width */
+  min-height: 36px; /* match button height */
+}
+
 .auth-links,
 .user-menu {
   display: flex;

@@ -1,18 +1,18 @@
 <div class="video-container">
   @if (videoUrl()) {
     <div class="video-wrapper">
-     <video
+<video
   id="dlp-hero-video"
   class="dlp-hero-video"
   autoplay
   muted
-  loop
   playsinline
-  preload="none"
-  poster="../../assets/images/DLP_banner.webp"
->
-  <!-- src added dynamically to avoid critical path fetch -->
+  preload="metadata"
+  width="1280" height="720"  
+  poster="/assets/images/DLP_banner.webp">
+  <source src="/assets/video/hero.mp4" type="video/mp4">
 </video>
+
 
       @if (!isPlaying()) {
         <div class="play-button-overlay" (click)="playVideo($event)">

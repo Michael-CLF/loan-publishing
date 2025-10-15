@@ -1,8 +1,4 @@
-/* You can add global styles to this file, and also import other style files */
-/* ==============================
-   Color System (Variables)
-   ============================== */
-   @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
+
 
 body {
   font-family: 'Roboto', sans-serif;
@@ -25,6 +21,8 @@ body {
   --muted-color: #888888;        /* Subtext/labels */
   --border-color: #e0e0e0;
   --error-color:#c00000;       /* Light dividers */
+   --header-h: 64px;
+  --footer-h: 56px;
 }
 
 
@@ -52,4 +50,9 @@ a {
 }
 a:hover {
   color: var(--color-accent);
+}
+.content-outlet-container {
+  min-height: calc(100vh - var(--header-h) - var(--footer-h));
+  content-visibility: auto;      /* perf hint; also prevents reflow of offscreen */
+  contain-intrinsic-size: 800px; /* reserves reasonable space before paint */
 }

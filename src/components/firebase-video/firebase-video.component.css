@@ -92,3 +92,10 @@ video {
     border-bottom-width: 9px;
   }
 }
+.dlp-hero-video {
+  display: block;
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9; /* matches the declared width/height */
+  object-fit: cover;
+}
