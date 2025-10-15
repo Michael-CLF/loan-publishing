@@ -100,7 +100,7 @@
                 }
               ],
               "outputHashing": "all",
-              "sourceMap": false,
+              "sourceMap": true,
               "namedChunks": false,
               "vendorChunk": false,
               "buildOptimizer": true,
