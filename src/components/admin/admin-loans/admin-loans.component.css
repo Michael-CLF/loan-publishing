@@ -2,6 +2,9 @@
 
 .loans-section {
   margin-bottom: 30px;
+  width: 80%;
+  margin: 0 auto;
+  margin-bottom: 30px;
 }
 
 .section-header {
@@ -14,16 +17,18 @@
 }
 
 .section-title {
-  font-size: 1.5rem;
+  font-size: 2.5rem;
   font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+  color: #0a2463;
+  margin: 0 auto;
+  margin-top: 20px;
+ 
 }
 
 .section-stats {
   font-size: 0.9rem;
-  color: #6b7280;
-  background: #f3f4f6;
+  color: #ffffff;
+  background: #0a2463;
   padding: 4px 8px;
   border-radius: 4px;
 }
@@ -271,4 +276,15 @@
   .originator-contact {
     font-size: 0.7rem;
   }
+}
+.dashboard-btn {
+  margin-bottom: 20px;
+}
+
+.user-btn {
+  color: #ffffff;
+  background-color: #0a2463;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
 }

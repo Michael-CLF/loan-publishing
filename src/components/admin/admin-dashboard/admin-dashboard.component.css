@@ -118,7 +118,7 @@
 
 .exit-btn {
   padding: 12px 24px;
-  background: #e53e3e;
+  background: #c00000;
   color: white;
   border: none;
   border-radius: 8px;
@@ -128,7 +128,7 @@
 }
 
 .exit-btn:hover {
-  background: #c53030;
+  background: #013220;
   transform: translateY(-1px);
 }
 

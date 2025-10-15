@@ -88,6 +88,21 @@ input {
   font-size: 2rem;
 }
 
+.dashboard-btn {
+  margin-bottom: 20px;
+}
+
+.user-btn {
+  color: #ffffff;
+  background-color: #0a2463;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+}
+.user-btn:hover{
+  background-color: #013220;
+}
+
 .summary-metrics {
   display: flex;
   gap: 20px;

@@ -9,6 +9,7 @@ import {
   collection, 
   getDocs 
 } from '@angular/fire/firestore';
+import { Router, RouterModule } from '@angular/router';
 
 export interface LoanData {
   id: string;
@@ -31,7 +32,7 @@ export interface LoanData {
 @Component({
   selector: 'app-admin-loans',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-loans.component.html',
   styleUrls: ['./admin-loans.component.css']
 })

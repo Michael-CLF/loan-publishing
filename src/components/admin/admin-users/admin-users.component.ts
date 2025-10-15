@@ -10,7 +10,7 @@ import {
 } from '@angular/fire/firestore';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import { LoanService } from '../../../services/loan.service';
 import { DestroyRef } from '@angular/core';
 import { FirestoreService } from '../../../services/firestore.service';
@@ -23,7 +23,7 @@ import { UserWithActivity } from '../../../interfaces/user-activity.interface';
 @Component({
   selector: 'app-admin-users',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-users.component.html',
   styleUrls: ['./admin-users.component.css'],
 })

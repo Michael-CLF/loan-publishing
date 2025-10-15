@@ -7,6 +7,9 @@
       {{ filteredLoans().length }} of {{ loans().length }} loans
     </div>
   </div>
+  <div class="dashboard-btn">
+    <a routerLink="/admin" class="user-btn">Back to Dashboard</a>
+  </div>
 
   <div class="loans-container">
     <div class="table-container">
@@ -38,45 +41,44 @@
         </thead>
         <tbody>
           <tr *ngFor="let loan of filteredLoans(); let i = index"
-              [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }"
-              class="loan-row"
-              [class]="getUrgencyClass(loan)">
-            
+            [ngClass]="{ 'row-even': i % 2 === 0, 'row-odd': i % 2 !== 0 }" class="loan-row"
+            [class]="getUrgencyClass(loan)">
+
             <td class="loan-cell loan-id">
               <div class="id-container">
                 <span class="id-text">{{ getShortLoanId(loan.id) }}</span>
                 <span class="id-full" title="{{ loan.id }}">{{ loan.id }}</span>
               </div>
             </td>
-            
+
             <td class="loan-cell loan-amount">
               <div class="amount-container">
                 <span class="amount-value">{{ formatCurrency(loan.loanAmount) }}</span>
                 <span class="amount-range">{{ getLoanAmountRange(loan.loanAmount) }}</span>
               </div>
             </td>
-            
+
             <td class="loan-cell property-type">
               {{ formatPropertyType(loan.propertyTypeCategory, loan.propertySubCategory) }}
             </td>
-            
+
             <td class="loan-cell location">
               {{ getLocation(loan) }}
             </td>
-            
+
             <td class="loan-cell originator">
               <div class="originator-info">
                 <span class="originator-name">{{ loan.originatorName || 'N/A' }}</span>
                 <span class="originator-contact">{{ loan.contact || loan.email || 'N/A' }}</span>
               </div>
             </td>
-            
+
             <td class="loan-cell status">
               <span class="status-badge" [ngClass]="getStatusClass(loan)">
                 {{ loan.status || 'Pending' }}
               </span>
             </td>
-            
+
             <td class="loan-cell created-date">
               <div class="date-container">
                 <span class="date-value">{{ formatDate(loan.createdAt) }}</span>
@@ -84,7 +86,7 @@
               </div>
             </td>
           </tr>
-          
+
           <tr *ngIf="filteredLoans().length === 0">
             <td colspan="7" class="no-data">
               <div class="no-data-content">

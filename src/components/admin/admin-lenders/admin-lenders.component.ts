@@ -11,11 +11,13 @@ import {
   collection, 
   getDocs 
 } from '@angular/fire/firestore';
+import { Router, RouterModule } from '@angular/router';
+
 
 @Component({
   selector: 'app-admin-lenders',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './admin-lenders.component.html',
   styleUrls: ['./admin-lenders.component.css']
 })

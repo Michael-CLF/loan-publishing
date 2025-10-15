@@ -7,6 +7,9 @@
       {{ filteredLenders().length }} of {{ lenders().length }} lenders
     </div>
   </div>
+   <div class="dashboard-btn">
+        <a routerLink="/admin" class="user-btn">Back to Dashboard</a>
+        </div>
 
   <div class="lenders-grid">
     <div *ngFor="let lender of filteredLenders()" class="lender-card">
