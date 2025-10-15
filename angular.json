@@ -80,7 +80,7 @@
             "preserveSymlinks": true,
             "extractLicenses": false,
             "sourceMap": false,
-            "optimization": false,
+            "optimization": true,
             "namedChunks": true,
             "vendorChunk": true,
             "buildOptimizer": true
@@ -115,12 +115,12 @@
                   "with": "src/environments/environment.ts"
                 }
               ],
-              "optimization": false,
+              "optimization": true,
               "extractLicenses": true,
               "sourceMap": false,
               "vendorChunk": true,
               "namedChunks": true,
-              "buildOptimizer": false
+              "buildOptimizer": true
             },
             "staging": {
               "optimization": true,
@@ -226,7 +226,7 @@
               "outputHashing": "media"
             },
             "development": {
-              "optimization": false,
+              "optimization": true,
               "sourceMap": true,
               "extractLicenses": false
             }

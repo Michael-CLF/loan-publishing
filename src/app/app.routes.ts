@@ -1,107 +1,245 @@
 import { Routes } from '@angular/router';
 import { HomeComponent } from '../home/home.component';
-import { EmailLoginComponent } from '../email-login/email-login.component';
-import { LoanComponent } from '../loan/loan.component';
-import { LoansComponent } from '../components/loans/loans.component';
-import { DashboardComponent } from '../dashboard/dashboard.component';
 import { authGuard } from '../services/auth.guard';
-import { UserFormComponent } from '../user-form/user-form.component';
-import { PricingComponent } from '../pricing/pricing.component';
-import { TermsComponent } from 'src/terms/terms.component';
-import { LenderContactComponent } from 'src/lender/lender-contact/lender-contact.component';
-import { LenderProductComponent } from 'src/lender/lender-product/lender-product.component';
-import { LenderFootprintComponent } from 'src/lender/lender-footprint/lender-footprint.component';
-import { LenderRegistrationComponent } from 'src/lender/lender-registration/lender-registration.component';
-import { LenderReviewComponent } from 'src/lender/lender-review/lender-review.component';
-import { LoanDetailsComponent } from 'src/loan-details/loan-details.component';
-import { LenderDetailsComponent } from 'src/lender/lender-details/lender-details.component';
-import { LenderListComponent } from 'src/lender/lender-list/lender-list.component';
-import { EditAccountComponent } from 'src/edit-account/edit-account.component';
-import { EditLoanComponent } from 'src/edit-loan/edit-loan.component';
-import { LenderRegSuccessModalComponent } from 'src/modals/lender-reg-success-modal/lender-reg-success-modal.component';
-import { VerificationComponent } from 'src/components/verification/verification.component';
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
-import { PrivacyComponent } from 'src/components/privacy/privacy.component';
-import { OriginatorDetailsComponent } from 'src/components/originator-details/originator-details.component';
-import { LoanMatchesComponent } from 'src/loan-matches/loan-matches.component';
-import { RegistrationProcessingComponent } from 'src/components/registration-processing/registration-processing.component';
-import { ContactComponent } from 'src/components/contact/contact.component';
-import { CompletePaymentComponent } from 'src/components/complete-payment/complete-payment.component';
-import { AdminDashboardComponent } from 'src/components/admin/admin-dashboard/admin-dashboard.component';
-import { AdminBillingComponent } from 'src/components/admin/admin-billing/admin-billing.component';
-import { AdminPaymentsComponent } from 'src/components/admin/admin-payments/admin-payments.component';
-import { AdminUsersComponent } from 'src/components/admin/admin-users/admin-users.component';
-import { FirebaseVideoComponent } from 'src/components/firebase-video/firebase-video.component';
-import { AdminLendersComponent } from 'src/components/admin/admin-lenders/admin-lenders.component';
-import { AdminLoansComponent } from 'src/components/admin/admin-loans/admin-loans.component';
-import { EbooksComponent } from 'src/components/ebooks/ebooks.component';
 
 export const routes: Routes = [
+  // Critical path - load immediately
+  {
+    path: '',
+    loadComponent: () => import('../home/home.component').then(m => m.HomeComponent),
+    title: 'Home - LoanPost'
+  },
+  
+  // Authentication routes - lazy load
+  {
+    path: 'login',
+    loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
+    title: 'Login - LoanPost'
+  },
+  
   {
     path: '__/auth/action',
-    component: RegistrationProcessingComponent, // Temporarily use this component
+    loadComponent: () => import('src/components/registration-processing/registration-processing.component')
+      .then(m => m.RegistrationProcessingComponent),
     data: { skipAuth: true, isFirebaseAction: true },
   },
+  
+  // Dashboard - high priority lazy load
+  {
+    path: 'dashboard',
+    loadComponent: () => import('../dashboard/dashboard.component').then(m => m.DashboardComponent),
+    canActivate: [authGuard],
+    title: 'Dashboard - LoanPost'
+  },
+  
+  // Admin routes - group lazy load
   {
     path: 'admin',
-    redirectTo: 'admin/dashboard',
-    pathMatch: 'full',
+    canActivate: [AdminAuthGuard],
+    children: [
+      {
+        path: '',
+        redirectTo: 'dashboard',
+        pathMatch: 'full',
+      },
+      {
+        path: 'dashboard',
+        loadComponent: () => import('src/components/admin/admin-dashboard/admin-dashboard.component')
+          .then(m => m.AdminDashboardComponent),
+        title: 'Admin Dashboard - LoanPost'
+      },
+      {
+        path: 'billing',
+        loadComponent: () => import('src/components/admin/admin-billing/admin-billing.component')
+          .then(m => m.AdminBillingComponent),
+        title: 'Admin Billing - LoanPost'
+      },
+      {
+        path: 'users',
+        loadComponent: () => import('src/components/admin/admin-users/admin-users.component')
+          .then(m => m.AdminUsersComponent),
+        title: 'Admin Users - LoanPost'
+      },
+      {
+        path: 'lenders',
+        loadComponent: () => import('src/components/admin/admin-lenders/admin-lenders.component')
+          .then(m => m.AdminLendersComponent),
+        title: 'Admin Lenders - LoanPost'
+      },
+      {
+        path: 'loans',
+        loadComponent: () => import('src/components/admin/admin-loans/admin-loans.component')
+          .then(m => m.AdminLoansComponent),
+        title: 'Admin Loans - LoanPost'
+      },
+      {
+        path: 'payments',
+        loadComponent: () => import('src/components/admin/admin-payments/admin-payments.component')
+          .then(m => m.AdminPaymentsComponent),
+        title: 'Admin Payments - LoanPost'
+      },
+    ]
+  },
+  
+  // Loan routes - lazy load
+  {
+    path: 'loan',
+    loadComponent: () => import('../loan/loan.component').then(m => m.LoanComponent),
+    canActivate: [authGuard],
+    title: 'Create Loan - LoanPost'
   },
   {
-    path: 'admin/dashboard',
-    component: AdminDashboardComponent,
+    path: 'loans',
+    loadComponent: () => import('../components/loans/loans.component').then(m => m.LoansComponent),
+    canActivate: [authGuard],
+    title: 'My Loans - LoanPost'
   },
   {
-    path: 'admin/billing',
-    component: AdminBillingComponent,
+    path: 'loans/:id',
+    loadComponent: () => import('src/loan-details/loan-details.component').then(m => m.LoanDetailsComponent),
+    canActivate: [authGuard],
+    title: 'Loan Details - LoanPost'
   },
   {
-    path: 'admin/users',
-    component: AdminUsersComponent,
+    path: 'loans/:id/edit',
+    loadComponent: () => import('src/edit-loan/edit-loan.component').then(m => m.EditLoanComponent),
+    canActivate: [authGuard],
+    title: 'Edit Loan - LoanPost'
   },
   {
-   path: 'admin/lenders',
-    component: AdminLendersComponent,
+    path: 'loan/:loanId/matches',
+    loadComponent: () => import('src/loan-matches/loan-matches.component').then(m => m.LoanMatchesComponent),
+    title: 'Loan Matches - LoanPost'
   },
-  { path: 'admin/loans',
-    component: AdminLoansComponent,
+  
+  // Lender routes - lazy load
+  {
+    path: 'lender-registration',
+    loadComponent: () => import('src/lender/lender-registration/lender-registration.component')
+      .then(m => m.LenderRegistrationComponent),
+    title: 'Lender Registration - LoanPost'
   },
   {
-    path: 'admin/payments',
-    component: AdminPaymentsComponent,
+    path: 'lender-contact',
+    loadComponent: () => import('src/lender/lender-contact/lender-contact.component')
+      .then(m => m.LenderContactComponent),
+    title: 'Lender Contact - LoanPost'
+  },
+  {
+    path: 'lender-product',
+    loadComponent: () => import('src/lender/lender-product/lender-product.component')
+      .then(m => m.LenderProductComponent),
+    title: 'Lender Product - LoanPost'
+  },
+  {
+    path: 'lender-footprint',
+    loadComponent: () => import('src/lender/lender-footprint/lender-footprint.component')
+      .then(m => m.LenderFootprintComponent),
+    title: 'Lender Footprint - LoanPost'
+  },
+  {
+    path: 'lender-review',
+    loadComponent: () => import('src/lender/lender-review/lender-review.component')
+      .then(m => m.LenderReviewComponent),
+    title: 'Lender Review - LoanPost'
+  },
+  {
+    path: 'lender-details/:id',
+    loadComponent: () => import('src/lender/lender-details/lender-details.component')
+      .then(m => m.LenderDetailsComponent),
+    title: 'Lender Details - LoanPost'
+  },
+  {
+    path: 'lender-list',
+    loadComponent: () => import('src/lender/lender-list/lender-list.component')
+      .then(m => m.LenderListComponent),
+    canActivate: [authGuard],
+    title: 'Lender List - LoanPost'
+  },
+  {
+    path: 'lender-reg',
+    loadComponent: () => import('src/modals/lender-reg-success-modal/lender-reg-success-modal.component')
+      .then(m => m.LenderRegSuccessModalComponent),
+    title: 'Lender Registration Success - LoanPost'
+  },
+  
+  // User/Account routes - lazy load
+  {
+    path: 'user-form',
+    loadComponent: () => import('../user-form/user-form.component').then(m => m.UserFormComponent),
+    title: 'User Form - LoanPost'
   },
   {
     path: 'account/edit',
-    component: EditAccountComponent,
+    loadComponent: () => import('src/edit-account/edit-account.component').then(m => m.EditAccountComponent),
     canActivate: [authGuard],
+    title: 'Edit Account - LoanPost'
+  },
+  {
+    path: 'originator-details/:id',
+    loadComponent: () => import('src/components/originator-details/originator-details.component')
+      .then(m => m.OriginatorDetailsComponent),
+    title: 'Originator Details - LoanPost'
+  },
+  
+  // Static pages - lazy load with lower priority
+  {
+    path: 'pricing',
+    loadComponent: () => import('../pricing/pricing.component').then(m => m.PricingComponent),
+    title: 'Pricing - LoanPost'
+  },
+  {
+    path: 'terms',
+    loadComponent: () => import('src/terms/terms.component').then(m => m.TermsComponent),
+    title: 'Terms of Service - LoanPost'
+  },
+  {
+    path: 'privacy',
+    loadComponent: () => import('src/components/privacy/privacy.component').then(m => m.PrivacyComponent),
+    title: 'Privacy Policy - LoanPost'
+  },
+  {
+    path: 'contact',
+    loadComponent: () => import('src/components/contact/contact.component').then(m => m.ContactComponent),
+    title: 'Contact Us - LoanPost'
+  },
+  
+  // Payment routes - lazy load
+  {
+    path: 'complete-payment',
+    loadComponent: () => import('src/components/complete-payment/complete-payment.component')
+      .then(m => m.CompletePaymentComponent),
+    title: 'Complete Payment - LoanPost'
+  },
+  {
+    path: 'registration-processing',
+    loadComponent: () => import('src/components/registration-processing/registration-processing.component')
+      .then(m => m.RegistrationProcessingComponent),
+    title: 'Processing Registration - LoanPost'
+  },
+  
+  // Utility routes - lazy load
+  {
+    path: 'verify',
+    loadComponent: () => import('src/components/verification/verification.component')
+      .then(m => m.VerificationComponent),
+    title: 'Verify Account - LoanPost'
   },
   {
     path: 'firebase-video',
-    component: FirebaseVideoComponent,
+    loadComponent: () => import('src/components/firebase-video/firebase-video.component')
+      .then(m => m.FirebaseVideoComponent),
+    title: 'Firebase Video - LoanPost'
   },
   {
     path: 'ebooks',
-    component: EbooksComponent,
+    loadComponent: () => import('src/components/ebooks/ebooks.component')
+      .then(m => m.EbooksComponent),
+    title: 'Ebooks - LoanPost'
   },
-  { path: '', component: HomeComponent },
-  { path: 'lender-details/:id', component: LenderDetailsComponent },
-  {
-    path: 'lender-list',
-    component: LenderListComponent,
-    canActivate: [authGuard],
-  },
-  { path: 'lender-reg', component: LenderRegSuccessModalComponent },
-  { path: 'user-form', component: UserFormComponent },
-  { path: 'login', component: EmailLoginComponent },
-  { path: 'lender-registration', component: LenderRegistrationComponent },
-  { path: 'lender-contact', component: LenderContactComponent },
-  { path: 'lender-product', component: LenderProductComponent },
-  { path: 'lender-review', component: LenderReviewComponent },
-  { path: 'lender-footprint', component: LenderFootprintComponent },
-  { path: 'loan', component: LoanComponent, canActivate: [authGuard] },
-  { path: 'loans', component: LoansComponent, canActivate: [authGuard] },
-  { path: 'loan/:loanId/matches', component: LoanMatchesComponent },
-  { path: 'complete-payment', component: CompletePaymentComponent },
+  
+  // Redirects
   {
     path: 'payment/success',
     redirectTo: '/registration-processing?payment=success',
@@ -112,60 +250,28 @@ export const routes: Routes = [
     redirectTo: '/registration-processing?payment=cancel',
     pathMatch: 'full',
   },
-
   {
     path: 'complete-registration',
     redirectTo: '/registration-processing',
     pathMatch: 'full',
   },
-
-  // ✅ Main registration processing route
-  {
-    path: 'registration-processing',
-    component: RegistrationProcessingComponent,
-  },
-
-  {
-    path: 'loan-details',
-    component: LoanDetailsComponent,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'loans/:id',
-    component: LoanDetailsComponent,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'loans/:id/edit',
-    component: EditLoanComponent,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'dashboard',
-    component: DashboardComponent,
-    canActivate: [authGuard],
-  },
-  {
-    path: 'originator-details/:id',
-    component: OriginatorDetailsComponent,
-  },
-  { path: 'pricing', component: PricingComponent },
-  { path: 'privacy', component: PrivacyComponent },
-  { path: 'terms', component: TermsComponent },
-  {
-    path: 'verify',
-    component: VerificationComponent,
-  },
-  {
-    path: 'contact',
-    component: ContactComponent,
-  },
-
-  { path: 'test-processing', component: RegistrationProcessingComponent },
   {
     path: 'auth',
-    component: EmailLoginComponent,
+    loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
     data: { authCallback: true },
   },
-  { path: '**', redirectTo: '', pathMatch: 'full' },
+  
+  // Test routes
+  {
+    path: 'test-processing',
+    loadComponent: () => import('src/components/registration-processing/registration-processing.component')
+      .then(m => m.RegistrationProcessingComponent),
+  },
+  
+  // Wildcard - must be last
+  {
+    path: '**',
+    redirectTo: '',
+    pathMatch: 'full'
+  },
 ];
