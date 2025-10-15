@@ -1,0 +1,10 @@
+# Allow all crawlers
+User-agent: *
+Allow: /
+
+# Disallow admin and private areas (if you have any)
+Disallow: /admin/
+Disallow: /api/
+
+# Sitemap location
+Sitemap: https://dailyloanpost.com/sitemap.xml
