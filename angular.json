@@ -80,7 +80,7 @@
             "preserveSymlinks": true,
             "extractLicenses": false,
             "sourceMap": true,
-            "optimization": false,
+            "optimization": true,
             "namedChunks": true,
             "vendorChunk": true,
             "buildOptimizer": false
@@ -93,19 +93,19 @@
                   "with": "src/environments/environment.prod.ts"
                 }
               ],
-              "sourceMap": true,
-              "optimization": false,
-              "buildOptimizer": false,
+              "sourceMap": false,
+              "optimization": true,
+              "buildOptimizer": true,
               "budgets": [
                 {
                   "type": "initial",
-                  "maximumWarning": "7mb",
-                  "maximumError": "10mb"
+                  "maximumWarning": "2mb",
+                  "maximumError": "5mb"
                 },
                 {
                   "type": "anyComponentStyle",
-                  "maximumWarning": "100kb",
-                  "maximumError": "100kb"
+                  "maximumWarning": "150kb",
+                  "maximumError": "200kb"
                 }
               ],
               "outputHashing": "all"
@@ -118,7 +118,7 @@
                 }
               ],
               "optimization": false,
-              "extractLicenses": false,
+              "extractLicenses": true,
               "sourceMap": true,
               "vendorChunk": true,
               "namedChunks": true,

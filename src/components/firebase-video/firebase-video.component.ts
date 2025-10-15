@@ -12,7 +12,7 @@ import { Storage, ref, getDownloadURL } from '@angular/fire/storage';
 export class FirebaseVideoComponent implements OnInit {
   private storage = inject(Storage);
 
-  readonly posterUrl = 'assets/images/DLP_Banner.webp';
+
 
   /** Example: "DLP.mp4" (required) */
   @Input({ required: true }) fileName!: string;
@@ -28,6 +28,8 @@ export class FirebaseVideoComponent implements OnInit {
 
   /** ViewChild reference to the video element */
   @ViewChild('videoPlayer', { static: false }) videoPlayer!: ElementRef<HTMLVideoElement>;
+
+  readonly posterUrl = '/loanpost/assets/images/DLP_Banner.webp'; 
 
   /**
    * Handles play button click and video interaction
