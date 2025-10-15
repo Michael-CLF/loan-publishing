@@ -4,9 +4,11 @@
       <video 
         [src]="videoUrl()" 
         controls 
-        preload="metadata" 
-        poster="/assets/images/DLP_banner.webp"
+        preload="none"
+        poster="/assets/images/DLP_Banner.webp"
         (click)="playVideo($event)"
+        width="900"
+        height="506"
         #videoPlayer>
         Your browser doesn't support video.
       </video>
@@ -20,9 +22,9 @@
     </div>
   }
   @if (isLoading()) {
-    <div>Loading video...</div>
+    <div class="loading-state">Loading video...</div>
   }
   @if (hasError()) {
-    <div>Error loading video</div>
+    <div class="error-state">Error loading video</div>
   }
 </div>
