@@ -7,6 +7,8 @@ import {
   inject,
   ChangeDetectionStrategy,
   ChangeDetectorRef,
+  AfterViewInit,
+  DestroyRef
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
@@ -17,6 +19,7 @@ import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
 import { propertyColorMap } from '../../shared/property-category-colors';
 import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
+
 
 // Import the new mapping constants
 import {
@@ -30,6 +33,7 @@ import {
 } from '../../shared/constants/lender-type-mappings';
 import { formatStateForDisplay } from '../../shared/constants/state-mappings';
 
+
 @Component({
   selector: 'app-lender-details',
   standalone: true,
@@ -38,7 +42,7 @@ import { formatStateForDisplay } from '../../shared/constants/state-mappings';
   styleUrls: ['./lender-details.component.css'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class LenderDetailsComponent implements OnInit, OnDestroy {
+export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit {
   lender: Lender | null = null;
   loading = true;
   error = false;
@@ -54,6 +58,48 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
   private authService = inject(AuthService);
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
+  private destroyRef = inject(DestroyRef);
+  private copyProtectionEnabled = true;
+
+  private setupCopyProtection(): void {
+  if (!this.copyProtectionEnabled) return;
+
+  // Disable right-click context menu
+  const handleContextMenu = (e: MouseEvent) => {
+    e.preventDefault();
+    return false;
+  };
+
+  // Disable copy keyboard shortcuts
+  const handleKeyDown = (e: KeyboardEvent) => {
+    // Prevent Ctrl+C, Cmd+C, Ctrl+X, Cmd+X, Ctrl+A, Cmd+A
+    if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'a')) {
+      e.preventDefault();
+      return false;
+    }
+    return true;
+  };
+
+  // Disable text selection via CSS (backup method)
+  const disableSelection = () => {
+    document.body.style.userSelect = 'none';
+    document.body.style.webkitUserSelect = 'none';
+  };
+
+  // Apply protection
+  disableSelection();
+  document.addEventListener('contextmenu', handleContextMenu);
+  document.addEventListener('keydown', handleKeyDown);
+
+  // Cleanup when component is destroyed (Angular 18 pattern)
+  this.destroyRef.onDestroy(() => {
+    document.removeEventListener('contextmenu', handleContextMenu);
+    document.removeEventListener('keydown', handleKeyDown);
+    document.body.style.userSelect = '';
+    document.body.style.webkitUserSelect = '';
+  });  
+    this.setupCopyProtection(); // Add this line
+}
 
   async ngOnInit(): Promise<void> {
     const user = await this.authService.getCurrentFirebaseUser();
@@ -88,6 +134,13 @@ export class LenderDetailsComponent implements OnInit, OnDestroy {
         this.cdr.markForCheck();
       });
   }
+
+  ngAfterViewInit(): void {
+  // Setup copy protection after view initializes
+  setTimeout(() => {
+    this.setupCopyProtection();
+  }, 100);
+}
 
   closeModal(): void {
     this.favoritesService.closeModal();
