@@ -6,11 +6,10 @@
   <title>Daily Loan Post - Loan Publishing Marketplace</title>
   <base href="/">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Revolutionary AI-powered platform connecting commercial loan originators with qualified lenders">
+  <meta name="description"
+    content="Revolutionary AI-powered platform connecting commercial loan originators with qualified lenders">
 
   <!-- DNS Prefetch & Preconnect (MUST BE FIRST - before any external resources) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="dns-prefetch" href="https://www.googletagmanager.com">
   <link rel="dns-prefetch" href="https://pagead2.googlesyndication.com">
   <link rel="dns-prefetch" href="https://cdnjs.cloudflare.com">
@@ -19,28 +18,15 @@
 
   <!-- Preload Critical Resources -->
   <link rel="preload" as="image" href="assets/images/DLP_banner.webp" fetchpriority="high">
+  <!-- Preload self-hosted Roboto (weights used above the fold) -->
+  <link rel="preload" href="/assets/fonts/roboto/roboto-400.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/assets/fonts/roboto/roboto-700.woff2" as="font" type="font/woff2" crossorigin>
+
 
   <!-- Favicon -->
   <link rel="icon" type="image/webp" href="assets/images/DLP_LOGO_Fav.webp">
 
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
- 
-  <!-- Fallback for no-JS -->
-  <noscript>
-    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-  </noscript>
 
-  <!-- Defer Non-Critical CSS -->
- <link rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
-
-  <!-- Keep only one icon set to reduce payload -->
-  <link rel="stylesheet"
-      href="https://fonts.googleapis.com/icon?family=Material+Icons">
-
-  <noscript>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
-  </noscript>
 
   <!-- Open Graph / Social Meta Tags -->
   <meta property="og:title" content="Daily Loan Post - Fund Deals Faster" />
@@ -53,13 +39,13 @@
 
   <!-- Defer Google Tag Manager (loads after page interactive) -->
   <script>
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       (function (w, d, s, l, i) {
         w[l] = w[l] || [];
         w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
         var f = d.getElementsByTagName(s)[0],
-            j = d.createElement(s),
-            dl = l != 'dataLayer' ? '&l=' + l : '';
+          j = d.createElement(s),
+          dl = l != 'dataLayer' ? '&l=' + l : '';
         j.async = true;
         j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
         f.parentNode.insertBefore(j, f);
@@ -69,7 +55,7 @@
 
   <!-- Defer Google AdSense (loads after page interactive) -->
   <script>
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       var adsScript = document.createElement('script');
       adsScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1002518553534093';
       adsScript.async = true;
@@ -82,23 +68,21 @@
 <body>
   <!-- Google Tag Manager (noscript) -->
   <noscript>
-    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W92WCP3V"
-            height="0"
-            width="0"
-            style="display:none;visibility:hidden"></iframe>
+    <iframe src="https://www.googletagmanager.com/ns.html?id=GTM-W92WCP3V" height="0" width="0"
+      style="display:none;visibility:hidden"></iframe>
   </noscript>
 
   <app-root></app-root>
-  
-<!-- Angular Core Scripts -->
-<script src="runtime.60162d7a6c93990c.js" type="module"></script>
-<script src="polyfills.1414b0ef15bd4d5f.js" type="module"></script>
-<script src="vendor.354631c2b33608.js" type="module"></script>
-<script src="main.4f22e4ed7430f191.js" type="module"></script>
+
+  <!-- Angular Core Scripts -->
+  <script src="runtime.60162d7a6c93990c.js" type="module"></script>
+  <script src="polyfills.1414b0ef15bd4d5f.js" type="module"></script>
+  <script src="vendor.354631c2b33608.js" type="module"></script>
+  <script src="main.4f22e4ed7430f191.js" type="module"></script>
 
   <!-- Defer AI Widget (loads after page interactive) -->
   <script>
-    window.addEventListener('load', function() {
+    window.addEventListener('load', function () {
       var widgetScript = document.createElement('script');
       widgetScript.src = 'https://michael-clf.github.io/ai-widget/widget.js';
       widgetScript.setAttribute('data-widget-id', 'widget_mfe84059_j415rv');
