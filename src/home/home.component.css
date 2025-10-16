@@ -132,9 +132,9 @@
     contain-intrinsic-size: 0 800px;
 }
 
-.hero-section { 
+/*.hero-section { 
     min-height: calc(100vh - 140px); 
-}
+}*/
 .dlp-video { 
     margin-top: 24px;
 }
