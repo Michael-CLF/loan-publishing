@@ -8,6 +8,7 @@ import { provideFunctions, getFunctions } from '@angular/fire/functions';
 import { provideStorage, getStorage } from '@angular/fire/storage';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
+import { provideZoneChangeDetection } from '@angular/core';
 
 // Import all your services
 import { AuthService } from '../services/auth.service';
@@ -50,7 +51,7 @@ export const appConfig: ApplicationConfig = {
   providers: [
     provideRouter(routes),
     provideHttpClient(),
-    
+    provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     // Firebase providers
     provideFirebaseApp(() => {
       console.log('Firebase config:', environment.firebase);
