@@ -6,20 +6,15 @@ import { appConfig } from './app/app.config';
 bootstrapApplication(AppComponent, appConfig)
   .catch((err) => console.error('Error starting app:', err));
 
-// 🟡 Defer non-critical setup until the browser is idle
-if ('requestIdleCallback' in window) {
-  requestIdleCallback(() => {
-    initNonCriticalStuff();
-  });
-} else {
-  // Fallback for older browsers
-  setTimeout(() => {
-    initNonCriticalStuff();
-  }, 2000);
+
+function signalIdle() {
+  // Custom event other scripts can listen for
+  window.dispatchEvent(new Event('app:idle'));
 }
 
-// Example placeholder function — replace with your actual non-critical code
-function initNonCriticalStuff() {
-  // e.g. warm up caches, prefetch data, initialize optional libraries, etc.
-  console.log('Running non-critical tasks...');
+// Prefer the browser’s idle callback; fall back to a small timeout if unavailable
+if ('requestIdleCallback' in window) {
+  (window as any).requestIdleCallback(signalIdle);
+} else {
+  setTimeout(signalIdle, 2000);
 }
