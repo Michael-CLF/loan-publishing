@@ -127,14 +127,67 @@
     background: #f8fafc;
     margin-bottom: 40px;
     padding: 60px 0;
-    /* Performance optimization */
     content-visibility: auto;
     contain-intrinsic-size: 0 800px;
 }
 
-/*.hero-section { 
-    min-height: calc(100vh - 140px); 
-}*/
+/* HOME — compact, content-sized hero (no viewport math) */
+.hero-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-block: clamp(24px, 6vh, 56px);
+  gap: 12px;
+  box-sizing: border-box;
+}
+
+.hero-section .headline {
+  margin: 0; 
+  text-align: center;
+}
+
+.hero-section .sub-content {
+  max-width: 760px;
+  text-align: center;
+}
+
+.hero-section .button {
+  margin: 0;            /* no stray extra space below CTA */
+}
+
+/* Keep the next section close to the hero */
+.hero-section + * {
+  margin-top: 24px;     /* reduce the big jump to “Features & Benefits” */
+}
+
+/* General page width control for this page only */
+.grid-container {
+  max-width: 1200px;
+  margin-inline: auto;
+  padding-inline: 16px;
+}
+
+/* Video block directly under hero — keep it compact */
+.dlp-video { 
+  margin-top: 16px;
+}
+
+/* Reserve just enough space for the video without looking empty */
+.video-skeleton,
+.video-placeholder {
+  aspect-ratio: 16 / 9;
+  max-width: 900px;
+  min-height: 320px;
+  margin: 0 auto;
+}
+
+/* Slightly tighter spacing on large desktops */
+@media (min-width: 1280px) {
+  .hero-section { gap: 10px; padding-block: 32px; }
+  .hero-section + * { margin-top: 20px; }
+}
+
+
 .dlp-video { 
     margin-top: 24px;
 }
