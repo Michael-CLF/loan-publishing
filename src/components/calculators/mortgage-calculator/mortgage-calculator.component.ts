@@ -14,7 +14,7 @@ import { MortgageResultsComponent } from '../mortgage-results/mortgage-results.c
 @Component({
   selector: 'app-mortgage-calc',
   templateUrl: './mortgage-calculator.component.html',
-  styleUrls: ['./mortgage-calculator.component.scss'],
+  styleUrls: ['./mortgage-calculator.component.css'],
   standalone: true,
   imports: [
     CommonModule,

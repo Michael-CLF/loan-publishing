@@ -18,7 +18,7 @@ import {
     ReactiveFormsModule,
   ],
   templateUrl: './cap-rate-calculator.component.html',
-  styleUrls: ['./cap-rate-calculator.component.scss'],
+  styleUrls: ['./cap-rate-calculator.component.css'],
 })
 export class CapRateCalculatorComponent {
   capRateForm: FormGroup;
