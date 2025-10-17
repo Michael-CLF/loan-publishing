@@ -5,7 +5,7 @@ import { MortgageResult } from '../../../models/mortgage.model';
 @Component({
   selector: 'app-mortgage-results',
   templateUrl: './mortgage-results.component.html',
-  styleUrls: ['./mortgage-results.component.scss'],
+  styleUrls: ['./mortgage-results.component.css'],
   standalone: true,
   imports: [CommonModule], // Import CommonModule for standalone component
 })

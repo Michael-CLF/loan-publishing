@@ -71,6 +71,7 @@
               "@firebase/messaging",
               "stripe",
               "@stripe/stripe-js",
+               "typed-usa-states/dist/states-with-counties",
               "lodash",
               "rxjs",
               "rxjs/operators",
