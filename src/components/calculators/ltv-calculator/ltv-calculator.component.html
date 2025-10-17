@@ -1,0 +1,136 @@
+<div class="ltv-calculator">
+    <h2>Loan to Value (LTV) Calculator</h2>
+
+    <div class="calculator-tabs">
+        <button [class.active]="calculationMode === 'calculate'" (click)="switchCalculationMode('calculate')"
+            type="button">
+            Calculate LTV Ratio
+        </button>
+        <button [class.active]="calculationMode === 'reverse'" (click)="switchCalculationMode('reverse')" type="button">
+            Maximum Loan Amount
+        </button>
+    </div>
+
+    <form [formGroup]="ltvForm" (ngSubmit)="calculateLTV()">
+        <div class="instructions">
+            <p *ngIf="calculationMode === 'calculate'">
+                Enter your property value and loan amount to calculate the Loan to Value ratio.
+            </p>
+            <p *ngIf="calculationMode === 'reverse'">
+                Enter your property value and target LTV percentage to calculate the maximum loan amount.
+            </p>
+        </div>
+
+        <!-- Standard LTV calculation fields -->
+        <div class="form-fields" *ngIf="calculationMode === 'calculate'">
+            <div class="form-group">
+                <label for="propertyValue">Property Value ($)</label>
+                <input type="number" id="propertyValue" formControlName="propertyValue" min="1" step="1000">
+                <div class="validation-error"
+                    *ngIf="ltvForm.get('propertyValue')?.invalid && ltvForm.get('propertyValue')?.touched">
+                    Please enter a valid property value greater than 0
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="loanAmount">Loan Amount ($)</label>
+                <input type="number" id="loanAmount" formControlName="loanAmount" min="0" step="1000">
+                <div class="validation-error"
+                    *ngIf="ltvForm.get('loanAmount')?.invalid && ltvForm.get('loanAmount')?.touched">
+                    Please enter a valid loan amount (0 or greater)
+                </div>
+            </div>
+        </div>
+
+        <!-- Maximum loan amount calculation fields -->
+        <div class="form-fields" *ngIf="calculationMode === 'reverse'">
+            <div class="form-group">
+                <label for="propertyValueReverse">Property Value ($)</label>
+                <input type="number" id="propertyValueReverse" formControlName="propertyValueReverse" min="1"
+                    step="1000">
+                <div class="validation-error"
+                    *ngIf="ltvForm.get('propertyValueReverse')?.invalid && ltvForm.get('propertyValueReverse')?.touched">
+                    Please enter a valid property value greater than 0
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="targetLtv">Target LTV (%)</label>
+                <input type="number" id="targetLtv" formControlName="targetLtv" min="1" max="100" step="0.1">
+                <div class="validation-error"
+                    *ngIf="ltvForm.get('targetLtv')?.invalid && ltvForm.get('targetLtv')?.touched">
+                    Please enter a valid percentage (1-100)
+                </div>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="submit" class="calculate-btn" [disabled]="ltvForm.invalid">
+                {{ calculationMode === 'calculate' ? 'Calculate LTV' : 'Calculate Maximum Loan' }}
+            </button>
+
+            <button type="button" class="reset-btn" (click)="resetForm()">
+                Reset
+            </button>
+        </div>
+
+        <div class="results" *ngIf="ltvResult !== null">
+            <div class="result-container" [ngClass]="{'high-ltv': ltvResult.ltvPercentage > 80}">
+                <h3>{{ calculationMode === 'calculate' ? 'LTV Results' : 'Maximum Loan Results' }}</h3>
+
+                <div class="result-grid">
+                    <div class="result-item">
+                        <span class="result-label">LTV Ratio:</span>
+                        <span class="result-value">{{ ltvResult.ltvRatio | number:'1.4-4' }}</span>
+                    </div>
+
+                    <div class="result-item">
+                        <span class="result-label">LTV Percentage:</span>
+                        <span class="result-value"
+                            [ngClass]="{'warning': ltvResult.ltvPercentage > 80, 'danger': ltvResult.ltvPercentage > 95}">
+                            {{ ltvResult.ltvPercentage | number:'1.2-2' }}%
+                        </span>
+                    </div>
+
+                    <div class="result-item"
+                        *ngIf="calculationMode === 'reverse' && ltvResult.maxLoanAmount !== undefined">
+                        <span class="result-label">Maximum Loan Amount:</span>
+                        <span class="result-value">${{ ltvResult.maxLoanAmount | number:'1.2-2' }}</span>
+                    </div>
+
+                    <div class="result-item"
+                        *ngIf="calculationMode === 'calculate' && ltvResult.additionalEquityNeeded">
+                        <span class="result-label">Additional Equity Needed to Reach Lower LTV Threshold:</span>
+                        <span class="result-value">${{ ltvResult.additionalEquityNeeded | number:'1.2-2' }}</span>
+                    </div>
+                </div>
+
+                <div class="ltv-interpretation">
+                    <h4>What this means:</h4>
+                    <p *ngIf="calculationMode === 'calculate'">
+                        Your loan represents <strong>{{ ltvResult.ltvPercentage | number:'1.2-2' }}%</strong> of your
+                        property's value.
+                        <span *ngIf="ltvResult.ltvPercentage <= 80">
+                            This is generally considered a good LTV ratio by most lenders.
+                        </span>
+                        <span *ngIf="ltvResult.ltvPercentage > 80 && ltvResult.ltvPercentage <= 95">
+                            This is above the 80% threshold - you may need to pay for private mortgage insurance (PMI).
+                        </span>
+                        <span *ngIf="ltvResult.ltvPercentage > 95">
+                            This is a high LTV ratio which may result in higher interest rates or difficulty qualifying
+                            for certain loans.
+                        </span>
+                    </p>
+                    <p *ngIf="calculationMode === 'reverse'">
+                        With a property value of ${{ ltvForm.get('propertyValueReverse')?.value | number:'1.0-0' }}
+                        and a target LTV of {{ ltvForm.get('targetLtv')?.value }}%,
+                        you can borrow up to <strong>${{ ltvResult.maxLoanAmount | number:'1.2-2' }}</strong>.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

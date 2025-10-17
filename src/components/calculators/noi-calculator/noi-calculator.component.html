@@ -1,0 +1,100 @@
+<div class="calculator-container">
+    <h2>Net Operating Income (NOI) Calculator</h2>
+
+    <form [formGroup]="noiForm" (ngSubmit)="calculateNOI()">
+        <div class="calculator-section">
+            <h3>Income</h3>
+            <div class="form-group">
+                <label for="rentalIncome">Rental Income ($)</label>
+                <input type="number" id="rentalIncome" formControlName="rentalIncome" class="form-control"
+                    [class.is-invalid]="noiForm.get('rentalIncome')?.invalid && noiForm.get('rentalIncome')?.touched">
+                <div class="error-message"
+                    *ngIf="noiForm.get('rentalIncome')?.errors?.['required'] && noiForm.get('rentalIncome')?.touched">
+                    Rental income is required
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="otherIncome">Other Income ($)</label>
+                <input type="number" id="otherIncome" formControlName="otherIncome" class="form-control">
+            </div>
+        </div>
+
+        <div class="calculator-section">
+            <h3>Operating Expenses</h3>
+
+            <div class="form-group">
+                <label for="propertyTax">Property Tax ($)</label>
+                <input type="number" id="propertyTax" formControlName="propertyTax" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="insurance">Insurance ($)</label>
+                <input type="number" id="insurance" formControlName="insurance" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="utilities">Utilities ($)</label>
+                <input type="number" id="utilities" formControlName="utilities" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="maintenance">Maintenance & Repairs ($)</label>
+                <input type="number" id="maintenance" formControlName="maintenance" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="propertyManagement">Property Management ($)</label>
+                <input type="number" id="propertyManagement" formControlName="propertyManagement" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="vacancyLoss">Vacancy Loss ($)</label>
+                <input type="number" id="vacancyLoss" formControlName="vacancyLoss" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="otherExpenses">Other Expenses ($)</label>
+                <input type="number" id="otherExpenses" formControlName="otherExpenses" class="form-control">
+            </div>
+        </div>
+
+        <div class="calculator-section">
+            <h3>Property Value (Optional)</h3>
+            <div class="form-group">
+                <label for="propertyValue">Property Value ($)</label>
+                <input type="number" id="propertyValue" formControlName="propertyValue" class="form-control"
+                    placeholder="For cap rate calculation">
+            </div>
+        </div>
+
+        <div class="calculator-actions">
+            <button type="submit" class="btn btn-primary" [disabled]="noiForm.invalid">Calculate NOI</button>
+            <button type="button" class="btn btn-secondary" (click)="resetForm()">Reset</button>
+        </div>
+    </form>
+
+    <div class="results-container" *ngIf="results">
+        <h3>Results</h3>
+        <div class="result-item">
+            <span class="result-label">Gross Income:</span>
+            <span class="result-value">${{ results.grossIncome | number:'1.2-2' }}</span>
+        </div>
+        <div class="result-item">
+            <span class="result-label">Operating Expenses:</span>
+            <span class="result-value">${{ results.operatingExpenses | number:'1.2-2' }}</span>
+        </div>
+        <div class="result-item highlight">
+            <span class="result-label">Net Operating Income (NOI):</span>
+            <span class="result-value">${{ results.netOperatingIncome | number:'1.2-2' }}</span>
+        </div>
+        <div class="result-item" *ngIf="results.capRate !== undefined">
+            <span class="result-label">Capitalization Rate:</span>
+            <span class="result-value">{{ results.capRate | number:'1.2-2' }}%</span>
+        </div>
+    </div>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+    
+</div>

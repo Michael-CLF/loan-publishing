@@ -1,0 +1,54 @@
+<div class="calculator-container">
+    <h2 class="title">The Commercial Loan Fund Break-Even Ratio Calculator</h2>
+    <p class="description">Calculate the occupancy rate needed to cover expenses</p>
+
+
+    <form [formGroup]="breakEvenForm" (ngSubmit)="calculateBreakEven()">
+        <div class="form-group">
+            <label for="debtService">Debt Service ($)</label>
+            <input type="number" id="debtService" formControlName="debtService" placeholder="Enter debt service amount">
+            @if (isFieldInvalid('debtService')) {
+            <div class="error-message">Please enter a valid debt service amount</div>
+            }
+        </div>
+
+        <div class="form-group">
+            <label for="operatingExpenses">Operating Expenses ($)</label>
+            <input type="number" id="operatingExpenses" formControlName="operatingExpenses"
+                placeholder="Enter operating expenses">
+            @if (isFieldInvalid('operatingExpenses')) {
+            <div class="error-message">Please enter a valid operating expenses amount</div>
+            }
+        </div>
+
+        <div class="form-group">
+            <label for="grossOperatingIncome">Gross Operating Income ($)</label>
+            <input type="number" id="grossOperatingIncome" formControlName="grossOperatingIncome"
+                placeholder="Enter gross operating income">
+            @if (isFieldInvalid('grossOperatingIncome')) {
+            <div class="error-message">Gross operating income must be greater than zero</div>
+            }
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="calculate-btn" [disabled]="breakEvenForm.invalid">Calculate</button>
+            <button type="button" class="reset-btn" (click)="resetForm()">Reset</button>
+        </div>
+    </form>
+
+    @if (breakEvenRatio !== null) {
+    <div class="results">
+        <h3>Break-Even Ratio Results</h3>
+        <p class="ratio">{{breakEvenRatio | number:'1.2-2'}}</p>
+        <p class="interpretation">
+            @if (breakEvenRatio < 1) { A break-even ratio below 1.0 indicates the property generates enough income to
+                cover expenses and debt service. } @else if (breakEvenRatio===1) { A break-even ratio of exactly 1.0
+                means the property is just covering its expenses and debt service. } @else { A break-even ratio above
+                1.0 indicates the property is not generating enough income to cover expenses and debt service. } </p>
+    </div>
+    }
+</div>
+
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

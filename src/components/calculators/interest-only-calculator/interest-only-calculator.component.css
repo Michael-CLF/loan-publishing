@@ -1,0 +1,118 @@
+/* interest-calculator.component.css */
+.calculator-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+.title {
+  color: #002b4e;
+  font-family: 2rem;
+  font-family: hertical sans;
+}
+
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+}
+
+.form-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  font-weight: bold;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #002b4e;
+  border-radius: 4px;
+}
+
+.term-selector {
+  display: flex;
+  gap: 10px;
+}
+
+.term-selector input {
+  flex: 1;
+}
+
+.term-selector select {
+  width: 120px;
+}
+
+button {
+  display: block;
+  width: 100%;
+  padding: 10px;
+  background-color: #002b4e;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 20px;
+}
+
+button:disabled {
+  background-color: #cccccc;
+  cursor: not-allowed;
+}
+
+.error-message {
+  color: #c00000;
+  font-size: 14px;
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.result {
+  margin-top: 30px;
+  padding: 20px;
+  border: 1px solid #002b4e;
+  border-radius: 4px;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid #eee;
+}
+
+.amortization-table {
+  margin-top: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  padding: 10px;
+  text-align: left;
+  border-bottom: 1px solid #272727;
+}
+
+th {
+  background-color: #f2f2f2;
+}
+.contact-container {
+  width: 60%;
+  margin: 0 auto;
+}
+.contact-title {
+  font-family: hertical sans;
+  color: #002b4e;
+  text-align: center;
+  margin-top: 30px;
+}

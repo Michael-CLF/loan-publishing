@@ -1,0 +1,99 @@
+.button-container {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  width: 60%;
+  margin: 0 auto;
+}
+.button-group {
+  margin: 0 auto;
+}
+.title {
+  color: #02474d;
+  font-size: 2.5rem;
+  font-family: 'roboto', sans-serif;
+  text-align: center;
+  margin-top: 20px;
+}
+.calc-button {
+  display: flex;
+  justify-content: center;
+  color: #fff;
+  background-color: #002b4e;
+  padding: 10px 20px 10px 20px;
+  font-size: 20px;
+  border-radius: 10px;
+  margin: 30px;
+}
+@media screen and (min-width: 1024px) and (max-width: 1366px) {
+  .button-container {
+    width: 80%;
+    margin: 0 auto;
+  }
+}
+.card {
+  background-color: #02474d;
+  color: white;
+  border-radius: 8px;
+  box-shadow: 8px 8px 12px 4px rgba(39, 39, 39, 0.5);
+  transition: box-shadow 0.3s ease;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 350px;
+  margin: 16px;
+}
+.card:hover {
+  box-shadow: 12px 12px 20px 6px rgba(39, 39, 39, 0.6);
+}
+
+.card-title {
+  padding: 16px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: center;
+}
+
+.card-title h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.card-content {
+  padding: 16px;
+  flex-grow: 1;
+  text-align: center;
+}
+
+.card-footer {
+  padding: 16px;
+  display: flex;
+  justify-content: center;
+}
+
+.card-button {
+  width: 100%;
+  font-size: 20px;
+  background-color: #e64a19; /* Dark orange */
+  color: #fff;
+  text-decoration: none;
+  text-align: center;
+  padding: 8px 16px;
+  border-radius: 4px;
+  font-weight: bold;
+  transition: background-color 0.3s;
+  cursor: pointer;
+}
+
+.card-button:hover {
+  background-color: #ffa726;
+}
+@media only screen and (min-width: 1024px) and (max-width: 1024px) {
+  .button-container {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media only screen and (min-width: 1366px) and (max-width: 1366px) {
+  .button-container {
+    width: 90%;
+  }
+}

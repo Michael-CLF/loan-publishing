@@ -1,0 +1,97 @@
+.mortgage-calculator-container {
+  max-width: 1000px;
+  margin: 0 auto;
+  padding: 1.5rem;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  background-color: #ffffff;
+
+  h2 {
+    color: #002b4e;
+    font-family: hertical sans;
+    font-size: 2rem;
+    margin: 2rem;
+    margin-bottom: 2rem;
+    text-align: center;
+  }
+
+  form {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 1rem;
+
+    label {
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+      color: #002b4e;
+    }
+
+    .form-control {
+      padding: 0.75rem;
+      border: 1px solid #272727;
+      border-radius: 4px;
+      font-size: 1rem;
+      transition: border-color 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #002b4e;
+        box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+      }
+
+      &.ng-invalid.ng-touched {
+        border-color: #c00000;
+      }
+    }
+
+    .error-message {
+      color: #c00000;
+      font-size: 0.85rem;
+      margin-top: 0.25rem;
+    }
+  }
+
+  .calculate-btn {
+    grid-column: 1 / -1;
+    padding: 0.75rem 1.5rem;
+    background-color: #002b4e;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+
+    &:disabled {
+      background-color: #cdcdcd;
+      cursor: not-allowed;
+    }
+  }
+
+  .results-section {
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid #272727;
+  }
+}
+.contact-container {
+  width: 60%;
+  margin: 0 auto;
+}
+.contact-title {
+  font-family: hertical sans;
+  color: #002b4e;
+  text-align: center;
+  margin-top: 30px;
+}

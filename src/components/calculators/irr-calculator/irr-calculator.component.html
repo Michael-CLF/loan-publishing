@@ -1,0 +1,70 @@
+<div class="irr-calculator">
+    <h2 class="title">Internal Rate of Return (IRR) Calculator</h2>
+
+    <form [formGroup]="irrForm" (ngSubmit)="calculateIRR()">
+        <div class="instructions">
+            <p>Enter your cash flows below. The first cash flow should be negative (your initial investment).</p>
+        </div>
+
+        <div class="cash-flows-container" formArrayName="cashFlows">
+            <div class="cash-flow-header">
+                <div class="year-header">Year</div>
+                <div class="amount-header">Cash Flow Amount</div>
+                <div class="actions-header"></div>
+            </div>
+
+            <div class="cash-flow-row" *ngFor="let cashFlow of cashFlows.controls; let i = index" [formGroupName]="i">
+                <div class="year-input">
+                    <input type="number" formControlName="year" min="0" [attr.aria-label]="'Year ' + i">
+                    <div class="validation-error"
+                        *ngIf="cashFlow.get('year')?.invalid && cashFlow.get('year')?.touched">
+                        Year must be 0 or greater
+                    </div>
+                </div>
+
+                <div class="amount-input">
+                    <input type="number" formControlName="amount" [attr.aria-label]="'Cash flow amount for year ' + i">
+                    <div class="validation-error"
+                        *ngIf="cashFlow.get('amount')?.invalid && cashFlow.get('amount')?.touched">
+                        Amount is required
+                    </div>
+                </div>
+
+                <div class="actions">
+                    <button type="button" class="remove-btn" (click)="removeCashFlow(i)"
+                        [disabled]="cashFlows.length <= 1" aria-label="Remove cash flow">
+                        Remove
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="form-buttons">
+            <button type="button" class="add-btn" (click)="addCashFlow()">
+                Add Cash Flow
+            </button>
+
+            <button type="submit" class="calculate-btn" [disabled]="irrForm.invalid">
+                Calculate IRR
+            </button>
+
+            <button type="button" class="reset-btn" (click)="resetForm()">
+                Reset
+            </button>
+        </div>
+
+        <div class="results" *ngIf="irrResult !== null || errorMessage !== null">
+            <div class="result-container" *ngIf="irrResult !== null">
+                <h3>Calculated IRR:</h3>
+                <div class="irr-value">{{ irrResult | number:'1.2-2' }}%</div>
+            </div>
+
+            <div class="error-container" *ngIf="errorMessage !== null">
+                <div class="error-message">{{ errorMessage }}</div>
+            </div>
+        </div>
+    </form>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

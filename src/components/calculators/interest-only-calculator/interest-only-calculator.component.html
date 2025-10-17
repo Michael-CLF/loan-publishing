@@ -1,0 +1,71 @@
+<!-- interest-calculator.component.html -->
+<div class="calculator-container">
+    <h2 class="title">The Commercial Loan Fund Interest-Only Calculator</h2>
+
+    <form [formGroup]="calculatorForm" (ngSubmit)="calculateInterest()">
+        <div class="form-group">
+            <label for="principal">Principal Amount ($)</label>
+            <input type="number" id="principal" formControlName="principal" placeholder="Enter loan amount">
+            <div *ngIf="principal?.invalid && (principal?.dirty || principal?.touched)" class="error-message">
+                <div *ngIf="principal?.errors?.['required']">Principal amount is required</div>
+                <div *ngIf="principal?.errors?.['min']">Amount must be greater than 0</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="interestRate">Annual Interest Rate (%)</label>
+            <input type="number" id="interestRate" formControlName="interestRate" step="0.01"
+                placeholder="Enter interest rate">
+            <div *ngIf="interestRate?.invalid && (interestRate?.dirty || interestRate?.touched)" class="error-message">
+                <div *ngIf="interestRate?.errors?.['required']">Interest rate is required</div>
+                <div *ngIf="interestRate?.errors?.['min']">Rate must be greater than 0</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="term">Loan Term</label>
+            <div class="term-selector">
+                <input type="number" id="termValue" formControlName="termValue" placeholder="Enter term length">
+                <select id="termUnit" formControlName="termUnit">
+                    <option value="years">Years</option>
+                    <option value="months">Months</option>
+                </select>
+            </div>
+            <div *ngIf="termValue?.invalid && (termValue?.dirty || termValue?.touched)" class="error-message">
+                <div *ngIf="termValue?.errors?.['required']">Term is required</div>
+                <div *ngIf="termValue?.errors?.['min']">Term must be greater than 0</div>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="paymentFrequency">Payment Frequency</label>
+            <select id="paymentFrequency" formControlName="paymentFrequency">
+                <option value="monthly">Monthly</option>
+                <option value="quarterly">Quarterly</option>
+                <option value="semiannually">Semi-Annually</option>
+                <option value="annually">Annually</option>
+            </select>
+        </div>
+
+        <button type="submit" [disabled]="calculatorForm.invalid">Calculate</button>
+    </form>
+
+    <div *ngIf="calculationResult" class="result">
+        <h3>Calculation Results</h3>
+        <div class="result-item">
+            <span>Interest-Only Payment:</span>
+            <span>${{calculationResult.payment | number:'1.2-2'}}</span>
+        </div>
+        <div class="result-item">
+            <span>Total Interest:</span>
+            <span>${{calculationResult.totalInterest | number:'1.2-2'}}</span>
+        </div>
+        <div class="result-item">
+            <span>Final Payment (Principal + Last Interest):</span>
+            <span>${{calculationResult.finalPayment | number:'1.2-2'}}</span>
+        </div>
+    </div>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

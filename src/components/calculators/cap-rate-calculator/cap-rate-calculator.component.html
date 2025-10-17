@@ -1,0 +1,59 @@
+<!-- cap-rate.component.html -->
+<div class="cap-rate-container">
+    <h2 class="title">The Commercial Loan Fund Cap Rate Calculator</h2>
+
+    <form [formGroup]="capRateForm" (ngSubmit)="calculateCapRate()">
+        <div class="form-group">
+            <label for="noi">Net Operating Income (NOI)</label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" id="noi" formControlName="noi" class="form-control" placeholder="Enter annual NOI"
+                    [ngClass]="{'is-invalid': formControls['noi'].invalid && formControls['noi'].touched}">
+            </div>
+            <div class="error-message" *ngIf="formControls['noi'].invalid && formControls['noi'].touched">
+                <small *ngIf="formControls['noi'].errors?.['required']">NOI is required</small>
+                <small *ngIf="formControls['noi'].errors?.['min']">NOI cannot be negative</small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <label for="propertyValue">Property Value</label>
+            <div class="input-group">
+                <span class="input-group-text">$</span>
+                <input type="number" id="propertyValue" formControlName="propertyValue" class="form-control"
+                    placeholder="Enter property value"
+                    [ngClass]="{'is-invalid': formControls['propertyValue'].invalid && formControls['propertyValue'].touched}">
+            </div>
+            <div class="error-message"
+                *ngIf="formControls['propertyValue'].invalid && formControls['propertyValue'].touched">
+                <small *ngIf="formControls['propertyValue'].errors?.['required']">Property value is required</small>
+                <small *ngIf="formControls['propertyValue'].errors?.['min']">Property value must be greater than
+                    0</small>
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="primary-button" [disabled]="capRateForm.invalid">Calculate</button>
+            <button type="button" class="secondary-button" (click)="resetForm()">Reset</button>
+        </div>
+    </form>
+
+    <div class="result" *ngIf="result !== null">
+        <h3>Cap Rate Result</h3>
+        <div class="result-value">{{ result | number:'1.2-2' }}%</div>
+        <div class="result-interpretation">
+            <p *ngIf="result < 4">Low cap rate: May indicate lower risk or higher growth potential properties in prime
+                markets.</p>
+            <p *ngIf="result >= 4 && result < 8">Moderate cap rate: Balanced risk and return profile, typical for
+                established areas.</p>
+            <p *ngIf="result >= 8 && result < 12">High cap rate: May indicate higher risk or properties in
+                emerging/secondary markets.</p>
+            <p *ngIf="result >= 12">Very high cap rate: Could suggest higher risk investments or properties needing
+                significant improvement.</p>
+        </div>
+    </div>
+</div>
+
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

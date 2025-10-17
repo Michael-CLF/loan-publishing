@@ -1,0 +1,92 @@
+<div class="calculator-container">
+    <h2 class="title">The Commercial Loan Fund Fix and Flip Profit Calculator</h2>
+
+    <form [formGroup]="calculatorForm" (ngSubmit)="calculate()">
+        <div class="form-section">
+            <h3>Property Details</h3>
+
+            <div class="form-group">
+                <label for="purchasePrice">Purchase Price ($)</label>
+                <input type="number" id="purchasePrice" formControlName="purchasePrice" class="form-control">
+                <div *ngIf="calculatorForm.get('purchasePrice')?.invalid && calculatorForm.get('purchasePrice')?.touched"
+                    class="error-message">
+                    Purchase price is required and must be a positive number
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="estimatedRepairCosts">Estimated Repair Costs ($)</label>
+                <input type="number" id="estimatedRepairCosts" formControlName="estimatedRepairCosts"
+                    class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="afterRepairValue">After Repair Value (ARV) ($)</label>
+                <input type="number" id="afterRepairValue" formControlName="afterRepairValue" class="form-control">
+            </div>
+        </div>
+
+        <div class="form-section">
+            <h3>Costs and Fees</h3>
+
+            <div class="form-group">
+                <label for="holdingCosts">Holding Costs ($)</label>
+                <input type="number" id="holdingCosts" formControlName="holdingCosts" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="closingCosts">Closing Costs ($)</label>
+                <input type="number" id="closingCosts" formControlName="closingCosts" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="realtorFees">Realtor Fees (%)</label>
+                <input type="number" id="realtorFees" formControlName="realtorFees" class="form-control">
+            </div>
+
+            <div class="form-group">
+                <label for="additionalCosts">Additional Costs ($)</label>
+                <input type="number" id="additionalCosts" formControlName="additionalCosts" class="form-control">
+            </div>
+        </div>
+
+        <div class="button-group">
+            <button type="submit" class="btn-calculate" [disabled]="calculatorForm.invalid">Calculate Profit</button>
+            <button type="button" class="btn-reset" (click)="resetForm()">Reset</button>
+        </div>
+    </form>
+
+    <div *ngIf="results" class="results-container">
+        <h3>Results</h3>
+        <div class="results-grid">
+            <div class="result-item">
+                <span class="result-label">Total Investment:</span>
+                <span class="result-value">${{ results.totalInvestment | number:'1.0-0' }}</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Total Selling Costs:</span>
+                <span class="result-value">${{ results.totalSellingCosts | number:'1.0-0' }}</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Net Sale Proceeds:</span>
+                <span class="result-value">${{ results.netSaleProceeds | number:'1.0-0' }}</span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">Gross Profit:</span>
+                <span class="result-value"
+                    [ngClass]="{'profit': results.grossProfit > 0, 'loss': results.grossProfit < 0}">
+                    ${{ results.grossProfit | number:'1.0-0' }}
+                </span>
+            </div>
+            <div class="result-item">
+                <span class="result-label">ROI:</span>
+                <span class="result-value" [ngClass]="{'profit': results.roi > 0, 'loss': results.roi < 0}">
+                    {{ results.roi | number:'1.1-1' }}%
+                </span>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

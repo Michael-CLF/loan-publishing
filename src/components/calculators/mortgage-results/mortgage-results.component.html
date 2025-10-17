@@ -1,0 +1,75 @@
+<div class="mortgage-results-container">
+    <h3>Mortgage Payment Summary</h3>
+
+    <div class="summary-card">
+        <div class="summary-item">
+            <div class="label">Monthly Principal & Interest:</div>
+            <div class="value">{{ calculationResults.principalAndInterest | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+
+        <div class="summary-item" *ngIf="calculationResults.propertyTax > 0">
+            <div class="label">Monthly Property Tax:</div>
+            <div class="value">{{ calculationResults.propertyTax | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+
+        <div class="summary-item" *ngIf="calculationResults.insurance > 0">
+            <div class="label">Monthly Insurance:</div>
+            <div class="value">{{ calculationResults.insurance | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+
+        <div class="summary-item total">
+            <div class="label">Total Monthly Payment:</div>
+            <div class="value">{{ calculationResults.totalMonthlyPayment | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+
+        <div class="divider"></div>
+
+        <div class="summary-item">
+            <div class="label">Total Interest Paid:</div>
+            <div class="value">{{ calculationResults.totalInterestPaid | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+
+        <div class="summary-item">
+            <div class="label">Total Payments:</div>
+            <div class="value">{{ calculationResults.totalPaid | currency:'USD':'symbol':'1.2-2' }}</div>
+        </div>
+    </div>
+
+    <div class="amortization-section">
+        <h4>Amortization Schedule</h4>
+        <p class="description">Monthly breakdown showing principal and interest payments over the life of the loan.</p>
+
+        <table class="amortization-table">
+            <thead>
+                <tr>
+                    <th>Payment #</th>
+                    <th>Principal</th>
+                    <th>Interest</th>
+                    <th>Balance</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let entry of displayedSchedule">
+                    <td>{{ entry.month }}</td>
+                    <td>{{ entry.principalPayment | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td>{{ entry.interestPayment | currency:'USD':'symbol':'1.2-2' }}</td>
+                    <td>{{ entry.remainingBalance | currency:'USD':'symbol':'1.2-2' }}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div class="pagination" *ngIf="totalPages > 1">
+            <button [disabled]="currentPage === 1" (click)="changePage(currentPage - 1)" class="page-btn">
+                Previous
+            </button>
+
+            <span class="page-indicator">
+                Page {{ currentPage }} of {{ totalPages }}
+            </span>
+
+            <button [disabled]="currentPage === totalPages" (click)="changePage(currentPage + 1)" class="page-btn">
+                Next
+            </button>
+        </div>
+    </div>
+</div>

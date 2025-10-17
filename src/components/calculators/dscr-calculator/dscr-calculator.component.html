@@ -1,0 +1,113 @@
+<div class="dscr-calculator-container">
+    <div class="calculator-header">
+        <h2 class="title">The Commercial Loan Fund DSCR Calculator</h2>
+        <p class="description">Calculate the Debt Service Coverage Ratio for your property investment</p>
+    </div>
+
+    <div class="calculator-content">
+        <form [formGroup]="dscrForm" (ngSubmit)="calculateDscr()">
+            <div class="form-section">
+                <h3>Required Information</h3>
+
+                <div class="form-field">
+                    <label for="netOperatingIncome">Annual Net Operating Income ($)</label>
+                    <input id="netOperatingIncome" type="number" formControlName="netOperatingIncome"
+                        placeholder="Enter annual NOI">
+                    <div class="error-message"
+                        *ngIf="dscrForm.get('netOperatingIncome')?.invalid && dscrForm.get('netOperatingIncome')?.touched">
+                        {{ getFormControlError('netOperatingIncome') }}
+                    </div>
+                    <div class="field-hint">
+                        Total annual rental income minus operating expenses (excluding debt service)
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="totalDebtService">Annual Debt Service ($)</label>
+                    <input id="totalDebtService" type="number" formControlName="totalDebtService"
+                        placeholder="Enter annual debt payments">
+                    <div class="error-message"
+                        *ngIf="dscrForm.get('totalDebtService')?.invalid && dscrForm.get('totalDebtService')?.touched">
+                        {{ getFormControlError('totalDebtService') }}
+                    </div>
+                    <div class="field-hint">
+                        Total annual mortgage payments (principal and interest)
+                    </div>
+                </div>
+            </div>
+
+            <div class="form-section">
+                <h3>Additional Information (Optional)</h3>
+
+                <div class="form-field">
+                    <label for="propertyValue">Property Value ($)</label>
+                    <input id="propertyValue" type="number" formControlName="propertyValue"
+                        placeholder="Enter property value">
+                    <div class="error-message"
+                        *ngIf="dscrForm.get('propertyValue')?.invalid && dscrForm.get('propertyValue')?.touched">
+                        {{ getFormControlError('propertyValue') }}
+                    </div>
+                </div>
+
+                <div class="form-field">
+                    <label for="loanAmount">Loan Amount ($)</label>
+                    <input id="loanAmount" type="number" formControlName="loanAmount" placeholder="Enter loan amount">
+                    <div class="error-message"
+                        *ngIf="dscrForm.get('loanAmount')?.invalid && dscrForm.get('loanAmount')?.touched">
+                        {{ getFormControlError('loanAmount') }}
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="calculate-button" [disabled]="dscrForm.invalid">Calculate DSCR</button>
+                <button type="button" class="reset-button" (click)="resetCalculator()">Reset</button>
+            </div>
+        </form>
+
+        <div class="results-section" *ngIf="isCalculated && dscrResult">
+            <h3>DSCR Calculation Results</h3>
+
+            <div class="result-card">
+                <div class="result-value" [class]="getDscrRatingClass()">
+                    {{ dscrResult.dscrValue | number:'1.2-2' }}
+                </div>
+                <div class="result-label">Debt Service Coverage Ratio</div>
+
+                <div class="result-interpretation">
+                    <strong>What this means:</strong>
+                    <p>{{ dscrResult.interpretation }}</p>
+                </div>
+
+                <div class="calculation-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Net Operating Income:</span>
+                        <span class="detail-value">${{ dscrResult.netOperatingIncome | number:'1.2-2' }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Annual Debt Service:</span>
+                        <span class="detail-value">${{ dscrResult.totalDebtService | number:'1.2-2' }}</span>
+                    </div>
+
+                    <ng-container *ngIf="dscrResult.loanToValueRatio !== null">
+                        <div class="detail-row">
+                            <span class="detail-label">Loan-to-Value Ratio:</span>
+                            <span class="detail-value">{{ dscrResult.loanToValueRatio | percent:'1.2-2' }}</span>
+                        </div>
+                    </ng-container>
+                </div>
+
+                <div class="rating-guide">
+                    <div class="rating-title">DSCR Rating Guide:</div>
+                    <div class="rating-row excellent-rating">Excellent: 1.50+</div>
+                    <div class="rating-row good-rating">Good: 1.25 - 1.49</div>
+                    <div class="rating-row acceptable-rating">Acceptable: 1.00 - 1.24</div>
+                    <div class="rating-row poor-rating">Poor: Less than 1.00</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+<div class="contact-container">
+    <h2 class="contact-title">Need additional Help?</h2>
+</div>

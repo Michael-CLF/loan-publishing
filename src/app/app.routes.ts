@@ -204,6 +204,67 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact Us - LoanPost'
   },
+   {
+    path: 'calculators',
+    loadComponent: () => import('src/components/calculators/calculators.component').then(m => m.CalculatorsComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'balloon-calculator',
+    loadComponent: () => import('src/components/calculators/balloon-calculator/balloon-calculator.component').then(m => m.BalloonCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'breakeven-calculator',
+    loadComponent: () => import('src/components/calculators/breakeven-calculator/breakeven-calculator.component').then(m => m.BreaKevenCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'cap-rate-calculator',
+    loadComponent: () => import('src/components/calculators/cap-rate-calculator/cap-rate-calculator.component').then(m => m.CapRateCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'fix-flip-calculator',
+    loadComponent: () => import('src/components/calculators/fix-flip-calculator/fix-flip-calculator.component').then(m => m.FixFlipCalculator),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'interest-only-calculator',
+    loadComponent: () => import('src/components/calculators/interest-only-calculator/interest-only-calculator.component').then(m => m.InterestOnlyCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'irr-calculator',
+    loadComponent: () => import('src/components/calculators/irr-calculator/irr-calculator.component').then(m => m.IrrCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'ltv-calculator',
+    loadComponent: () => import('src/components/calculators/ltv-calculator/ltv-calculator.component').then(m => m.LtvCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'mortgage-calculator',
+    loadComponent: () => import('src/components/calculators/mortgage-calculator/mortgage-calculator.component').then(m => m.MortgageCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'mortgage-results',
+    loadComponent: () => import('src/components/calculators/mortgage-results/mortgage-results.component').then(m => m.MortgageResultsComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'mortgage-terms',
+    loadComponent: () => import('src/components/calculators/mortgage-terms/mortgage-terms.component').then(m => m.MortgageTermsComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
+    path: 'noi-calculator',
+    loadComponent: () => import('src/components/calculators/noi-calculator/noi-calculator.component').then(m => m.NoiCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
+  
   
   // Payment routes - lazy load
   {
