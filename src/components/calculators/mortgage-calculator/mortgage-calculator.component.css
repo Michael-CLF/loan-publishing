@@ -6,14 +6,16 @@
   box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   background-color: #ffffff;
 
-  h2 {
-    color: #002b4e;
-    font-family: hertical sans;
-    font-size: 2rem;
-    margin: 2rem;
-    margin-bottom: 2rem;
-    text-align: center;
-  }
+
+.title {
+  color: #02474d;
+  font-size: 2rem;
+  font-family: 'Roboto', sans-serif;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  text-align: center;
+}
+
 
   form {
     display: grid;
@@ -88,10 +90,26 @@
 .contact-container {
   width: 60%;
   margin: 0 auto;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 40px;
 }
 .contact-title {
-  font-family: hertical sans;
-  color: #002b4e;
+  font-size: 2rem;
+  font-family: 'roboto' sans-serif;
+  color: #02474d;
   text-align: center;
-  margin-top: 30px;
+}
+.register-btn {
+  font-size: 1.5rem;
+  font-family: 'roboto' sans-serif;
+  color: #fff;
+  background-color: #02474d;
+  text-align: center;
+  padding: 8px 26px;
+  border: none;
+  border-radius: 6px;
+}
+.register-btn:hover {
+  background-color: #002b4e; 
 }

@@ -224,9 +224,14 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/calculators/cap-rate-calculator/cap-rate-calculator.component').then(m => m.CapRateCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
+   {
+    path: 'dscr-calculator',
+    loadComponent: () => import('src/components/calculators/dscr-calculator/dscr-calculator.component').then(m => m.DscrCalculatorComponent),
+    title: 'Calculators - LoanPost'
+  },
   {
     path: 'fix-flip-calculator',
-    loadComponent: () => import('src/components/calculators/fix-flip-calculator/fix-flip-calculator.component').then(m => m.FixFlipCalculator),
+    loadComponent: () => import('src/components/calculators/fix-flip-calculator/fix-flip-calculator.component').then(m => m.FixFlipCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
    {

@@ -1,6 +1,6 @@
 <!-- interest-calculator.component.html -->
 <div class="calculator-container">
-    <h2 class="title">The Commercial Loan Fund Interest-Only Calculator</h2>
+    <h2 class="title">Interest-Only Calculator</h2>
 
     <form [formGroup]="calculatorForm" (ngSubmit)="calculateInterest()">
         <div class="form-group">
@@ -67,5 +67,6 @@
     </div>
 </div>
 <div class="contact-container">
-    <h2 class="contact-title">Need additional Help?</h2>
+    <h2 class="contact-title">Ready to post your first loan scenario?</h2>
+    <button (click)="openRoleSelectionModal()" class="calc-btn" class="register-btn">Register</button>
 </div>

@@ -1,13 +1,15 @@
 // cap-rate.component.ts
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
-  FormsModule,
-  ReactiveFormsModule,
   FormBuilder,
   FormGroup,
   Validators,
+  ReactiveFormsModule,
+  FormsModule
 } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-cap-rate',
@@ -21,8 +23,12 @@ import {
   styleUrls: ['./cap-rate-calculator.component.css'],
 })
 export class CapRateCalculatorComponent {
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
   capRateForm: FormGroup;
   result: number | null = null;
+  private modalService = inject(ModalService);
+
 
   constructor(private fb: FormBuilder) {
     this.capRateForm = this.fb.group({
@@ -30,6 +36,9 @@ export class CapRateCalculatorComponent {
       propertyValue: [null, [Validators.required, Validators.min(1)]],
     });
   }
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   calculateCapRate(): void {
     if (this.capRateForm.valid) {

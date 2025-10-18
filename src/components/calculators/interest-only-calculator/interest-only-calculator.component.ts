@@ -1,5 +1,5 @@
 // io-calc.component.ts
-import { Component } from '@angular/core';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -7,6 +7,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 
 @Component({
@@ -17,8 +19,11 @@ import { CommonModule } from '@angular/common';
   styleUrls: ['./interest-only-calculator.component.css'],
 })
 export class InterestOnlyCalculatorComponent {
+  @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
   calculatorForm: FormGroup;
   calculationResult: any = null;
+  private modalService = inject(ModalService);
 
   constructor(private fb: FormBuilder) {
     this.calculatorForm = this.fb.group({
@@ -29,6 +34,10 @@ export class InterestOnlyCalculatorComponent {
       paymentFrequency: ['monthly', Validators.required],
     });
   }
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
+
 
   // Convenience getters for form controls
   get principal() {

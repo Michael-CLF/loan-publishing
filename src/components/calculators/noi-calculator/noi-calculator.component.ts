@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -6,6 +6,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-noi-calc',
@@ -22,6 +24,10 @@ export class NoiCalculatorComponent {
     netOperatingIncome: number;
     capRate?: number;
   } | null = null;
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
+
+private modalService = inject(ModalService);
 
   constructor(private fb: FormBuilder) {
     this.noiForm = this.fb.group({
@@ -42,6 +48,9 @@ export class NoiCalculatorComponent {
       propertyValue: [null, [Validators.min(0)]],
     });
   }
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   calculateNOI(): void {
     if (this.noiForm.valid) {

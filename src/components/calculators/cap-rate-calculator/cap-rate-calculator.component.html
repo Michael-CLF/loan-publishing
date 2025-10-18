@@ -1,6 +1,6 @@
 <!-- cap-rate.component.html -->
 <div class="cap-rate-container">
-    <h2 class="title">The Commercial Loan Fund Cap Rate Calculator</h2>
+    <h2 class="title">Cap Rate Calculator</h2>
 
     <form [formGroup]="capRateForm" (ngSubmit)="calculateCapRate()">
         <div class="form-group">
@@ -55,5 +55,6 @@
 </div>
 
 <div class="contact-container">
-    <h2 class="contact-title">Need additional Help?</h2>
+    <h2 class="contact-title">Ready to post your first loan scenario?</h2>
+    <button (click)="openRoleSelectionModal()" class="calc-btn" class="register-btn">Register</button>
 </div>

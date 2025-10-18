@@ -1,5 +1,5 @@
 // balloon-calc.component.ts
-import { Component, LOCALE_ID, Inject } from '@angular/core';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -7,6 +7,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-balloon-calc',
@@ -17,6 +19,8 @@ import { CommonModule } from '@angular/common';
   providers: [],
 })
 export class BalloonCalculatorComponent {
+  @ViewChild(RoleSelectionModalComponent)
+  roleModal!: RoleSelectionModalComponent;
   balloonForm: FormGroup;
   result: {
     regularPayment: number;
@@ -37,6 +41,8 @@ export class BalloonCalculatorComponent {
     loanTerm: '',
     balloonTerm: '',
   };
+private modalService = inject(ModalService);
+
 
   constructor(
     private fb: FormBuilder,
@@ -51,10 +57,10 @@ export class BalloonCalculatorComponent {
       },
       { validators: this.balloonTermValidator },
     );
-
-    // Do not initialize with default values, leave fields blank
   }
-
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
   // Custom validator to ensure balloon term is less than loan term
   balloonTermValidator(form: FormGroup) {
     const loanTerm = form.get('loanTermYears')?.value;

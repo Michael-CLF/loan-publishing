@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -7,6 +7,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-irr-calc',
@@ -19,6 +21,10 @@ export class IrrCalculatorComponent {
   irrForm: FormGroup;
   irrResult: number | null = null;
   errorMessage: string | null = null;
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
+
+   private modalService = inject(ModalService);
 
   constructor(private fb: FormBuilder) {
     this.irrForm = this.fb.group({
@@ -30,6 +36,10 @@ export class IrrCalculatorComponent {
       ]),
     });
   }
+
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   get cashFlows(): FormArray {
     return this.irrForm.get('cashFlows') as FormArray;

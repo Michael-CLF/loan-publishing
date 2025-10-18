@@ -8,12 +8,13 @@
 }
 
 .title {
-  color: #002b4e;
-  font-family: hertical sans;
-  text-align: center;
+  color: #02474d;
+  font-size: 2rem;
+  font-family: 'Roboto', sans-serif;
   margin-bottom: 20px;
+  margin-top: 20px;
+  text-align: center;
 }
-
 h3 {
   color: #002b4e;
   margin-bottom: 15px;
@@ -127,12 +128,28 @@ label {
 .contact-container {
   width: 60%;
   margin: 0 auto;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 40px;
 }
 .contact-title {
-  font-family: hertical sans;
-  color: #002b4e;
+  font-size: 2rem;
+  font-family: 'roboto' sans-serif;
+  color: #02474d;
   text-align: center;
-  margin-top: 30px;
+}
+.register-btn {
+  font-size: 1.5rem;
+  font-family: 'roboto' sans-serif;
+  color: #fff;
+  background-color: #02474d;
+  text-align: center;
+  padding: 8px 26px;
+  border: none;
+  border-radius: 6px;
+}
+.register-btn:hover {
+  background-color: #002b4e; 
 }
 
 @media (min-width: 768px) {

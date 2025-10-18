@@ -1,11 +1,13 @@
-import { Component, OnInit } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, LOCALE_ID, Inject, ViewChild, inject, OnInit } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  ReactiveFormsModule,
   Validators,
+  ReactiveFormsModule,
 } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 import { DscrService } from '../../../services/dscr.service'
 import { DscrCalculation } from '../../../models/dscr.model';
 
@@ -13,14 +15,17 @@ import { DscrCalculation } from '../../../models/dscr.model';
 @Component({
   selector: 'app-dscr-calculator',
   templateUrl: './dscr-calculator.component.html',
-  styleUrls: ['./dscr-calculator.component.scss'],
+  styleUrls: ['./dscr-calculator.component.css'],
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
 })
 export class DscrCalculatorComponent implements OnInit {
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
   dscrForm: FormGroup;
   dscrResult: DscrCalculation | null = null;
   isCalculated = false;
+  private modalService = inject(ModalService);
 
   constructor(
     private fb: FormBuilder,
@@ -33,6 +38,11 @@ export class DscrCalculatorComponent implements OnInit {
       loanAmount: ['', Validators.min(0)],
     });
   }
+
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
+
 
   ngOnInit(): void {
     // Initialize any additional component setup

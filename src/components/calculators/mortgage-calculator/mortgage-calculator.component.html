@@ -1,5 +1,5 @@
 <div class="mortgage-calculator-container">
-    <h2>The Commercial Loan Fund Payment Calculator</h2>
+    <h2 class="title">Loan Payment Calculator</h2>
 
     <form [formGroup]="mortgageForm" (ngSubmit)="calculateMortgage()">
         <div class="form-group">
@@ -69,6 +69,6 @@
     </div>
 </div>
 <div class="contact-container">
-    <h2 class="contact-title">Need additional Help?</h2>
-
+    <h2 class="contact-title">Ready to post your first loan scenario?</h2>
+    <button (click)="openRoleSelectionModal()" class="calc-btn" class="register-btn">Register</button>
 </div>

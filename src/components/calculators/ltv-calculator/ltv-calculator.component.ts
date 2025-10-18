@@ -1,4 +1,4 @@
-import { Component } from '@angular/core';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -6,6 +6,8 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-ltv-calc',
@@ -23,10 +25,18 @@ export class LtvCalculatorComponent {
     additionalEquityNeeded?: number;
   } | null = null;
   calculationMode: 'calculate' | 'reverse' = 'calculate';
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
+
+   private modalService = inject(ModalService);
+
 
   constructor(private fb: FormBuilder) {
     this.initializeForm();
   }
+ openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   initializeForm(): void {
     this.ltvForm = this.fb.group({

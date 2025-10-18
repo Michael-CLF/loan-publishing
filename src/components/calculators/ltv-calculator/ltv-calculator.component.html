@@ -1,5 +1,5 @@
 <div class="ltv-calculator">
-    <h2>Loan to Value (LTV) Calculator</h2>
+    <h2 class="title">Loan to Value (LTV) Calculator</h2>
 
     <div class="calculator-tabs">
         <button [class.active]="calculationMode === 'calculate'" (click)="switchCalculationMode('calculate')"
@@ -132,5 +132,6 @@
     </form>
 </div>
 <div class="contact-container">
-    <h2 class="contact-title">Need additional Help?</h2>
+    <h2 class="contact-title">Ready to post your first loan scenario?</h2>
+    <button (click)="openRoleSelectionModal()" class="calc-btn" class="register-btn">Register</button>
 </div>

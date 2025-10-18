@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -9,6 +9,8 @@ import { CommonModule } from '@angular/common';
 import { MortgageService } from '../../../services/mortgage.service';
 import { MortgageResult } from '../../../models/mortgage.model';
 import { MortgageResultsComponent } from '../mortgage-results/mortgage-results.component';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 
 @Component({
@@ -26,11 +28,20 @@ export class MortgageCalculatorComponent implements OnInit {
   mortgageForm!: FormGroup;
   calculationResults!: MortgageResult;
   calculationComplete = false;
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
+
+private modalService = inject(ModalService);
 
   constructor(
     private fb: FormBuilder,
     private mortgageService: MortgageService,
   ) {}
+
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
+
 
   ngOnInit(): void {
     this.initForm();

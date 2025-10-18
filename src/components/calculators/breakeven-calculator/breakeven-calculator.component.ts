@@ -1,11 +1,13 @@
-import { Component } from '@angular/core';
-import { CommonModule } from '@angular/common';
+import { Component, LOCALE_ID, Inject, ViewChild, inject } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
-  ReactiveFormsModule,
   Validators,
+  ReactiveFormsModule,
 } from '@angular/forms';
+import { CommonModule } from '@angular/common';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-breakeven-calc',
@@ -15,16 +17,24 @@ import {
   styleUrls: ['./breakeven-calculator.component.css'],
 })
 export class BreaKevenCalculatorComponent {
+   @ViewChild(RoleSelectionModalComponent)
+   roleModal!: RoleSelectionModalComponent;
   breakEvenForm: FormGroup;
   breakEvenRatio: number | null = null;
 
+  private modalService = inject(ModalService);
+
   constructor(private fb: FormBuilder) {
+    
     this.breakEvenForm = this.fb.group({
       debtService: [null, [Validators.required, Validators.min(0)]],
       operatingExpenses: [null, [Validators.required, Validators.min(0)]],
       grossOperatingIncome: [null, [Validators.required, Validators.min(0.01)]],
     });
   }
+   openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   calculateBreakEven(): void {
     if (this.breakEvenForm.valid) {

@@ -6,9 +6,12 @@
   font-family: Arial, sans-serif;
 }
 .title {
-  color: #002b4e;
-  font-family: 2rem;
-  font-family: hertical sans;
+  color: #02474d;
+  font-size: 2rem;
+  font-family: 'Roboto', sans-serif;
+  margin-bottom: 20px;
+  margin-top: 20px;
+  text-align: center;
 }
 
 h2 {
@@ -49,7 +52,7 @@ select {
 
 button {
   display: block;
-  width: 100%;
+  width: 30%;
   padding: 10px;
   background-color: #002b4e;
   color: white;
@@ -58,6 +61,7 @@ button {
   cursor: pointer;
   font-size: 16px;
   margin-top: 20px;
+  margin: 0 auto;
 }
 
 button:disabled {
@@ -109,10 +113,27 @@ th {
 .contact-container {
   width: 60%;
   margin: 0 auto;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 40px;
 }
 .contact-title {
-  font-family: hertical sans;
-  color: #002b4e;
+  font-size: 2rem;
+  font-family: 'roboto' sans-serif;
+  color: #02474d;
   text-align: center;
-  margin-top: 30px;
+}
+.register-btn {
+  font-size: 1.5rem;
+  width: 20%;
+  font-family: 'roboto' sans-serif;
+  color: #fff;
+  background-color: #02474d;
+  text-align: center;
+  padding: 8px 26px;
+  border: none;
+  border-radius: 6px;
+}
+.register-btn:hover {
+  background-color: #002b4e; 
 }
