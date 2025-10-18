@@ -76,21 +76,24 @@ label {
 
 input,
 select {
-  width: 100%;
-  padding: 8px;
+ 
+  font-size: 1rem;
+  padding: 12px;
   border: 1px solid #0a2463;
   border-radius: 4px;
+  color: #0a2463;
+  font-weight: 500;
 }
 .full-width {
   grid-column: 1 / span 2;
 }
-
 .error {
   color: #c00000;
   font-size: 1rem;
   margin-top: 5px;
   font-weight: 500;
   font-family: "roboto", sans-serif;
+  text-align: center;
 }
 
 .button-container {
@@ -328,8 +331,6 @@ button:disabled {
   margin-bottom: 8px;
   width: 100%;
 }
-
-
 .apply-coupon-btn {
   padding: 8px 24px;
   background-color: #008080;

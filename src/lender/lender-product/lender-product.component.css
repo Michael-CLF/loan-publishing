@@ -353,6 +353,10 @@ input[type="checkbox"] {
   font-family: "roboto", sans-serif;
   font-weight: 500;
   font-size: 1rem;
+  width: 100px;
+}
+#ficoScore{
+  margin-left: 10px;
 }
 .fico-error{
   color: #c00000;

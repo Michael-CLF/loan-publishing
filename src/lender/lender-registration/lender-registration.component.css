@@ -91,9 +91,15 @@
 
 .btn.btn-success {
   background-color: #0b5345;
+  color: #fff;
 }
 
 .btn-primary {
+  background-color: #0a2463;
+  color: white;
+  text-align: center;
+}
+.btn-secondary {
   background-color: #0a2463;
   color: white;
   text-align: center;
@@ -111,6 +117,7 @@
 .error-message {
   color: #c00000;
   margin: 15px 0;
+  text-align: center;
 }
 
 .success-message {
