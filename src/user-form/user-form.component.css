@@ -1,9 +1,10 @@
 .container {
-  gap: 30px;
-  max-width: 800px;
+  width: 100%;
+  max-width: 50%;
   margin: 0 auto;
   padding: 20px;
   margin-bottom: 100px;
+  box-sizing: border-box;
 }
 .full-width {
   grid-column: 1 / -1;
@@ -18,6 +19,7 @@
   display: flex;
   flex-direction: column;
   margin-bottom: 15px;
+  margin-top: 15px;
 }
 .full-width {
   grid-column: 1 / -1;
@@ -27,9 +29,10 @@
 }
 
 .headline {
-  color: #0a2463;
+  color: #02474d;
   font-family: "roboto", sans-serif;
   margin-bottom: 10px;
+  font-size: 2rem;
 }
 
 /* Fix the checkbox styling */
@@ -61,10 +64,33 @@ input[type="checkbox"]:checked {
   margin-bottom: 30px;
 }
 
-.form-section,
-.list-section {
-  flex: 1;
+/* was just background on a full-width block */
+.form-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 30px;
+  box-sizing: border-box;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center; 
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
 }
+.pricing-section {
+  box-sizing: border-box;
+  width: 100%;
+}
+/* make pricing section span both grid columns and center */
+.grid-form > .pricing-section {
+  grid-column: 1 / -1;     /* full row in the grid */
+  justify-self: center;    /* center within the row */
+  width: 100%;
+  max-width: 800px;        /* same cap as .container */
+  box-sizing: border-box;
+}
+
 
 label {
   display: block;
@@ -138,11 +164,7 @@ button:disabled {
 }
 /* Pricing Section Styles */
 .pricing-section {
-  margin: 2rem 0;
   padding: 2rem;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 1px solid #e9ecef;
   width: 800px;
 }
 
