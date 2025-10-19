@@ -1,54 +1,36 @@
-// src/app/guards/role.guard.ts
 import { Injectable, inject } from '@angular/core';
-import {
-  CanActivate,
-  ActivatedRouteSnapshot,
-  RouterStateSnapshot,
-  Router,
-} from '@angular/router';
-import { Observable, of } from 'rxjs';
+import { CanActivate, ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { map, switchMap, take } from 'rxjs/operators';
+import { of } from 'rxjs';
 import { AuthService } from '../services/auth.service';
 
-@Injectable({
-  providedIn: 'root',
-})
+interface UserProfile { role?: 'lender' | 'originator' | 'admin' | string; }
+
+@Injectable({ providedIn: 'root' })
 export class RoleGuard implements CanActivate {
-  private authService = inject(AuthService);
   private router = inject(Router);
+  private authService = inject(AuthService);
 
-  canActivate(
-    route: ActivatedRouteSnapshot,
-    state: RouterStateSnapshot
-  ): Observable<boolean> {
-    const requiredRole = route.data['role'] as string;
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot) {
+    const requiredRole = route.data?.['role'] as string | undefined;
 
-    return this.authService.authReady$.pipe(
-      switchMap((ready) => {
-        if (!ready) {
-          return of(false);
+    const ready$ = this.authService.authReady$ ?? of(true);
+    return ready$.pipe(
+      switchMap(ready => (ready ? this.authService.getUserProfile() : of(null))), // <- correct method name
+      take(1),
+      map((userProfile: UserProfile | null) => {
+        // allow if no specific role required
+        if (!requiredRole) return true;
+
+        if (userProfile?.role === requiredRole) return true;
+
+        // has a role but not the required one → send to that role’s dashboard if known
+        if (userProfile?.role) {
+          this.router.navigate([`/${userProfile.role}-dashboard`]);
+        } else {
+          this.router.navigate(['/dashboard']);
         }
-
-        return this.authService.getCurrentUserProfile().pipe(
-          take(1),
-          map((userProfile) => {
-            // If no specific role is required, or user has the required role
-            if (!requiredRole || userProfile?.role === requiredRole) {
-              return true;
-            }
-
-            // Handle case where user has a role but it's not the required one
-            if (userProfile?.role) {
-              // Redirect to appropriate dashboard based on actual role
-              this.router.navigate([`/${userProfile.role}-dashboard`]);
-            } else {
-              // User has no role, redirect to generic dashboard
-              this.router.navigate(['/dashboard']);
-            }
-
-            return false;
-          })
-        );
+        return false;
       })
     );
   }

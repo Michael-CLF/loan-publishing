@@ -85,7 +85,7 @@
               "scripts": true,
               "styles": {
                 "minify": true,
-                "inlineCritical": false
+                "inlineCritical": true
               },
               "fonts": {
                 "inline": false
@@ -118,7 +118,7 @@
                 "scripts": true,
                 "styles": {
                   "minify": true,
-                  "inlineCritical": false
+                  "inlineCritical": true
                 },
                 "fonts": {
                   "inline": false
@@ -138,7 +138,7 @@
                 "scripts": true,
                 "styles": {
                   "minify": true,
-                  "inlineCritical": false
+                  "inlineCritical": true
                 },
                 "fonts": {
                   "inline": false
@@ -155,7 +155,7 @@
                 "scripts": true,
                 "styles": {
                   "minify": true,
-                  "inlineCritical": false
+                  "inlineCritical": true
                 },
                 "fonts": {
                   "inline": false

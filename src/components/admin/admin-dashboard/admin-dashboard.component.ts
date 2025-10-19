@@ -78,8 +78,6 @@ export class AdminDashboardComponent implements OnInit {
     }
   }
 
-  // Navigation methods
-  // Navigation methods for new management cards
 navigateToOriginators(): void {
   this.router.navigate(['/admin/users']);
 }

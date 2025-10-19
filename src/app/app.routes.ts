@@ -1,5 +1,4 @@
 import { Routes } from '@angular/router';
-import { HomeComponent } from '../home/home.component';
 import { authGuard } from '../services/auth.guard';
 import { AdminAuthGuard } from 'src/services/admin-auth.guard';
 
@@ -33,54 +32,66 @@ export const routes: Routes = [
     title: 'Dashboard - LoanPost'
   },
   
-  // Admin routes - group lazy load
   {
-    path: 'admin',
-    canActivate: [AdminAuthGuard],
-    children: [
-      {
-        path: '',
-        redirectTo: 'dashboard',
-        pathMatch: 'full',
-      },
-      {
-        path: 'dashboard',
-        loadComponent: () => import('src/components/admin/admin-dashboard/admin-dashboard.component')
+  path: 'admin',
+  children: [
+    { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
+
+    // UNGUARDED: shows the password form and sets localStorage.adminAccess='true'
+    {
+      path: 'dashboard',
+      loadComponent: () =>
+        import('src/components/admin/admin-dashboard/admin-dashboard.component')
           .then(m => m.AdminDashboardComponent),
-        title: 'Admin Dashboard - LoanPost'
-      },
-      {
-        path: 'billing',
-        loadComponent: () => import('src/components/admin/admin-billing/admin-billing.component')
+      title: 'Admin Dashboard - LoanPost'
+    },
+
+    // GUARDED: require adminAccess flag
+    {
+      path: 'billing',
+      loadComponent: () =>
+        import('src/components/admin/admin-billing/admin-billing.component')
           .then(m => m.AdminBillingComponent),
-        title: 'Admin Billing - LoanPost'
-      },
-      {
-        path: 'users',
-        loadComponent: () => import('src/components/admin/admin-users/admin-users.component')
+      canActivate: [AdminAuthGuard],
+      title: 'Admin Billing - LoanPost'
+    },
+    {
+      path: 'users',
+      loadComponent: () =>
+        import('src/components/admin/admin-users/admin-users.component')
           .then(m => m.AdminUsersComponent),
-        title: 'Admin Users - LoanPost'
-      },
-      {
-        path: 'lenders',
-        loadComponent: () => import('src/components/admin/admin-lenders/admin-lenders.component')
+      canActivate: [AdminAuthGuard],
+      title: 'Admin Users - LoanPost'
+    },
+    {
+      path: 'lenders',
+      loadComponent: () =>
+        import('src/components/admin/admin-lenders/admin-lenders.component')
           .then(m => m.AdminLendersComponent),
-        title: 'Admin Lenders - LoanPost'
-      },
-      {
-        path: 'loans',
-        loadComponent: () => import('src/components/admin/admin-loans/admin-loans.component')
+      canActivate: [AdminAuthGuard],
+      title: 'Admin Lenders - LoanPost'
+    },
+    {
+      path: 'loans',
+      loadComponent: () =>
+        import('src/components/admin/admin-loans/admin-loans.component')
           .then(m => m.AdminLoansComponent),
-        title: 'Admin Loans - LoanPost'
-      },
-      {
-        path: 'payments',
-        loadComponent: () => import('src/components/admin/admin-payments/admin-payments.component')
+      canActivate: [AdminAuthGuard],
+      title: 'Admin Loans - LoanPost'
+    },
+    {
+      path: 'payments',
+      loadComponent: () =>
+        import('src/components/admin/admin-payments/admin-payments.component')
           .then(m => m.AdminPaymentsComponent),
-        title: 'Admin Payments - LoanPost'
-      },
-    ]
-  },
+      canActivate: [AdminAuthGuard],
+      title: 'Admin Payments - LoanPost'
+    },
+  ]
+},
+// optional legacy redirect
+{ path: 'admin-dashboard', redirectTo: 'admin/dashboard', pathMatch: 'full' },
+
   
   // Loan routes - lazy load
   {
