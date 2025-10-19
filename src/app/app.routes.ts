@@ -269,6 +269,56 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/calculators/noi-calculator/noi-calculator.component').then(m => m.NoiCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
+    // --- New calculators (standalone components) ---
+  {
+    path: 'amortization-schedule',
+    loadComponent: () => import('src/components/calculators/amortization-schedule/amortization-schedule.component')
+      .then(m => m.AmortizationScheduleComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'bridge-loan',
+    loadComponent: () => import('src/components/calculators/bridge-loan/bridge-loan.component')
+      .then(m => m.BridgeLoanComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'cash-on-cash',
+    loadComponent: () => import('src/components/calculators/cash-on-cash/cash-on-cash.component')
+      .then(m => m.CashOnCashComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'construction-loan-draw',
+    loadComponent: () => import('src/components/calculators/construction-loan-draw/construction-loan-draw.component')
+      .then(m => m.ConstructionLoanDrawComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'debt-yield',
+    loadComponent: () => import('src/components/calculators/debt-yield/debt-yield.component')
+      .then(m => m.DebtYieldComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'prepayment-penalty',
+    loadComponent: () => import('src/components/calculators/prepayment-penalty/prepayment-penalty.component')
+      .then(m => m.PrepaymentPenaltyComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'refinance-savings',
+    loadComponent: () => import('src/components/calculators/refinance-savings/refinance-savings.component')
+      .then(m => m.RefinanceSavingsComponent),
+    title: 'Calculators - LoanPost'
+  },
+  {
+    path: 'rent-vs-buy',
+    loadComponent: () => import('src/components/calculators/rent-vs-buy/rent-vs-buy.component')
+      .then(m => m.RentVsBuyComponent),
+    title: 'Calculators - LoanPost'
+  },
+
   
   
   // Payment routes - lazy load

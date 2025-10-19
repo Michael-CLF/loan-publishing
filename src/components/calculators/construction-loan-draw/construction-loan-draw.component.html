@@ -1,0 +1,93 @@
+<div class="calc-card">
+  <h2 class="title">Construction Loan Draw Calculator</h2>
+
+  <form [formGroup]="form" (ngSubmit)="calculate()" class="grid">
+    <div class="field">
+      <label for="totalCommitment">Total Commitment ($)</label>
+      <input id="totalCommitment" type="number" formControlName="totalCommitment" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="rateAnnualPct">Interest Rate (APR %)</label>
+      <input id="rateAnnualPct" type="number" formControlName="rateAnnualPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="termMonths">Term (months)</label>
+      <input id="termMonths" type="number" formControlName="termMonths" min="1" max="36" />
+    </div>
+
+    <div class="field">
+      <label for="originationPointsPct">Origination Points (%)</label>
+      <input id="originationPointsPct" type="number" formControlName="originationPointsPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="otherFees">Other Fixed Fees ($)</label>
+      <input id="otherFees" type="number" formControlName="otherFees" min="0" step="100" />
+    </div>
+
+    <div class="field">
+      <label for="interestReserve">Interest Reserve ($)</label>
+      <input id="interestReserve" type="number" formControlName="interestReserve" min="0" step="100" />
+      <div class="hint">Net proceeds at close: {{ netProceedsAtClose() | currency:'USD' }}</div>
+    </div>
+
+    <div class="draws">
+      <div class="draws-header">
+        <div>Draw Month</div>
+        <div>Amount ($)</div>
+        <div></div>
+      </div>
+
+      <div class="draw-row" *ngFor="let d of drawsFA.controls; let i = index" [formGroup]="$any(d)">
+        <input type="number" formControlName="month" min="1" class="draw-month" />
+        <input type="number" formControlName="amount" min="0" step="1000" class="draw-amount" />
+        <button type="button" class="btn small" (click)="removeDraw(i)">Remove</button>
+      </div>
+
+      <div class="draw-actions">
+        <button type="button" class="btn small" (click)="addDraw()">+ Add draw</button>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn primary">Calculate</button>
+      <button type="button" class="btn ghost" (click)="reset()">Reset</button>
+      <button type="button" class="btn" [disabled]="schedule().length===0" (click)="downloadCSV()">Download CSV</button>
+    </div>
+  </form>
+
+  <div *ngIf="schedule().length" class="summary">
+    <div><strong>Total Drawn:</strong> {{ totalDrawn() | currency:'USD' }}</div>
+    <div><strong>Total Interest (term):</strong> {{ totalInterest() | currency:'USD' }}</div>
+    <div><strong>Estimated Payoff (principal):</strong> {{ payoffAtMaturity() | currency:'USD' }}</div>
+  </div>
+
+  <div *ngIf="schedule().length" class="table-wrap">
+    <table class="table">
+      <thead>
+        <tr>
+          <th>Month</th>
+          <th>Draw</th>
+          <th>Balance</th>
+          <th>Interest</th>
+          <th>Cumulative Interest</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of schedule()">
+          <td>{{ r.month }}</td>
+          <td>{{ r.draw | currency:'USD' }}</td>
+          <td>{{ r.balance | currency:'USD' }}</td>
+          <td>{{ r.interest | currency:'USD' }}</td>
+          <td>{{ r.cumInterest | currency:'USD' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p class="disclaimer">
+    Assumes interest-only during construction. Interest accrues on outstanding principal after draws are funded at the start of each month.
+  </p>
+</div>

@@ -1,0 +1,77 @@
+<div class="calc-card">
+  <h2 class="title">Bridge Loan Calculator</h2>
+
+  <form [formGroup]="form" (ngSubmit)="calculate()" class="grid">
+    <div class="field">
+      <label for="loanAmount">Loan Amount</label>
+      <input id="loanAmount" type="number" formControlName="loanAmount" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="rateAnnualPct">Interest Rate (APR %)</label>
+      <input id="rateAnnualPct" type="number" formControlName="rateAnnualPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="termMonths">Term (months)</label>
+      <input id="termMonths" type="number" formControlName="termMonths" min="1" max="60" />
+    </div>
+
+    <div class="field checkbox">
+      <label>
+        <input type="checkbox" formControlName="interestOnly" />
+        Interest-only payments
+      </label>
+    </div>
+
+    <div class="field">
+      <label for="originationPointsPct">Origination Points (%)</label>
+      <input id="originationPointsPct" type="number" formControlName="originationPointsPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="brokerPointsPct">Broker Points (%)</label>
+      <input id="brokerPointsPct" type="number" formControlName="brokerPointsPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="exitFeePct">Exit Fee (%)</label>
+      <input id="exitFeePct" type="number" formControlName="exitFeePct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="otherFixedFees">Other Fixed Fees ($)</label>
+      <input id="otherFixedFees" type="number" formControlName="otherFixedFees" min="0" step="100" />
+    </div>
+
+    <div class="field">
+      <label for="prepaidInterestMonths">Prepaid Interest (months)</label>
+      <input id="prepaidInterestMonths" type="number" formControlName="prepaidInterestMonths" min="0" max="24" />
+    </div>
+
+    <div class="actions">
+      <button type="submit" class="btn primary">Calculate</button>
+      <button type="button" class="btn ghost" (click)="reset()">Reset</button>
+    </div>
+  </form>
+
+  <div *ngIf="monthlyInterest() > 0" class="summary">
+    <div><strong>Monthly Payment:</strong> {{ monthlyInterest() | currency:'USD' }}</div>
+    <div><strong>Total Interest (term):</strong> {{ totalInterest() | currency:'USD' }}</div>
+    <div><strong>Origination Points:</strong> {{ pointsCost() | currency:'USD' }}</div>
+    <div><strong>Broker Points:</strong> {{ brokerCost() | currency:'USD' }}</div>
+    <div><strong>Exit Fee (at payoff):</strong> {{ exitFee() | currency:'USD' }}</div>
+    <div><strong>Other Fixed Fees:</strong> {{ otherFees() | currency:'USD' }}</div>
+    <div><strong>Interest Reserve (prepaid):</strong> {{ reserveAmount() | currency:'USD' }}</div>
+    <div><strong>Total Fees (incl. exit & reserve):</strong> {{ totalFees() | currency:'USD' }}</div>
+    <div><strong>Total Cost (interest + fees excl. reserve):</strong> {{ totalCost() | currency:'USD' }}</div>
+    <div><strong>Effective APR (approx):</strong> {{ effectiveAPR() | number:'1.2-2' }}%</div>
+    <div><strong>Net Proceeds to Borrower:</strong> {{ netProceeds() | currency:'USD' }}</div>
+    <div><strong>Estimated Payoff at Exit:</strong> {{ payoffAtExit() | currency:'USD' }}</div>
+  </div>
+
+  <p class="disclaimer">
+    Assumes monthly compounding and on-time payments. If interest is fully prepaid via reserve,
+    monthly cash outflow is reduced but total cost is unchanged.
+  </p>
+</div>

@@ -1,0 +1,88 @@
+<div class="calc-card">
+  <h2 class="title">Refinance Savings Calculator</h2>
+
+  <form [formGroup]="form" class="grid">
+    <!-- Current loan -->
+    <div class="field">
+      <label for="currentBalance">Current Balance</label>
+      <input id="currentBalance" type="number" formControlName="currentBalance" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="currentRateAprPct">Current Rate (APR %)</label>
+      <input id="currentRateAprPct" type="number" formControlName="currentRateAprPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="monthsRemaining">Months Remaining</label>
+      <input id="monthsRemaining" type="number" formControlName="monthsRemaining" min="1" max="480" />
+    </div>
+
+    <div class="field">
+      <label for="currentMonthlyPmtOverride">Current Monthly Payment (optional)</label>
+      <input id="currentMonthlyPmtOverride" type="number" formControlName="currentMonthlyPmtOverride" min="0" step="1" />
+      <div class="hint">Leave blank to auto-calc from rate/term/balance.</div>
+    </div>
+
+    <!-- New loan -->
+    <div class="sep"></div>
+
+    <div class="field">
+      <label for="newRateAprPct">New Rate (APR %)</label>
+      <input id="newRateAprPct" type="number" formControlName="newRateAprPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="newTermYears">New Term (years)</label>
+      <input id="newTermYears" type="number" formControlName="newTermYears" min="1" max="40" />
+    </div>
+
+    <div class="field">
+      <label for="pointsPct">Discount/Origination Points (%)</label>
+      <input id="pointsPct" type="number" formControlName="pointsPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="closingCosts">Closing Costs ($)</label>
+      <input id="closingCosts" type="number" formControlName="closingCosts" min="0" step="100" />
+    </div>
+
+    <div class="field checkbox">
+      <label><input type="checkbox" formControlName="financeCosts" /> Finance points + costs into loan</label>
+    </div>
+
+    <div class="field">
+      <label for="prepayHorizonMonths">Analysis Horizon (months)</label>
+      <input id="prepayHorizonMonths" type="number" formControlName="prepayHorizonMonths" min="1" />
+    </div>
+
+    <div class="field">
+      <label for="makeExtraMonthly">Extra Monthly Payment on NEW loan ($)</label>
+      <input id="makeExtraMonthly" type="number" formControlName="makeExtraMonthly" min="0" step="10" />
+    </div>
+  </form>
+
+  <div class="summary">
+    <div><strong>Current Monthly:</strong> {{ currMonthly() | currency:'USD' }}</div>
+    <div><strong>New Monthly (base P&I):</strong> {{ newMonthlyBase() | currency:'USD' }}</div>
+    <div><strong>Monthly Savings:</strong> {{ monthlySavings() | currency:'USD' }}</div>
+    <div><strong>Upfront Costs (points + fees):</strong> {{ upFrontCosts() | currency:'USD' }}</div>
+    <div><strong>Cash to Close:</strong> {{ cashToClose() | currency:'USD' }}</div>
+    <div><strong>Financed Principal:</strong> {{ financedPrincipal() | currency:'USD' }}</div>
+  </div>
+
+  <div class="summary">
+    <div><strong>Interest Remaining (current):</strong> {{ currInterestRemaining() | currency:'USD' }}</div>
+    <div><strong>Interest Over New Term:</strong> {{ newInterestFullTerm() | currency:'USD' }}</div>
+    <div><strong>Break-even (months, costs only):</strong>
+    {{ isFiniteBreakEven() ? (breakEvenMonthsCostsOnly() | number:'1.0-0') : 'N/A' }}
+    </div>
+    <div><strong>Horizon Savings ({{ form.value.prepayHorizonMonths }} mo):</strong> {{ horizonSavings() | currency:'USD' }}</div>
+    <div><strong>Effective APR (proxy, all-in):</strong> {{ effectiveAprPct() | number:'1.2-2' }}%</div>
+  </div>
+
+  <p class="disclaimer">
+    Payments exclude taxes/insurance/MI. “Effective APR” is an approximation for comparison.
+    Break-even = upfront costs ÷ monthly savings. Horizon savings compares total payments over the chosen months.
+  </p>
+</div>

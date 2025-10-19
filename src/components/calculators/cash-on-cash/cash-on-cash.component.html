@@ -1,0 +1,117 @@
+<div class="calc-card">
+  <h2 class="title">Cash-on-Cash Return</h2>
+
+  <form [formGroup]="form" class="grid">
+    <!-- Purchase & financing -->
+    <div class="field">
+      <label for="purchasePrice">Purchase Price</label>
+      <input id="purchasePrice" type="number" formControlName="purchasePrice" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="downPaymentPct">Down Payment (%)</label>
+      <input id="downPaymentPct" type="number" formControlName="downPaymentPct" min="0" max="100" step="0.1" />
+      <div class="hint">Loan Amount: {{ loanAmount() | currency:'USD' }}</div>
+    </div>
+
+    <div class="field">
+      <label for="rateAnnualPct">Interest Rate (APR %)</label>
+      <input id="rateAnnualPct" type="number" formControlName="rateAnnualPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="termYears">Term (years)</label>
+      <input id="termYears" type="number" formControlName="termYears" min="1" max="40" />
+    </div>
+
+    <div class="field checkbox">
+      <label><input type="checkbox" formControlName="interestOnly" /> Interest-only</label>
+    </div>
+
+    <div class="field">
+      <label for="originationPointsPct">Origination Points (%)</label>
+      <input id="originationPointsPct" type="number" formControlName="originationPointsPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="closingCosts">Closing Costs ($)</label>
+      <input id="closingCosts" type="number" formControlName="closingCosts" min="0" step="100" />
+    </div>
+
+    <div class="field">
+      <label for="rehabCosts">Rehab/CapEx at Close ($)</label>
+      <input id="rehabCosts" type="number" formControlName="rehabCosts" min="0" step="500" />
+    </div>
+
+    <div class="field">
+      <label for="reserveMonths">Payment Reserves (months)</label>
+      <input id="reserveMonths" type="number" formControlName="reserveMonths" min="0" max="24" />
+    </div>
+
+    <!-- Income -->
+    <div class="sep"></div>
+
+    <div class="field">
+      <label for="rentMonthly">Rent (monthly)</label>
+      <input id="rentMonthly" type="number" formControlName="rentMonthly" min="0" step="50" />
+    </div>
+
+    <div class="field">
+      <label for="otherIncomeMonthly">Other Income (monthly)</label>
+      <input id="otherIncomeMonthly" type="number" formControlName="otherIncomeMonthly" min="0" step="10" />
+    </div>
+
+    <div class="field">
+      <label for="vacancyPct">Vacancy (%)</label>
+      <input id="vacancyPct" type="number" formControlName="vacancyPct" min="0" max="100" step="0.1" />
+    </div>
+
+    <!-- Expenses -->
+    <div class="field">
+      <label for="taxesAnnual">Property Taxes (annual)</label>
+      <input id="taxesAnnual" type="number" formControlName="taxesAnnual" min="0" step="50" />
+    </div>
+
+    <div class="field">
+      <label for="insuranceAnnual">Insurance (annual)</label>
+      <input id="insuranceAnnual" type="number" formControlName="insuranceAnnual" min="0" step="50" />
+    </div>
+
+    <div class="field">
+      <label for="hoaMonthly">HOA (monthly)</label>
+      <input id="hoaMonthly" type="number" formControlName="hoaMonthly" min="0" step="10" />
+    </div>
+
+    <div class="field">
+      <label for="utilitiesMonthly">Utilities (monthly)</label>
+      <input id="utilitiesMonthly" type="number" formControlName="utilitiesMonthly" min="0" step="10" />
+    </div>
+
+    <div class="field">
+      <label for="repairsPctEGI">Repairs (% of EGI)</label>
+      <input id="repairsPctEGI" type="number" formControlName="repairsPctEGI" min="0" max="100" step="0.1" />
+    </div>
+
+    <div class="field">
+      <label for="managementPctEGI">Management (% of EGI)</label>
+      <input id="managementPctEGI" type="number" formControlName="managementPctEGI" min="0" max="100" step="0.1" />
+    </div>
+  </form>
+
+  <div class="summary">
+    <div><strong>Effective Gross Income (mo):</strong> {{ effectiveGrossIncomeMonthly() | currency:'USD' }}</div>
+    <div><strong>Operating Expenses (mo):</strong> {{ operatingExpensesMonthly() | currency:'USD' }}</div>
+    <div><strong>NOI (annual):</strong> {{ noiAnnual() | currency:'USD' }}</div>
+    <div><strong>Debt Service (mo):</strong> {{ debtServiceMonthly() | currency:'USD' }}</div>
+    <div><strong>Debt Service (annual):</strong> {{ debtServiceAnnual() | currency:'USD' }}</div>
+    <div><strong>Before-Tax Cash Flow (annual):</strong> {{ btcAnnual() | currency:'USD' }}</div>
+    <div><strong>Cash Invested:</strong> {{ cashInvested() | currency:'USD' }}</div>
+    <div><strong>Cash-on-Cash:</strong> {{ cashOnCashPct() | number:'1.2-2' }}%</div>
+    <div><strong>DSCR:</strong> {{ dscr() | number:'1.2-2' }}</div>
+    <div><strong>Points Cost:</strong> {{ pointsCost() | currency:'USD' }}</div>
+  </div>
+
+  <p class="disclaimer">
+    CoC = (NOI − Annual Debt Service) ÷ Total Cash Invested. EGI and expenses shown monthly; NOI and CoC are annualized.
+  </p>
+</div>

@@ -1,0 +1,99 @@
+<div class="calc-card">
+  <h2 class="title">Debt Yield Calculator</h2>
+
+  <form [formGroup]="form" class="grid">
+    <div class="field">
+      <label for="loanAmount">Loan Amount</label>
+      <input id="loanAmount" type="number" formControlName="loanAmount" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="noiAnnual">NOI (annual)</label>
+      <input id="noiAnnual" type="number" formControlName="noiAnnual" min="0" step="1000"
+             [disabled]="!!form.value.calcNoiFromInputs" />
+      <div class="hint" *ngIf="form.value.calcNoiFromInputs">
+        NOI from inputs: {{ noiAnnualComputed() | currency:'USD' }}
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="targetDebtYieldPct">Target Debt Yield (%)</label>
+      <input id="targetDebtYieldPct" type="number" formControlName="targetDebtYieldPct" min="0.01" step="0.01" />
+    </div>
+
+    <div class="field checkbox">
+      <label><input type="checkbox" formControlName="calcNoiFromInputs" /> Calculate NOI from income &amp; expenses</label>
+    </div>
+
+    <!-- Optional DSCR/constant section -->
+    <div class="sep"></div>
+    <div class="field">
+      <label for="rateAnnualPct">Rate (APR %)</label>
+      <input id="rateAnnualPct" type="number" formControlName="rateAnnualPct" min="0" step="0.01" />
+    </div>
+    <div class="field">
+      <label for="termYears">Term (years)</label>
+      <input id="termYears" type="number" formControlName="termYears" min="1" max="40" />
+    </div>
+    <div class="field checkbox">
+      <label><input type="checkbox" formControlName="interestOnly" /> Interest-only</label>
+    </div>
+
+    <!-- Income/Expense inputs shown only when toggle is on -->
+    <div class="sep" *ngIf="form.value.calcNoiFromInputs"></div>
+
+    <ng-container *ngIf="form.value.calcNoiFromInputs">
+      <div class="field">
+        <label for="rentMonthly">Rent (monthly)</label>
+        <input id="rentMonthly" type="number" formControlName="rentMonthly" min="0" step="100" />
+      </div>
+      <div class="field">
+        <label for="otherIncomeMonthly">Other Income (monthly)</label>
+        <input id="otherIncomeMonthly" type="number" formControlName="otherIncomeMonthly" min="0" step="50" />
+      </div>
+      <div class="field">
+        <label for="vacancyPct">Vacancy (%)</label>
+        <input id="vacancyPct" type="number" formControlName="vacancyPct" min="0" max="100" step="0.1" />
+      </div>
+
+      <div class="field">
+        <label for="taxesAnnual">Property Taxes (annual)</label>
+        <input id="taxesAnnual" type="number" formControlName="taxesAnnual" min="0" step="100" />
+      </div>
+      <div class="field">
+        <label for="insuranceAnnual">Insurance (annual)</label>
+        <input id="insuranceAnnual" type="number" formControlName="insuranceAnnual" min="0" step="100" />
+      </div>
+      <div class="field">
+        <label for="utilitiesMonthly">Utilities (monthly)</label>
+        <input id="utilitiesMonthly" type="number" formControlName="utilitiesMonthly" min="0" step="10" />
+      </div>
+      <div class="field">
+        <label for="hoaMonthly">HOA (monthly)</label>
+        <input id="hoaMonthly" type="number" formControlName="hoaMonthly" min="0" step="10" />
+      </div>
+      <div class="field">
+        <label for="repairsPctEGI">Repairs (% of EGI)</label>
+        <input id="repairsPctEGI" type="number" formControlName="repairsPctEGI" min="0" max="100" step="0.1" />
+      </div>
+      <div class="field">
+        <label for="managementPctEGI">Management (% of EGI)</label>
+        <input id="managementPctEGI" type="number" formControlName="managementPctEGI" min="0" max="100" step="0.1" />
+      </div>
+    </ng-container>
+  </form>
+
+ <div class="summary">
+  <div><strong>Debt Yield:</strong> {{ debtYieldPct() | number:'1.2-2' }}%</div>
+  <div><strong>Max Loan &#64; Target DY:</strong> {{ maxLoanByTarget() | currency:'USD' }}</div>
+  <div><strong>Required NOI &#64; Target DY:</strong> {{ requiredNOIForTarget() | currency:'USD' }}</div>
+  <div><strong>Loan Constant (annual):</strong> {{ loanConstantAnnual() | percent:'1.2-2' }}</div>
+  <div><strong>Annual Debt Service:</strong> {{ annualDebtService() | currency:'USD' }}</div>
+  <div><strong>DSCR:</strong> {{ dscr() | number:'1.2-2' }}</div>
+</div>
+
+
+  <p class="disclaimer">
+    Debt Yield = NOI ÷ Loan Amount. DSCR and constant are informational.
+  </p>
+</div>

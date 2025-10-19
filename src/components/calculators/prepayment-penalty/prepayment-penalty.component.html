@@ -1,0 +1,76 @@
+<div class="calc-card">
+  <h2 class="title">Prepayment Penalty</h2>
+
+  <form [formGroup]="form" class="grid">
+    <div class="field">
+      <label for="method">Method</label>
+      <select id="method" formControlName="method">
+        <option value="step_down">Step-down schedule</option>
+        <option value="months_interest">Months of interest</option>
+        <option value="yield_maint">Yield maintenance (approx)</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="remainingBalance">Remaining Balance</label>
+      <input id="remainingBalance" type="number" formControlName="remainingBalance" min="1" step="1000" />
+    </div>
+
+    <div class="field">
+      <label for="prepayAmount">Prepay Amount</label>
+      <input id="prepayAmount" type="number" formControlName="prepayAmount" min="1" step="1000" />
+      <div class="hint">Default is the full balance.</div>
+    </div>
+
+    <div class="field">
+      <label for="noteRateAprPct">Note Rate (APR %)</label>
+      <input id="noteRateAprPct" type="number" formControlName="noteRateAprPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="monthsRemaining">Months Remaining</label>
+      <input id="monthsRemaining" type="number" formControlName="monthsRemaining" min="1" />
+    </div>
+
+    <!-- Step-down only -->
+    <ng-container *ngIf="form.value.method === 'step_down'">
+      <div class="field wide">
+        <label for="stepDownSchedule">Step-down schedule (% by year)</label>
+        <input id="stepDownSchedule" type="text" formControlName="stepDownSchedule" />
+        <div class="hint">Example: <code>5,4,3,2,1</code>. Uses year = ceil(months remaining / 12).</div>
+      </div>
+    </ng-container>
+
+    <!-- Months-of-interest only -->
+    <ng-container *ngIf="form.value.method === 'months_interest'">
+      <div class="field">
+        <label for="monthsOfInterest">Months of Interest</label>
+        <input id="monthsOfInterest" type="number" formControlName="monthsOfInterest" min="0" />
+      </div>
+    </ng-container>
+
+    <!-- Yield maintenance only -->
+    <ng-container *ngIf="form.value.method === 'yield_maint'">
+      <div class="field">
+        <label for="reinvestmentRateAprPct">Reinvestment Rate (APR %)</label>
+        <input id="reinvestmentRateAprPct" type="number" formControlName="reinvestmentRateAprPct" min="0" step="0.01" />
+        <div class="hint">Proxy for matching Treasury of same maturity.</div>
+      </div>
+      <div class="field">
+        <label for="discountRateAdjPct">Discount Rate Adjustment (APR %)</label>
+        <input id="discountRateAdjPct" type="number" formControlName="discountRateAdjPct" step="0.01" />
+        <div class="hint">Optional spread added to discount rate. Usually 0.</div>
+      </div>
+    </ng-container>
+  </form>
+
+  <div class="summary">
+    <div><strong>Penalty:</strong> {{ penaltySelected() | currency:'USD' }}</div>
+    <div><strong>Total Payoff (prepay + penalty):</strong> {{ totalPayoff() | currency:'USD' }}</div>
+  </div>
+
+  <p class="disclaimer">
+    Results are simplified. Yield-maintenance is an approximation using the spread between note coupon and the
+    reinvestment rate over the remaining term. Always confirm against the note and rider language.
+  </p>
+</div>

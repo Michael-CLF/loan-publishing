@@ -1,135 +1,278 @@
 <h1 class="title">Advanced Mortgage Calculators</h1>
 
 <div class="button-container">
-    <div class="card">
-        <div class="card-title">
-            <h2>Balloon Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Balloon Calculator helps borrowers estimate their final balloon payment, which is a large lump sum
-                due at the end of a loan term after smaller monthly payments have been made during the loan’s life.
-                Balloon payments are common in certain types of loans, like commercial or short-term mortgages.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/balloon-calculator']" class="card-button">Calculate Now</a>
-        </div>
+  <!-- 1) Amortization Schedule Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Amortization Schedule</h2></div>
+    <div class="card-content">
+      <p>
+        The Amortization Schedule Calculator builds a month-by-month table of payment, interest, principal, and ending
+        balance. Enter loan amount, rate, term, and start date; the calculator outputs the fixed payment, total interest,
+        total paid, and a downloadable schedule. Useful for comparing loan terms and showing payoff pacing.
+      </p>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>Breakeven Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Breakeven Calculator helps property investors determine the point at which a property’s income equals
-                its expenses, meaning there is neither a profit nor a loss. This is useful to calculate the minimum
-                occupancy rate or revenue needed to cover all expenses.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/breakeven-calculator']" class="card-button">Calculate Now</a>
-        </div>
+    <div class="card-footer">
+      <a [routerLink]="['/amortization-schedule']" class="card-button">Calculate Now</a>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>Cap Rate Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Cap Rate (Capitalization Rate) Calculator helps real estate investors determine the expected return
-                on an investment property based on its income and value. It's commonly used to assess the potential
-                profitability of a property.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/cap-rate-calculator']" class="card-button">Calculate Now</a>
-        </div>
+  </div>
+
+  <!-- 2) Balloon Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Balloon Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Balloon Calculator estimates the lump-sum due at maturity for loans with smaller periodic payments.
+        Provide loan amount, rate, term, and amortization basis; the calculator returns monthly payment during the term
+        and the final balloon. Helps plan exits and refinance timing.
+      </p>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>DSCR Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The DSCR (Debt Service Coverage Ratio) Calculator helps lenders and investors assess whether a
-                property’s income is sufficient to cover its debt payments. The ratio compares a property’s Net
-                Operating Income (NOI) to its debt service (loan payments).</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/dscr-calculator']" class="card-button">Calculate Now</a>
-        </div>
+    <div class="card-footer">
+      <a [routerLink]="['/balloon-calculator']" class="card-button">Calculate Now</a>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>Fix and Flip Profit Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Fix and Flip Profit Calculator helps real estate investors estimate potential profits by factoring in
-                purchase price, rehab costs, and after-repair value (ARV). It reduces risk by identifying thin margins.
-            </p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/fix-flip-calculator']" class="card-button">Calculate Now</a>
-        </div>
+  </div>
+
+  <!-- 3) Breakeven Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Breakeven Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Breakeven Calculator computes the occupancy or revenue level where effective income equals operating
+        expenses. Enter rents and expenses; the calculator shows breakeven rent, units, and occupancy percent—ideal for
+        underwriting minimum performance.
+      </p>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>Interest Only Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Interest-Only (IO) Calculator helps borrowers determine their monthly payments for a loan during the
-                interest-only period, where only interest is paid and not principal. The IO calculator helps borrowers
-                estimate their monthly
-                payments before transitioning to full amortization.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/interest-only-calculator']" class="card-button">Calculate Now</a>
-        </div>
+    <div class="card-footer">
+      <a [routerLink]="['/breakeven-calculator']" class="card-button">Calculate Now</a>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>IRR Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The (IRR) Calculator helps investors estimate the profitability of a real estate investment by
-                determining the annualized rate of return over time, considering cash flows and the property's eventual
-                sale.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/irr-calculator']" class="card-button">Calculate Now</a>
-        </div>
+  </div>
+
+  <!-- 4) Bridge Loan Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Bridge Loan Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Bridge Loan Calculator models short-term, interest-only loans with points, broker fees, reserves, exit fees,
+        and other closing costs. It outputs monthly payment, total interest, net proceeds at close, payoff at exit, and
+        an effective APR approximation.
+      </p>
     </div>
-     <div class="card">
-        <div class="card-title">
-            <h2>Loan Payment Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The Payment Calculator helps borrowers estimate their monthly mortgage or loan payment based on the
-                loan amount, interest rate, and loan term. Its commonly used to calculate the payment of any Commercial
-                loan or mortgage including
-                Pricipal, Interest, Taxes and Insurance.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/mortgage-calculator']" class="card-button">Calculate Now</a>
-        </div>
+    <div class="card-footer">
+      <a [routerLink]="['/bridge-loan']" class="card-button">Calculate Now</a>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>Loan to Value Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The LTV (Loan-to-Value) Calculator helps borrowers and lenders determine the percentage of a property's
-                value being financed by a loan.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/ltv-calculator']" class="card-button">Calculate Now</a>
-        </div>
+  </div>
+
+  <!-- 5) Cap Rate Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Cap Rate Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Cap Rate Calculator computes capitalization rate from NOI and value, or solves for value from a target cap.
+        Use the calculator to benchmark deals against market cap rates and to back into pricing from income.
+      </p>
     </div>
-    <div class="card">
-        <div class="card-title">
-            <h2>NOI Calculator</h2>
-        </div>
-        <div class="card-content">
-            <p>The NOI (Net Operating Income) Calculator helps investors and property managers determine the
-                profitability
-                of a property by calculating its income after operating expenses, excluding debt payments and taxes.</p>
-        </div>
-        <div class="card-footer">
-            <a [routerLink]="['/noi-calculator']" class="card-button">Calculate Now</a>
-        </div>
+    <div class="card-footer">
+      <a [routerLink]="['/cap-rate-calculator']" class="card-button">Calculate Now</a>
     </div>
+  </div>
+
+  <!-- 6) Cash-on-Cash Return Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Cash-on-Cash Return</h2></div>
+    <div class="card-content">
+      <p>
+        The Cash-on-Cash Return Calculator measures annual before-tax cash flow divided by total cash invested.
+        Enter income, vacancy, operating expenses, financing terms, points, reserves, and closing costs; the calculator
+        outputs CoC %, DSCR, NOI, and cash invested.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/cash-on-cash']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 7) Construction Loan Draw Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Construction Loan Draw</h2></div>
+    <div class="card-content">
+      <p>
+        The Construction Loan Draw Calculator creates a monthly interest-only schedule based on your draw timeline.
+        Add draws by month; the calculator shows outstanding balance, monthly interest, cumulative interest, total drawn,
+        and principal due at maturity.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/construction-loan-draw']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 8) Debt Yield Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Debt Yield Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Debt Yield Calculator evaluates NOI ÷ loan amount and tests lender targets.
+        It also shows max loan at a target debt yield, required NOI for a given loan, and provides DSCR and loan-constant
+        context for quick underwriting checks.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/debt-yield']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 9) DSCR Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>DSCR Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The DSCR Calculator compares Net Operating Income to annual debt service to test coverage.
+        Input NOI and financing terms; the calculator outputs DSCR, maximum supportable loan, and sensitivity to rate and term.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/dscr-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 10) Fix & Flip Profit Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Fix &amp; Flip Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Fix &amp; Flip Profit Calculator estimates profit using purchase price, rehab, carry, selling costs, and ARV.
+        The calculator highlights margin, ROI, and breakeven ARV so investors can gauge risk before acquisition.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/fix-flip-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 11) Interest-Only Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Interest-Only Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Interest-Only Calculator computes monthly interest payments during the IO period and compares to a fully
+        amortizing payment. The calculator is useful for bridge loans, construction loans, and IO ARM periods.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/interest-only-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 12) IRR Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>IRR Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The IRR Calculator estimates the annualized return of a project from periodic cash flows and sale proceeds.
+        The calculator helps compare investments with different timing and magnitude of cash flows.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/irr-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 13) Loan Amount (Reverse Payment) Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Loan Amount Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Loan Amount Calculator solves “how much can I borrow?” from a target monthly payment, rate, and term.
+        The calculator is the reverse of a payment calculator and is ideal for budget-driven buyers.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/loan-amount']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 14) Loan Payment Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Loan Payment Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Loan Payment Calculator computes monthly principal and interest from loan amount, rate, and term, and can
+        incorporate taxes, insurance, and HOA for a full PITI estimate. The calculator is used for quick quotes.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/mortgage-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 15) Loan-to-Value (LTV) Calculator -->
+ <!--  class="card">
+    <div class="card-title"><h2>Loan-to-Value (LTV)</h2></div>
+    <div class="card-content">
+      <p>
+        The Loan-to-Value Calculator finds the financed percentage of a property’s value and can also solve for maximum
+        loan from a target LTV. The calculator is essential for eligibility and pricing tiers.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/ltv-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>-->
+
+  <!-- 16) NOI Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>NOI Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The NOI Calculator computes Net Operating Income from rents and operating expenses. The calculator excludes
+        debt service, depreciation, and income taxes, and is the foundation for cap rate and DSCR analyses.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/noi-calculator']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 17) Prepayment Penalty Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Prepayment Penalty</h2></div>
+    <div class="card-content">
+      <p>
+        The Prepayment Penalty Calculator estimates payoff penalties under common methods: step-down schedules,
+        months-of-interest, or an approximate yield-maintenance. The calculator returns penalty amount and total payoff.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/prepayment-penalty']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 18) Refinance Savings Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Refinance Savings Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Refinance Savings Calculator compares current vs. new loan terms to show monthly savings, break-even time on
+        costs, interest over the term, and horizon savings. The calculator can finance costs into the new loan or treat
+        them as cash to close.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/refinance-savings']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
+
+  <!-- 19) Rent vs. Buy Calculator -->
+  <div class="card">
+    <div class="card-title"><h2>Rent vs. Buy Calculator</h2></div>
+    <div class="card-content">
+      <p>
+        The Rent vs. Buy Calculator runs a discounted-cash-flow comparison between renting and owning over a holding
+        period. The calculator includes appreciation, rent and expense growth, selling costs, and remaining balance to
+        indicate which path is cheaper on an NPV basis.
+      </p>
+    </div>
+    <div class="card-footer">
+      <a [routerLink]="['/rent-vs-buy']" class="card-button">Calculate Now</a>
+    </div>
+  </div>
 </div>
