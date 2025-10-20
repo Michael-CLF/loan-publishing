@@ -1,0 +1,64 @@
+<div class="calc-container">
+<div class="calc-card">
+  <h2 class="title">Loan Amount from Payment Calculator</h2>
+
+  <form [formGroup]="form" class="grid">
+    <div class="field">
+      <label for="targetMonthlyPayment">Target Monthly Payment (total)</label>
+      <input id="targetMonthlyPayment" type="number" formControlName="targetMonthlyPayment" min="1" step="1" />
+    </div>
+
+    <div class="field">
+      <label for="rateAnnualPct">Interest Rate (APR %)</label>
+      <input id="rateAnnualPct" type="number" formControlName="rateAnnualPct" min="0" step="0.01" />
+    </div>
+
+    <div class="field">
+      <label for="termYears">Term (years)</label>
+      <input id="termYears" type="number" formControlName="termYears" min="1" max="40" />
+    </div>
+
+    <div class="field checkbox">
+      <label><input type="checkbox" formControlName="includeTaxesInsuranceHoa" /> Subtract taxes/insurance/HOA from target payment</label>
+    </div>
+
+    <ng-container *ngIf="form.value.includeTaxesInsuranceHoa">
+      <div class="field">
+        <label for="taxesAnnual">Property Taxes (annual)</label>
+        <input id="taxesAnnual" type="number" formControlName="taxesAnnual" min="0" step="50" />
+      </div>
+      <div class="field">
+        <label for="insuranceAnnual">Homeowner’s Insurance (annual)</label>
+        <input id="insuranceAnnual" type="number" formControlName="insuranceAnnual" min="0" step="25" />
+      </div>
+      <div class="field">
+        <label for="hoaMonthly">HOA (monthly)</label>
+        <input id="hoaMonthly" type="number" formControlName="hoaMonthly" min="0" step="10" />
+      </div>
+    </ng-container>
+
+    <div class="sep"></div>
+
+    <div class="field">
+      <label for="downPaymentPct">Down Payment (%)</label>
+      <input id="downPaymentPct" type="number" formControlName="downPaymentPct" min="0" max="100" step="0.1" />
+    </div>
+    <div class="field">
+      <label for="closingCostsPctOfPrice">Closing Costs (% of price)</label>
+      <input id="closingCostsPctOfPrice" type="number" formControlName="closingCostsPctOfPrice" min="0" step="0.1" />
+    </div>
+  </form>
+
+  <div class="summary">
+    <div><strong>Available for P&I:</strong> {{ availableForPI() | currency:'USD' }}</div>
+    <div><strong>Estimated Loan Amount:</strong> {{ loanAmount() | currency:'USD' }}</div>
+    <div><strong>Estimated Purchase Price:</strong> {{ purchasePriceEstimate() | currency:'USD' }}</div>
+    <div><strong>Estimated Cash to Close:</strong> {{ cashToCloseEstimate() | currency:'USD' }}</div>
+  </div>
+
+  <p class="disclaimer">
+    Loan amount is solved from the target monthly payment after subtracting selected non-P&I items.
+    Estimates exclude PMI and taxes/credits at closing. Verify with a full loan estimate.
+  </p>
+</div>
+</div>

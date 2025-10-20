@@ -1,3 +1,4 @@
+<div class="calc-container">
 <div class="calc-card">
   <h2 class="title">Refinance Savings Calculator</h2>
 
@@ -47,10 +48,6 @@
       <input id="closingCosts" type="number" formControlName="closingCosts" min="0" step="100" />
     </div>
 
-    <div class="field checkbox">
-      <label><input type="checkbox" formControlName="financeCosts" /> Finance points + costs into loan</label>
-    </div>
-
     <div class="field">
       <label for="prepayHorizonMonths">Analysis Horizon (months)</label>
       <input id="prepayHorizonMonths" type="number" formControlName="prepayHorizonMonths" min="1" />
@@ -59,6 +56,10 @@
     <div class="field">
       <label for="makeExtraMonthly">Extra Monthly Payment on NEW loan ($)</label>
       <input id="makeExtraMonthly" type="number" formControlName="makeExtraMonthly" min="0" step="10" />
+    </div>
+
+     <div class="field checkbox">
+      <label><input type="checkbox" formControlName="financeCosts" /> Finance points + costs into loan</label>
     </div>
   </form>
 
@@ -85,4 +86,5 @@
     Payments exclude taxes/insurance/MI. “Effective APR” is an approximation for comparison.
     Break-even = upfront costs ÷ monthly savings. Horizon savings compares total payments over the chosen months.
   </p>
+</div>
 </div>

@@ -3,7 +3,7 @@
   margin-top: 30px;
   margin-bottom: 50px;
   border-radius: 8px;
-  width: 65%;
+  width: 60%;
   box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
 }
 .calc-card {
@@ -12,50 +12,25 @@
   border-radius: 12px;
   padding: 20px;
 }
-
-.title {
-  margin: 0 0 12px 0;
-  color: #02474d;
-  font-size: 2rem;
-}
+.title { margin: 0 0 12px; color: #02474d; font-size: 1.5rem; }
 
 .grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   gap: 12px;
   margin-bottom: 8px;
 }
+.sep { grid-column: 1 / -1; height: 1px; background: #eef2f4; margin: 4px 0; }
 
-.sep {
-  grid-column: 1 / -1;
-  height: 1px;
-  background: #eef2f4;
-  margin: 4px 0;
-}
-
-.field {
-  display: flex;
-  flex-direction: column;
-
-}
-
-.field.checkbox {
-  align-self: end;
-}
-
+.field { display: flex; flex-direction: column; }
+.field.checkbox { align-self: end; }
 .field label {
   font-size: 1rem;
   color: #02474d;
   margin-bottom: 6px;
   font-weight: 500;
-}
-
-.field input[type="number"] {
-  padding: 10px;
-  border: 1px solid #cfd8dc;
-  border-radius: 8px;
-  font-size: 14px;
-}
+ }
+.field input[type="number"] { padding: 10px; border: 1px solid #cfd8dc; border-radius: 8px; font-size: 14px; }
 
 .summary {
   display: grid;
@@ -68,14 +43,4 @@
   margin: 10px 0;
 }
 
-.hint {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 4px;
-}
-
-.disclaimer {
-  font-size: 12px;
-  color: #6b7280;
-  margin-top: 8px;
-}
+.disclaimer { font-size: 12px; color: #6b7280; margin-top: 8px; }

@@ -261,6 +261,11 @@ export const routes: Routes = [
     title: 'Calculators - LoanPost'
   },
    {
+    path: 'loan-payment',
+    loadComponent: () => import('src/components/calculators/loan-payment/loan-payment.component').then(m => m.LoanPaymentComponent),
+    title: 'Calculators - LoanPost'
+  },
+   {
     path: 'mortgage-calculator',
     loadComponent: () => import('src/components/calculators/mortgage-calculator/mortgage-calculator.component').then(m => m.MortgageCalculatorComponent),
     title: 'Calculators - LoanPost'
