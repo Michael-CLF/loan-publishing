@@ -1,6 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-bridge-loan',
@@ -10,7 +12,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
   styleUrls: ['./bridge-loan.component.css']
 })
 export class BridgeLoanComponent {
+  private modalService = inject(ModalService);
   constructor(private fb: FormBuilder) {}
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   form = this.fb.group({
     loanAmount: [500000, [Validators.required, Validators.min(1)]],

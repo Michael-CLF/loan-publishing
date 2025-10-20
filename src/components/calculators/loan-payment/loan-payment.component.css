@@ -44,3 +44,29 @@
 }
 
 .disclaimer { font-size: 12px; color: #6b7280; margin-top: 8px; }
+.contact-container {
+  width: 60%;
+  margin: 0 auto;
+  text-align: center;
+  margin-top: 25px;
+  margin-bottom: 40px;
+}
+.contact-title {
+  font-size: 2rem;
+  font-family: 'roboto' sans-serif;
+  color: #02474d;
+  text-align: center;
+}
+.register-btn {
+  font-size: 1.5rem;
+  font-family: 'roboto' sans-serif;
+  color: #fff;
+  background-color: #02474d;
+  text-align: center;
+  padding: 8px 26px;
+  border: none;
+  border-radius: 6px;
+}
+.register-btn:hover {
+  background-color: #002b4e; 
+}

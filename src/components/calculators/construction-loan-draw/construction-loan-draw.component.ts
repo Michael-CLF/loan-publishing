@@ -1,6 +1,8 @@
-import { Component, signal, computed } from '@angular/core';
+import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormGroup, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 type MonthRow = {
   month: number;
@@ -18,8 +20,12 @@ type MonthRow = {
   styleUrls: ['./construction-loan-draw.component.css']
 })
 export class ConstructionLoanDrawComponent {
+  private modalService = inject(ModalService);
   constructor(private fb: FormBuilder) {}
 
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
   form = this.fb.group({
     totalCommitment: [750000, [Validators.required, Validators.min(1)]],
     rateAnnualPct: [10, [Validators.required, Validators.min(0)]],

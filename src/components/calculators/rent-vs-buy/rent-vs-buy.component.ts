@@ -1,6 +1,8 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-rent-vs-buy',
@@ -10,7 +12,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
   styleUrls: ['./rent-vs-buy.component.css']
 })
 export class RentVsBuyComponent {
-  constructor(private fb: FormBuilder) {}
+  private modalService = inject(ModalService);
+  constructor(private fb: FormBuilder) { }
 
   form = this.fb.group({
     // Home + financing
@@ -40,6 +43,11 @@ export class RentVsBuyComponent {
     // Discount / opportunity cost
     discountRatePct: [5.0, [Validators.min(0)]],        // for NPV and foregone return
   });
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
+
 
   // ---- helpers ----
   private pmt(rateM: number, n: number, pv: number): number {

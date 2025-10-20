@@ -1,6 +1,8 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 type Method = 'step_down' | 'months_interest' | 'yield_maint';
 
@@ -12,7 +14,12 @@ type Method = 'step_down' | 'months_interest' | 'yield_maint';
   styleUrls: ['./prepayment-penalty.component.css']
 })
 export class PrepaymentPenaltyComponent {
+  private modalService = inject(ModalService);
   constructor(private fb: FormBuilder) {}
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   form = this.fb.group({
     method: ['step_down' as Method, [Validators.required]],

@@ -1,6 +1,8 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-refinance-savings',
@@ -10,7 +12,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
   styleUrls: ['./refinance-savings.component.css']
 })
 export class RefinanceSavingsComponent {
+  private modalService = inject(ModalService);
   constructor(private fb: FormBuilder) {}
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   form = this.fb.group({
     // Current loan

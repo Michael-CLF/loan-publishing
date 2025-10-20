@@ -1,6 +1,8 @@
-import { Component, computed } from '@angular/core';
+import { Component, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-debt-yield',
@@ -10,7 +12,12 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
   styleUrls: ['./debt-yield.component.css']
 })
 export class DebtYieldComponent {
+  private modalService = inject(ModalService);
   constructor(private fb: FormBuilder) {}
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   // --- FORM (keep everything INSIDE this fb.group({...})) ---
   form = this.fb.group({

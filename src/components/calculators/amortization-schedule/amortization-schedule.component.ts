@@ -1,6 +1,8 @@
-import { Component, computed, signal } from '@angular/core';
+import { Component, computed, signal, inject } from '@angular/core';
 import { CommonModule, CurrencyPipe, DecimalPipe, DatePipe } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ModalService } from '../../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
 
 type AmortRow = {
   period: number;
@@ -19,6 +21,8 @@ type AmortRow = {
   styleUrls: ['./amortization-schedule.component.css']
 })
 export class AmortizationScheduleComponent {
+  private modalService = inject(ModalService);
+
   constructor(private fb: FormBuilder) {}
 
   form = this.fb.group({
@@ -28,6 +32,10 @@ export class AmortizationScheduleComponent {
     startDate: [new Date().toISOString().slice(0, 10)], // YYYY-MM-DD
     includeDates: [true]
   });
+
+  openRoleSelectionModal(): void {
+  this.modalService.openRoleSelectionModal();
+}
 
   // Signals for results
   schedule = signal<AmortRow[]>([]);
