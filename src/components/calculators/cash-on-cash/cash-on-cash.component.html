@@ -1,3 +1,4 @@
+<div class="calc-container">
 <div class="calc-card">
   <h2 class="title">Cash-on-Cash Return</h2>
 
@@ -24,10 +25,6 @@
       <input id="termYears" type="number" formControlName="termYears" min="1" max="40" />
     </div>
 
-    <div class="field checkbox">
-      <label><input type="checkbox" formControlName="interestOnly" /> Interest-only</label>
-    </div>
-
     <div class="field">
       <label for="originationPointsPct">Origination Points (%)</label>
       <input id="originationPointsPct" type="number" formControlName="originationPointsPct" min="0" step="0.01" />
@@ -46,6 +43,10 @@
     <div class="field">
       <label for="reserveMonths">Payment Reserves (months)</label>
       <input id="reserveMonths" type="number" formControlName="reserveMonths" min="0" max="24" />
+    </div>
+
+     <div class="field checkbox">
+      <label><input type="checkbox" formControlName="interestOnly" /> Interest-only</label>
     </div>
 
     <!-- Income -->
@@ -114,4 +115,5 @@
   <p class="disclaimer">
     CoC = (NOI − Annual Debt Service) ÷ Total Cash Invested. EGI and expenses shown monthly; NOI and CoC are annualized.
   </p>
+</div>
 </div>

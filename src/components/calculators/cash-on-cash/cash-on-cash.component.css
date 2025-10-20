@@ -1,3 +1,11 @@
+.calc-container {
+  margin: 0 auto;
+  margin-top: 30px;
+  margin-bottom: 50px;
+  border-radius: 8px;
+  width: 60%;
+  box-shadow: rgba(0, 0, 0, 0.25) 0px 54px 55px, rgba(0, 0, 0, 0.12) 0px -12px 30px, rgba(0, 0, 0, 0.12) 0px 4px 6px, rgba(0, 0, 0, 0.17) 0px 12px 13px, rgba(0, 0, 0, 0.09) 0px -3px 5px;
+}
 .calc-card {
   background: #ffffff;
   border: 1px solid #e6e6e6;
@@ -8,7 +16,7 @@
 .title {
   margin: 0 0 12px 0;
   color: #02474d;
-  font-size: 1.5rem;
+  font-size: 2rem;
 }
 
 .grid {
@@ -35,9 +43,10 @@
 }
 
 .field label {
-  font-size: 0.9rem;
-  color: #0b3a42;
+  font-size: 1rem;
+  color: #02474d;
   margin-bottom: 6px;
+  font-weight: 500;
 }
 
 .field input[type="number"] {
@@ -50,6 +59,7 @@
 .summary {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  color: #02474d;
   gap: 8px;
   padding: 10px 0 6px;
   border-top: 1px solid #eee;
