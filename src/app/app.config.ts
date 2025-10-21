@@ -8,6 +8,7 @@ import { routes } from './app.routes';
 import { environment } from '../environments/environment';
 import { provideZoneChangeDetection } from '@angular/core';
 import { ApplicationConfig } from '@angular/core';
+import { provideFunctions, getFunctions } from '@angular/fire/functions';
 
 // Import all your services
 import { AuthService } from '../services/auth.service';
@@ -37,6 +38,7 @@ export const appConfig: ApplicationConfig = {
     provideAuth(() => getAuth()),
     provideFirestore(() => getFirestore()),
     provideStorage(() => getStorage()),
+    provideFunctions(() => getFunctions()),
     
         
     // All services
