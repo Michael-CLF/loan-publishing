@@ -51,26 +51,20 @@ export class AppComponent implements OnInit, OnDestroy {
   isRoleSelectionModalOpen = false;
   isAppInitialized = false;
 
-  async ngOnInit(): Promise<void> {
+async ngOnInit(): Promise<void> {
   try {
     this.logEnvironmentInfo();
     this.setupNavigationMonitoring();
     
     // Defer non-critical operations
     if (isPlatformBrowser(this.platformId)) {
-      // Only check auth if user is on a protected route
-      const protectedRoutes = ['/dashboard', '/loan', '/edit-account'];
+      // Skip auth initialization for home page
       const currentUrl = this.router.url;
-      
-      if (protectedRoutes.some(route => currentUrl.includes(route))) {
+      if (currentUrl === '/' || currentUrl === '/home' || currentUrl === '') {
+        console.log('On home page, skipping auth initialization');
+      } else {
         this.logFirebaseAuthStatus();
         this.authService.initAuthPersistence();
-      } else {
-        // Defer auth init for public pages
-        setTimeout(() => {
-          this.logFirebaseAuthStatus();
-          this.authService.initAuthPersistence();
-        }, 2000);
       }
       
       // Clarity loads after 5 seconds as already set
