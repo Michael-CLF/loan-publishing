@@ -52,34 +52,39 @@ export class AppComponent implements OnInit, OnDestroy {
   isAppInitialized = false;
 
   async ngOnInit(): Promise<void> {
-    // Defer Clarity initialization to not block initial load
-     if (isPlatformBrowser(this.platformId)) {
-       setTimeout(() => {
-         this.clarityService.initializeClarity();
-       }, 3000);
-     }
-
-    try {
-      // ✅ Initialize App Check first for security
-      // await this.initializeAppCheck();
-
-      this.logEnvironmentInfo();
-      this.setupNavigationMonitoring();
-      // Defer auth initialization to reduce initial bundle
-      if (isPlatformBrowser(this.platformId)) {
+  try {
+    this.logEnvironmentInfo();
+    this.setupNavigationMonitoring();
+    
+    // Defer non-critical operations
+    if (isPlatformBrowser(this.platformId)) {
+      // Only check auth if user is on a protected route
+      const protectedRoutes = ['/dashboard', '/loan', '/edit-account'];
+      const currentUrl = this.router.url;
+      
+      if (protectedRoutes.some(route => currentUrl.includes(route))) {
+        this.logFirebaseAuthStatus();
+        this.authService.initAuthPersistence();
+      } else {
+        // Defer auth init for public pages
         setTimeout(() => {
           this.logFirebaseAuthStatus();
           this.authService.initAuthPersistence();
-        }, 100);
+        }, 2000);
       }
-
-      this.isAppInitialized = true;
-    } catch (error) {
-      console.error('Error during app initialization:', error);
-      // Still allow app to continue if App Check fails
-      this.isAppInitialized = true;
+      
+      // Clarity loads after 5 seconds as already set
+      setTimeout(() => {
+        this.clarityService.initializeClarity();
+      }, 5000);
     }
+
+    this.isAppInitialized = true;
+  } catch (error) {
+    console.error('Error during app initialization:', error);
+    this.isAppInitialized = true;
   }
+}
 
   ngOnDestroy(): void {
     // ✅ Angular 18 Best Practice: Proper cleanup

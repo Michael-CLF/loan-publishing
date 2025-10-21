@@ -71,7 +71,15 @@ interface SimpleUser {
   styleUrls: ['./dashboard.component.css'],
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
+  providers: [
+     LenderService,
+    LoanService,
+    EmailNotificationService,
+    LocationService,
+    NotificationPreferencesService
+  ]
 })
+
 export class DashboardComponent implements OnInit {
   // Dependency injection
   private readonly authService = inject(AuthService);
