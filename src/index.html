@@ -22,11 +22,8 @@
   <link rel="preload" href="/assets/fonts/roboto/roboto-400.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="preload" href="/assets/fonts/roboto/roboto-700.woff2" as="font" type="font/woff2" crossorigin>
 
-
   <!-- Favicon -->
   <link rel="icon" type="image/webp" href="assets/images/DLP_LOGO_Fav.webp">
-
-
 
   <!-- Open Graph / Social Meta Tags -->
   <meta property="og:title" content="Daily Loan Post - Fund Deals Faster" />
@@ -37,32 +34,18 @@
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
-  <!-- Defer Google Tag Manager (loads after page interactive) -->
-  <script>
-    window.addEventListener('load', function () {
-      (function (w, d, s, l, i) {
-        w[l] = w[l] || [];
-        w[l].push({ 'gtm.start': new Date().getTime(), event: 'gtm.js' });
-        var f = d.getElementsByTagName(s)[0],
-          j = d.createElement(s),
-          dl = l != 'dataLayer' ? '&l=' + l : '';
-        j.async = true;
-        j.src = 'https://www.googletagmanager.com/gtm.js?id=' + i + dl;
-        f.parentNode.insertBefore(j, f);
-      })(window, document, 'script', 'dataLayer', 'GTM-W92WCP3V');
-    });
+  <!-- Google Tag Manager - MUST be in head but with async -->
+  <script async>
+    (function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+    new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+    j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+    'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+    })(window,document,'script','dataLayer','GTM-W92WCP3V');
   </script>
 
-  <!-- Defer Google AdSense (loads after page interactive) -->
-  <script>
-    window.addEventListener('load', function () {
-      var adsScript = document.createElement('script');
-      adsScript.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1002518553534093';
-      adsScript.async = true;
-      adsScript.crossOrigin = 'anonymous';
-      document.head.appendChild(adsScript);
-    });
-  </script>
+  <!-- Defer Google AdSense to reduce blocking -->
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1002518553534093"
+     crossorigin="anonymous"></script>
 </head>
 
 <body>
@@ -77,11 +60,13 @@
   <!-- Defer AI Widget (loads after page interactive) -->
   <script>
     window.addEventListener('load', function () {
-      var widgetScript = document.createElement('script');
-      widgetScript.src = 'https://michael-clf.github.io/ai-widget/widget.js';
-      widgetScript.setAttribute('data-widget-id', 'widget_mfe84059_j415rv');
-      widgetScript.setAttribute('data-color', '#0a2463');
-      document.body.appendChild(widgetScript);
+      setTimeout(function() {
+        var widgetScript = document.createElement('script');
+        widgetScript.src = 'https://michael-clf.github.io/ai-widget/widget.js';
+        widgetScript.setAttribute('data-widget-id', 'widget_mfe84059_j415rv');
+        widgetScript.setAttribute('data-color', '#0a2463');
+        document.body.appendChild(widgetScript);
+      }, 2000);
     });
   </script>
 </body>
