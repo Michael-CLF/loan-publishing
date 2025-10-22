@@ -18,6 +18,7 @@ import { RemoveSavedLoanModalComponent } from '../modals/remove-saved-loan/remov
 import { DeletePublishedLoanModalComponent } from '../modals/delete-published-loan/delete-published-loan.component';
 import { RemoveSavedLenderComponent } from '../modals/remove-saved-lender/remove-saved-lender.component';
 import { EmailSuccessModalComponent } from '../modals/email-success-modal/email-success-modal.component';
+import { AnalyticsService } from '../services/analytics.service';
 
 
 @Injectable({
@@ -29,8 +30,8 @@ export class ModalService implements OnDestroy {
   private router = inject(Router);
   private modalComponentRef: any = null;
   private routerSubscription: Subscription;
-
-  constructor() {
+  
+  constructor( private analytics: AnalyticsService) {
     // Subscribe to router navigation events
     this.routerSubscription = this.router.events
       .pipe(filter((event) => event instanceof NavigationStart))
@@ -151,6 +152,7 @@ setTimeout(() => {
 
   openRoleSelectionModal(): void {
     console.log('ModalService - Beginning to create modal');
+    this.analytics.trackButtonClick('Gain Access', 'role-selection-modal');
 
     if (this.modalComponentRef) {
       console.log('ModalService - Closing existing modal');

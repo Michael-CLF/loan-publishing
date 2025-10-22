@@ -50,6 +50,11 @@ export class HomeComponent implements OnInit {
     this.modalService.openRoleSelectionModal();
     this.analytics.trackButtonClick('Gain Access', 'home-hero');
 
+     if (this.roleModal) {
+    this.roleModal.open();
+  }
+
+
     // Lazy-load AuthService only when button is clicked
     try {
       const { AuthService } = await import('../services/auth.service');
