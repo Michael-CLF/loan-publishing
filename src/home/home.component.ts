@@ -23,7 +23,6 @@ export class HomeComponent implements OnInit {
   roleModal!: RoleSelectionModalComponent;
   
 
-  // Don't inject AuthService here - we'll load it on demand
 
   constructor(
     private router: Router,
@@ -42,47 +41,18 @@ export class HomeComponent implements OnInit {
   // Log for debugging
   console.log('🎯 Gain Access button clicked and tracked');
   
-  // Add any other logic you want when the button is clicked
-  // For example, navigation or opening a modal
 }
 
-  async openRoleSelectionModal(): Promise<void> {
-    this.modalService.openRoleSelectionModal();
-    this.analytics.trackButtonClick('Gain Access', 'home-hero');
-
-     if (this.roleModal) {
+openRoleSelectionModal(): void {
+  // Track the button click
+  this.analytics.trackButtonClick('Gain Access', 'home-hero');
+  
+  // Open the modal via service
+  this.modalService.openRoleSelectionModal();
+  
+  // Open the actual modal component
+  if (this.roleModal) {
     this.roleModal.open();
   }
-
-
-    // Lazy-load AuthService only when button is clicked
-    try {
-      const { AuthService } = await import('../services/auth.service');
-      const { inject } = await import('@angular/core');
-      
-      // Get AuthService instance
-      const authService = inject(AuthService);
-      
-      // Check auth status
-      authService.isLoggedIn$.pipe(
-        (await import('rxjs/operators')).take(1)
-      ).subscribe((isAuthenticated: boolean) => {
-        if (isAuthenticated) {
-          console.log('✅ User authenticated via modal check, redirecting to dashboard');
-          this.router.navigate(['/dashboard']);
-        } else {
-          console.log('👤 User not authenticated, opening role selection modal');
-          if (this.roleModal) {
-            this.roleModal.open();
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Error loading auth service:', error);
-      // Still open modal even if auth check fails
-      if (this.roleModal) {
-        this.roleModal.open();
-      }
-    }
-  }
+}
 }
