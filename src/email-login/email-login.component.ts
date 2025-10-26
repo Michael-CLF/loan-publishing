@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, NgZone } from '@angular/core';
+import { Component, OnInit, inject, NgZone, signal, computed } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -7,6 +7,7 @@ import {
 } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { AuthService } from '../services/auth.service';
+import { OTPService } from '../services/otp.service';
 import { CommonModule } from '@angular/common';
 import { ModalService } from '../services/modal.service';
 import { User } from '@angular/fire/auth';
@@ -21,21 +22,26 @@ import { User } from '@angular/fire/auth';
 export class EmailLoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
+  private otpService = inject(OTPService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
   private modalService = inject(ModalService);
 
   loginForm: FormGroup;
-  isLoading = false;
-  isVerifying = false;
-  errorMessage = '';
-  successMessage = '';
-  isEmailLink = false;
-  showLinkSent = false;
   
-  // ✅ NEW: Add properties to manage error dialog state
-  showErrorDialog = false;
-  errorType: 'account-not-found' | 'payment-required' | 'general' | null = null;
+  // Signals for reactive state management (Angular 18 best practice)
+  currentStep = signal<'email' | 'code' | 'verifying'>('email');
+  errorMessage = signal<string>('');
+  otpCode = signal<string>('');
+  
+  // Computed signals
+  isLoading = computed(() => this.otpService.isLoading());
+  otpSent = computed(() => this.otpService.otpSent());
+  timeRemaining = computed(() => this.otpService.formatTimeRemaining());
+  attemptsRemaining = computed(() => this.otpService.attemptsRemaining());
+  
+  // 6-digit code input boxes
+  codeDigits = signal<string[]>(['', '', '', '', '', '']);
 
   constructor() {
     this.loginForm = this.fb.group({
@@ -43,195 +49,148 @@ export class EmailLoginComponent implements OnInit {
     });
   }
 
-ngOnInit(): void {
-  console.log('Email login component initializing...');
-  
-  // Don't try to handle email links if we're not on the login page
-  // The registration-processing component handles auth actions
-  const currentUrl = window.location.href;
-  if (currentUrl.includes('/__/auth/action')) {
-    console.log('📧 Email login component: Skipping - auth action URL');
-    return;
+  ngOnInit(): void {
+    console.log('✅ OTP Email login component initializing...');
+    // Component is ready - user can enter email to request OTP
   }
-  this.authService.isEmailSignInLink().subscribe({
-    next: (isSignInLink) => {
-      console.log('Is email sign-in link:', isSignInLink);
-      this.isEmailLink = isSignInLink;
 
-      if (this.isEmailLink) {
-        console.log('This is an email sign-in link, handling authentication...');
-        this.handleEmailLink();
-      } else {
-        console.log('This is not an email sign-in link');
-      }
-    },
-      error: (error: Error) => {
-        console.error('Error checking email sign-in link:', error);
-        this.showError('Error checking authentication link', 'general');
-      },
-    });
-  }
   get emailControl() {
     return this.loginForm.get('email');
-  }  
-sendLoginLink(email: string): void {
-  this.isLoading = true;
-  this.successMessage = '';
-  this.clearError();
-  localStorage.setItem('redirectUrl', '/dashboard');
-  this.authService.sendLoginLink(email).subscribe({
-    next: () => {
-      this.isLoading = false;
-      this.successMessage = 'Login link sent to your email!';
-      this.showLinkSent = true;
-      console.log('✅ Login link sent successfully');
-    },
-    error: (error: Error) => {
-      this.isLoading = false;
-      this.showError(`Error sending login link: ${error.message}`, 'general');
-      console.error('❌ Error sending login link:', error);
+  }
+
+  /**
+   * Sends OTP code to user's email
+   * Changes view from email entry to code entry
+   */
+  sendOTPCode(): void {
+    const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
+    
+    if (!email || !this.loginForm.valid) {
+      this.errorMessage.set('Please enter a valid email address');
+      return;
     }
-  });
-}  
-  // ✅ NEW: Method to show error with dialog
-  private showError(message: string, type: 'account-not-found' | 'payment-required' | 'general'): void {
-    this.errorMessage = message;
-    this.errorType = type;
-    this.showErrorDialog = true;
-  }
 
-  // ✅ NEW: Method to clear error state
-  clearError(): void {
-    this.errorMessage = '';
-    this.errorType = null;
-    this.showErrorDialog = false;
-  }
-
-  // ✅ MODIFIED: Fix the "Try Again" functionality
-  tryAgain(): void {
-    // Clear the error dialog and reset form state
-    this.clearError();
+    console.log('📤 Requesting OTP for:', email);
     
-    // Reset the email field so user can enter a different email
-    this.loginForm.get('email')?.reset();
-    this.loginForm.get('email')?.markAsUntouched();
-    
-    // Focus back to the email input (you'll need to add template reference)
-    // The user can now enter a different email address
-    
-    console.log('🔄 Try again - form reset for new email entry');
-  }
-
-  // ✅ NEW: Close error dialog but keep the form data
-  closeErrorDialog(): void {
-    this.showErrorDialog = false;
-  }
-
-requestNewLink(): void {
-  this.clearError();
-  
-  const email = this.emailControl?.value;
-  if (!email || !this.emailControl?.valid) {
-    this.showError('Please enter a valid email address.', 'general');
-    return;
-  }
-  
-  // Reset the form control to clear validation state
-  this.loginForm.get('email')?.markAsUntouched();
-  
-  console.log('🔄 Trying again with email:', email);
-  this.sendLoginLink(email);
-}
-
-  loginWithGoogle(): void {
-    this.isLoading = true;
-    this.clearError();
-
-    console.log('🔍 Attempting Google login...');
-
-    this.authService.loginWithGoogle().subscribe({
-      next: (user: User | null) => {
-        if (!user || !user.email) {
-          this.isLoading = false;
-          this.showError('Google sign-in failed. Please try again.', 'general');
-          return;
-        }
-
-        console.log('🔍 Google login successful, validating account...');
-
-        this.authService.checkAccountExists(user.email).subscribe({
-          next: (accountInfo) => {
-            if (!accountInfo.exists) {
-              this.isLoading = false;
-              this.showError(
-                'No account found for this Google email. Please contact support or register first.',
-                'account-not-found'
-              );
-              console.log('❌ Google account not found in system:', user.email);
-              return;
-            }
-
-            if (accountInfo.needsPayment) {
-              this.isLoading = false;
-              this.showError(
-                'Account found but payment required. Please complete your registration to access your account.',
-                'payment-required'
-              );
-              console.log('💳 Google account needs payment:', accountInfo);
-              return;
-            }
-
-            console.log('✅ Google account validated, proceeding to dashboard...');
-            this.isLoading = false;
-            
-            this.ngZone.run(() => {
-              localStorage.setItem('isLoggedIn', 'true');
-              const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-              this.router.navigate([redirectUrl]);
-              localStorage.removeItem('redirectUrl');
-            });
-          },
-          error: (error) => {
-            this.isLoading = false;
-            this.showError('Unable to verify account status. Please try again.', 'general');
-            console.error('❌ Error validating Google account:', error);
-          }
-        });
+    this.otpService.sendOTP(email).subscribe({
+      next: () => {
+        console.log('✅ OTP sent, switching to code entry view');
+        this.currentStep.set('code');
+        this.errorMessage.set('');
       },
-      error: (err: Error) => {
-        this.isLoading = false;
-        console.error('❌ Error during Google login:', err);
-        this.showError('Google sign-in failed. Please try again.', 'general');
+      error: (error) => {
+        console.error('❌ Error sending OTP:', error);
+        this.errorMessage.set(error.message || 'Failed to send code. Please try again.');
       }
     });
   }
-private handleEmailLink(): void {
-  this.isVerifying = true;
-  this.clearError();
 
-  console.log('🔗 Handling email link authentication...');
+  /**
+   * Handles input in the 6-digit code boxes
+   * Automatically advances to next box
+   */
+  onCodeDigitInput(index: number, event: any): void {
+    const value = event.target.value;
+    
+    // Only allow single digit
+    if (value.length > 1) {
+      event.target.value = value.charAt(0);
+      return;
+    }
 
-  this.authService.handleEmailLinkAuthentication().subscribe({
-    next: (result) => {
-      this.isVerifying = false;
+    // Update the digit
+    const digits = this.codeDigits();
+    digits[index] = value;
+    this.codeDigits.set([...digits]);
+
+    // Auto-advance to next box if digit entered
+    if (value && index < 5) {
+      const nextInput = document.getElementById(`code-${index + 1}`) as HTMLInputElement;
+      nextInput?.focus();
+    }
+
+    // Auto-submit if all 6 digits filled
+    if (index === 5 && value) {
+      const fullCode = this.codeDigits().join('');
+      if (fullCode.length === 6) {
+        this.verifyOTPCode();
+      }
+    }
+  }
+
+  /**
+   * Handles backspace in code boxes
+   * Moves to previous box when current is empty
+   */
+  onCodeDigitKeydown(index: number, event: KeyboardEvent): void {
+    if (event.key === 'Backspace') {
+      const digits = this.codeDigits();
       
-      if (result.success && result.user) {
-        console.log('✅ Email link authentication successful for:', result.user.email);
+      if (!digits[index] && index > 0) {
+        // Current box empty, move to previous
+        const prevInput = document.getElementById(`code-${index - 1}`) as HTMLInputElement;
+        prevInput?.focus();
+      } else {
+        // Clear current box
+        digits[index] = '';
+        this.codeDigits.set([...digits]);
+      }
+    }
+  }
+
+  /**
+   * Handles paste event - allows pasting full 6-digit code
+   */
+  onCodePaste(event: ClipboardEvent): void {
+    event.preventDefault();
+    const pastedText = event.clipboardData?.getData('text') || '';
+    const digits = pastedText.replace(/\D/g, '').slice(0, 6).split('');
+    
+    if (digits.length === 6) {
+      this.codeDigits.set(digits);
+      // Focus last box
+      const lastInput = document.getElementById('code-5') as HTMLInputElement;
+      lastInput?.focus();
+      // Auto-submit
+      this.verifyOTPCode();
+    }
+  }
+
+  /**
+   * Verifies the OTP code entered by user
+   */
+  verifyOTPCode(): void {
+    const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
+    const code = this.codeDigits().join('');
+
+    if (code.length !== 6) {
+      this.errorMessage.set('Please enter all 6 digits');
+      return;
+    }
+
+    console.log('🔐 Verifying OTP code...');
+    this.currentStep.set('verifying');
+
+    this.otpService.verifyOTP(email, code).subscribe({
+      next: (isNewUser) => {
+        console.log('✅ OTP verified successfully');
         
-        // ✅ ENHANCED: Verify user has proper access
-        this.authService.checkAccountExists(result.user.email!).subscribe({
+        // Check account exists and has proper access
+        this.authService.checkAccountExists(email).subscribe({
           next: (accountInfo) => {
             if (!accountInfo.exists) {
-              this.showError('Account not found. Please contact support.', 'account-not-found');
+              this.currentStep.set('code');
+              this.errorMessage.set('Account not found. Please contact support.');
               return;
             }
 
             if (accountInfo.needsPayment) {
-              this.showError('Payment required to access your account.', 'payment-required');
+              this.currentStep.set('code');
+              this.errorMessage.set('Payment required to access your account.');
               return;
             }
 
-            // ✅ SUCCESS: Navigate to dashboard
+            // Success! Navigate to dashboard
             this.ngZone.run(() => {
               localStorage.setItem('isLoggedIn', 'true');
               const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
@@ -245,29 +204,123 @@ private handleEmailLink(): void {
           },
           error: (error) => {
             console.error('❌ Error validating account:', error);
-            this.showError('Unable to verify account. Please try again.', 'general');
+            this.currentStep.set('code');
+            this.errorMessage.set('Unable to verify account. Please try again.');
           }
         });
-      } else {
-        console.error('❌ Email link authentication failed:', result.error);
+      },
+      error: (error) => {
+        console.error('❌ OTP verification failed:', error);
+        this.currentStep.set('code');
+        this.errorMessage.set(error.message || 'Invalid code. Please try again.');
         
-        if (result.error?.includes('expired')) {
-          this.showError('This login link has expired. Please request a new one.', 'general');
-        } else if (result.error?.includes('Email not found')) {
-          this.showError('Authentication failed. Please try requesting a new login link.', 'general');
-        } else {
-          this.showError(`Authentication failed: ${result.error}`, 'general');
-        }
+        // Clear the code boxes for retry
+        this.codeDigits.set(['', '', '', '', '', '']);
+        const firstInput = document.getElementById('code-0') as HTMLInputElement;
+        firstInput?.focus();
       }
-    },
-    error: (error: any) => {
-      this.isVerifying = false;
-      console.error('❌ Email link authentication error:', error);
-      this.showError('Authentication failed. Please try again.', 'general');
-    }
-  });
-}
+    });
+  }
 
+  /**
+   * Goes back to email entry screen
+   * Keeps email filled but hides Google button
+   */
+  goBackToEmail(): void {
+    console.log('🔙 Going back to email entry');
+    this.currentStep.set('email');
+    this.errorMessage.set('');
+    this.codeDigits.set(['', '', '', '', '', '']);
+    this.otpService.resetOTPState();
+  }
+
+  /**
+   * Resends OTP code to same email
+   */
+  resendOTPCode(): void {
+    const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
+    
+    console.log('🔄 Resending OTP code');
+    this.errorMessage.set('');
+    
+    this.otpService.sendOTP(email).subscribe({
+      next: () => {
+        console.log('✅ OTP code resent');
+        this.codeDigits.set(['', '', '', '', '', '']);
+        const firstInput = document.getElementById('code-0') as HTMLInputElement;
+        firstInput?.focus();
+      },
+      error: (error) => {
+        console.error('❌ Error resending OTP:', error);
+        this.errorMessage.set(error.message || 'Failed to resend code. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Clears error message
+   */
+  clearError(): void {
+    this.errorMessage.set('');
+    this.otpService.clearError();
+  }
+
+  /**
+   * Google OAuth login
+   * Only shown in initial email entry view
+   */
+  loginWithGoogle(): void {
+    console.log('🔍 Attempting Google login...');
+    this.clearError();
+
+    this.authService.loginWithGoogle().subscribe({
+      next: (user: User | null) => {
+        if (!user || !user.email) {
+          this.errorMessage.set('Google sign-in failed. Please try again.');
+          return;
+        }
+
+        console.log('🔍 Google login successful, validating account...');
+
+        this.authService.checkAccountExists(user.email).subscribe({
+          next: (accountInfo) => {
+            if (!accountInfo.exists) {
+              this.errorMessage.set('No account found for this Google email. Please contact support or register first.');
+              console.log('❌ Google account not found in system:', user.email);
+              return;
+            }
+
+            if (accountInfo.needsPayment) {
+              this.errorMessage.set('Account found but payment required. Please complete your registration to access your account.');
+              console.log('💳 Google account needs payment:', accountInfo);
+              return;
+            }
+
+            console.log('✅ Google account validated, proceeding to dashboard...');
+            
+            this.ngZone.run(() => {
+              localStorage.setItem('isLoggedIn', 'true');
+              const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+              this.router.navigate([redirectUrl]);
+              localStorage.removeItem('redirectUrl');
+            });
+          },
+          error: (error) => {
+            this.errorMessage.set('Unable to verify account status. Please try again.');
+            console.error('❌ Error validating Google account:', error);
+          }
+        });
+      },
+      error: (err: Error) => {
+        console.error('❌ Error during Google login:', err);
+        this.errorMessage.set('Google sign-in failed. Please try again.');
+      }
+    });
+  }
+
+  /**
+   * Opens registration modal
+   */
   openRoleSelectionModal(): void {
     this.modalService.openRoleSelectionModal();
   }

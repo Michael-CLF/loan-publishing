@@ -1,74 +1,156 @@
 <div class="login-container">
     <h2 class="title">Log in to Daily Loan Post</h2>
 
-    <!-- Email Request Form -->
-    @if (!showLinkSent && !isVerifying && !errorMessage) {
-    <form [formGroup]="loginForm" (ngSubmit)="sendLoginLink(loginForm.value.email)">
-
-        <div class="form-group">
-            <label for="email">Email Address</label>
-            <input type="email" id="email" formControlName="email" placeholder="Enter your email address">
-            @if (emailControl?.invalid && (emailControl?.dirty || emailControl?.touched)) {
-            <div class="error-message">
-                @if (emailControl?.errors?.['required']) {
-                <span>*Email is required</span>
-                }
-                @if (emailControl?.errors?.['email']) {
-                <span>*Please enter a valid email address</span>
+    <!-- VIEW 1: Email Entry (Initial State) -->
+    @if (currentStep() === 'email') {
+        <form [formGroup]="loginForm" (ngSubmit)="sendOTPCode()">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input 
+                    type="email" 
+                    id="email" 
+                    formControlName="email" 
+                    placeholder="Enter your email address"
+                    [disabled]="isLoading()"
+                >
+                @if (emailControl?.invalid && (emailControl?.dirty || emailControl?.touched)) {
+                    <div class="error-message">
+                        @if (emailControl?.errors?.['required']) {
+                            <span>*Email is required</span>
+                        }
+                        @if (emailControl?.errors?.['email']) {
+                            <span>*Please enter a valid email address</span>
+                        }
+                    </div>
                 }
             </div>
+
+            <button 
+                type="submit" 
+                [disabled]="loginForm.invalid || isLoading()" 
+                class="login-button"
+            >
+                @if (isLoading()) {
+                    <span>Sending Code...</span>
+                } @else {
+                    <span>Send Verification Code</span>
+                }
+            </button>
+
+            <div class="divider">or continue with</div>
+
+            <button 
+                type="button"
+                (click)="loginWithGoogle()" 
+                class="google-signin-button"
+                [disabled]="isLoading()"
+            >
+                <img src="assets/icons/google-logo.webp" alt="Google logo" />
+                <span>Continue with Google</span>
+            </button>
+
+            <div class="login-options">
+                <p>Don't have an account? <a (click)="openRoleSelectionModal()" style="cursor: pointer;">Sign up</a></p>
+            </div>
+        </form>
+
+        <!-- Error Message for Email Entry -->
+        @if (errorMessage()) {
+            <div class="error-alert">
+                <span class="error-icon">⚠️</span>
+                <span>{{ errorMessage() }}</span>
+            </div>
+        }
+    }
+
+    <!-- VIEW 2: Code Entry -->
+    @if (currentStep() === 'code') {
+        <div class="code-entry-container">
+            <div class="code-header">
+                <h3>Check Your Email</h3>
+                <p class="email-sent-to">
+                    We sent a verification code to<br>
+                    <strong>{{ loginForm.get('email')?.value }}</strong>
+                </p>
+            </div>
+
+            <!-- 6-Digit Code Input Boxes -->
+            <div class="code-input-group">
+                @for (digit of codeDigits(); track $index) {
+                    <input
+                        type="text"
+                        inputmode="numeric"
+                        maxlength="1"
+                        class="code-digit-input"
+                        [id]="'code-' + $index"
+                        [value]="digit"
+                        (input)="onCodeDigitInput($index, $event)"
+                        (keydown)="onCodeDigitKeydown($index, $event)"
+                        (paste)="$index === 0 ? onCodePaste($event) : null"
+                        [disabled]="isLoading()"
+                        autocomplete="off"
+                    />
+                }
+            </div>
+
+            <!-- Timer and Actions -->
+            <div class="code-actions">
+                <p class="timer-text">
+                    Code expires in: <strong>{{ timeRemaining() }}</strong>
+                </p>
+
+                <button 
+                    type="button"
+                    (click)="verifyOTPCode()" 
+                    class="verify-button"
+                    [disabled]="isLoading() || codeDigits().join('').length !== 6"
+                >
+                    @if (isLoading()) {
+                        <span>Verifying...</span>
+                    } @else {
+                        <span>Verify Code</span>
+                    }
+                </button>
+
+                <button 
+                    type="button"
+                    (click)="resendOTPCode()" 
+                    class="resend-button"
+                    [disabled]="isLoading()"
+                >
+                    Didn't receive it? Resend code
+                </button>
+
+                <button 
+                    type="button"
+                    (click)="goBackToEmail()" 
+                    class="back-button"
+                >
+                    ← Use different email
+                </button>
+            </div>
+
+            <!-- Error Message for Code Entry -->
+            @if (errorMessage()) {
+                <div class="error-alert">
+                    <span class="error-icon">⚠️</span>
+                    <span>{{ errorMessage() }}</span>
+                    @if (attemptsRemaining() > 0) {
+                        <span class="attempts-remaining">
+                            ({{ attemptsRemaining() }} attempts remaining)
+                        </span>
+                    }
+                </div>
             }
         </div>
+    }
 
-        <button type="submit" [disabled]="loginForm.invalid || isLoading" class="login-button">
-            @if (!isLoading) {
-            <span>Send Login Link</span>
-            } @else {
-            <span>Sending...</span>
-            }
-        </button>
-
-        <div class="divider">Have a gmail account?</div>
-
-        <button (click)="loginWithGoogle()" class="google-signin-button">
-            <img src="assets/icons/google-logo.webp" alt="Google logo" />
-            <span>Continue with Google</span>
-        </button>
-
-        <div class="login-options">
-            <p>Don't have an account? <a (click)="openRoleSelectionModal()" style="cursor: pointer;">Sign up</a></p>
+    <!-- VIEW 3: Verifying -->
+    @if (currentStep() === 'verifying') {
+        <div class="verification-message">
+            <h3>Verifying your code...</h3>
+            <div class="loader"></div>
+            <p class="verification-text">Please wait while we verify your code</p>
         </div>
-    </form>
-    }
-
-    <!-- Link Sent Message -->
-    @if (showLinkSent) {
-    <div class="success-message">
-        <h3>Login Link Sent!</h3>
-        <p>We've sent a login link to <strong>{{ loginForm.get('email')?.value }}</strong></p>
-        <p>Please check your email and click the link to log in.</p>
-        <p class="info-text">The link will expire after 15 minutes for security reasons.</p>
-        <button (click)="requestNewLink()" class="secondary-button">Send a new link</button>
-    </div>
-    }
-
-    <!-- Verification Status -->
-    @if (isVerifying) {
-    <div class="verification-message">
-        <h3>Verifying your login...</h3>
-        <div class="loader"></div>
-    </div>
-    }
-
-    <!-- Error Message -->
-    @if (errorMessage) {
-    <div class="error-container">
-        <h3>Login Error</h3>
-        <p class="login-text" [innerHTML]="errorMessage"></p>
-        <div>
-            <p class="login-text">Don't have an account? <a routerLink="/user-form">Sign up</a></p>
-        </div>
-        <button (click)="tryAgain()" class="secondary-button">Try Again</button>
-    </div>
     }
 </div>

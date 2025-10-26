@@ -199,3 +199,263 @@ label {
     transform: rotate(360deg);
   }
 }
+/* ============================================
+   OTP CODE ENTRY STYLES
+   ============================================ */
+
+/* Code Entry Container */
+.code-entry-container {
+  text-align: center;
+  animation: fadeIn 0.3s ease-in;
+}
+
+.code-header {
+  margin-bottom: 2rem;
+}
+
+.code-header h3 {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.email-sent-to {
+  color: #77838f;
+  font-family: "roboto", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.email-sent-to strong {
+  color: #0a2463;
+  font-weight: 600;
+}
+
+/* 6-Digit Code Input Boxes */
+.code-input-group {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin: 2rem 0;
+}
+
+.code-digit-input {
+  width: 50px;
+  height: 60px;
+  font-size: 1.75rem;
+  font-weight: 600;
+  text-align: center;
+  border: 2px solid #0a2463;
+  border-radius: 8px;
+  font-family: "roboto", sans-serif;
+  color: #0a2463;
+  background-color: #fff;
+  transition: all 0.2s ease;
+  caret-color: #0a2463;
+}
+
+.code-digit-input:focus {
+  outline: none;
+  border-color: #4285f4;
+  box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.2);
+  transform: scale(1.05);
+}
+
+.code-digit-input:disabled {
+  background-color: #f5f5f5;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Code Actions Section */
+.code-actions {
+  margin-top: 1.5rem;
+}
+
+.timer-text {
+  color: #77838f;
+  font-family: "roboto", sans-serif;
+  font-size: 0.95rem;
+  margin-bottom: 1.5rem;
+}
+
+.timer-text strong {
+  color: #0a2463;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+/* Verify Button (Primary Action) */
+.verify-button {
+  width: 100%;
+  padding: 0.875rem;
+  background-color: #0a2463;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-family: "roboto", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1rem;
+}
+
+.verify-button:hover:not(:disabled) {
+  background-color: #008080;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.verify-button:disabled {
+  background-color: #cdcdcd;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Resend Button (Secondary Action) */
+.resend-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: transparent;
+  color: #0a2463;
+  border: 2px solid #0a2463;
+  border-radius: 4px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-bottom: 1rem;
+}
+
+.resend-button:hover:not(:disabled) {
+  background-color: #0a2463;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.resend-button:disabled {
+  border-color: #cdcdcd;
+  color: #cdcdcd;
+  cursor: not-allowed;
+}
+
+/* Back Button (Tertiary Action) */
+.back-button {
+  width: 100%;
+  padding: 0.75rem;
+  background-color: transparent;
+  color: #77838f;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  font-family: "roboto", sans-serif;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.back-button:hover {
+  background-color: #f5f5f5;
+  color: #0a2463;
+  border-color: #0a2463;
+}
+
+/* Error Alert (Enhanced) */
+.error-alert {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 1rem;
+  background-color: #fef2f2;
+  border: 1px solid #fca5a5;
+  border-radius: 6px;
+  color: #c00000;
+  font-family: "roboto", sans-serif;
+  font-size: 0.95rem;
+  margin-top: 1.5rem;
+  animation: shake 0.3s ease;
+}
+
+.error-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+}
+
+.attempts-remaining {
+  display: block;
+  font-size: 0.85rem;
+  color: #ef4444;
+  margin-top: 0.25rem;
+  font-weight: 500;
+}
+
+/* Verification Loading State */
+.verification-message {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.verification-message h3 {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.25rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+.verification-text {
+  color: #77838f;
+  font-family: "roboto", sans-serif;
+  font-size: 0.95rem;
+  margin-top: 1rem;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Responsive Design for Smaller Screens */
+@media (max-width: 480px) {
+  .code-input-group {
+    gap: 8px;
+  }
+
+  .code-digit-input {
+    width: 42px;
+    height: 52px;
+    font-size: 1.5rem;
+  }
+
+  .code-header h3 {
+    font-size: 1.25rem;
+  }
+
+  .email-sent-to {
+    font-size: 0.875rem;
+  }
+}
