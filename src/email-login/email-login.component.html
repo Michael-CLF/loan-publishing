@@ -95,15 +95,21 @@
 
             <!-- Timer and Actions -->
             <div class="code-actions">
-                <p class="timer-text">
-                    Code expires in: <strong>{{ timeRemaining() }}</strong>
-                </p>
+                @if (!otpService.isExpired()) {
+                    <p class="timer-text">
+                        Code expires in: <strong>{{ timeRemaining() }}</strong>
+                    </p>
+                } @else {
+                    <p class="timer-text expired">
+                        ⏰ Code has expired. Please request a new one.
+                    </p>
+                }
 
                 <button 
                     type="button"
                     (click)="verifyOTPCode()" 
                     class="verify-button"
-                    [disabled]="isLoading() || codeDigits().join('').length !== 6"
+                    [disabled]="isLoading() || codeDigits().join('').length !== 6 || otpService.isExpired()"
                 >
                     @if (isLoading()) {
                         <span>Verifying...</span>

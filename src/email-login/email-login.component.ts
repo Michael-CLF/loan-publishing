@@ -22,7 +22,7 @@ import { User } from '@angular/fire/auth';
 export class EmailLoginComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
-  private otpService = inject(OTPService);
+  public otpService: OTPService = inject(OTPService);
   private router = inject(Router);
   private ngZone = inject(NgZone);
   private modalService = inject(ModalService);
