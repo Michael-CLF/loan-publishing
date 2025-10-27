@@ -37,100 +37,76 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
-  ngOnInit(): void {
-    const qp = this.route.snapshot.queryParamMap;
+ ngOnInit(): void {
+  const qp = this.route.snapshot.queryParamMap;
 
-    // Capture context (for UI / resend)
-    this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
-    const r = qp.get('role');
-    this.role.set(r === 'lender' || r === 'originator' ? r : null);
-    this.uid.set(qp.get('uid'));
+  // Capture context
+  this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
+  const r = qp.get('role');
+  this.role.set(r === 'lender' || r === 'originator' ? r : null);
+  this.uid.set(qp.get('uid'));
 
-    // ---- Direct magic-link URL (contains oobCode) ----
-    const href = window.location.href;
-    const isMagicEmailLink = (href.includes('mode=SignIn') || href.includes('mode=signIn')) && href.includes('oobCode=');
-
-    if (isMagicEmailLink) {
-      this.clearRedirectTimer();
-      this.processingMessage.set('Completing secure sign-in…');
-      this.showProcessingSpinner.set(true);
-
-      this.authService.handleEmailLinkAuthentication().pipe(take(1)).subscribe({
-        next: ({ success, user, error }) => {
-          if (!success) {
-            console.error('Magic link not consumed:', error);
-            this.processingMessage.set('Authentication link error. Please request a new link.');
-            this.showErrorMessage.set(true);
-            this.showProcessingSpinner.set(false);
-            return;
-          }
-
-          const email = (user?.email ?? qp.get('email') ?? '').trim();
-          if (!email) {
-            this.processingMessage.set('We could not confirm your email. Please open the link from the same device or request a new link.');
-            this.showErrorMessage.set(true);
-            this.showProcessingSpinner.set(false);
-            return;
-          }
-
-          this.afterAuth(email);
-        },
-        error: (err) => {
-          console.error('Error handling magic link:', err);
-          this.processingMessage.set('Authentication link error. Please request a new link.');
-          this.showErrorMessage.set(true);
-          this.showProcessingSpinner.set(false);
-        }
-      });
-
-      return;
-    }
-
-    // ---- Magic-link return (?ml=1) — wait briefly for auth instead of showing success card ----
-    const isMagicLinkReturn = qp.get('ml') === '1';
-    if (isMagicLinkReturn) {
-      this.clearRedirectTimer();
-      this.processingMessage.set('Completing sign-in…');
-      this.showProcessingSpinner.set(true);
-
-      let attempts = 0;
-      const MAX_ATTEMPTS = 8;     // ~5–6s total
-      const DELAY_MS = 700;
-
-      const checkAuth = () => {
-        attempts++;
-        this.authService.refreshCurrentUser().then(() => {
-          this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
-            next: (user) => {
-              if (user?.email) {
-                this.afterAuth(user.email);
-              } else if (attempts < MAX_ATTEMPTS) {
-                setTimeout(checkAuth, DELAY_MS);
-              } else {
-                // Auth never arrived — fall back to the post-Stripe screen
-                this.showCheckEmailScreenWithRedirect();
-              }
-            },
-            error: () => {
-              if (attempts < MAX_ATTEMPTS) {
-                setTimeout(checkAuth, DELAY_MS);
-              } else {
-                this.processingMessage.set('Unable to verify sign-in. Please try the email link again.');
-                this.showProcessingSpinner.set(false);
-                this.showErrorMessage.set(true);
-              }
-            }
-          });
-        });
-      };
-
-      checkAuth();
-      return;
-    }
-
-    // ---- Default (post-Stripe success) ----
-    this.showCheckEmailScreenWithRedirect();
+  // Check if returning from Stripe payment
+  const isStripeReturn = qp.get('session_id') !== null;
+  
+  if (isStripeReturn) {
+    // User just completed payment - wait for webhook to activate subscription
+    this.handlePostPaymentProcessing();
+    return;
   }
+
+  // Default: Show "check email for OTP" message
+  this.showCheckEmailScreen();
+}
+
+/**
+ * Show "check your email for OTP code" screen
+ */
+private showCheckEmailScreen(): void {
+  this.processingMessage.set('Check your email for a verification code to continue registration.');
+  this.showProcessingSpinner.set(false);
+  this.showSuccessMessage.set(true);
+  
+  // No auto-redirect - user stays on this page until they verify OTP
+}
+
+/**
+ * Handle post-payment processing (after Stripe redirect)
+ */
+private handlePostPaymentProcessing(): void {
+  this.clearRedirectTimer();
+  this.processingMessage.set('Processing your payment...');
+  this.showProcessingSpinner.set(true);
+
+  const email = this.email();
+  if (!email) {
+    this.processingMessage.set('Unable to verify payment. Please contact support.');
+    this.showErrorMessage.set(true);
+    this.showProcessingSpinner.set(false);
+    return;
+  }
+
+  // Check if user is authenticated
+  this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
+    next: (user) => {
+      if (user?.email) {
+        // User is authenticated - check subscription status
+        this.pollForAccountActivation(user.email, 0);
+      } else {
+        // User not authenticated yet - show message to check email
+        this.processingMessage.set('Payment received! Please check your email to complete sign-in.');
+        this.showProcessingSpinner.set(false);
+        this.showSuccessMessage.set(true);
+      }
+    },
+    error: (err) => {
+      console.error('Error checking auth:', err);
+      this.processingMessage.set('Payment received! Please check your email to complete sign-in.');
+      this.showProcessingSpinner.set(false);
+      this.showSuccessMessage.set(true);
+    }
+  });
+}
 
   ngOnDestroy(): void {
     this.clearRedirectTimer();

@@ -1,6 +1,14 @@
 import { Injectable } from '@angular/core';
 import { usaStatesWithCounties } from 'typed-usa-states/dist/states-with-counties';
 import { FootprintLocation } from '../models/footprint-location.model';
+import { 
+  PROPERTY_CATEGORIES, 
+  PROPERTY_SUBCATEGORIES 
+} from '../shared/constants/property-mappings';
+import { 
+  LENDER_TYPES, 
+  LOAN_TYPES 
+} from '../shared/constants/lender-type-mappings';
 
 @Injectable({
   providedIn: 'root',
@@ -84,4 +92,36 @@ export class LocationService {
       .replace(/\./g, '') // Remove periods
       .replace(/[^a-z0-9-]/g, ''); // Remove special characters
   }
+ /**
+ * Get all lender types for dropdown
+ * Returns array with 'name' property (not 'label')
+ */
+getLenderTypes(): Array<{value: string, name: string}> {
+  return Object.entries(LENDER_TYPES).map(([value, displayName]) => ({
+    value: value,
+    name: displayName  // ← Must be 'name', not 'label'
+  }));
+}
+
+/**
+ * Get all property categories for dropdown
+ * Returns array with 'name' property (not 'label')
+ */
+getPropertyCategories(): Array<{value: string, name: string}> {
+  return Object.entries(PROPERTY_CATEGORIES).map(([value, displayName]) => ({
+    value: value,
+    name: displayName  // ← Must be 'name', not 'label'
+  }));
+}
+
+/**
+ * Get all loan types for dropdown
+ * Returns array with 'name' property (not 'label')
+ */
+getLoanTypes(): Array<{value: string, name: string}> {
+  return Object.entries(LOAN_TYPES).map(([value, displayName]) => ({
+    value: value,
+    name: displayName  // ← Must be 'name', not 'label'
+  }));
+}
 }

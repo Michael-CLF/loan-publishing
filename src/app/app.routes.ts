@@ -353,12 +353,6 @@ export const routes: Routes = [
   
   // Utility routes - lazy load
   {
-    path: 'verify',
-    loadComponent: () => import('src/components/verification/verification.component')
-      .then(m => m.VerificationComponent),
-    title: 'Verify Account - LoanPost'
-  },
-  {
     path: 'firebase-video',
     loadComponent: () => import('src/components/firebase-video/firebase-video.component')
       .then(m => m.FirebaseVideoComponent),

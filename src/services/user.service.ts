@@ -13,94 +13,93 @@ import {
 import { Observable, from, throwError, switchMap, of, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
+import { Functions, httpsCallable } from '@angular/fire/functions';
+
+export interface RegistrationData {
+  email: string;
+  role: 'originator' | 'lender';
+  firstName: string;
+  lastName: string;
+  phone: string;
+  city: string;
+  state: string;
+  company?: string;
+  contactInfo?: any;
+  lenderData?: any;
+}
+
+export interface RegistrationResponse {
+  success: boolean;
+  message: string;
+  userId?: string;
+  error?: string;
+}
 
 @Injectable({
   providedIn: 'root',
 })
 export class UserService {
   private firestore = inject(Firestore);
-
-private get db() {
+  private functions = inject(Functions); 
+  private get db() {
   return this.firestore;
 }
 
+/**
+ * Registers user via createPendingUser Cloud Function
+ */
+registerUser(userData: RegistrationData): Observable<any> {
+  const createPendingUserCallable = httpsCallable(
+    this.functions, 
+    'createPendingUser'
+  );
+  
+  return from(createPendingUserCallable(userData)).pipe(
+    map((result: any) => result.data),
+    catchError((error) => {
+      console.error('❌ Registration error:', error);
+      throw error;
+    })
+  );
+}
 
   private auth = inject(Auth);
   private http = inject(HttpClient);
 
   private readonly registerUserUrl = `${environment.apiUrl}/registerUser`;
 
-  registerUserBackend(userData: any): Observable<any> {
-  return this.http.post(this.registerUserUrl, userData).pipe(
-    map((response: any) => {
-      // ✅ Save user ID for status checking after payment
-      if (response.success && response.uid) {
-        localStorage.setItem('pendingUserId', response.uid);
-        console.log('✅ Saved pending user ID:', response.uid);
-      }
-      return response;
-    }),
-    catchError((error) => {
-      console.error('UserService: Error registering user via backend:', error);
-      return throwError(() => error);
-    })
-  );
-}
 getUserProfileByUid(uid: string): Observable<any | null> {
-  const lenderRef = doc(this.db, `lenders/${uid}`);
-  const originatorRef = doc(this.db, `originators/${uid}`);
-
-  return from(getDoc(lenderRef)).pipe(
-    switchMap(lenderSnap => {
-      if (lenderSnap.exists()) return of({ id: uid, ...lenderSnap.data() });
-      return from(getDoc(originatorRef)).pipe(
-        map(originatorSnap => originatorSnap.exists() ? { id: uid, ...originatorSnap.data() } : null)
-      );
-    }),
+  const userRef = doc(this.db, `users/${uid}`);
+  
+  return from(getDoc(userRef)).pipe(
+    map(snapshot => snapshot.exists() ? { id: uid, ...snapshot.data() } : null),
     catchError(error => {
-      console.error('❌ Error fetching user profile by UID:', error);
+      console.error('❌ Error fetching user profile:', error);
       return of(null);
     })
   );
 }
 
 checkUserByEmail(email: string): Observable<any | null> {
-  const collections = ['lenders', 'originators'];
   const normalizedEmail = email.toLowerCase().trim();
+  const usersRef = collection(this.db, 'users');
+  
+  const emailQuery = query(
+    usersRef,
+    where('email', '==', normalizedEmail)
+  );
 
-  return from(Promise.all(collections.map(async (collectionName) => {
-    // Check both possible email locations
-    const emailQuery = await getDocs(
-      query(
-        collection(this.db, collectionName),
-        where('email', '==', normalizedEmail)
-      )
-    );
-    
-    if (!emailQuery.empty) {
-      return { data: emailQuery.docs[0].data(), id: emailQuery.docs[0].id };
-    }
-    
-    // Also check contactInfo.contactEmail
-    const contactEmailQuery = await getDocs(
-      query(
-        collection(this.db, collectionName),
-        where('contactInfo.contactEmail', '==', normalizedEmail)
-      )
-    );
-    
-    return contactEmailQuery.empty ? null : { data: contactEmailQuery.docs[0].data(), id: contactEmailQuery.docs[0].id };
-  }))).pipe(
-    map(results => results.find(result => result !== null) || null),
+  return from(getDocs(emailQuery)).pipe(
+    map(snapshot => {
+      if (snapshot.empty) return null;
+      return { data: snapshot.docs[0].data(), id: snapshot.docs[0].id };
+    }),
     catchError(error => {
       console.error('❌ Error checking user by email:', error);
       return of(null);
     })
   );
 }
-
-
-
   /**
    * 🔁 Updates existing Firestore user document
    */

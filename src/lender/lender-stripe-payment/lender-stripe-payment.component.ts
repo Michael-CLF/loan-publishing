@@ -1,5 +1,6 @@
 // src/app/lender-registration/lender-stripe-payment.component.ts
 
+// lender-stripe-payment.component.ts - UPDATED TO USE PaymentService
 import {
   Component,
   OnInit,
@@ -7,8 +8,6 @@ import {
   Output,
   EventEmitter,
   inject,
-  Injector,
-  runInInjectionContext,
 } from '@angular/core';
 import {
   FormBuilder,
@@ -25,17 +24,13 @@ import {
 } from '../../services/lender-registration.service';
 import {
   catchError,
-  tap,
-  switchMap,
-  take,
   finalize,
   takeUntil,
 } from 'rxjs/operators';
 import { of, Subject } from 'rxjs';
-import { CheckoutSessionRequest } from '../../services/stripe.service';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PromotionService } from '../../services/promotion.service';
-import { StripeService } from '../../services/stripe.service';
+import { PaymentService } from '../../services/payment.service'; // ← NEW
 
 interface LenderData {
   companyName: string;
@@ -69,10 +64,9 @@ export class LenderStripePaymentComponent implements OnInit {
   private fb = inject(FormBuilder);
   private authService = inject(AuthService);
   private router = inject(Router);
-  private injector = inject(Injector);
   private promotionService = inject(PromotionService);
   private lenderFormService = inject(LenderFormService);
-  private stripeService = inject(StripeService);
+  private paymentService = inject(PaymentService);
 
   @Input() lenderData!: LenderData;
   @Output() paymentComplete = new EventEmitter<PaymentResult>();
@@ -293,6 +287,7 @@ export class LenderStripePaymentComponent implements OnInit {
     this.clearCouponErrors();
     this.couponValidated.emit({ applied: false, details: null });
   }
+
   onSubmit(): void {
     this.paymentForm.markAllAsTouched();
     this.paymentForm.get('interval')?.markAsTouched();
@@ -301,27 +296,13 @@ export class LenderStripePaymentComponent implements OnInit {
       this.errorMessage = 'Please select a billing option';
       return;
     }
+
     const paymentInfo = this.lenderFormService.getFormSection('payment');
-
-    const paymentData: CheckoutSessionRequest = {
-      ...this.paymentForm.value,
-      interval: this.paymentForm.value.interval || 'monthly',
-      promotion_code: paymentInfo?.validatedCouponCode || '',
-    };
-
-    // ✅ Log special trial code (backend handles LENDER30TRIAL automatically)
-    if (paymentInfo?.validatedCouponCode === 'LENDER30TRIAL') {
-      console.log('✅ Sending backend trial code for LENDER30TRIAL');
-    }
-
     const promotion_code = paymentInfo?.validatedCouponCode?.trim();
     const billingInterval = this.paymentForm.value.interval || 'monthly';
 
     if (promotion_code) {
-      console.log(
-        '🎟 Validating promotion code before payment:',
-        promotion_code
-      );
+      console.log('🎟 Validating promotion code before payment:', promotion_code);
       this.isLoading = true;
       this.errorMessage = '';
 
@@ -335,12 +316,8 @@ export class LenderStripePaymentComponent implements OnInit {
             }
           }),
           catchError((error: HttpErrorResponse) => {
-            console.error(
-              '❌ Payment promotion code validation failed:',
-              error
-            );
-            this.errorMessage =
-              'Invalid promotion code. Please check and try again.';
+            console.error('❌ Payment promotion code validation failed:', error);
+            this.errorMessage = 'Invalid promotion code. Please check and try again.';
             this.isLoading = false;
             return of(null);
           })
@@ -350,65 +327,52 @@ export class LenderStripePaymentComponent implements OnInit {
             console.log('✅ Payment promotion code validated successfully');
             this.proceedToPayment(promotion_code, billingInterval);
           } else {
-            console.log(
-              '❌ Payment promotion code validation failed:',
-              response?.error
-            );
+            console.log('❌ Payment promotion code validation failed:', response?.error);
             this.errorMessage = response?.error || 'Invalid promotion code';
             this.isLoading = false;
           }
         });
     } else {
-      this.proceedToPayment(null, billingInterval);
+      this.proceedToPayment(undefined, billingInterval);
     }
   }
 
   private proceedToPayment(
-    validatedpromotion_code: string | null,
-    billingInterval: string
+    validatedPromotionCode: string | undefined,
+    billingInterval: 'monthly' | 'annually'
   ): void {
     this.isLoading = true;
     this.errorMessage = '';
 
-    const paymentData: CheckoutSessionRequest = {
-      ...this.paymentForm.value,
-      promotion_code: validatedpromotion_code,
-      interval: billingInterval,
-    };
+    console.log('💳 Creating checkout session:', { billingInterval, validatedPromotionCode });
 
-    runInInjectionContext(this.injector, () => {
-      this.processLenderPayment(paymentData);
-    });
-  }
+    // Use NEW PaymentService
+    this.paymentService.createCheckoutSession(billingInterval, validatedPromotionCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.isLoading = false)
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Checkout session created:', response);
 
-  private async processLenderPayment(
-    paymentData: CheckoutSessionRequest
-  ): Promise<void> {
-    this.isLoading = true;
+          if (response.success && response.checkoutUrl) {
+            this.paymentComplete.emit({
+              success: true,
+              message: 'Redirecting to payment processor...',
+            });
 
-    try {
-      const checkoutResponse = await this.stripeService.createCheckoutSession(
-        paymentData
-      );
-
-      if (!checkoutResponse || !checkoutResponse.url) {
-        throw new Error('Invalid response from Stripe');
-      }
-
-      console.log('✅ Stripe checkout session created:', checkoutResponse);
-
-      this.paymentComplete.emit({
-        success: true,
-        message: 'Redirecting to payment processor...',
+            console.log('🔄 Redirecting to Stripe:', response.checkoutUrl);
+            this.paymentService.redirectToCheckout(response.checkoutUrl);
+          } else {
+            throw new Error(response.message || 'Failed to create checkout session');
+          }
+        },
+        error: (error) => {
+          console.error('❌ Checkout error:', error);
+          this.handlePaymentError(error);
+        }
       });
-
-      console.log('➡️ Redirecting to:', checkoutResponse.url);
-      window.location.href = checkoutResponse.url;
-    } catch (error) {
-      console.error('❌ Error in processLenderPayment:', error);
-      this.handlePaymentError(error);
-      this.isLoading = false;
-    }
   }
 
   private handlePaymentError(error: any): void {

@@ -7,9 +7,6 @@ import {
   User,
   UserCredential,
   authState,
-  isSignInWithEmailLink,
-  sendSignInLinkToEmail,
-  signInWithEmailLink,
   signInWithPopup,
   GoogleAuthProvider,
   signOut,
@@ -27,6 +24,7 @@ import {
   query,
   where,
   getDocs,
+  onSnapshot
 } from '@angular/fire/firestore';
 
 import { environment } from '../environments/environment';
@@ -38,7 +36,7 @@ export class AuthService {
   private readonly firestore = inject(Firestore);
   private readonly userActivityService = inject(UserActivityService);
 
-  // Properties for debugging and login tracking
+
   private wasLoggedIn = false;
   private lastAuthStateChange = Date.now();
 
@@ -62,16 +60,6 @@ export class AuthService {
         isLogout
       });
 
-      // Track login if this is a new login (not just token refresh)
-      if (isNewLogin && user?.uid) {
-        console.log('AuthService: New login detected, tracking activity');
-        // Determine login method based on recent auth actions
-        const loginMethod = this.getRecentLoginMethod();
-        this.userActivityService.trackLogin(user, loginMethod).subscribe({
-          next: () => console.log('AuthService: Login activity tracked'),
-          error: (error) => console.error('AuthService: Failed to track login:', error)
-        });
-      }
 
       this.wasLoggedIn = !!user;
       this.lastAuthStateChange = now;
@@ -92,6 +80,77 @@ export class AuthService {
   authReady$: Observable<boolean> = this._user$.pipe(
     map(() => true),
     shareReplay(1)
+  );
+  /**
+ * Real-time user document listener with Signal
+ * Listens to Firestore user document for status changes
+ */
+  private userDocumentSubject = new BehaviorSubject<any | null>(null);
+  userDocument$ = this.userDocumentSubject.asObservable();
+
+  /**
+ * Starts listening to user document changes (REAL-TIME)
+ */
+startUserDocumentListener(): void {
+  this._user$.pipe(
+    switchMap(user => {
+      if (!user?.uid) {
+        this.userDocumentSubject.next(null);
+        return of(null);
+      }
+
+      const userRef = doc(this.firestore, `users/${user.uid}`);
+      
+      // Use Firestore real-time listener
+      return new Observable(observer => {
+        // Real-time Firestore listener using onSnapshot
+        const unsubscribe = onSnapshot(userRef, 
+          (snap) => {
+            if (snap.exists()) {
+              const userData = { id: snap.id, ...snap.data() };
+              console.log('📄 User document updated (real-time):', userData);
+              this.userDocumentSubject.next(userData);
+              observer.next(userData);
+            } else {
+              console.log('📄 User document does not exist');
+              this.userDocumentSubject.next(null);
+              observer.next(null);
+            }
+          },
+          (error) => {
+            console.error('Error in user document listener:', error);
+            observer.error(error);
+          }
+        );
+
+        // Cleanup function
+        return () => {
+          console.log('🔌 Unsubscribing from user document listener');
+          unsubscribe();
+        };
+      });
+    })
+  ).subscribe();
+}
+
+  /**
+   * Helper to check if user needs to complete payment
+   */
+  userNeedsPayment$: Observable<boolean> = this.userDocument$.pipe(
+    map(doc => {
+      if (!doc) return false;
+      return doc.status === 'pending_payment' && doc.emailVerified === true;
+    })
+  );
+
+  /**
+   * Helper to check if user is fully active
+   */
+  userIsActive$: Observable<boolean> = this.userDocument$.pipe(
+    map(doc => {
+      if (!doc) return false;
+      return doc.status === 'active' && doc.paymentStatus === 'paid';
+    })
   );
 
   /** Convenience getter for the current UID (or null). */
@@ -124,56 +183,14 @@ export class AuthService {
     return this._user$;
   }
 
-  sendLoginLink(email: string): Observable<void> {
-    const normalized = email.toLowerCase().trim();
-    const actionCodeSettings = {
-      url: `${environment.frontendUrl}/registration-processing?ml=1&email=${encodeURIComponent(normalized)}`,
-      handleCodeInApp: true,
-    };
-
-    console.log('Sending magic link with settings:', actionCodeSettings);
-
-    return from(sendSignInLinkToEmail(this.auth, normalized, actionCodeSettings)).pipe(
-      map(() => {
-        // Store email for same-device sign-in completion
-        localStorage.setItem('emailForSignIn', normalized);
-      }),
-      catchError((error) => {
-        console.error('Error sending login link:', error);
-        throw error;
-      })
-    );
-  }
-
-  isEmailSignInLink(): Observable<boolean> {
-    return of(isSignInWithEmailLink(this.auth, window.location.href));
-  }
-
-  getStoredEmail(): string | null {
-    return localStorage.getItem('emailForSignIn');
-  }
-
-  loginWithEmailLink(email: string): Observable<UserCredential> {
-    const stored = email || localStorage.getItem('emailForSignIn');
-    if (!stored) {
-      throw new Error('No email stored for sign-in');
-    }
-    const url = window.location.href;
-    if (!isSignInWithEmailLink(this.auth, url)) {
-      throw new Error('Email link is invalid or expired');
-    }
-    return from(signInWithEmailLink(this.auth, stored, url)).pipe(
-      map((cred) => {
-        localStorage.removeItem('emailForSignIn');
-        console.log('AuthService: Email link login completed, user state will update via authState listener');
-        return cred;
-      })
-    );
-  }
-
-  // ---- Google sign-in (used in login component) ----
   loginWithGoogle(): Observable<User | null> {
     const provider = new GoogleAuthProvider();
+
+    // CRITICAL: Force account selection every time
+    provider.setCustomParameters({
+      prompt: 'select_account'
+    });
+
     return from(signInWithPopup(this.auth, provider)).pipe(
       map(res => res.user),
       tap(user => {
@@ -183,60 +200,11 @@ export class AuthService {
       })
     );
   }
-
   // ---- Logout ----
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
 
-  handleEmailLinkAuthentication(): Observable<{ success: boolean; user?: User; error?: string }> {
-    const url = window.location.href;
-    
-    // Check if this is actually a Firebase magic link URL
-    if (!isSignInWithEmailLink(this.auth, url)) {
-      console.log('Not a Firebase magic link URL, checking if already authenticated');
-      return of({ success: false, error: 'Not an email link' });
-    }
-
-    // Extract email from the continueUrl parameter in the magic link (different-device case)
-    let emailFromUrl = '';
-    try {
-      const outer = new URL(url);
-      const cont = outer.searchParams.get('continueUrl');
-      if (cont) {
-        const inner = new URL(decodeURIComponent(cont));
-        emailFromUrl = (inner.searchParams.get('email') ?? '').trim();
-      }
-    } catch (e) {
-      console.error('Failed to parse continueUrl:', e);
-    }
-
-    // Prefer same-device stored email, else parsed from URL
-    const stored = (localStorage.getItem('emailForSignIn') ?? '').trim();
-    const normalized = (stored || emailFromUrl).toLowerCase();
-
-    if (!normalized) {
-      console.error('No email found for magic link authentication');
-      return of({ success: false, error: 'Email not found in link. Please request a new magic link.' });
-    }
-
-    return from(signInWithEmailLink(this.auth, normalized, url)).pipe(
-      map((userCredential) => {
-        // Clear stored email
-        localStorage.removeItem('emailForSignIn');
-        
-        // Don't clear URL parameters here - let the component handle navigation
-        console.log('Magic link authentication successful:', userCredential.user.email);
-        
-        return { success: true, user: userCredential.user };
-      }),
-      catchError((error) => {
-        console.error('Email link authentication failed:', error);
-        localStorage.removeItem('emailForSignIn');
-        return of({ success: false, error: error.message });
-      })
-    );
-  }
 
   getUserProfile(userId?: string): Observable<any | null> {
     return this._user$.pipe(
@@ -248,41 +216,27 @@ export class AuthService {
         });
       }),
       switchMap(user => {
-        // Use provided userId or fall back to current user
         const uid = userId || user?.uid;
         if (!uid) return of(null);
 
-        const lenderRef = doc(this.firestore, `lenders/${uid}`);
-        const originRef = doc(this.firestore, `originators/${uid}`);
+        const userRef = doc(this.firestore, `users/${uid}`);
 
-        return from(getDoc(lenderRef)).pipe(
-          switchMap(lenderSnap => {
-            if (lenderSnap.exists()) {
-              console.log('LOADED LENDER PROFILE:', {
+        return from(getDoc(userRef)).pipe(
+          map(userSnap => {
+            if (userSnap.exists()) {
+              console.log('LOADED USER PROFILE:', {
                 userId: uid,
-                hasData: !!lenderSnap.data(),
+                hasData: !!userSnap.data(),
                 timestamp: new Date().toISOString()
               });
-              return of({ id: lenderSnap.id, ...(lenderSnap.data() as any) });
+              return { id: userSnap.id, ...(userSnap.data() as any) };
             }
-            return from(getDoc(originRef)).pipe(
-              map(originSnap => {
-                if (originSnap.exists()) {
-                  console.log('LOADED ORIGINATOR PROFILE:', {
-                    userId: uid,
-                    hasData: !!originSnap.data(),
-                    timestamp: new Date().toISOString()
-                  });
-                  return { id: originSnap.id, ...(originSnap.data() as any) };
-                }
 
-                console.log('NO PROFILE FOUND:', {
-                  userId: uid,
-                  timestamp: new Date().toISOString()
-                });
-                return null;
-              })
-            );
+            console.log('NO PROFILE FOUND:', {
+              userId: uid,
+              timestamp: new Date().toISOString()
+            });
+            return null;
           })
         );
       }),
@@ -292,102 +246,49 @@ export class AuthService {
       })
     );
   }
-
-  /** Update role field on the signed-in user's doc. */
   updateUserRole(role: 'lender' | 'originator'): Observable<void> {
     const uid = this.auth.currentUser?.uid;
     if (!uid) throw new Error('User not authenticated');
-    const collectionName = role === 'lender' ? 'lenders' : 'originators';
-    const ref = doc(this.firestore, `${collectionName}/${uid}`);
+    const ref = doc(this.firestore, `users/${uid}`);
     return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
   }
-
   checkAccountExists(email: string): Observable<{
     exists: boolean;
     userType?: 'originator' | 'lender';
     userId?: string;
+    status?: string;
     subscriptionStatus?: string;
     needsPayment?: boolean;
   }> {
     const normalized = email.toLowerCase().trim();
 
-    // Check both possible email field locations
-    const originQ = query(
-      collection(this.firestore, 'originators'),
+    const usersQ = query(
+      collection(this.firestore, 'users'),
       where('email', '==', normalized)
     );
-    const originContactQ = query(
-      collection(this.firestore, 'originators'),
-      where('contactInfo.contactEmail', '==', normalized)
-    );
-    const lenderQ = query(
-      collection(this.firestore, 'lenders'),
-      where('email', '==', normalized)
-    );
-    const lenderContactQ = query(
-      collection(this.firestore, 'lenders'),
-      where('contactInfo.contactEmail', '==', normalized)
-    );
 
-    return from(Promise.all([
-      getDocs(originQ),
-      getDocs(originContactQ),
-      getDocs(lenderQ),
-      getDocs(lenderContactQ)
-    ])).pipe(
-      map(([originSnap, originContactSnap, lenderSnap, lenderContactSnap]) => {
-        // Check originators (either email field)
-        const originDoc = !originSnap.empty ? originSnap.docs[0] : 
-                         !originContactSnap.empty ? originContactSnap.docs[0] : null;
-        
-        if (originDoc) {
-          const data = originDoc.data() as any;
-          const subscriptionStatus = data.subscriptionStatus || 'inactive';
-          return {
-            exists: true,
-            userType: 'originator' as const,
-            userId: originDoc.id,
-            subscriptionStatus,
-            needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
-          };
+    return from(getDocs(usersQ)).pipe(
+      map(snapshot => {
+        if (snapshot.empty) {
+          return { exists: false };
         }
 
-        // Check lenders (either email field)
-        const lenderDoc = !lenderSnap.empty ? lenderSnap.docs[0] : 
-                         !lenderContactSnap.empty ? lenderContactSnap.docs[0] : null;
-        
-        if (lenderDoc) {
-          const data = lenderDoc.data() as any;
-          const subscriptionStatus = data.subscriptionStatus || 'inactive';
-          return {
-            exists: true,
-            userType: 'lender' as const,
-            userId: lenderDoc.id,
-            subscriptionStatus,
-            needsPayment: !['active', 'grandfathered'].includes(subscriptionStatus),
-          };
-        }
+        const userDoc = snapshot.docs[0];
+        const data = userDoc.data() as any;
 
-        return { exists: false };
+        return {
+          exists: true,
+          userType: data.role || 'originator',
+          userId: userDoc.id,
+          status: data.status,
+          subscriptionStatus: data.subscriptionStatus || 'inactive',
+          needsPayment: data.status !== 'active',
+        };
       }),
       catchError(err => {
         console.error('Error checking account:', err);
         return of({ exists: false });
       })
     );
-  }
-
-  /**
-   * Determine the recent login method based on auth state
-   * This is a simple heuristic - you could make it more sophisticated
-   */
-  private getRecentLoginMethod(): 'magic-link' | 'google' {
-    // Check if we're currently handling an email link
-    if (isSignInWithEmailLink(this.auth, window.location.href)) {
-      return 'magic-link';
-    }
-    
-    // Default to google for other cases (you could enhance this logic)
-    return 'google';
   }
 }

@@ -92,9 +92,14 @@ export class OTPService {
 
     const sendOTPCallable = httpsCallable(this.functions, 'sendOTP');
 
-    return from(sendOTPCallable({ email })).pipe(
-      map((result: any) => {
-        const data = result as SendOTPResponse;
+  return from(sendOTPCallable({ email })).pipe(
+  map((result: any) => {
+    console.log('📦 Raw sendOTP result:', result);
+    
+    // Firebase callable functions return data in result.data
+    const data = result.data as SendOTPResponse;
+    
+    console.log('📦 Parsed sendOTP data:', data);
         
         if (!data.success) {
           throw new Error(data.message || 'Failed to send OTP');

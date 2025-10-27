@@ -5,7 +5,7 @@ export const environment = {
 
   frontendUrl: 'https://dailyloanpost.com', 
   stripeCheckoutUrl: 'https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout',
-   functionsBaseUrl: 'https://us-central1-loanpub.cloudfunctions.net',
+  functionsBaseUrl: 'https://us-central1-loanpub.cloudfunctions.net',
 
    appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw',
 

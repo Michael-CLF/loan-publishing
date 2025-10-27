@@ -19,7 +19,6 @@ import { AuthService } from 'src/services/auth.service';
 // ✅ CORRECT
 import { PropertyCategory } from '../../shared/constants/property-mappings';
 import { LocationService } from '../../services/location.service';
-import { StripeService, CheckoutSessionRequest } from '../../services/stripe.service';
 import { FootprintLocation } from '../../models/footprint-location.model';
 
 
@@ -122,7 +121,7 @@ export class LenderReviewComponent implements OnInit {
   getLenderTypeName(typeCode: string): string {
     if (!typeCode) return 'Unknown';
     const type = this.lenderTypes.find((t) => t.value === typeCode);
-    return type ? type.name : typeCode;
+    return type ? (type.name || typeCode) : typeCode;
   }
 
   getPropertyCategoryName(categoryCode: string): string {
@@ -136,7 +135,7 @@ export class LenderReviewComponent implements OnInit {
   getLoanTypeName(typeCode: string): string {
     if (!typeCode) return 'Unknown';
     const type = this.loanTypes.find((t) => t.value === typeCode);
-    return type ? type.name : typeCode;
+    return type ? (type.name || typeCode) : typeCode;
   }
 
   // Process property subcategories

@@ -13,7 +13,7 @@ import { FormGroup } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ReactiveFormsModule } from '@angular/forms';
 import { Subject } from 'rxjs';
-import { StripeService } from '../../services/stripe.service';
+
 
 interface StateOption {
   value: string;
@@ -32,7 +32,6 @@ export class LenderContactComponent implements OnInit, OnDestroy {
   @Input() states: StateOption[] = [];
   @Output() couponValidated = new EventEmitter<any>();
 
-  private stripeService = inject(StripeService);
   private destroy$ = new Subject<void>();
 
   ngOnInit(): void {
