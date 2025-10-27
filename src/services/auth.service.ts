@@ -5,7 +5,7 @@ import { map, shareReplay, switchMap, catchError, tap, take } from 'rxjs/operato
 import {
   Auth,
   User,
-  UserCredential,
+  signInWithCustomToken,
   authState,
   signInWithPopup,
   GoogleAuthProvider,
@@ -133,6 +133,7 @@ startUserDocumentListener(): void {
   ).subscribe();
 }
 
+
   /**
    * Helper to check if user needs to complete payment
    */
@@ -200,6 +201,21 @@ startUserDocumentListener(): void {
       })
     );
   }
+  /**
+ * Sign in with Firebase customToken
+ * Used after OTP verification
+ */
+signInWithCustomToken(customToken: string): Observable<any> {
+  return from(signInWithCustomToken(this.auth, customToken)).pipe(
+    tap((result) => {
+      console.log('✅ Signed in with custom token:', result.user.uid);
+    }),
+    catchError((error) => {
+      console.error('❌ Error signing in with custom token:', error);
+      throw error;
+    })
+  );
+}
   // ---- Logout ----
   logout(): Observable<void> {
     return from(signOut(this.auth));

@@ -156,71 +156,93 @@ export class EmailLoginComponent implements OnInit {
     }
   }
 
-  /**
-   * Verifies the OTP code entered by user
-   */
-  verifyOTPCode(): void {
-    const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
-    const code = this.codeDigits().join('');
+ /**
+ * Verifies the OTP code entered by user
+ * FIXED: Now actually signs in with the customToken
+ */
+verifyOTPCode(): void {
+  const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
+  const code = this.codeDigits().join('');
 
-    if (code.length !== 6) {
-      this.errorMessage.set('Please enter all 6 digits');
-      return;
-    }
-
-    console.log('🔐 Verifying OTP code...');
-    this.currentStep.set('verifying');
-
-    this.otpService.verifyOTP(email, code).subscribe({
-      next: (isNewUser) => {
-        console.log('✅ OTP verified successfully');
-        
-        // Check account exists and has proper access
-        this.authService.checkAccountExists(email).subscribe({
-          next: (accountInfo) => {
-            if (!accountInfo.exists) {
-              this.currentStep.set('code');
-              this.errorMessage.set('Account not found. Please contact support.');
-              return;
-            }
-
-            if (accountInfo.needsPayment) {
-              this.currentStep.set('code');
-              this.errorMessage.set('Payment required to access your account.');
-              return;
-            }
-
-            // Success! Navigate to dashboard
-            this.ngZone.run(() => {
-              localStorage.setItem('isLoggedIn', 'true');
-              const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-              console.log('🔄 Redirecting to:', redirectUrl);
-              
-              this.router.navigate([redirectUrl]).then(() => {
-                localStorage.removeItem('redirectUrl');
-                console.log('✅ Navigation completed successfully');
-              });
-            });
-          },
-          error: (error) => {
-            console.error('❌ Error validating account:', error);
-            this.currentStep.set('code');
-            this.errorMessage.set('Unable to verify account. Please try again.');
-          }
-        });
-      },
-      error: (error) => {
-        console.error('❌ OTP verification failed:', error);
-        this.currentStep.set('code');
-        this.errorMessage.set(error.message || 'Invalid code. Please try again.');
-        
-        // Clear the code boxes for retry
-        this.codeDigits.set(['', '', '', '', '', '']);
-        const firstInput = document.getElementById('code-0') as HTMLInputElement;
-        firstInput?.focus();
-      }
-    });
+  if (code.length !== 6) {
+    this.errorMessage.set('Please enter all 6 digits');
+    return;
   }
+
+  console.log('🔐 Verifying OTP code...');
+  this.currentStep.set('verifying');
+
+  this.otpService.verifyOTP(email, code).subscribe({
+    next: (response: any) => {
+      console.log('✅ OTP verification response:', response);
+      
+      // Check if we got a customToken
+      if (!response.success || !response.customToken) {
+        this.currentStep.set('code');
+        this.errorMessage.set(response.message || 'Verification failed. Please try again.');
+        return;
+      }
+
+      console.log('🎫 Got customToken, signing in with Firebase Auth...');
+
+      // Sign in with the customToken
+      this.authService.signInWithCustomToken(response.customToken).subscribe({
+        next: () => {
+          console.log('✅ Signed in with customToken successfully');
+
+          // Now check account exists and has proper access
+          this.authService.checkAccountExists(email).subscribe({
+            next: (accountInfo) => {
+              if (!accountInfo.exists) {
+                this.currentStep.set('code');
+                this.errorMessage.set('Account not found. Please contact support.');
+                return;
+              }
+
+              if (accountInfo.needsPayment) {
+                this.currentStep.set('code');
+                this.errorMessage.set('Payment required to access your account.');
+                return;
+              }
+
+              // Success! Navigate to dashboard
+              this.ngZone.run(() => {
+                localStorage.setItem('isLoggedIn', 'true');
+                const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+                console.log('🔄 Redirecting to:', redirectUrl);
+                
+                this.router.navigate([redirectUrl]).then(() => {
+                  localStorage.removeItem('redirectUrl');
+                  console.log('✅ Navigation completed successfully');
+                });
+              });
+            },
+            error: (error) => {
+              console.error('❌ Error validating account:', error);
+              this.currentStep.set('code');
+              this.errorMessage.set('Unable to verify account. Please try again.');
+            }
+          });
+        },
+        error: (error) => {
+          console.error('❌ Error signing in with customToken:', error);
+          this.currentStep.set('code');
+          this.errorMessage.set('Sign-in failed. Please try again.');
+        }
+      });
+    },
+    error: (error) => {
+      console.error('❌ OTP verification failed:', error);
+      this.currentStep.set('code');
+      this.errorMessage.set(error.message || 'Invalid code. Please try again.');
+      
+      // Clear the code boxes for retry
+      this.codeDigits.set(['', '', '', '', '', '']);
+      const firstInput = document.getElementById('code-0') as HTMLInputElement;
+      firstInput?.focus();
+    }
+  });
+}
 
   /**
    * Goes back to email entry screen
