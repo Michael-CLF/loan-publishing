@@ -127,63 +127,68 @@ export class OTPService {
   }
 
   verifyOTP(email: string, code: string): Observable<boolean> {
-  this.isLoading.set(true);
-  this.error.set('');
+    this.isLoading.set(true);
+    this.error.set('');
 
-  if (this.isExpired()) {
-    this.isLoading.set(false);
-    const error = new Error('Code has expired. Please request a new one.');
-    this.error.set(error.message);
-    return throwError(() => error);
-  }
-
-  const verifyOTPCallable = httpsCallable(this.functions, 'verifyOTP');
-
-  return from(verifyOTPCallable({ email, code })).pipe(
-    switchMap((result: any) => {
-      console.log('🔍 Raw verifyOTP result:', result);
-      
-      // CRITICAL: Access result.data, not result directly!
-      const data = result.data as VerifyOTPResponse;
-      console.log('📦 Extracted data:', data);
-      
-      if (!data.success || (!data.customToken && !data.token)) {
-        const current = this.attemptsRemaining();
-        this.attemptsRemaining.set(Math.max(0, current - 1));
-        throw new Error(data.message || 'Invalid verification code');
-      }
-
-      console.log('🔐 Signing in with custom token...');
-      const token = data.customToken || data.token!;
-      return from(signInWithCustomToken(this.auth, token)).pipe(
-        map(() => {
-          this.isLoading.set(false);
-          this.resetOTPState();
-          console.log('✅ Successfully signed in');
-          return data.isNewUser || false;
-        })
-      );
-    }),
-    catchError((error) => {
-      console.error('❌ Error verifying OTP:', error);
+    if (this.isExpired()) {
       this.isLoading.set(false);
-      
-      let errorMessage = 'Invalid code. Please try again.';
-      
-      if (error.message.includes('expired')) {
-        errorMessage = 'Code has expired. Please request a new one.';
-      } else if (error.message.includes('too many attempts')) {
-        errorMessage = 'Too many failed attempts. Please request a new code.';
-        this.attemptsRemaining.set(0);
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-      
-      this.error.set(errorMessage);
-      return throwError(() => new Error(errorMessage));
-    })
-  );
-}
+      const error = new Error('Code has expired. Please request a new one.');
+      this.error.set(error.message);
+      return throwError(() => error);
+    }
+
+    const verifyOTPCallable = httpsCallable(this.functions, 'verifyOTP');
+
+    return from(verifyOTPCallable({ email, code })).pipe(
+      switchMap((result: any) => {
+        console.log('🔍 Raw verifyOTP result:', result);
+        console.log('🔍 DEBUG - Raw result:', result);
+        console.log('🔍 DEBUG - result.data:', result.data);
+        console.log('🔍 DEBUG - Type of result:', typeof result);
+
+        // CRITICAL: Access result.data, not result directly!
+        const data = result.data as VerifyOTPResponse;
+        console.log('🔍 DEBUG - Extracted data:', data);
+        console.log('🔍 DEBUG - data.success:', data.success);
+        console.log('🔍 DEBUG - data.customToken:', data.customToken);
+
+        if (!data.success || (!data.customToken && !data.token)) {
+          const current = this.attemptsRemaining();
+          this.attemptsRemaining.set(Math.max(0, current - 1));
+          throw new Error(data.message || 'Invalid verification code');
+        }
+
+        console.log('🔐 Signing in with custom token...');
+        const token = data.customToken || data.token!;
+        return from(signInWithCustomToken(this.auth, token)).pipe(
+          map(() => {
+            this.isLoading.set(false);
+            this.resetOTPState();
+            console.log('✅ Successfully signed in');
+            return data.isNewUser || false;
+          })
+        );
+      }),
+      catchError((error) => {
+        console.error('❌ Error verifying OTP:', error);
+        this.isLoading.set(false);
+
+        let errorMessage = 'Invalid code. Please try again.';
+
+        if (error.message.includes('expired')) {
+          errorMessage = 'Code has expired. Please request a new one.';
+        } else if (error.message.includes('too many attempts')) {
+          errorMessage = 'Too many failed attempts. Please request a new code.';
+          this.attemptsRemaining.set(0);
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        this.error.set(errorMessage);
+        return throwError(() => new Error(errorMessage));
+      })
+    );
+  }
   resetOTPState(): void {
     this.otpSent.set(false);
     this.otpExpiresAt.set(null);
