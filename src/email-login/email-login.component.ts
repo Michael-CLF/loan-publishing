@@ -157,7 +157,6 @@ export class EmailLoginComponent implements OnInit {
 
   /**
  * Verifies the OTP code entered by user
- * OTPService handles everything - just navigate on success!
  */
 verifyOTPCode(): void {
   const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
@@ -171,42 +170,39 @@ verifyOTPCode(): void {
   console.log('🔐 Verifying OTP code...');
   this.currentStep.set('verifying');
 
-  // OTPService.verifyOTP does ALL the work:
-  // - Validates OTP
-  // - Signs in with customToken
-  // - Returns boolean (isNewUser)
   this.otpService.verifyOTP(email, code).subscribe({
     next: (isNewUser: boolean) => {
       console.log('✅ OTP verified and user signed in!');
       console.log('   Is new user:', isNewUser);
 
-      // User is ALREADY signed in by OTPService
-      // Just navigate to dashboard!
-      this.ngZone.run(() => {
-        localStorage.setItem('isLoggedIn', 'true');
-        const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
-        console.log('🔄 Redirecting to:', redirectUrl);
-        
-        this.router.navigate([redirectUrl]).then(() => {
-          localStorage.removeItem('redirectUrl');
-          console.log('✅ Login complete!');
-        }).catch((err) => {
-          console.error('❌ Navigation error:', err);
+      // Add delay to ensure auth state is fully propagated
+      setTimeout(() => {
+        this.ngZone.run(() => {
+          localStorage.setItem('isLoggedIn', 'true');
+          const redirectUrl = localStorage.getItem('redirectUrl') || '/dashboard';
+          console.log('🔄 Redirecting to:', redirectUrl);
+          
+          this.router.navigate([redirectUrl]).then(() => {
+            localStorage.removeItem('redirectUrl');
+            console.log('✅ Navigation complete!');
+          }).catch((err) => {
+            console.error('❌ Navigation error:', err);
+          });
         });
-      });
+      }, 500);  // ← This 500ms delay is the only change!
     },
     error: (error: Error) => {
       console.error('❌ Login failed:', error);
       this.currentStep.set('code');
       this.errorMessage.set(error.message || 'Authentication failed. Please try again.');
       
-      // Clear code boxes for retry
       this.codeDigits.set(['', '', '', '', '', '']);
       const firstInput = document.getElementById('code-0') as HTMLInputElement;
       firstInput?.focus();
     }
   });
 }
+
   goBackToEmail(): void {
     console.log('🔙 Going back to email entry');
     this.currentStep.set('email');

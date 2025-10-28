@@ -14,7 +14,7 @@ import {
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
-import { takeUntil, finalize } from 'rxjs/operators';
+import { takeUntil, finalize, take } from 'rxjs/operators';
 
 import { AuthService } from '../../services/auth.service';
 import { LocationService } from 'src/services/location.service';
@@ -113,7 +113,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     console.log('🚀 LenderRegistrationComponent initialized');
-    
+
     this.loadStaticData();
     this.initializeForms();
   }
@@ -123,23 +123,23 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
- private loadStaticData(): void {
-  const footprintLocations = this.locationService.getFootprintLocations();
-  this.states = footprintLocations.map((location: any) => ({
-    value: location.value,
-    name: location.name,
-    subcategories: location.subcategories || []
-  }));
+  private loadStaticData(): void {
+    const footprintLocations = this.locationService.getFootprintLocations();
+    this.states = footprintLocations.map((location: any) => ({
+      value: location.value,
+      name: location.name,
+      subcategories: location.subcategories || []
+    }));
 
-  // Load lender types from LocationService
-  this.lenderTypes = this.locationService.getLenderTypes();
+    // Load lender types from LocationService
+    this.lenderTypes = this.locationService.getLenderTypes();
 
-  // Load property categories from LocationService
-  this.propertyCategories = this.locationService.getPropertyCategories();
+    // Load property categories from LocationService
+    this.propertyCategories = this.locationService.getPropertyCategories();
 
-  // Load loan types from LocationService
-  this.loanTypes = this.locationService.getLoanTypes();
-}
+    // Load loan types from LocationService
+    this.loanTypes = this.locationService.getLoanTypes();
+  }
   private initializeForms(): void {
     // Contact Form (Step 0)
     this.contactForm = this.fb.group({
@@ -151,7 +151,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       city: ['', [Validators.required, Validators.minLength(2)]],
       state: ['', [Validators.required]],
     });
-  
+
 
     // Product Form (Step 1)
     this.productForm = this.fb.group({
@@ -236,9 +236,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // ==========================================
 
   /**
-   * Register lender after Step 0 (Contact Info)
-   * Calls createPendingUser Cloud Function
-   */
+  * Register lender after Step 0 (Contact Info)
+  * Calls createPendingUser Cloud Function
+  * Signs user in with custom token
+  * Then advances to payment step (Stripe)
+  */
   private registerLender(): void {
     console.log('📝 Registering lender');
 
@@ -253,8 +255,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const contactData = this.contactForm.value;
     const email = contactData.contactEmail.toLowerCase().trim();
 
-    // Build registration data
-    const registrationData: RegistrationData = {
+    const registrationData = {
       email,
       role: 'lender',
       firstName: contactData.firstName,
@@ -265,8 +266,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       company: contactData.company,
       lenderData: {
         ...contactData
-      }
-    };
+      },
+      interval: this.lenderFormService?.getFormSection('payment')?.billingInterval || 'monthly',
+      promotionCode: this.lenderFormService?.getFormSection('payment')?.validatedCouponCode || null,
+    } as RegistrationData;
+
 
     console.log('📤 Calling createPendingUser for lender:', registrationData);
 
@@ -279,14 +283,27 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         next: (response: any) => {
           console.log('✅ Lender registration successful:', response);
 
-          if (response.success && response.userId) {
-            this.registeredEmail = email;
-            this.registeredUserId = response.userId;
-            this.showOTPModal = true;
-            this.successMessage = 'Check your email for a verification code!';
-          } else {
-            this.errorMessage = response.message || 'Registration failed. Please try again.';
+          if (!response?.success || !response?.userId || !response?.customToken) {
+            this.errorMessage = response?.message || 'Registration failed. Please try again.';
+            return;
           }
+
+          this.registeredEmail = email;
+          this.registeredUserId = response.userId;
+
+          // sign browser into Firebase using the custom token from backend
+          this.authService.signInWithCustomToken(response.customToken)
+            .pipe(take(1))
+            .subscribe({
+              next: () => {
+                console.log('🔐 Browser authenticated as new user. Moving to payment step.');
+                this.currentStep = 1; // show Stripe payment UI
+              },
+              error: (authErr) => {
+                console.error('❌ Could not authenticate after registration:', authErr);
+                this.errorMessage = 'Account created but we could not start your session. Refresh and try again.';
+              }
+            });
         },
         error: (error: any) => {
           console.error('❌ Lender registration error:', error);
@@ -294,6 +311,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         }
       });
   }
+
+
 
   // ==========================================
   // OTP VERIFICATION

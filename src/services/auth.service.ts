@@ -88,55 +88,70 @@ export class AuthService {
   private userDocumentSubject = new BehaviorSubject<any | null>(null);
   userDocument$ = this.userDocumentSubject.asObservable();
 
-  /**
- * Starts listening to user document changes (REAL-TIME)
- */
-startUserDocumentListener(): void {
-  this._user$.pipe(
-    switchMap(user => {
-      if (!user?.uid) {
-        this.userDocumentSubject.next(null);
-        return of(null);
-      }
+  startUserDocumentListener(): void {
+    this._user$.pipe(
+      switchMap(user => {
+        if (!user?.uid) {
+          this.userDocumentSubject.next(null);
+          return of(null);
+        }
 
-      const userRef = doc(this.firestore, `users/${user.uid}`);
-      
-      // Use Firestore real-time listener
-      return new Observable(observer => {
-        // Real-time Firestore listener using onSnapshot
-        const unsubscribe = onSnapshot(userRef, 
-          (snap) => {
-            if (snap.exists()) {
-              const userData = { id: snap.id, ...snap.data() };
-              console.log('📄 User document updated (real-time):', userData);
-              this.userDocumentSubject.next(userData);
-              observer.next(userData);
+        const uid = user.uid;
+
+        // ✅ Try lenders first, then originators
+        return new Observable(observer => {
+          let unsubscribe: (() => void) | null = null;
+
+          // Check lender first
+          const lenderRef = doc(this.firestore, `lenders/${uid}`);
+
+          getDoc(lenderRef).then(lenderSnap => {
+            if (lenderSnap.exists()) {
+              // Listen to lender document
+              unsubscribe = onSnapshot(lenderRef,
+                (snap) => {
+                  if (snap.exists()) {
+                    const userData = { id: snap.id, ...snap.data() };
+                    console.log('📄 Lender document updated (real-time):', userData);
+                    this.userDocumentSubject.next(userData);
+                    observer.next(userData);
+                  }
+                },
+                (error) => observer.error(error)
+              );
             } else {
-              console.log('📄 User document does not exist');
-              this.userDocumentSubject.next(null);
-              observer.next(null);
+              // Try originator
+              const originatorRef = doc(this.firestore, `originators/${uid}`);
+
+              unsubscribe = onSnapshot(originatorRef,
+                (snap) => {
+                  if (snap.exists()) {
+                    const userData = { id: snap.id, ...snap.data() };
+                    console.log('📄 Originator document updated (real-time):', userData);
+                    this.userDocumentSubject.next(userData);
+                    observer.next(userData);
+                  } else {
+                    console.log('📄 No user document found');
+                    this.userDocumentSubject.next(null);
+                    observer.next(null);
+                  }
+                },
+                (error) => observer.error(error)
+              );
             }
-          },
-          (error) => {
-            console.error('Error in user document listener:', error);
-            observer.error(error);
-          }
-        );
+          });
 
-        // Cleanup function
-        return () => {
-          console.log('🔌 Unsubscribing from user document listener');
-          unsubscribe();
-        };
-      });
-    })
-  ).subscribe();
-}
+          return () => {
+            if (unsubscribe) {
+              console.log('🔌 Unsubscribing from user document listener');
+              unsubscribe();
+            }
+          };
+        });
+      })
+    ).subscribe();
+  }
 
-
-  /**
-   * Helper to check if user needs to complete payment
-   */
   userNeedsPayment$: Observable<boolean> = this.userDocument$.pipe(
     map(doc => {
       if (!doc) return false;
@@ -205,106 +220,153 @@ startUserDocumentListener(): void {
  * Sign in with Firebase customToken
  * Used after OTP verification
  */
-signInWithCustomToken(customToken: string): Observable<any> {
-  return from(signInWithCustomToken(this.auth, customToken)).pipe(
-    tap((result) => {
-      console.log('✅ Signed in with custom token:', result.user.uid);
-    }),
-    catchError((error) => {
-      console.error('❌ Error signing in with custom token:', error);
-      throw error;
-    })
-  );
-}
+  signInWithCustomToken(customToken: string): Observable<any> {
+    return from(signInWithCustomToken(this.auth, customToken)).pipe(
+      tap((result) => {
+        console.log('✅ Signed in with custom token:', result.user.uid);
+      }),
+      catchError((error) => {
+        console.error('❌ Error signing in with custom token:', error);
+        throw error;
+      })
+    );
+  }
   // ---- Logout ----
   logout(): Observable<void> {
     return from(signOut(this.auth));
   }
 
-
-  getUserProfile(userId?: string): Observable<any | null> {
-    return this._user$.pipe(
-      tap(user => {
-        console.log('GET USER PROFILE CALLED:', {
-          currentUserId: user?.uid || 'none',
-          requestedUserId: userId || 'using current user',
-          timestamp: new Date().toISOString()
-        });
-      }),
-      switchMap(user => {
-        const uid = userId || user?.uid;
-        if (!uid) return of(null);
-
-        const userRef = doc(this.firestore, `users/${uid}`);
-
-        return from(getDoc(userRef)).pipe(
-          map(userSnap => {
-            if (userSnap.exists()) {
-              console.log('LOADED USER PROFILE:', {
-                userId: uid,
-                hasData: !!userSnap.data(),
-                timestamp: new Date().toISOString()
-              });
-              return { id: userSnap.id, ...(userSnap.data() as any) };
-            }
-
-            console.log('NO PROFILE FOUND:', {
-              userId: uid,
-              timestamp: new Date().toISOString()
-            });
-            return null;
-          })
-        );
-      }),
-      catchError(err => {
-        console.error('Error fetching user profile:', err);
+ // ========================================
+// FIX 1: getUserProfile() - LINE 147
+// ========================================
+getUserProfile(userId?: string): Observable<any | null> {
+  return this._user$.pipe(
+    tap(user => {
+      console.log('🔍 getUserProfile called for UID:', userId || user?.uid);
+    }),
+    switchMap(user => {
+      const uid = userId || user?.uid;
+      if (!uid) {
+        console.log('❌ No UID available');
         return of(null);
-      })
-    );
-  }
-  updateUserRole(role: 'lender' | 'originator'): Observable<void> {
-    const uid = this.auth.currentUser?.uid;
-    if (!uid) throw new Error('User not authenticated');
-    const ref = doc(this.firestore, `users/${uid}`);
-    return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
-  }
-  checkAccountExists(email: string): Observable<{
-    exists: boolean;
-    userType?: 'originator' | 'lender';
-    userId?: string;
-    status?: string;
-    subscriptionStatus?: string;
-    needsPayment?: boolean;
-  }> {
-    const normalized = email.toLowerCase().trim();
+      }
 
-    const usersQ = query(
-      collection(this.firestore, 'users'),
-      where('email', '==', normalized)
-    );
+      // Check lenders collection first
+      const lenderRef = doc(this.firestore, `lenders/${uid}`);
+      
+      return from(getDoc(lenderRef)).pipe(
+        switchMap(lenderSnap => {
+          if (lenderSnap.exists()) {
+            console.log('✅ Found user in LENDERS collection');
+            return of({ id: lenderSnap.id, ...lenderSnap.data() });
+          }
 
-    return from(getDocs(usersQ)).pipe(
-      map(snapshot => {
-        if (snapshot.empty) {
-          return { exists: false };
-        }
+          // Not in lenders, check originators
+          console.log('🔍 Not in lenders, checking originators...');
+          const originatorRef = doc(this.firestore, `originators/${uid}`);
+          
+          return from(getDoc(originatorRef)).pipe(
+            map(originatorSnap => {
+              if (originatorSnap.exists()) {
+                console.log('✅ Found user in ORIGINATORS collection');
+                return { id: originatorSnap.id, ...originatorSnap.data() };
+              }
 
-        const userDoc = snapshot.docs[0];
+              console.log('❌ User not found in lenders OR originators');
+              return null;
+            })
+          );
+        }),
+        catchError(err => {
+          console.error('❌ Error in getUserProfile:', err);
+          return of(null);
+        })
+      );
+    })
+  );
+}
+
+// ========================================
+// FIX 2: checkAccountExists() - LINE 180
+// ========================================
+checkAccountExists(email: string): Observable<{
+  exists: boolean;
+  userType?: 'originator' | 'lender';
+  userId?: string;
+  status?: string;
+  subscriptionStatus?: string;
+  needsPayment?: boolean;
+}> {
+  const normalized = email.toLowerCase().trim();
+  console.log('🔍 Checking account exists for:', normalized);
+
+  // Check lenders first
+  const lendersQ = query(
+    collection(this.firestore, 'lenders'),
+    where('contactInfo.contactEmail', '==', normalized)
+  );
+
+  return from(getDocs(lendersQ)).pipe(
+    switchMap(lenderSnapshot => {
+      if (!lenderSnapshot.empty) {
+        const userDoc = lenderSnapshot.docs[0];
         const data = userDoc.data() as any;
-
-        return {
+        console.log('✅ Found in LENDERS:', userDoc.id);
+        
+        return of({
           exists: true,
-          userType: data.role || 'originator',
+          userType: 'lender' as const,
           userId: userDoc.id,
           status: data.status,
           subscriptionStatus: data.subscriptionStatus || 'inactive',
-          needsPayment: data.status !== 'active',
-        };
-      }),
-      catchError(err => {
-        console.error('Error checking account:', err);
-        return of({ exists: false });
-      })
-    );
+          needsPayment: data.subscriptionStatus !== 'active' && data.subscriptionStatus !== 'grandfathered',
+        });
+      }
+
+      // Not in lenders, check originators
+      console.log('🔍 Not in lenders, checking originators...');
+      const originatorsQ = query(
+        collection(this.firestore, 'originators'),
+        where('contactInfo.contactEmail', '==', normalized)
+      );
+
+      return from(getDocs(originatorsQ)).pipe(
+        map(originatorSnapshot => {
+          if (!originatorSnapshot.empty) {
+            const userDoc = originatorSnapshot.docs[0];
+            const data = userDoc.data() as any;
+            console.log('✅ Found in ORIGINATORS:', userDoc.id);
+            
+            return {
+              exists: true,
+              userType: 'originator' as const,
+              userId: userDoc.id,
+              status: data.status,
+              subscriptionStatus: data.subscriptionStatus || 'inactive',
+              needsPayment: data.subscriptionStatus !== 'active' && data.subscriptionStatus !== 'grandfathered',
+            };
+          }
+
+          console.log('❌ Account not found in lenders OR originators');
+          return { exists: false };
+        })
+      );
+    }),
+    catchError(err => {
+      console.error('❌ Error checking account:', err);
+      return of({ exists: false });
+    })
+  );
+}
+
+  updateUserRole(role: 'lender' | 'originator'): Observable<void> {
+    const uid = this.auth.currentUser?.uid;
+    if (!uid) throw new Error('User not authenticated');
+
+    // ✅ Update in the correct collection based on role
+    const collectionName = role === 'lender' ? 'lenders' : 'originators';
+    const ref = doc(this.firestore, `${collectionName}/${uid}`);
+
+    return from(setDoc(ref, { role }, { merge: true })).pipe(map(() => void 0));
   }
 }
