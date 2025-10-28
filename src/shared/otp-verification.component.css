@@ -1,0 +1,104 @@
+/* src/app/shared/otp-verification/otp-verification.component.css */
+.otp-container {
+  width: 100%;
+  max-width: 400px;
+  margin: 60px auto;
+  padding: 40px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.08);
+  text-align: center;
+  font-family: "Roboto", sans-serif;
+}
+
+.otp-title {
+  color: #0a2463;
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.otp-subtitle {
+  font-size: 1.1rem;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.otp-message {
+  color: #222;
+  font-size: 0.95rem;
+  margin-bottom: 24px;
+}
+
+.otp-inputs {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.otp-box {
+  width: 44px;
+  height: 50px;
+  border: 1.5px solid #0a2463;
+  border-radius: 6px;
+  text-align: center;
+  font-size: 1.3rem;
+  outline: none;
+}
+
+.otp-box:focus {
+  border-color: #02474d;
+}
+
+.otp-timer {
+  font-size: 0.9rem;
+  color: #333;
+  margin-bottom: 20px;
+}
+
+.verify-btn {
+  width: 100%;
+  background-color: #0a2463;
+  color: #fff;
+  padding: 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  margin-bottom: 10px;
+  transition: 0.3s ease;
+}
+
+.verify-btn:disabled {
+  background-color: #9aa0b5;
+  cursor: not-allowed;
+}
+
+.verify-btn:hover:not(:disabled) {
+  background-color: #02474d;
+}
+
+.resend-btn {
+  background: transparent;
+  border: 1px solid #0a2463;
+  color: #0a2463;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  width: 100%;
+  margin-bottom: 20px;
+  transition: 0.3s ease;
+}
+
+.resend-btn:hover {
+  background: #0a2463;
+  color: white;
+}
+
+.otp-error {
+  color: red;
+  font-size: 0.9rem;
+  margin-top: 10px;
+}

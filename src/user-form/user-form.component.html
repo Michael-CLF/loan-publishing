@@ -232,14 +232,14 @@
           </div>
         </div>
 
-         <!-- Terms of service - full width -->
-      <div class="form-group full-width tos-container">
-        <label class="checkbox-label">
-          <input type="checkbox" formControlName="tos" class="form-check-input" id="tos-originator">
-          I have read, acknowledge and agree to the<a href="/terms" target="_blank" class="tos-link">Terms of
-            Service</a>
-        </label>
-      </div>
+        <!-- Terms of service - full width -->
+        <div class="form-group full-width tos-container">
+          <label class="checkbox-label">
+            <input type="checkbox" formControlName="tos" class="form-check-input" id="tos-originator">
+            I have read, acknowledge and agree to the<a href="/terms" target="_blank" class="tos-link">Terms of
+              Service</a>
+          </label>
+        </div>
 
         <!-- Price Summary -->
         <div class="price-summary">
@@ -269,10 +269,17 @@
         </button>
       </div>
     </form>
+    <!-- OTP verification UI -->
+    <div *ngIf="showOtpBox" style="margin-top: 30px;">
+      <app-otp-verification [email]="registeredEmail" context="registration" (verified)="onOTPVerified()">
+      </app-otp-verification>
+    </div>
 
     <div *ngIf="successMessage" class="success-message">
       {{ successMessage }}
     </div>
+    showOtpBox = false;
+
 
     <div *ngIf="errorMessage" class="error-message">
       {{ errorMessage }}

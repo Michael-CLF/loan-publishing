@@ -25,6 +25,7 @@ import { PaymentService } from '../services/payment.service';
 import { OriginatorService, RegistrationData } from '../services/originator.service';
 import { OTPService } from '../services/otp.service';
 import { EmailExistsValidator } from 'src/services/email-exists.validator';
+import { OtpVerificationComponent } from '../shared/otp-verification.component';
 
 export interface StateOption {
   value: string;
@@ -44,7 +45,7 @@ type RegistrationStep = 'form' | 'otp' | 'payment';
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, OtpVerificationComponent],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.css']
 })
@@ -65,34 +66,36 @@ export class UserFormComponent implements OnInit, OnDestroy {
   userForm!: FormGroup;
   otpForm!: FormGroup;
   states: StateOption[] = [];
-  
+
   // Registration flow state (NO SIGNALS - regular properties)
   currentStep: RegistrationStep = 'form';
   registeredEmail = '';
   registeredUserId = '';
-  
+
   // Loading states
   isSubmitting = false;
   isVerifyingOTP = false;
   isCreatingCheckout = false;
   isLoading = false;
-  
+
   // Error states
   errorMessage = '';
   otpError = '';
-  
+
   // Coupon state
   isValidatingCoupon = false;
   couponApplied = false;
   appliedCouponDetails: AppliedCouponDetails | null = null;
   private isResettingCoupon = false;
-  
+
   // Success message
   successMessage = '';
+  showOtpBox = false;
+
 
   ngOnInit(): void {
     console.log('🚀 UserFormComponent initialized');
-    
+
     // Load states for dropdown
     const footprintLocations = this.locationService.getFootprintLocations();
     this.states = footprintLocations.map(location => ({
@@ -296,14 +299,12 @@ export class UserFormComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response: any) => {
           console.log('✅ Registration successful:', response);
-          
+
           if (response.success && response.userId) {
-            // Save for OTP and payment steps
             this.registeredEmail = email;
             this.registeredUserId = response.userId;
-
-            this.currentStep = 'otp';
-            this.successMessage = 'Check your email for a verification code!';
+            this.successMessage = 'We just emailed you a 6-digit code. Enter it below to continue.';
+            this.showOtpBox = true;
           } else {
             this.errorMessage = response.message || 'Registration failed. Please try again.';
           }
@@ -348,7 +349,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (response: any) => {
           console.log('✅ OTP verification response:', response);
-          
+
           if (response.success) {
             this.currentStep = 'payment';
             this.successMessage = 'Email verified! Complete your payment to activate your account.';
@@ -362,6 +363,19 @@ export class UserFormComponent implements OnInit, OnDestroy {
         }
       });
   }
+
+  /**
+  * Called when OTP component emits verified event.
+  * Proceeds directly to Stripe checkout.
+  */
+  /**
+   * Handles OTP success event — proceeds to Stripe checkout
+   */
+  onOTPVerified(): void {
+    console.log('✅ OTP verified successfully. Proceeding to Stripe checkout...');
+    this.proceedToPayment();
+  }
+
 
   resendOTP(): void {
     const email = this.registeredEmail;
@@ -424,14 +438,14 @@ export class UserFormComponent implements OnInit, OnDestroy {
       promotionCode
     });
 
-    this.paymentService
-      .createCheckoutSession(
-        email,
-        role,
-        interval,
-        userId,
-        promotionCode
-      )
+    this.paymentService.createCheckoutSession(
+      this.registeredEmail,
+      'originator',
+      interval,
+      this.registeredUserId,
+      promotionCode
+    )
+
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => (this.isCreatingCheckout = false))

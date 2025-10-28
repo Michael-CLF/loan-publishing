@@ -1,0 +1,47 @@
+<!-- src/app/shared/otp-verification/otp-verification.component.html -->
+<div class="otp-container">
+  <h2 class="otp-title">
+    {{ context === 'login' ? 'Log in to Daily Loan Post' : 'Complete Your Registration' }}
+  </h2>
+
+  <p class="otp-subtitle">
+    Check Your Email
+  </p>
+
+  <p class="otp-message">
+    We sent a verification code to <strong>{{ email }}</strong>
+  </p>
+
+  <div class="otp-inputs">
+    <input
+      *ngFor="let digit of codeDigits(); let i = index"
+      id="otp-{{ i }}"
+      maxlength="1"
+      class="otp-box"
+      type="text"
+      (input)="onCodeDigitInput(i, $event)"
+      (keydown)="onCodeDigitKeydown(i, $event)"
+      (paste)="onCodePaste($event)"
+    />
+  </div>
+
+  <div class="otp-timer">
+    Code expires in: <strong>{{ timeRemaining() }}</strong>
+  </div>
+
+  <button
+    class="verify-btn"
+    [disabled]="isLoading()"
+    (click)="tryVerify()"
+  >
+    {{ isLoading() ? 'Verifying...' : 'Verify Code' }}
+  </button>
+
+  <button class="resend-btn" (click)="resend()">
+    Didn't receive it? Resend code
+  </button>
+
+  <div class="otp-error" *ngIf="errorMessage()">
+    {{ errorMessage() }}
+  </div>
+</div>
