@@ -260,29 +260,20 @@
           </div>
         </div>
       </div>
-
-      <!-- Button - moved inside form but full width -->
+      <!-- Button - full width, inside form -->
       <div class="button-container full-width">
-        <button type="submit" [disabled]="userForm.invalid || isLoading">
-          <span *ngIf="!isLoading" id="originator" class="originator-btn">Register</span>
+        <button type="submit" id="originator" class="originator-btn" [disabled]="userForm.invalid || isLoading">
+          <span *ngIf="!isLoading">Register</span>
           <span *ngIf="isLoading">Registering...</span>
         </button>
       </div>
     </form>
+
     <!-- OTP verification UI -->
-    <div *ngIf="showOtpBox" style="margin-top: 30px;">
-      <app-otp-verification [email]="registeredEmail" context="registration" (verified)="onOTPVerified()">
+    <div *ngIf="showOtpBox" id="otp-box" class="otp-container" style="margin-top: 30px;">
+      <app-otp-verification id="app-otp-verification" class="app-otp-verification" [email]="registeredEmail"
+        context="registration" (verified)="onOTPVerified()">
       </app-otp-verification>
-    </div>
-
-    <div *ngIf="successMessage" class="success-message">
-      {{ successMessage }}
-    </div>
-    showOtpBox = false;
-
-
-    <div *ngIf="errorMessage" class="error-message">
-      {{ errorMessage }}
     </div>
   </div>
 </div>

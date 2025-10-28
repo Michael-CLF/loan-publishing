@@ -13,17 +13,21 @@
   </p>
 
   <div class="otp-inputs">
-    <input
-      *ngFor="let digit of codeDigits(); let i = index"
-      id="otp-{{ i }}"
-      maxlength="1"
-      class="otp-box"
-      type="text"
-      (input)="onCodeDigitInput(i, $event)"
-      (keydown)="onCodeDigitKeydown(i, $event)"
-      (paste)="onCodePaste($event)"
-    />
-  </div>
+  <input
+    *ngFor="let digit of codeDigits(); let i = index"
+    id="otp-{{ i }}"
+    maxlength="1"
+    class="otp-box"
+    type="text"
+    [value]="codeDigits()[i]"
+    (input)="onCodeDigitInput(i, $event)"
+    (keydown)="onCodeDigitKeydown(i, $event)"
+    (paste)="onCodePaste($event)"
+    autocomplete="one-time-code"
+    inputmode="numeric"
+  />
+</div>
+
 
   <div class="otp-timer">
     Code expires in: <strong>{{ timeRemaining() }}</strong>

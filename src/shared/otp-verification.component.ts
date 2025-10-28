@@ -46,31 +46,31 @@ export class OtpVerificationComponent implements OnInit {
     }
   }
 
-  // handle input typing
-  onCodeDigitInput(index: number, event: any): void {
-    const val = event.target.value.slice(0, 1);
-    const digits = [...this.codeDigits()];
-    digits[index] = val;
-    this.codeDigits.set(digits);
-    if (val && index < 5)
-      document.getElementById(`otp-${index + 1}`)?.focus();
-    if (index === 5 && val) this.tryVerify();
+ onCodeDigitInput(index: number, event: any): void {
+  const raw = event.target.value ?? '';
+  const val = raw.replace(/\D/g, '').slice(0, 1); // numeric, single char
+
+  // write this digit only
+  const digits = this.codeDigits().slice();
+  digits[index] = val;
+  this.codeDigits.set(digits);
+
+  // keep the rendered input consistent with model
+  event.target.value = val;
+
+  // auto-advance if a digit was entered
+  if (val && index < 5) {
+    const nextEl = document.getElementById(`otp-${index + 1}`) as HTMLInputElement | null;
+    nextEl?.focus();
+    nextEl?.select();
   }
 
-  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
-    if (e.key === 'Backspace' && !this.codeDigits()[index] && index > 0)
-      document.getElementById(`otp-${index - 1}`)?.focus();
+  // if last box filled, try verify automatically
+  if (index === 5 && val) {
+    this.tryVerify();
   }
+}
 
-  onCodePaste(e: ClipboardEvent): void {
-    e.preventDefault();
-    const txt = e.clipboardData?.getData('text') ?? '';
-    const d = txt.replace(/\D/g, '').slice(0, 6).split('');
-    if (d.length === 6) {
-      this.codeDigits.set(d);
-      this.tryVerify();
-    }
-  }
 
   resend(): void {
     this.errorMessage.set('');
@@ -85,6 +85,74 @@ export class OtpVerificationComponent implements OnInit {
       },
     });
   }
+  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
+  if (e.key === 'Backspace') {
+    e.preventDefault(); // we fully control the behavior
+
+    const digits = this.codeDigits().slice();
+
+    if (digits[index]) {
+      // clear current digit
+      digits[index] = '';
+      this.codeDigits.set(digits);
+
+      const el = document.getElementById(`otp-${index}`) as HTMLInputElement | null;
+      if (el) {
+        el.value = '';
+        el.focus();
+        el.select();
+      }
+    } else if (index > 0) {
+      // move back a box
+      const prevIndex = index - 1;
+      digits[prevIndex] = '';
+      this.codeDigits.set(digits);
+
+      const prevEl = document.getElementById(`otp-${prevIndex}`) as HTMLInputElement | null;
+      if (prevEl) {
+        prevEl.value = '';
+        prevEl.focus();
+        prevEl.select();
+      }
+    }
+  }
+}
+onCodePaste(e: ClipboardEvent): void {
+  e.preventDefault();
+  const pastedText = e.clipboardData?.getData('text') || '';
+  const cleaned = pastedText.replace(/\D/g, '').slice(0, 6);
+  if (!cleaned) return;
+
+  const newDigits = cleaned.split('');
+  // pad to length 6 in case shorter than 6
+  while (newDigits.length < 6) {
+    newDigits.push('');
+  }
+
+  this.codeDigits.set(newDigits);
+
+  // reflect the digits into DOM boxes
+  for (let i = 0; i < 6; i++) {
+    const inputEl = document.getElementById(`otp-${i}`) as HTMLInputElement | null;
+    if (inputEl) {
+      inputEl.value = newDigits[i] || '';
+    }
+  }
+
+  // if we pasted 6 digits, verify immediately
+  if (cleaned.length === 6) {
+    this.tryVerify();
+  } else {
+    // otherwise focus next empty box
+    const firstEmptyIndex = newDigits.findIndex(d => d === '');
+    const focusIndex = firstEmptyIndex === -1 ? 5 : firstEmptyIndex;
+    const focusEl = document.getElementById(`otp-${focusIndex}`) as HTMLInputElement | null;
+    focusEl?.focus();
+    focusEl?.select();
+  }
+}
+
+
 
   tryVerify(): void {
     const code = this.codeDigits().join('');
