@@ -116,14 +116,17 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   propertyCategories: any[] = [];
   loanTypes: LoanTypes[] = [];
 
+   billingInterval: 'monthly' | 'annually' = 'monthly';
+   createdUserId: string | null = null;
+
   ngOnInit(): void {
     console.log('🚀 LenderRegistrationComponent initialized');
 
     this.loadStaticData();
     this.initializeForms();
     setTimeout(() => {
-      this.initializeForms();
-    }, 0);
+    this.initializeForms();
+  }, 0);
   }
 
   ngOnDestroy(): void {
@@ -131,26 +134,26 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  private loadStaticData(): void {
-    // Load data synchronously and ensure it's available before form initialization
-    const footprintLocations = this.locationService.getFootprintLocations() || [];
-    this.states = footprintLocations.map((location: any) => ({
-      value: location.value || '',
-      name: location.name || '',
-      subcategories: location.subcategories || []
-    }));
+ private loadStaticData(): void {
+  // Load data synchronously and ensure it's available before form initialization
+  const footprintLocations = this.locationService.getFootprintLocations() || [];
+  this.states = footprintLocations.map((location: any) => ({
+    value: location.value || '',
+    name: location.name || '',
+    subcategories: location.subcategories || []
+  }));
 
-    this.lenderTypes = this.locationService.getLenderTypes() || [];
-    this.propertyCategories = this.locationService.getPropertyCategories() || [];
-    this.loanTypes = this.locationService.getLoanTypes() || [];
-
-    // Log to verify data is loaded
-    console.log('Static data loaded:', {
-      lenderTypesCount: this.lenderTypes.length,
-      propertyCategoriesCount: this.propertyCategories.length,
-      loanTypesCount: this.loanTypes.length
-    });
-  }
+  this.lenderTypes = this.locationService.getLenderTypes() || [];
+  this.propertyCategories = this.locationService.getPropertyCategories() || [];
+  this.loanTypes = this.locationService.getLoanTypes() || [];
+  
+  // Log to verify data is loaded
+  console.log('Static data loaded:', {
+    lenderTypesCount: this.lenderTypes.length,
+    propertyCategoriesCount: this.propertyCategories.length,
+    loanTypesCount: this.loanTypes.length
+  });
+}
 
   /**
    * Build one master FormGroup and wire the local aliases
@@ -167,15 +170,15 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       state: ['', [Validators.required]],
     });
 
-    this.productForm = this.fb.group({
-      lenderTypes: this.fb.array([], [Validators.required]),
-      propertyCategories: this.fb.array([], [Validators.required]),
-      subcategorySelections: this.fb.array([]),  // <-- ADD THIS
-      loanTypes: this.fb.array([], [Validators.required]),
-      minLoanAmount: ['', [Validators.required]],
-      maxLoanAmount: ['', [Validators.required]],
-      ficoScore: [620, [Validators.required, Validators.min(300), Validators.max(850)]],
-    });
+   this.productForm = this.fb.group({
+  lenderTypes: this.fb.array([], [Validators.required]),
+  propertyCategories: this.fb.array([], [Validators.required]),
+  subcategorySelections: this.fb.array([]),  // <-- ADD THIS
+  loanTypes: this.fb.array([], [Validators.required]),
+  minLoanAmount: ['', [Validators.required]],
+  maxLoanAmount: ['', [Validators.required]],
+  ficoScore: [620, [Validators.required, Validators.min(300), Validators.max(850)]],
+});
 
     this.footprintForm = this.fb.group({
       // footprintForm needs to be valid if and only if at least one state
@@ -428,65 +431,97 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // PAYMENT (Step 4)
   // ==========================================
 
-  submitForm(): void {
-    console.log('🚀 Submit form (payment step)');
+ // ... other class code above ...
 
-    // Check we're on the correct step
-    if (this.currentStep !== 4) {
-      console.error('submitForm called but not on payment step');
-      return;
-    }
-
-    // Fallback: Direct service call
-    console.log('Payment component not found - using direct service method');
-
-    // Get payment info from the form service
-    const paymentInfo = this.lenderFormService.getFormSection('payment');
-    const interval = paymentInfo?.billingInterval || 'monthly';
-    const promotionCode = paymentInfo?.validatedCouponCode || undefined;
-
-    // Validate we have required data
-    if (!interval) {
-      this.errorMessage = 'Please select a billing option';
-      return;
-    }
-
-    console.log('Creating checkout session with:', { interval, promotionCode });
-
-    this.isLoading = true;
-    this.errorMessage = '';
-
-    // Call payment service directly
-    this.paymentService.createCheckoutSession(interval, promotionCode)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => {
-          this.isLoading = false;
-        })
-      )
-      .subscribe({
-        next: (response) => {
-          console.log('✅ Checkout session created:', response);
-          console.log('✅ Full response from createCheckoutSession:', response);
-          console.log('✅ Checkout URL:', response.checkoutUrl);
-
-          if (response.success && response.checkoutUrl) {
-            this.successMessage = 'Redirecting to payment...';
-            console.log('🔄 Redirecting to Stripe:', response.checkoutUrl);
-
-            // Redirect to Stripe Checkout
-            // Don't use window.location.href directly, use the payment service method
-            this.paymentService.redirectToCheckout(response.checkoutUrl);
-          } else {
-            throw new Error(response.message || 'Failed to create checkout session');
-          }
-        },
-        error: (error) => {
-          console.error('❌ Payment error:', error);
-          this.errorMessage = error?.message || 'Payment processing failed. Please try again.';
-        }
-      });
+submitForm(): void {
+  // Basic guard
+  if (!this.lenderForm || this.lenderForm.invalid) {
+    console.error('Form invalid. Cannot start checkout.');
+    return;
   }
+
+  // Local UI state
+  this.isLoading = true;
+  this.successMessage = '';
+  this.paymentService.clearState();
+
+  // 1. Collect required values for checkout
+
+  // email from the form
+  const emailCtrl = this.lenderForm.get('email');
+  const email: string | undefined = emailCtrl
+    ? String(emailCtrl.value || '').toLowerCase().trim()
+    : undefined;
+
+  // role is fixed for this component
+  const role: 'lender' = 'lender';
+
+  // billing interval: component should be tracking what the user chose
+  // If you already have something like this.billingInterval set elsewhere,
+  // we normalize it here.
+  const interval: 'monthly' | 'annually' =
+    this.billingInterval === 'annually' ? 'annually' : 'monthly';
+
+  // userId: must be the Firestore doc ID returned by createPendingUser
+  // You told me you save that. We assume it's on this.createdUserId.
+const userId = this.createdUserId ?? undefined;
+
+  
+
+  // optional promo code
+  const promoCtrl = this.lenderForm.get('promotionCode');
+  const rawPromo = promoCtrl ? String(promoCtrl.value || '').trim() : '';
+  const promoCode = rawPromo.length ? rawPromo : undefined;
+
+  if (!email || !userId) {
+    console.error('Missing email or userId for checkout.', { email, userId });
+    this.isLoading = false;
+    return;
+  }
+
+  // 2. Call PaymentService
+  this.paymentService
+    .createCheckoutSession(email, role, interval, userId, promoCode)
+    .pipe(
+      takeUntil(this.destroy$),
+      finalize(() => {
+        this.isLoading = false;
+      })
+    )
+    .subscribe({
+      next: (response) => {
+        // response is { url?: string; sessionId?: string; error?: string; }
+
+        console.log('✅ createCheckoutSession response:', response);
+
+        if (response.url && !response.error) {
+          // Good path
+          this.successMessage = 'Redirecting to payment...';
+          console.log('🔄 Redirecting to Stripe:', response.url);
+
+          // Send browser to Stripe-hosted checkout
+          this.paymentService.redirectToCheckout(response.url);
+        } else {
+          // Error path
+          const msg =
+            response.error ||
+            'Failed to create checkout session';
+
+          console.error('❌ Checkout session error:', msg);
+          this.successMessage = '';
+        }
+      },
+      error: (err) => {
+        // Network / HTTP / thrown errors
+        console.error('❌ Checkout request failed:', err);
+        this.successMessage = '';
+      },
+      complete: () => {
+        console.log('ℹ️ Checkout flow complete');
+      }
+    });
+}
+
 
   handlePaymentComplete(result: any): void {
     console.log('✅ Payment complete:', result);

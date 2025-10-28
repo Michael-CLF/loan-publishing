@@ -1,6 +1,4 @@
 // src/app/lender-registration/lender-stripe-payment.component.ts
-
-// lender-stripe-payment.component.ts - UPDATED TO USE PaymentService
 import {
   Component,
   OnInit,
@@ -22,15 +20,11 @@ import {
   LenderFormService,
   PaymentInfo,
 } from '../../services/lender-registration.service';
-import {
-  catchError,
-  finalize,
-  takeUntil,
-} from 'rxjs/operators';
+import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { of, Subject } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 import { PromotionService } from '../../services/promotion.service';
-import { PaymentService } from '../../services/payment.service'; // ← NEW
+import { PaymentService } from '../../services/payment.service';
 
 interface LenderData {
   companyName: string;
@@ -74,12 +68,14 @@ export class LenderStripePaymentComponent implements OnInit {
   @Output() couponValidated = new EventEmitter<any>();
 
   paymentForm!: FormGroup;
-  paymentInfo$ = this.lenderFormService.getFormSection('payment');
   isLoading = false;
   isValidatingCoupon = false;
   errorMessage = '';
 
   private destroy$ = new Subject<void>();
+
+  // Added fields used by PaymentService
+  createdUserId: string | null = null;
 
   ngOnInit(): void {
     this.initializePaymentForm();
@@ -87,7 +83,6 @@ export class LenderStripePaymentComponent implements OnInit {
   }
 
   private initializePaymentForm(): void {
-    // Get existing payment data from service
     const existingPayment = this.lenderFormService.getFormSection('payment');
 
     this.paymentForm = this.fb.group({
@@ -95,11 +90,11 @@ export class LenderStripePaymentComponent implements OnInit {
       promotion_code: [existingPayment?.promotion_code || ''],
     });
 
-    // If there's existing payment data, apply it
     if (
       existingPayment?.couponApplied &&
       existingPayment?.appliedCouponDetails
     ) {
+      // already applied coupon
     }
   }
 
@@ -116,7 +111,6 @@ export class LenderStripePaymentComponent implements OnInit {
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.paymentForm.patchValue({ interval });
 
-    // Update service with new interval
     const currentPayment =
       this.lenderFormService.getFormSection('payment') || ({} as PaymentInfo);
     this.lenderFormService.setFormSection('payment', {
@@ -124,7 +118,6 @@ export class LenderStripePaymentComponent implements OnInit {
       billingInterval: interval,
     });
 
-    // Revalidate coupon if one exists
     if (
       currentPayment?.couponApplied &&
       this.paymentForm.get('promotion_code')?.value
@@ -132,10 +125,9 @@ export class LenderStripePaymentComponent implements OnInit {
       this.validateCoupon();
     }
   }
+
   applyCoupon(): void {
-    const promotion_code = this.paymentForm
-      .get('promotion_code')
-      ?.value?.trim();
+    const promotion_code = this.paymentForm.get('promotion_code')?.value?.trim();
     if (!promotion_code) return;
 
     this.isValidatingCoupon = true;
@@ -151,26 +143,17 @@ export class LenderStripePaymentComponent implements OnInit {
         finalize(() => (this.isValidatingCoupon = false)),
         catchError((error: HttpErrorResponse) => {
           console.error('Promotion code application error:', error);
-          this.setCouponError(
-            'Unable to apply promotion code. Please try again.'
-          );
+          this.setCouponError('Unable to apply promotion code. Please try again.');
           return of(null);
         })
       )
       .subscribe((response) => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
+        if (response) this.handleCouponValidationResponse(response);
       });
   }
 
-  /**
-   * ✅ Validates promotion code on blur
-   */
   validateCoupon(): void {
-    const promotion_code = this.paymentForm
-      .get('promotion_code')
-      ?.value?.trim();
+    const promotion_code = this.paymentForm.get('promotion_code')?.value?.trim();
     if (!promotion_code) return;
 
     this.isValidatingCoupon = true;
@@ -181,22 +164,17 @@ export class LenderStripePaymentComponent implements OnInit {
         'lender',
         this.paymentForm.get('interval')?.value || 'monthly'
       )
-
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => (this.isValidatingCoupon = false)),
         catchError((error: HttpErrorResponse) => {
           console.error('Coupon validation error:', error);
-          this.setCouponError(
-            'Unable to validate promotion code. Please try again.'
-          );
+          this.setCouponError('Unable to validate promotion code. Please try again.');
           return of(null);
         })
       )
       .subscribe((response) => {
-        if (response) {
-          this.handleCouponValidationResponse(response);
-        }
+        if (response) this.handleCouponValidationResponse(response);
       });
   }
 
@@ -205,21 +183,17 @@ export class LenderStripePaymentComponent implements OnInit {
 
     if (response.valid && response.promotion_code) {
       const coupon = response.promotion_code.coupon;
-      let couponDetails: any; // ✅ Declare outside the if/else blocks
+      let couponDetails: any;
 
-      // ✅ Handle special LENDER30TRIAL case
       if (response.promotion_code.code === 'LENDER7TRIAL') {
         couponDetails = {
           promotion_code: response.promotion_code.code,
           displayCode: response.promotion_code.code,
-          discount: 0, // No discount, just trial
-          discountType: 'trial' as any,
+          discount: 0,
+          discountType: 'trial',
           description: '7-Day Free Trial',
         };
-
-        console.log('✅ Applied LENDER7TRIAL special case');
       } else {
-        // ✅ Handle regular Stripe promotion codes
         couponDetails = {
           promotion_code: response.promotion_code.code,
           displayCode: response.promotion_code.code,
@@ -229,7 +203,6 @@ export class LenderStripePaymentComponent implements OnInit {
         };
       }
 
-      // Update service with validated coupon
       const currentPayment =
         this.lenderFormService.getFormSection('payment') || ({} as PaymentInfo);
       this.lenderFormService.setFormSection('payment', {
@@ -249,22 +222,15 @@ export class LenderStripePaymentComponent implements OnInit {
     }
   }
 
-  /**
-   * ✅ Set coupon error on form control
-   */
   private setCouponError(errorMessage: string): void {
     const couponControl = this.paymentForm.get('promotion_code');
-    if (couponControl) {
-      couponControl.setErrors({ couponError: errorMessage });
-    }
+    if (couponControl) couponControl.setErrors({ couponError: errorMessage });
   }
 
   private clearCouponErrors(): void {
     const couponControl = this.paymentForm.get('promotion_code');
-    if (couponControl) {
-      couponControl.setErrors(null);
-    }
-    // Emit event with current service state
+    if (couponControl) couponControl.setErrors(null);
+
     const paymentData = this.lenderFormService.getFormSection('payment');
     this.couponValidated.emit({
       applied: paymentData?.couponApplied || false,
@@ -273,7 +239,6 @@ export class LenderStripePaymentComponent implements OnInit {
   }
 
   private resetCouponState(): void {
-    // Update service to clear coupon state
     const currentPayment =
       this.lenderFormService.getFormSection('payment') || ({} as PaymentInfo);
     this.lenderFormService.setFormSection('payment', {
@@ -311,9 +276,7 @@ export class LenderStripePaymentComponent implements OnInit {
         .pipe(
           takeUntil(this.destroy$),
           finalize(() => {
-            if (!paymentInfo?.couponApplied) {
-              this.isLoading = false;
-            }
+            if (!paymentInfo?.couponApplied) this.isLoading = false;
           }),
           catchError((error: HttpErrorResponse) => {
             console.error('❌ Payment promotion code validation failed:', error);
@@ -344,34 +307,45 @@ export class LenderStripePaymentComponent implements OnInit {
     this.isLoading = true;
     this.errorMessage = '';
 
-    console.log('💳 Creating checkout session:', { billingInterval, validatedPromotionCode });
+    console.log('💳 Creating checkout session:', {
+      billingInterval,
+      validatedPromotionCode,
+    });
 
-    // Use NEW PaymentService
-    this.paymentService.createCheckoutSession(billingInterval, validatedPromotionCode)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isLoading = false)
-      )
+    const email =
+      this.lenderData?.email?.toLowerCase().trim() ||
+      this.lenderFormService.getFormSection('contact')?.email ||
+      null;
+    const role: 'lender' = 'lender';
+    const interval: 'monthly' | 'annually' =
+      billingInterval === 'annually' ? 'annually' : 'monthly';
+    const userId = this.createdUserId || null;
+
+    if (!email || !userId) {
+      console.error('Missing email or userId for checkout.', { email, userId });
+      this.isLoading = false;
+      return;
+    }
+
+    this.paymentService
+      .createCheckoutSession(email, role, interval, userId, validatedPromotionCode)
+      .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {
-          console.log('✅ Checkout session created:', response);
-
-          if (response.success && response.checkoutUrl) {
-            this.paymentComplete.emit({
-              success: true,
-              message: 'Redirecting to payment processor...',
-            });
-
-            console.log('🔄 Redirecting to Stripe:', response.checkoutUrl);
-            this.paymentService.redirectToCheckout(response.checkoutUrl);
+          if (response.url && !response.error) {
+            console.log('🔄 Redirecting to Stripe:', response.url);
+            this.paymentService.redirectToCheckout(response.url);
           } else {
-            throw new Error(response.message || 'Failed to create checkout session');
+            const msg = response.error || 'Failed to create checkout session';
+            console.error('❌ Checkout session error:', msg);
+            this.errorMessage = msg;
+            this.paymentError.emit({ success: false, error: msg });
           }
         },
-        error: (error) => {
-          console.error('❌ Checkout error:', error);
-          this.handlePaymentError(error);
-        }
+        error: (err) => {
+          console.error('❌ Checkout request failed:', err);
+          this.handlePaymentError(err);
+        },
       });
   }
 
@@ -399,7 +373,7 @@ export class LenderStripePaymentComponent implements OnInit {
   getSavingsAmount(): string {
     return '$178.00';
   }
-  // Helper methods for template
+
   get couponApplied(): boolean {
     const paymentInfo = this.lenderFormService.getFormSection('payment');
     return paymentInfo?.couponApplied || false;

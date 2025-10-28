@@ -37,76 +37,89 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     }
   }
 
- ngOnInit(): void {
-  const qp = this.route.snapshot.queryParamMap;
+  ngOnInit(): void {
+    const qp = this.route.snapshot.queryParamMap;
 
-  // Capture context
-  this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
-  const r = qp.get('role');
-  this.role.set(r === 'lender' || r === 'originator' ? r : null);
-  this.uid.set(qp.get('uid'));
+    // Capture context from query params
+    this.email.set((qp.get('email') || '').toLowerCase().trim() || null);
 
-  // Check if returning from Stripe payment
-  const isStripeReturn = qp.get('session_id') !== null;
-  
-  if (isStripeReturn) {
-    // User just completed payment - wait for webhook to activate subscription
-    this.handlePostPaymentProcessing();
-    return;
-  }
+    const r = qp.get('role');
+    this.role.set(r === 'lender' || r === 'originator' ? r : null);
 
-  // Default: Show "check email for OTP" message
-  this.showCheckEmailScreen();
-}
+    this.uid.set(qp.get('uid'));
 
-/**
- * Show "check your email for OTP code" screen
- */
-private showCheckEmailScreen(): void {
-  this.processingMessage.set('Check your email for a verification code to continue registration.');
-  this.showProcessingSpinner.set(false);
-  this.showSuccessMessage.set(true);
-  
-  // No auto-redirect - user stays on this page until they verify OTP
-}
+    const paymentStatus = qp.get('payment');          // "success" | "cancel" | null
+    const sessionId = qp.get('session_id');           // present on Stripe success flow
 
-/**
- * Handle post-payment processing (after Stripe redirect)
- */
-private handlePostPaymentProcessing(): void {
-  this.clearRedirectTimer();
-  this.processingMessage.set('Processing your payment...');
-  this.showProcessingSpinner.set(true);
+    const isStripeReturn = sessionId !== null || paymentStatus !== null;
 
-  const email = this.email();
-  if (!email) {
-    this.processingMessage.set('Unable to verify payment. Please contact support.');
-    this.showErrorMessage.set(true);
-    this.showProcessingSpinner.set(false);
-    return;
-  }
-
-  // Check if user is authenticated
-  this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
-    next: (user) => {
-      if (user?.email) {
-        // User is authenticated - check subscription status
-        this.pollForAccountActivation(user.email, 0);
-      } else {
-        // User not authenticated yet - show message to check email
-        this.processingMessage.set('Payment received! Please check your email to complete sign-in.');
+    if (isStripeReturn) {
+      // Coming back from Stripe
+      if (paymentStatus === 'cancel') {
+        // User bailed out at Stripe
+        this.processingMessage.set('Payment was canceled. Your subscription is not active.');
         this.showProcessingSpinner.set(false);
-        this.showSuccessMessage.set(true);
+        this.showErrorMessage.set(true);
+        this.showSuccessMessage.set(false);
+        return;
       }
-    },
-    error: (err) => {
-      console.error('Error checking auth:', err);
-      this.processingMessage.set('Payment received! Please check your email to complete sign-in.');
-      this.showProcessingSpinner.set(false);
-      this.showSuccessMessage.set(true);
+
+      // Otherwise treat as success and continue with post-payment path
+      this.handlePostPaymentProcessing();
+      return;
     }
-  });
-}
+
+    // Not Stripe. Normal pre-payment registration flow.
+    this.showCheckEmailScreen();
+  }
+
+
+  /**
+   * Show "check your email for OTP code" screen
+   */
+  private showCheckEmailScreen(): void {
+    this.processingMessage.set('Check your email for a verification code to continue registration.');
+    this.showProcessingSpinner.set(false);
+    this.showSuccessMessage.set(true);
+
+    // No auto-redirect - user stays on this page until they verify OTP
+  }
+
+  private handlePostPaymentProcessing(): void {
+    this.clearRedirectTimer();
+    this.processingMessage.set('Processing your payment...');
+    this.showProcessingSpinner.set(true);
+    this.showErrorMessage.set(false);
+    this.showSuccessMessage.set(false);
+
+    const email = this.email();
+    if (!email) {
+      this.processingMessage.set('Unable to verify payment. Please contact support.');
+      this.showErrorMessage.set(true);
+      this.showProcessingSpinner.set(false);
+      return;
+    }
+
+    this.authService.getCurrentFirebaseUser().pipe(take(1)).subscribe({
+      next: (user) => {
+        if (user?.email) {
+          // User is authenticated. Poll Firestore until subscriptionStatus becomes active.
+          this.pollForAccountActivation(user.email, 0);
+        } else {
+          // User is NOT authenticated yet.
+          // Webhook likely just sent them a magic link.
+          // Tell them to check email and auto-bounce them home after a few seconds.
+          this.showCheckEmailScreenWithRedirect();
+        }
+      },
+      error: (err) => {
+        console.error('Error checking auth:', err);
+        // same behavior as unauthenticated branch
+        this.showCheckEmailScreenWithRedirect();
+      }
+    });
+  }
+
 
   ngOnDestroy(): void {
     this.clearRedirectTimer();

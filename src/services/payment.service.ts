@@ -1,30 +1,19 @@
+// payment.service.ts
+
 /**
  * Payment Service
- * 
- * Handles Stripe checkout session creation and payment flow.
- * Called after user verifies email (status='pending_payment').
+ *
+ * Calls the backend HTTPS function to create a Stripe Checkout session.
+ * Exposes state flags for UI.
  */
 
 import { Injectable, inject, signal } from '@angular/core';
-import { Functions, httpsCallable } from '@angular/fire/functions';
-import { Observable, from } from 'rxjs';
-import { map, catchError } from 'rxjs/operators';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { Observable, throwError } from 'rxjs';
+import { tap, catchError, map } from 'rxjs/operators';
 
-/**
- * Checkout session request
- */
-export interface CreateCheckoutRequest {
-  interval?: 'monthly' | 'annually';
-  promotionCode?: string;
-}
-
-/**
- * Checkout session response
- */
 export interface CreateCheckoutResponse {
-  success: boolean;
-  message: string;
-  checkoutUrl?: string;
+  url?: string;
   sessionId?: string;
   error?: string;
 }
@@ -33,72 +22,103 @@ export interface CreateCheckoutResponse {
   providedIn: 'root'
 })
 export class PaymentService {
-  private functions = inject(Functions);
+  private http = inject(HttpClient);
 
-  // Payment state signals
+  // Cloud Function endpoint for Design B
+  // This must match your deployed function name in stripe.ts
+  private checkoutEndpoint =
+    'https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout';
+
+  // UI state
   isCreatingCheckout = signal<boolean>(false);
   checkoutError = signal<string | null>(null);
 
   /**
-   * Creates Stripe checkout session
-   * User must be authenticated and have verified email
+   * createCheckoutSession
+   *
+   * Starts Stripe Checkout for this user.
+   * Do not rename this method.
    */
   createCheckoutSession(
-    interval: 'monthly' | 'annually' = 'monthly',
-    promotionCode?: string
+    email: string,
+    role: 'lender' | 'originator',
+    interval: 'monthly' | 'annually',
+    userId: string,
+    promoCode?: string
   ): Observable<CreateCheckoutResponse> {
-    console.log('💳 PaymentService: Creating checkout session', { interval, promotionCode });
-
     this.isCreatingCheckout.set(true);
     this.checkoutError.set(null);
 
-    const createCheckoutCallable = httpsCallable<CreateCheckoutRequest, CreateCheckoutResponse>(
-      this.functions,
-      'createCheckoutSession'
-    );
-
-    const request: CreateCheckoutRequest = {
+    const payload: any = {
+      email: email.toLowerCase().trim(),
+      role,
       interval,
-      promotionCode: promotionCode?.toUpperCase().trim(),
+      userData: { userId }
     };
 
-    return from(createCheckoutCallable(request)).pipe(
-      map((result) => {
-        console.log('📦 Checkout response:', result);
-        
-        const response = result.data;
+    // Backend expects promotion_code (snake case)
+    if (promoCode) {
+      payload.promotion_code = promoCode.toUpperCase().trim();
+    }
 
-        if (response.success) {
-          console.log('✅ Checkout session created');
-        } else {
-          this.checkoutError.set(response.message || 'Failed to create checkout session');
-          console.error('❌ Checkout creation failed:', response.message);
-        }
+    const headers = new HttpHeaders({
+      'Content-Type': 'application/json'
+      // No Authorization header. Design B does not require ID token.
+    });
 
-        this.isCreatingCheckout.set(false);
-        return response;
-      }),
-      catchError((error) => {
-        console.error('❌ Checkout error:', error);
-        const errorMessage = error.message || 'Failed to create checkout session. Please try again.';
-        this.checkoutError.set(errorMessage);
-        this.isCreatingCheckout.set(false);
-        
-        throw error;
-      })
-    );
+    return this.http
+      .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload, { headers })
+      .pipe(
+        tap((resp) => {
+          // If backend sent an error field
+          if (!resp || resp.error) {
+            const msg =
+              resp?.error ||
+              'Failed to create checkout session';
+            console.error('Checkout creation failed:', msg);
+            this.checkoutError.set(msg);
+          } else {
+            // happy path
+            console.log('Checkout session created:', resp);
+          }
+
+          this.isCreatingCheckout.set(false);
+        }),
+        map((resp) => resp),
+        catchError((err) => {
+          const msg =
+            err?.error?.error ||
+            err?.message ||
+            'Failed to create checkout session';
+
+          console.error('Checkout HTTP error:', msg, err);
+          this.checkoutError.set(msg);
+          this.isCreatingCheckout.set(false);
+
+          return throwError(() => err);
+        })
+      );
   }
 
   /**
-   * Redirects to Stripe checkout
+   * redirectToCheckout
+   *
+   * Navigates browser to Stripe-hosted checkout page.
+   * Do not rename this method.
    */
-  redirectToCheckout(checkoutUrl: string): void {
-    console.log('🔄 Redirecting to Stripe checkout');
-    window.location.href = checkoutUrl;
+  redirectToCheckout(checkoutUrl: string | undefined): void {
+    if (checkoutUrl) {
+      window.location.href = checkoutUrl;
+    } else {
+      this.checkoutError.set('No checkout URL returned');
+    }
   }
 
   /**
-   * Clears payment state
+   * clearState
+   *
+   * Resets local flags.
+   * Do not rename this method.
    */
   clearState(): void {
     this.isCreatingCheckout.set(false);

@@ -1,3 +1,5 @@
+// src/user-form/user-form.component.ts
+
 // user-form.component.ts - CORRECTED (NO SIGNALS)
 import {
   Component,
@@ -91,7 +93,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     console.log('🚀 UserFormComponent initialized');
     
-    // Load states
+    // Load states for dropdown
     const footprintLocations = this.locationService.getFootprintLocations();
     this.states = footprintLocations.map(location => ({
       value: location.value,
@@ -117,7 +119,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       otp: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
     });
 
-    // Clear coupon errors when user starts typing
+    // Clear coupon errors when user types
     this.userForm.get('promotion_code')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
@@ -139,7 +141,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   selectBilling(interval: 'monthly' | 'annually'): void {
     this.userForm.patchValue({ interval });
 
-    // If a coupon is applied, revalidate it for the new plan
+    // If a coupon is applied, revalidate it for the new interval
     if (this.couponApplied && this.userForm.get('promotion_code')?.value) {
       this.validateCoupon();
     }
@@ -149,12 +151,14 @@ export class UserFormComponent implements OnInit, OnDestroy {
     let phone = this.userForm.get('phone')?.value;
     if (phone) {
       phone = phone.replace(/\D/g, '').slice(0, 10);
+
       let formatted = phone;
       if (phone.length >= 6) {
         formatted = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
       } else if (phone.length >= 3) {
         formatted = `(${phone.slice(0, 3)}) ${phone.slice(3)}`;
       }
+
       this.userForm.get('phone')?.setValue(formatted, { emitEvent: false });
     }
   }
@@ -262,7 +266,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
     const formData = this.userForm.value;
     const email = formData.email.toLowerCase().trim();
 
-    // Build registration data
     const registrationData: RegistrationData = {
       email,
       role: 'originator',
@@ -285,7 +288,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
     console.log('📤 Calling createPendingUser with:', registrationData);
 
-    // Call createPendingUser Cloud Function
     this.originatorService.registerUser(registrationData)
       .pipe(
         takeUntil(this.destroy$),
@@ -296,8 +298,10 @@ export class UserFormComponent implements OnInit, OnDestroy {
           console.log('✅ Registration successful:', response);
           
           if (response.success && response.userId) {
+            // Save for OTP and payment steps
             this.registeredEmail = email;
             this.registeredUserId = response.userId;
+
             this.currentStep = 'otp';
             this.successMessage = 'Check your email for a verification code!';
           } else {
@@ -315,10 +319,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
   // STEP 2: OTP VERIFICATION
   // ==========================================
 
-  /**
-   * STEP 2: Verify OTP code
-   * Calls verifyOTP Cloud Function
-   */
   verifyOTP(): void {
     console.log('🔐 Verifying OTP');
 
@@ -363,9 +363,6 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Resend OTP code
-   */
   resendOTP(): void {
     const email = this.registeredEmail;
     if (!email) return;
@@ -391,60 +388,87 @@ export class UserFormComponent implements OnInit, OnDestroy {
   }
 
   // ==========================================
-  // STEP 3: PAYMENT
+  // STEP 3: PAYMENT (Design B)
   // ==========================================
 
-  /**
-   * STEP 3: Create checkout session and redirect to Stripe
-   */
   proceedToPayment(): void {
     console.log('💳 Proceeding to payment');
 
     this.isCreatingCheckout = true;
     this.errorMessage = '';
 
-    const interval = this.userForm.value.interval || 'monthly';
+    const intervalRaw = this.userForm.value.interval || 'monthly';
+    const interval: 'monthly' | 'annually' =
+      intervalRaw === 'annually' ? 'annually' : 'monthly';
+
     const promotionCode = this.couponApplied && this.appliedCouponDetails
       ? this.appliedCouponDetails.code
       : undefined;
 
-    console.log('📤 Creating checkout session:', { interval, promotionCode });
+    const email = this.registeredEmail?.toLowerCase().trim();
+    const role: 'originator' = 'originator';
+    const userId = this.registeredUserId || null;
 
-    this.paymentService.createCheckoutSession(interval, promotionCode)
+    if (!email || !userId) {
+      console.error('Missing email or userId for checkout.', { email, userId });
+      this.isCreatingCheckout = false;
+      this.errorMessage = 'Unable to start checkout. Please re-register.';
+      return;
+    }
+
+    console.log('📤 Creating checkout session:', {
+      email,
+      role,
+      interval,
+      userId,
+      promotionCode
+    });
+
+    this.paymentService
+      .createCheckoutSession(
+        email,
+        role,
+        interval,
+        userId,
+        promotionCode
+      )
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isCreatingCheckout = false)
+        finalize(() => (this.isCreatingCheckout = false))
       )
       .subscribe({
         next: (response: any) => {
-          console.log('✅ Checkout session created:', response);
-          
-          if (response.success && response.checkoutUrl) {
-            console.log('🔄 Redirecting to Stripe checkout');
-            this.paymentService.redirectToCheckout(response.checkoutUrl);
+          console.log('✅ Checkout session response:', response);
+
+          // Design B response: { url?: string; sessionId?: string; error?: string }
+          if (response.url && !response.error) {
+            console.log('🔄 Redirecting to Stripe checkout:', response.url);
+            this.paymentService.redirectToCheckout(response.url);
           } else {
-            this.errorMessage = response.message || 'Failed to create checkout session.';
+            const msg =
+              response.error ||
+              'Failed to create checkout session.';
+            console.error('❌ Checkout session error:', msg);
+            this.errorMessage = msg;
           }
         },
         error: (error: any) => {
           console.error('❌ Checkout creation error:', error);
-          this.errorMessage = error.message || 'Failed to create checkout session. Please try again.';
+          this.errorMessage =
+            error.message ||
+            'Failed to create checkout session. Please try again.';
         }
       });
   }
 
-  /**
-   * Go back to form step (if user needs to change info)
-   */
+  // Navigation helpers
+
   backToForm(): void {
     this.currentStep = 'form';
     this.otpForm.reset();
     this.otpError = '';
   }
 
-  /**
-   * Go back to OTP step (if payment fails)
-   */
   backToOTP(): void {
     this.currentStep = 'otp';
   }
