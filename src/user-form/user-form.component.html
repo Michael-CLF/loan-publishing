@@ -1,322 +1,296 @@
-<div class="registration-container">
+<div class="container">
+  <h2 class="headline">Register</h2>
 
-  <!-- STEP 1: REGISTRATION FORM -->
+  <!-- VIEW 1: Registration Form (Initial State) -->
   @if (currentStep === 'form') {
-    <form [formGroup]="userForm" novalidate class="registration-form">
+    <div class="form-section">
+      <form [formGroup]="userForm" (ngSubmit)="onSubmit()" class="grid-form">
 
-      <!-- Contact / Company Info Section -->
-      <div class="form-row">
+        <!-- Company field -->
+        <div class="form-group full-width">
+          <label for="company">Company Name</label>
+          <input type="text" id="company" formControlName="company" [ngClass]="{
+                      invalid: userForm.get('company')?.invalid && userForm.get('company')?.touched
+                    }" />
+          <div *ngIf="userForm.get('company')?.invalid && userForm.get('company')?.touched" class="error">
+            <div *ngIf="userForm.get('company')?.errors?.['required']">
+              *Company name is required.
+            </div>
+            <div *ngIf="userForm.get('company')?.errors?.['minlength']">
+              *Company name must be at least 2 characters.
+            </div>
+            <div *ngIf="userForm.get('company')?.errors?.['pattern']">
+              *Company name must contain letters only.
+            </div>
+          </div>
+        </div>
+
+        <!-- First name field -->
         <div class="form-group">
           <label for="firstName">First Name</label>
-          <input
-            id="firstName"
-            type="text"
-            formControlName="firstName"
-            placeholder="First Name"
-          />
-          @if (userForm.get('firstName')?.invalid && (userForm.get('firstName')?.dirty || userForm.get('firstName')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('firstName')?.errors?.['required']) {
-                <span>*First name is required</span>
-              }
-              @if (userForm.get('firstName')?.errors?.['minlength']) {
-                <span>*Minimum 2 characters</span>
-              }
-              @if (userForm.get('firstName')?.errors?.['pattern']) {
-                <span>*Letters only</span>
-              }
+          <input type="text" id="firstName" formControlName="firstName"
+            [ngClass]="{'invalid': userForm.get('firstName')?.invalid && (userForm.get('firstName')?.touched || userForm.get('firstName')?.dirty)}" />
+          <div
+            *ngIf="userForm.get('firstName')?.invalid && (userForm.get('firstName')?.touched || userForm.get('firstName')?.dirty)"
+            class="error">
+            <div *ngIf="userForm.get('firstName')?.errors?.['required']">
+              *First name is required.
             </div>
-          }
+            <div *ngIf="userForm.get('firstName')?.errors?.['minlength']">
+              *First name must be at least 2 characters.
+            </div>
+            <div *ngIf="userForm.get('firstName')?.errors?.['pattern']">
+              *First name must contain letters only.
+            </div>
+          </div>
         </div>
 
+        <!-- Last name field -->
         <div class="form-group">
           <label for="lastName">Last Name</label>
-          <input
-            id="lastName"
-            type="text"
-            formControlName="lastName"
-            placeholder="Last Name"
-          />
-          @if (userForm.get('lastName')?.invalid && (userForm.get('lastName')?.dirty || userForm.get('lastName')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('lastName')?.errors?.['required']) {
-                <span>*Last name is required</span>
-              }
-              @if (userForm.get('lastName')?.errors?.['minlength']) {
-                <span>*Minimum 2 characters</span>
-              }
-              @if (userForm.get('lastName')?.errors?.['pattern']) {
-                <span>*Letters only</span>
-              }
+          <input type="text" id="lastName" formControlName="lastName" [ngClass]="{
+                      invalid: userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched
+                    }" />
+          <div *ngIf="userForm.get('lastName')?.invalid && userForm.get('lastName')?.touched" class="error">
+            <div *ngIf="userForm.get('lastName')?.errors?.['required']">
+              *Last name is required.
             </div>
-          }
-        </div>
-      </div>
-
-      <div class="form-row">
-        <div class="form-group full-width">
-          <label for="company">Company</label>
-          <input
-            id="company"
-            type="text"
-            formControlName="company"
-            placeholder="Company Name"
-          />
-          @if (userForm.get('company')?.invalid && (userForm.get('company')?.dirty || userForm.get('company')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('company')?.errors?.['required']) {
-                <span>*Company is required</span>
-              }
-              @if (userForm.get('company')?.errors?.['minlength']) {
-                <span>*Minimum 2 characters</span>
-              }
-              @if (userForm.get('company')?.errors?.['pattern']) {
-                <span>*Letters and numbers only</span>
-              }
+            <div *ngIf="userForm.get('lastName')?.errors?.['minlength']">
+              *Last name must be at least 2 characters.
             </div>
-          }
+            <div *ngIf="userForm.get('lastName')?.errors?.['pattern']">
+              *Last name must contain letters only.
+            </div>
+          </div>
         </div>
-      </div>
 
-      <!-- Contact details -->
-      <div class="form-row">
+        <!-- Email field -->
         <div class="form-group">
           <label for="email">Email</label>
-          <input
-            id="email"
-            type="email"
-            formControlName="email"
-            placeholder="you@example.com"
-          />
-          @if (userForm.get('email')?.invalid && (userForm.get('email')?.dirty || userForm.get('email')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('email')?.errors?.['required']) {
-                <span>*Email is required</span>
-              }
-              @if (userForm.get('email')?.errors?.['email']) {
-                <span>*Enter a valid email</span>
-              }
-              @if (userForm.get('email')?.errors?.['emailTaken']) {
-                <span>*Email is already registered</span>
-              }
+          <input type="text" id="email" formControlName="email" [ngClass]="{
+          invalid: userForm.get('email')?.invalid && userForm.get('email')?.touched || (errorMessage && errorMessage.includes('already registered'))
+        }" />
+
+          <div *ngIf="userForm.get('email')?.hasError('emailExists') && userForm.get('email')?.touched"
+            class="email-exists">
+            This email is already registered. Please login.
+          </div>
+          <div *ngIf="userForm.get('email')?.pending" class="checking-email">
+            Checking email availability...
+          </div>
+          <div *ngIf="userForm.get('email')?.invalid && userForm.get('email')?.touched" class="error">
+            <div *ngIf="userForm.get('email')?.errors?.['required']">
+              *Email is required.
             </div>
-          }
+            <div *ngIf="userForm.get('email')?.errors?.['email']">
+              *Please enter a valid email address.
+            </div>
+          </div>
+          <div *ngIf="errorMessage && errorMessage.includes('already registered')" class="error">
+            *This email is already registered. Please use a different email.
+          </div>
         </div>
 
+        <!-- Phone field -->
         <div class="form-group">
           <label for="phone">Phone</label>
-          <input
-            id="phone"
-            type="tel"
-            formControlName="phone"
-            placeholder="(555) 555-5555"
-            (input)="formatPhoneNumber()"
-          />
-          @if (userForm.get('phone')?.invalid && (userForm.get('phone')?.dirty || userForm.get('phone')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('phone')?.errors?.['required']) {
-                <span>*Phone is required</span>
-              }
-              @if (userForm.get('phone')?.errors?.['minlength']) {
-                <span>*Enter a valid phone number</span>
-              }
-              @if (userForm.get('phone')?.errors?.['pattern']) {
-                <span>*Enter a valid phone number</span>
-              }
+          <input id="phone" formControlName="phone" (input)="formatPhoneNumber()"
+            [ngClass]="{ invalid: userForm.get('phone')?.invalid && userForm.get('phone')?.touched }" />
+          <div *ngIf="userForm.get('phone')?.invalid && userForm.get('phone')?.touched" class="error">
+            <div *ngIf="userForm.get('phone')?.errors?.['required']">
+              *Phone is required.
             </div>
-          }
+            <div *ngIf="userForm.get('phone')?.errors?.['pattern']">
+              *Phone must be a 10-digit number.
+            </div>
+            <div *ngIf="userForm.get('phone')?.errors?.['minlength']">
+              *Phone must be a 10-digit number.
+            </div>
+          </div>
         </div>
-      </div>
 
-      <div class="form-row">
+        <!-- City field -->
         <div class="form-group">
           <label for="city">City</label>
-          <input
-            id="city"
-            type="text"
-            formControlName="city"
-            placeholder="City"
-          />
-          @if (userForm.get('city')?.invalid && (userForm.get('city')?.dirty || userForm.get('city')?.touched)) {
-            <div class="error-message">
-              @if (userForm.get('city')?.errors?.['required']) {
-                <span>*City is required</span>
-              }
-              @if (userForm.get('city')?.errors?.['minlength']) {
-                <span>*Minimum 2 characters</span>
-              }
-              @if (userForm.get('city')?.errors?.['pattern']) {
-                <span>*Letters only</span>
-              }
+          <input type="text" id="city" formControlName="city" [ngClass]="{
+                      invalid: userForm.get('city')?.invalid && userForm.get('city')?.touched
+                    }" />
+          <div *ngIf="userForm.get('city')?.invalid && userForm.get('city')?.touched" class="error">
+            <div *ngIf="userForm.get('city')?.errors?.['required']">
+              *City is required.
             </div>
-          }
+            <div *ngIf="userForm.get('city')?.errors?.['minlength']">
+              *City must be at least 2 characters.
+            </div>
+            <div *ngIf="userForm.get('city')?.errors?.['pattern']">
+              *City must contain letters only.
+            </div>
+          </div>
         </div>
 
+        <!-- State field -->
         <div class="form-group">
           <label for="state">State</label>
-          <select id="state" formControlName="state">
-            <option value="" disabled>Select State</option>
-            @for (stateOpt of states; track stateOpt.value) {
-              <option [value]="stateOpt.value">{{ stateOpt.name }}</option>
-            }
+          <select id="state" formControlName="state" [ngClass]="{
+          invalid: userForm.get('state')?.invalid && userForm.get('state')?.touched
+        }">
+            <option value="">Select State</option>
+            <option *ngFor="let state of states" [value]="state.value">{{ state.name }}</option>
           </select>
-          @if (userForm.get('state')?.invalid && (userForm.get('state')?.dirty || userForm.get('state')?.touched)) {
-            <div class="error-message">
-              <span>*State is required</span>
+          <div *ngIf="userForm.get('state')?.invalid && userForm.get('state')?.touched" class="error">
+            <div *ngIf="userForm.get('state')?.errors?.['required']">
+              *State is required.
             </div>
-          }
+          </div>
         </div>
-      </div>
 
-      <!-- Billing choice -->
-      <div class="billing-section">
-        <label class="section-label">Billing Interval</label>
-        <div class="billing-options">
-          <label class="billing-option">
-            <input
-              type="radio"
-              formControlName="interval"
-              value="monthly"
-              (change)="selectBilling('monthly')"
-            />
-            <span>Monthly</span>
-          </label>
-
-          <label class="billing-option">
-            <input
-              type="radio"
-              formControlName="interval"
-              value="annually"
-              (change)="selectBilling('annually')"
-            />
-            <span>Annually</span>
-          </label>
-        </div>
-      </div>
-
-      <!-- Promo code / coupon -->
-      <div class="coupon-row">
-        <div class="form-group promo-group">
-          <label for="promotion_code">Promotion Code</label>
-          <div class="promo-inline">
-            <input
-              id="promotion_code"
-              type="text"
-              formControlName="promotion_code"
-              placeholder="Optional"
-              (blur)="validateCoupon()"
-            />
-            <button
-              type="button"
-              class="apply-btn"
-              [disabled]="isValidatingCoupon"
-              (click)="validateCoupon()"
-            >
-              @if (isValidatingCoupon) {
-                <span>Applying...</span>
-              } @else {
-                <span>Apply</span>
-              }
-            </button>
+        <!-- Pricing Selection Section - Place before Terms of Service -->
+        <div class="pricing-section">
+          <div class="pricing-header">
+            <h3>Choose Your Plan</h3>
+            <p class="pricing-subtitle">Select your billing frequency</p>
           </div>
 
-          <!-- coupon state feedback -->
-          @if (couponApplied && appliedCouponDetails) {
-            <div class="coupon-success">
-              <strong>{{ appliedCouponDetails.displayCode || appliedCouponDetails.code }}</strong>
-              <span> applied:
-                @if (appliedCouponDetails.discountType === 'percentage') {
-                  {{ appliedCouponDetails.discount }}% off
-                } @else {
-                  ${{ appliedCouponDetails.discount }} off
-                }
+          <div class="billing-options">
+            <!-- Monthly Option -->
+            <div class="billing-card" [class.selected]="userForm.get('interval')?.value === 'monthly'"
+              (click)="selectBilling('monthly')">
+              <div class="billing-header">
+                <input type="radio" formControlName="interval" value="monthly" id="monthly" class="billing-radio">
+                <label for="monthly" class="billing-label">
+                  <span class="billing-period">Monthly</span>
+                  <span class="billing-price">$99.00/month</span>
+                </label>
+              </div>
+              <div class="billing-details">
+                <ul class="billing-features">
+                  <li>Billed monthly</li>
+                  <li>Cancel anytime</li>
+                  <li>Full access to platform</li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Annual Option -->
+            <div class="billing-card popular" [class.selected]="userForm.get('interval')?.value === 'annually'"
+              (click)="selectBilling('annually')">
+              <div class="popular-badge">Most Popular</div>
+              <div class="billing-header">
+                <input type="radio" formControlName="interval" value="annually" id="annually" class="billing-radio">
+                <label for="annually" class="billing-label">
+                  <span class="billing-period">Annually</span>
+                  <span class="billing-price">$1070.00/year</span>
+                  <span class="billing-savings">Save %10</span>
+                </label>
+              </div>
+              <div class="billing-details">
+                <ul class="billing-features">
+                  <li>Billed annually</li>
+                  <li>10% savings vs monthly</li>
+                  <li>Full access to platform</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          <!-- Coupon Code field -->
+          <div class="form-group full-width">
+            <label class="coupon" for="promotion_code">Coupon Code: Discount will be applied at checkout</label>
+
+            <div class="coupon-input-container">
+              <input type="text" id="promotion_code" formControlName="promotion_code" placeholder="Enter coupon code"
+                [ngClass]="{
+        invalid: userForm.get('promotion_code')?.errors && userForm.get('promotion_code')?.touched,
+        valid: couponApplied && userForm.get('promotion_code')?.value
+      }" (blur)="validateCoupon()" (keyup.enter)="validateCoupon()" />
+            </div>
+
+            <div class="coupon-button-container">
+              <button type="button" class="apply-coupon-btn"
+                [disabled]="!userForm.get('promotion_code')?.value || isValidatingCoupon" (click)="validateCoupon()">
+                <span *ngIf="!isValidatingCoupon">Apply</span>
+                <span *ngIf="isValidatingCoupon">Applying...</span>
+              </button>
+            </div>
+
+            <div *ngIf="couponApplied && appliedCouponDetails" class="coupon-success">
+              ✓ Coupon "{{ appliedCouponDetails.displayCode || 'promotion code' }}" applied!
+            </div>
+
+            <!-- Error messages -->
+            <div *ngIf="userForm.get('promotion_code')?.invalid && userForm.get('promotion_code')?.touched" class="error">
+              <div *ngIf="userForm.get('promotion_code')?.errors?.['invalidCoupon']">
+                *Invalid coupon code. Please check and try again.
+              </div>
+              <div *ngIf="userForm.get('promotion_code')?.errors?.['expiredCoupon']">
+                *This coupon has expired.
+              </div>
+              <div *ngIf="userForm.get('promotion_code')?.errors?.['couponError']">
+                *{{ userForm.get('promotion_code')?.errors?.['couponError'] }}
+              </div>
+            </div>
+            <div class="wrong-plan" *ngIf="userForm.get('promotion_code')?.errors?.['planMismatchError']">
+              *This code is for the {{ userForm.get('interval')?.value === 'monthly' ? 'annual' : 'monthly' }} plan.
+              Please select the correct plan or use a different code.
+            </div>
+          </div>
+
+          <!-- Terms of service - full width -->
+          <div class="form-group full-width tos-container">
+            <label class="checkbox-label">
+              <input type="checkbox" formControlName="tos" class="form-check-input" id="tos-originator">
+              I have read, acknowledge and agree to the<a href="/terms" target="_blank" class="tos-link">Terms of
+                Service</a>
+            </label>
+          </div>
+
+          <!-- Price Summary -->
+          <div class="price-summary">
+            <div class="summary-row">
+              <span>Plan:</span>
+              <span>Originator {{ userForm.get('interval')?.value === 'monthly' ? 'Monthly' : 'Annual' }}</span>
+            </div>
+
+            <div class="summary-row total">
+              <span>Total:</span>
+              <span *ngIf="userForm.get('applyTrial')?.value">
+                $0.00 for 90 days, then {{ userForm.get('interval')?.value === 'monthly' ? '99.00/month' : '$1070.00/year'
+                }}
               </span>
-              @if (appliedCouponDetails.description) {
-                <div class="coupon-desc">{{ appliedCouponDetails.description }}</div>
-              }
+              <span *ngIf="!userForm.get('applyTrial')?.value">
+                {{ userForm.get('interval')?.value === 'monthly' ? '$99.00/month' : '$1070.00/year' }}
+              </span>
             </div>
-          }
-        </div>
-      </div>
-
-      <!-- Terms of Service -->
-      <div class="tos-row">
-        <label class="tos-check">
-          <input
-            type="checkbox"
-            formControlName="tos"
-          />
-          <span>
-            I have read, acknowledge and agree to the Terms of Service
-          </span>
-        </label>
-        @if (userForm.get('tos')?.invalid && (userForm.get('tos')?.dirty || userForm.get('tos')?.touched)) {
-          <div class="error-message">
-            <span>*You must agree to continue</span>
-          </div>
-        }
-      </div>
-
-      <!-- Pricing summary -->
-      <div class="plan-summary-box">
-        <div class="plan-summary-row">
-          <div class="plan-summary-label">Plan:</div>
-          <div class="plan-summary-value">
-            {{ userForm.get('interval')?.value === 'annually'
-              ? 'Originator Annual'
-              : 'Originator Monthly' }}
           </div>
         </div>
 
-        <div class="plan-summary-row total-row">
-          <div class="plan-summary-label">Total:</div>
-          <div class="plan-summary-value">
-            {{ userForm.get('interval')?.value === 'annually'
-              ? '$1,610.00/year'
-              : '$99.00/month' }}
-          </div>
+        <!-- Button - moved inside form but full width -->
+        <div class="button-container full-width">
+          <button type="submit" [disabled]="userForm.invalid || isLoading">
+            <span *ngIf="!isLoading" id="originator" class="originator-btn">Register</span>
+            <span *ngIf="isLoading">Registering...</span>
+          </button>
         </div>
-      </div>
+      </form>
 
-      <!-- Submit button -->
-      <div class="button-container full-width">
-        <button
-          type="button"
-          id="originator"
-          class="originator-btn"
-          [disabled]="userForm.invalid || isLoading"
-          (click)="onSubmit()"
-        >
-          @if (!isLoading) {
-            <span>Register</span>
-          } @else {
-            <span>Registering...</span>
-          }
-        </button>
+      <div *ngIf="errorMessage" class="error-message">
+        {{ errorMessage }}
       </div>
-
-      <!-- top-level error from onSubmit -->
-      @if (errorMessage) {
-        <div class="error-message global-error">
-          {{ errorMessage }}
-        </div>
-      }
-    </form>
+    </div>
   }
 
-  <!-- STEP 2: OTP ENTRY -->
+  <!-- VIEW 2: OTP Code Entry -->
   @if (currentStep === 'otp') {
-    <div class="code-entry-container otp-card">
+    <div class="code-entry-container">
       <div class="code-header">
-        <h3 class="otp-title">Complete Your Registration</h3>
-        <p class="otp-subtitle">Check Your Email</p>
+        <h3>Check Your Email</h3>
         <p class="email-sent-to">
-          We sent a verification code to
+          We sent a verification code to<br>
           <strong>{{ registeredEmail }}</strong>
         </p>
       </div>
 
-      <!-- 6-digit code input row, same pattern as login -->
+      <!-- 6-Digit Code Input Boxes -->
       <div class="code-input-group">
         @for (digit of codeDigits; track $index) {
           <input
@@ -335,17 +309,23 @@
         }
       </div>
 
-      <div class="code-timer">
-        Code expires in:
-        <strong>{{ timeRemaining }}</strong>
-      </div>
-
+      <!-- Timer and Actions -->
       <div class="code-actions">
-        <button
+        @if (timeRemaining !== '0:00') {
+          <p class="timer-text">
+            Code expires in: <strong>{{ timeRemaining }}</strong>
+          </p>
+        } @else {
+          <p class="timer-text expired">
+            ⏰ Code has expired. Please request a new one.
+          </p>
+        }
+
+        <button 
           type="button"
+          (click)="verifyOTPCode()" 
           class="verify-button"
-          [disabled]="otpIsLoading || codeDigits.join('').length !== 6"
-          (click)="verifyOTPCode()"
+          [disabled]="otpIsLoading || codeDigits.join('').length !== 6 || timeRemaining === '0:00'"
         >
           @if (otpIsLoading) {
             <span>Verifying...</span>
@@ -354,16 +334,17 @@
           }
         </button>
 
-        <button
+        <button 
           type="button"
+          (click)="resendOTPCode()" 
           class="resend-button"
           [disabled]="otpIsLoading"
-          (click)="resendOTPCode()"
         >
           Didn't receive it? Resend code
         </button>
       </div>
 
+      <!-- Error Message for Code Entry -->
       @if (otpErrorMessage) {
         <div class="error-alert">
           <span class="error-icon">⚠️</span>
@@ -373,15 +354,12 @@
     </div>
   }
 
-  <!-- STEP 3: VERIFYING / REDIRECTING -->
+  <!-- VIEW 3: Verifying -->
   @if (currentStep === 'verifying') {
     <div class="verification-message">
-      <h3>Verifying your code…</h3>
+      <h3>Verifying your code...</h3>
       <div class="loader"></div>
-      <p class="verification-text">
-        Please wait. You will be redirected to payment.
-      </p>
+      <p class="verification-text">Please wait while we complete your registration</p>
     </div>
   }
-
 </div>

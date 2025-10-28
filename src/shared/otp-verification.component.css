@@ -1,7 +1,6 @@
 /* src/app/shared/otp-verification/otp-verification.component.css */
 .otp-container {
-  width: 100%;
-  max-width: 400px;
+  width: 450px;
   margin: 60px auto;
   padding: 40px;
   background: #fff;
