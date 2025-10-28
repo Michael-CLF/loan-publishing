@@ -1,3 +1,4 @@
+// lender-product.component.ts
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -8,7 +9,11 @@ import {
   FormControl,
 } from '@angular/forms';
 import { CurrencyPipe } from '@angular/common';
-import { LoanTypes } from '../lender-registration/lender-registration.component';
+
+export interface LoanTypes {
+  value: string;
+  name: string;
+}
 
 @Component({
   selector: 'app-lender-product',
@@ -20,92 +25,36 @@ import { LoanTypes } from '../lender-registration/lender-registration.component'
 })
 export class LenderProductComponent implements OnInit {
   @Input() lenderForm!: FormGroup;
-  @Input() lenderTypes!: { value: string; name: string }[];
-  @Input() propertyCategories!: {
+
+  // Initialize with empty arrays to prevent template errors
+  @Input() lenderTypes: { value: string; name: string }[] = [];
+  @Input() propertyCategories: {
     value: string;
     name: string;
     subcategories: { name: string; value: string }[];
-  }[];
-  @Input() propertyTypes!: {
-    value: string;
-    name: string;
-    subCategories: { value: string; name: string }[];
-  }[];
-  @Input() states!: { value: string; name: string }[];
+  }[] = [];
+  @Input() states: { value: string; name: string }[] = [];
   @Input() loanTypes: LoanTypes[] = [];
-
-  // Track expanded state for subcategories
   expandedCategory: string | null = null;
 
-  constructor(private currencyPipe: CurrencyPipe) {}
+  constructor(private currencyPipe: CurrencyPipe) { }
 
   ngOnInit(): void {
-    // Validate inputs
+    console.log('LenderProductComponent initialized with data:', {
+      lenderTypesCount: this.lenderTypes?.length || 0,
+      propertyCategoriesCount: this.propertyCategories?.length || 0,
+      loanTypesCount: this.loanTypes?.length || 0
+    });
+
     if (!this.lenderForm) {
-      console.error('LenderProductComponent: lenderForm input is missing');
+      console.error('LenderProductComponent: lenderForm (productInfo) is missing');
       return;
     }
-
-    // Initialize form arrays if they don't exist
-    this.initializeFormArrays();
-
-    // Check initial form validity
-    setTimeout(() => {
-      this.lenderForm.updateValueAndValidity();
-    });
+    // Trigger validity so parent "Next" button [disabled] works
+    this.lenderForm.updateValueAndValidity();
   }
 
-  formatCurrency(event: Event, controlName: string): void {
-    const input = event.target as HTMLInputElement;
-    let value = input.value;
-
-    // First remove all formatting (dollar signs, commas)
-    const numericString = value.replace(/[^0-9.]/g, '');
-
-    // Store the numeric value in the form (this is key)
-    const numericValue = parseFloat(numericString);
-
-    // Update the form with the numeric value (but don't trigger another event)
-    this.lenderForm
-      .get(controlName)
-      ?.setValue(numericValue, { emitEvent: false });
-
-    // Format for display only
-    const formattedValue = this.currencyPipe.transform(
-      numericValue,
-      'USD',
-      'symbol',
-      '1.0-0'
-    );
-
-    // Update the display without changing the form value again
-    input.value = formattedValue || '';
-
-    console.log(
-      `${controlName} stored value:`,
-      numericValue,
-      typeof numericValue
-    );
-  }
-  private initializeFormArrays(): void {
-    // Only check if arrays exist, don't create them if they don't
-    if (!this.lenderForm.get('lenderTypes')) {
-      console.error('LenderTypes FormArray is missing from parent form');
-    }
-    if (!this.lenderForm.get('propertyCategories')) {
-      console.error('PropertyCategories FormArray is missing from parent form');
-    }
-    if (!this.lenderForm.get('loanTypes')) {
-      console.error('LoanTypes FormArray is missing from parent form');
-    }
-    if (!this.lenderForm.get('subcategorySelections')) {
-      console.error(
-        'SubcategorySelections FormArray is missing from parent form'
-      );
-    }
-  }
-
-  // Getters for form arrays
+  // Convenience getters for FormArrays
   get lenderTypesArray(): FormArray {
     return this.lenderForm.get('lenderTypes') as FormArray;
   }
@@ -122,280 +71,223 @@ export class LenderProductComponent implements OnInit {
     return this.lenderForm.get('loanTypes') as FormArray;
   }
 
-  // Form control helpers
+  // helpers
   getControl(name: string): AbstractControl | null {
     return this.lenderForm.get(name);
   }
 
-  isControlInvalid(controlName: string): boolean {
-    const control = this.lenderForm.get(controlName);
-    return !!control && control.invalid && (control.dirty || control.touched);
-  }
+ // Helper methods for template
+isControlInvalid(controlName: string): boolean {
+  const control = this.lenderForm.get(controlName);
+  return !!control && control.invalid && (control.dirty || control.touched);
+}
 
-  controlHasError(controlName: string, errorName: string): boolean {
-    const control = this.lenderForm.get(controlName);
-    return !!control && control.hasError(errorName);
-  }
+isOptionSelected(formArrayName: string, value: string): boolean {
+  const formArray = this.lenderForm.get(formArrayName) as FormArray;
+  if (!formArray) return false;
 
-  markControlAsTouched(name: string): void {
-    const control = this.getControl(name);
-    if (control) {
-      control.markAsTouched();
+  return formArray.controls.some((ctrl) => {
+    const v = ctrl.value;
+    if (typeof v === 'object' && v !== null) {
+      return v.value === value;
     }
-  }
+    return v === value;
+  });
+}
 
-  // Check if an option is selected in a form array
-  isOptionSelected(formArrayName: string, value: string): boolean {
-    const formArray = this.lenderForm.get(formArrayName) as FormArray;
-    if (!formArray) return false;
+isAnyLenderTypeSelected(): boolean {
+  return this.lenderTypesArray.length > 0;
+}
 
-    return formArray.controls.some((control) => {
-      const controlValue = control.value;
-      // Handle both object values and string values
-      if (typeof controlValue === 'object' && controlValue !== null) {
-        return controlValue.value === value;
-      }
-      return controlValue === value;
-    });
-  }
+isLenderTypeDisabled(value: string): boolean {
+  return (
+    this.isAnyLenderTypeSelected() &&
+    !this.isOptionSelected('lenderTypes', value)
+  );
+}
 
-  isLoanTypeSelected(loanTypeValue: string): boolean {
-    return this.isOptionSelected('loanTypes', loanTypeValue);
-  }
+isLoanTypeSelected(loanTypeValue: string): boolean {
+  return this.isOptionSelected('loanTypes', loanTypeValue);
+}
 
-  // Get selected loan types count
-  getSelectedLoanTypesCount(): number {
-    return this.loanTypesArray.length;
-  }
+getSelectedSubcategoriesCount(categoryValue: string): number {
+  return this.subcategorySelectionsArray.controls.filter((ctrl) => {
+    const val = ctrl.value as string;
+    return val && val.startsWith(categoryValue + ':');
+  }).length;
+}
 
-  // Check if a subcategory is selected
-  isSubOptionSelected(category: string, subValue: string): boolean {
-    const formArray = this.lenderForm.get('subcategorySelections') as FormArray;
-    return (
-      formArray?.controls.some(
-        (control) => control.value === `${category}:${subValue}`
-      ) || false
-    );
-  }
+isSubOptionSelected(categoryValue: string, subValue: string): boolean {
+  const combined = `${categoryValue}:${subValue}`;
+  return this.subcategorySelectionsArray.controls.some(
+    (ctrl) => ctrl.value === combined
+  );
+}
+
+allSubcategoriesSelected(categoryValue: string): boolean {
+  const cat = this.propertyCategories.find((c) => c.value === categoryValue);
+  if (!cat || !cat.subcategories?.length) return false;
+
+  return (
+    this.getSelectedSubcategoriesCount(categoryValue) ===
+    cat.subcategories.length
+  );
+}
+
+ 
+
+  // UI actions
   onLenderTypeChange(event: Event, value: string): void {
-    event.stopPropagation(); // Prevent event bubbling
-    const formArray = this.lenderTypesArray;
+    event.stopPropagation();
 
-    // First, clear the array to ensure only one selection
-    while (formArray.length) {
-      formArray.removeAt(0);
+    // enforce "one lender type max"
+    while (this.lenderTypesArray.length) {
+      this.lenderTypesArray.removeAt(0);
     }
 
-    // Find the full lender type object
-    const lenderTypeObject = this.lenderTypes.find((t) => t.value === value);
-
-    // Add the new selection
-    if (lenderTypeObject) {
-      formArray.push(new FormControl(lenderTypeObject));
+    const obj = this.lenderTypes.find((t) => t.value === value);
+    if (obj) {
+      this.lenderTypesArray.push(new FormControl(obj));
     }
 
-    // Update validation
-    formArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
+    this.touchAndValidate();
   }
-  // Toggle category selection
+
   toggleCategory(categoryValue: string): void {
-    // Check if category is already selected
-    const isSelected = this.isOptionSelected(
-      'propertyCategories',
-      categoryValue
-    );
-    const formArray = this.propertyCategoriesArray;
+    const already = this.isOptionSelected('propertyCategories', categoryValue);
 
-    // Toggle selection
-    if (!isSelected) {
-      // Add the category to the form array
-      formArray.push(new FormControl(categoryValue));
-
-      // Expand this category's dropdown to show subcategories
+    if (!already) {
+      // Store the full category object, not just the value
+      const categoryObj = this.propertyCategories.find(c => c.value === categoryValue);
+      if (categoryObj) {
+        this.propertyCategoriesArray.push(new FormControl(categoryObj));
+      }
       this.expandedCategory = categoryValue;
     } else {
-      // Remove the category from the form array
-      const index = formArray.controls.findIndex(
-        (control) => control.value === categoryValue
+      // remove category - check for both object and string values
+      const idx = this.propertyCategoriesArray.controls.findIndex(
+        (c) => {
+          const val = c.value;
+          return typeof val === 'object' ? val.value === categoryValue : val === categoryValue;
+        }
       );
-      if (index !== -1) {
-        formArray.removeAt(index);
-      }
+      if (idx !== -1) this.propertyCategoriesArray.removeAt(idx);
 
-      // Also remove all subcategories for this category
+      // also drop all its subcategories
       this.removeAllSubcategories(categoryValue);
 
-      // Collapse dropdown
       if (this.expandedCategory === categoryValue) {
         this.expandedCategory = null;
       }
     }
 
-    // Update validation
-    formArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
-  }
-  isAnyLenderTypeSelected(): boolean {
-    return this.lenderTypesArray.length > 0;
+    this.touchAndValidate();
   }
 
-  // Add this method to check if an option is disabled
-  isLenderTypeDisabled(value: string): boolean {
-    // Return true if any lender type is selected AND it's not this one
-    return (
-      this.isAnyLenderTypeSelected() &&
-      !this.isOptionSelected('lenderTypes', value)
-    );
-  }
 
   toggleLoanType(event: Event, loanTypeValue: string): void {
-    event.stopPropagation(); // Prevent event bubbling
-    const formArray = this.loanTypesArray;
-
-    if (!formArray) {
-      console.error('loanTypesArray is not initialized');
-      return;
-    }
+    event.stopPropagation();
 
     const isSelected = this.isLoanTypeSelected(loanTypeValue);
 
-    // Find the full loan type object from the available types
-    const loanTypeObject = this.loanTypes.find(
-      (lt) => lt.value === loanTypeValue
-    );
+    const obj = this.loanTypes.find((lt) => lt.value === loanTypeValue);
 
-    if (!isSelected && loanTypeObject) {
-      // Add the full loan type object to match parent's expected format
-      formArray.push(new FormControl(loanTypeObject));
+    if (!isSelected && obj) {
+      this.loanTypesArray.push(new FormControl(obj));
     } else {
-      // Remove the loan type
-      const index = formArray.controls.findIndex((control) =>
-        typeof control.value === 'object'
-          ? control.value.value === loanTypeValue
-          : control.value === loanTypeValue
+      const idx = this.loanTypesArray.controls.findIndex((ctrl) =>
+        typeof ctrl.value === 'object'
+          ? ctrl.value.value === loanTypeValue
+          : ctrl.value === loanTypeValue
       );
-      if (index !== -1) {
-        formArray.removeAt(index);
-      }
+      if (idx !== -1) this.loanTypesArray.removeAt(idx);
     }
 
-    // Update validation
-    formArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
+    this.touchAndValidate();
   }
 
-  // Toggle subcategory selection
   toggleSubcategory(
     event: Event,
     categoryValue: string,
-    subcategoryValue: string
+    subValue: string
   ): void {
-    const combinedValue = `${categoryValue}:${subcategoryValue}`;
-    const isSelected = this.isSubOptionSelected(
-      categoryValue,
-      subcategoryValue
-    );
-    const formArray = this.subcategorySelectionsArray;
+    const combined = `${categoryValue}:${subValue}`;
 
-    if (!isSelected) {
-      // Add subcategory
-      formArray.push(new FormControl(combinedValue));
+    const idx = this.subcategorySelectionsArray.controls.findIndex(
+      (ctrl) => ctrl.value === combined
+    );
+
+    if (idx === -1) {
+      this.subcategorySelectionsArray.push(new FormControl(combined));
     } else {
-      // Remove subcategory
-      const index = formArray.controls.findIndex(
-        (control) => control.value === combinedValue
-      );
-      if (index !== -1) {
-        formArray.removeAt(index);
-      }
+      this.subcategorySelectionsArray.removeAt(idx);
     }
 
-    // Update form validation
-    formArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
+    this.touchAndValidate();
   }
 
-  // Toggle all subcategories for a category
   toggleAllSubcategories(categoryValue: string): void {
-    const category = this.propertyCategories.find(
-      (c) => c.value === categoryValue
-    );
-    if (!category || !category.subcategories) return;
+    const cat = this.propertyCategories.find((c) => c.value === categoryValue);
+    if (!cat || !cat.subcategories) return;
 
-    const shouldSelect = !this.allSubcategoriesSelected(categoryValue);
+    const shouldSelectAll = !this.allSubcategoriesSelected(categoryValue);
 
-    // First, remove all existing subcategories for this category
+    // clear existing for that category
     this.removeAllSubcategories(categoryValue);
 
-    // If we should select all, add all subcategories
-    if (shouldSelect) {
-      const formArray = this.subcategorySelectionsArray;
-      category.subcategories?.forEach((subcategory) => {
-        formArray.push(
-          new FormControl(`${categoryValue}:${subcategory.value}`)
+    if (shouldSelectAll) {
+      cat.subcategories.forEach((sub) => {
+        this.subcategorySelectionsArray.push(
+          new FormControl(`${categoryValue}:${sub.value}`)
         );
       });
     }
 
-    // Update form validation
-    this.subcategorySelectionsArray.updateValueAndValidity();
-    this.lenderForm.updateValueAndValidity();
+    this.touchAndValidate();
   }
 
-  // Check if all subcategories of a category are selected
-  allSubcategoriesSelected(categoryValue: string): boolean {
-    const category = this.propertyCategories.find(
-      (c) => c.value === categoryValue
-    );
-    if (
-      !category ||
-      !category.subcategories ||
-      category.subcategories?.length === 0
-    )
-      return false;
 
-    return (
-      this.getSelectedSubcategoriesCount(categoryValue) ===
-      category.subcategories?.length
-    );
-  }
 
-  // Remove all subcategories for a category
   removeAllSubcategories(categoryValue: string): void {
-    const formArray = this.subcategorySelectionsArray;
-    const toRemove: number[] = [];
-
-    // Find all subcategories to remove
-    formArray.controls.forEach((control, index) => {
-      if (control.value.startsWith(`${categoryValue}:`)) {
-        toRemove.push(index);
+    for (let i = this.subcategorySelectionsArray.length - 1; i >= 0; i--) {
+      const v = this.subcategorySelectionsArray.at(i).value;
+      if (typeof v === 'string' && v.startsWith(categoryValue + ':')) {
+        this.subcategorySelectionsArray.removeAt(i);
       }
+    }
+  }
+
+  toggleDropdown(categoryValue: string): void {
+    this.expandedCategory =
+      this.expandedCategory === categoryValue ? null : categoryValue;
+    // no stopPropagation here because we are already inside click handlers
+  }
+
+  // currency formatter
+  formatCurrency(event: Event, controlName: string): void {
+    const input = event.target as HTMLInputElement;
+    const numericString = input.value.replace(/[^0-9.]/g, '');
+    const numericValue = parseFloat(numericString);
+
+    this.lenderForm.get(controlName)?.setValue(numericValue, {
+      emitEvent: false,
     });
 
-    // Remove in reverse order to avoid index shifting
-    for (let i = toRemove.length - 1; i >= 0; i--) {
-      formArray.removeAt(toRemove[i]);
-    }
+    const formatted = this.currencyPipe.transform(
+      numericValue,
+      'USD',
+      'symbol',
+      '1.0-0'
+    );
+    input.value = formatted || '';
+
+    console.log(`${controlName} stored value:`, numericValue, typeof numericValue);
   }
 
-  // Toggle dropdown expanded/collapsed state
-  toggleDropdown(categoryValue: string): void {
-    if (this.expandedCategory === categoryValue) {
-      this.expandedCategory = null;
-    } else {
-      this.expandedCategory = categoryValue;
-    }
-
-    // Prevent event propagation to the category click handler
-    event?.stopPropagation();
-  }
-
-  // Get the count of selected subcategories for a category
-  getSelectedSubcategoriesCount(categoryValue: string): number {
-    const formArray = this.subcategorySelectionsArray;
-    return formArray.controls.filter((control) =>
-      control.value.startsWith(`${categoryValue}:`)
-    ).length;
+  // mark form touched + validate so parent button state updates
+  private touchAndValidate(): void {
+    this.lenderForm.markAsTouched();
+    this.lenderForm.markAsDirty();
+    this.lenderForm.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
 }

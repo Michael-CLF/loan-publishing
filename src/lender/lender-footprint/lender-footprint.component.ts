@@ -1,4 +1,3 @@
-// lender-footprint.component.ts
 import { Component, Input, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import {
@@ -8,21 +7,24 @@ import {
   ValidatorFn,
   AbstractControl,
   ValidationErrors,
+  FormArray,
+  FormControl,
 } from '@angular/forms';
 import { LocationService } from '../../services/location.service';
 import {
   FootprintLocation,
-  FootprintSubcategory,
 } from '../../models/footprint-location.model';
+
+interface SelectionCounty {
+  value: string;
+  name: string;
+  selected: boolean;
+}
 
 interface SelectionState {
   stateValue: string;
   stateName: string;
-  counties: Array<{
-    value: string;
-    name: string;
-    selected: boolean;
-  }>;
+  counties: SelectionCounty[];
   allCountiesSelected: boolean;
 }
 
@@ -35,13 +37,17 @@ interface SelectionState {
   providers: [LocationService],
 })
 export class LenderFootprintComponent implements OnInit {
+  // Parent passes footprintInfoGroup here
   @Input() lenderForm!: FormGroup;
+
+  // Parent passes states list here
   @Input() footprintLocation: {
     value: string;
     name: string;
-    subcategories: any[];
+    subcategories: { value: string; name: string }[];
   }[] = [];
 
+  // local UI model of what the user has checked
   selectedStates: SelectionState[] = [];
   expandedState: string | null = null;
 
@@ -51,309 +57,309 @@ export class LenderFootprintComponent implements OnInit {
   ) {}
 
   ngOnInit(): void {
+    // make sure lenderForm has the structure footprintInfo needs:
+    // { lendingFootprint: string[], states: { [abbr]: boolean, [abbr]_counties: {...} } }
+    this.ensureFootprintControls();
+
+    // create state + county controls under states group where missing
     this.initializeFormStructure();
+
+    // hydrate selectedStates[] from the form values
     this.initializeSelectedStates();
-    this.lenderForm.updateValueAndValidity();
+
+    // push validity up so parent Next button can read lenderForm.get('footprintInfo')?.invalid
+    this.lenderForm.updateValueAndValidity({ onlySelf: false, emitEvent: true });
   }
 
-  // In lender-footprint.component.ts:
-  private initializeFormStructure(): void {
-    // Don't look for footprintInfo, add controls directly to where they're expected
-    if (!this.lenderForm.get('footprintInfo.lendingFootprint')) {
-      const footprintForm = this.lenderForm.get('footprintInfo') as FormGroup;
-      if (footprintForm) {
-        footprintForm.addControl('lendingFootprint', this.fb.control([]));
-      }
+  // Ensure baseline shape:
+  // lenderForm.lendingFootprint: FormArray<string> OR string[] stored in a FormControl
+  // lenderForm.states: FormGroup containing per-state booleans and nested county groups
+  private ensureFootprintControls(): void {
+    // lendingFootprint
+    if (!this.lenderForm.get('lendingFootprint')) {
+      // final shape in Firestore is an array of state codes
+      this.lenderForm.addControl('lendingFootprint', this.fb.control([]));
     }
 
-    // Get the states group from where the validator is looking for it
-    let statesGroup = this.lenderForm.get('footprintInfo.states') as FormGroup;
+    // states
+    let statesCtrl = this.lenderForm.get('states');
+    if (!statesCtrl) {
+      this.lenderForm.addControl('states', this.fb.group({}));
+      statesCtrl = this.lenderForm.get('states');
+    } else if (!(statesCtrl instanceof FormGroup)) {
+      // If something weird got in here, normalize it
+      const rawVal: any = statesCtrl.value;
+      const newStatesGroup = this.fb.group({});
+      if (rawVal && typeof rawVal === 'object') {
+        Object.keys(rawVal).forEach(key => {
+          if (typeof rawVal[key] === 'boolean') {
+            newStatesGroup.addControl(key, this.fb.control(!!rawVal[key]));
+          }
+        });
+      }
+      this.lenderForm.removeControl('states');
+      this.lenderForm.addControl('states', newStatesGroup);
+    }
+  }
 
-    if (!statesGroup) {
-      // If it doesn't exist, create it in the right place
-      statesGroup = this.fb.group({});
-      const footprintForm = this.lenderForm.get('footprintInfo') as FormGroup;
-      if (footprintForm) {
-        footprintForm.addControl('states', statesGroup);
+  // Build per-state checkbox controls and per-county checkbox controls
+  private initializeFormStructure(): void {
+    const statesGroup = this.lenderForm.get('states') as FormGroup;
+
+    this.footprintLocation.forEach((state) => {
+      // top-level state toggle boolean
+      if (!statesGroup.get(state.value)) {
+        statesGroup.addControl(state.value, this.fb.control(false));
       }
 
-      // Add the state controls
-      this.footprintLocation.forEach((state) => {
-        statesGroup.addControl(state.value, this.fb.control(false));
-
+      // nested counties group for this state
+      const countiesGroupName = `${state.value}_counties`;
+      if (!statesGroup.get(countiesGroupName)) {
         const countiesGroup = this.fb.group({});
         state.subcategories.forEach((county) => {
           countiesGroup.addControl(county.value, this.fb.control(false));
         });
+        statesGroup.addControl(countiesGroupName, countiesGroup);
+      }
+    });
 
-        statesGroup.addControl(`${state.value}_counties`, countiesGroup);
-      });
-    }
-
-    // Set validators and update validity
+    // attach validator for "at least one state"
     statesGroup.setValidators(this.atLeastOneStateValidator());
     statesGroup.updateValueAndValidity({ emitEvent: true });
   }
 
- // --- Existing code above ---
-private initializeSelectedStates(): void {
-  const statesGroup = this.lenderForm.get('footprintInfo.states') as FormGroup;
-  const lendingFootprint: string[] = this.lenderForm.get('footprintInfo.lendingFootprint')?.value || [];
+  // Hydrate UI state (selectedStates[]) from FormGroup values
+  private initializeSelectedStates(): void {
+    const statesGroup = this.lenderForm.get('states') as FormGroup;
+    const lendingFootprint: string[] =
+      this.lenderForm.get('lendingFootprint')?.value || [];
 
-  this.selectedStates = [];
+    this.selectedStates = [];
 
-  // Helper to add state if found in master location list
-  const addStateFromValue = (stateValue: string) => {
-    const state = this.footprintLocation.find((s) => s.value === stateValue);
-    if (state) {
-      const countiesGroup = statesGroup?.get(`${stateValue}_counties`) as FormGroup;
-      const counties = countiesGroup
-        ? state.subcategories.map((county) => ({
-            value: county.value,
-            name: county.name,
-            selected: countiesGroup.get(county.value)?.value === true
-          }))
-        : [];
+    const addStateFromValue = (abbr: string) => {
+      const def = this.footprintLocation.find((s) => s.value === abbr);
+      if (!def) return;
 
-      const allCountiesSelected = counties.length > 0 && counties.every((c) => c.selected);
+      const countiesFormGroup = statesGroup.get(
+        `${abbr}_counties`
+      ) as FormGroup;
+
+      const counties: SelectionCounty[] = def.subcategories.map((county) => ({
+        value: county.value,
+        name: county.name,
+        selected: !!countiesFormGroup?.get(county.value)?.value,
+      }));
+
+      const allSelected =
+        counties.length > 0 && counties.every((c) => c.selected);
 
       this.selectedStates.push({
-        stateValue,
-        stateName: state.name,
+        stateValue: abbr,
+        stateName: def.name,
         counties,
-        allCountiesSelected
+        allCountiesSelected: allSelected,
       });
-    }
-  };
+    };
 
-  // --- 1. Load from states map (boolean map)
-  if (statesGroup) {
+    // from boolean map
     Object.keys(statesGroup.controls)
-      .filter((key) => !key.includes('_counties') && statesGroup.get(key)?.value === true)
-      .forEach((stateKey) => addStateFromValue(stateKey));
+      .filter((key) => !key.includes('_counties'))
+      .forEach((stateKey) => {
+        const picked = statesGroup.get(stateKey)?.value === true;
+        if (picked) {
+          addStateFromValue(stateKey);
+        }
+      });
+
+    // from lendingFootprint array, fill any missing
+    lendingFootprint.forEach((abbr) => {
+      if (!this.selectedStates.some((s) => s.stateValue === abbr)) {
+        addStateFromValue(abbr);
+      }
+    });
   }
 
-  // --- 2. Load from lendingFootprint array if not already in selectedStates
-  lendingFootprint.forEach((abbr) => {
-    if (!this.selectedStates.some((s) => s.stateValue === abbr)) {
-      addStateFromValue(abbr);
-    }
-  });
-}
-
-
+  // validator for statesGroup
   private atLeastOneStateValidator(): ValidatorFn {
-    return (formGroup: AbstractControl): ValidationErrors | null => {
-      const statesGroup = formGroup as FormGroup;
-      if (!statesGroup) return { noStateSelected: true };
+    return (ctrl: AbstractControl): ValidationErrors | null => {
+      const group = ctrl as FormGroup;
+      if (!group) return { noStateSelected: true };
 
-      const anyStateSelected = Object.keys(statesGroup.controls)
+      const anyStateSelected = Object.keys(group.controls)
         .filter((key) => !key.includes('_counties'))
-        .some((key) => statesGroup.get(key)?.value === true);
+        .some((key) => group.get(key)?.value === true);
 
       return anyStateSelected ? null : { noStateSelected: true };
     };
   }
 
+  // sync selectedStates[] back into the form
   private updateFormValues(): void {
-    const statesGroup = this.lenderForm.get(
-      'footprintInfo.states'
-    ) as FormGroup;
+    const statesGroup = this.lenderForm.get('states') as FormGroup;
     if (!statesGroup) return;
 
-    // First clear state selections
+    // clear all state booleans
     Object.keys(statesGroup.controls)
       .filter((key) => !key.includes('_counties'))
-      .forEach((key) => {
-        statesGroup.get(key)?.setValue(false);
+      .forEach((abbr) => {
+        statesGroup.get(abbr)?.setValue(false, { emitEvent: false });
       });
 
-    // Then set selected states and counties
-    this.selectedStates.forEach((state) => {
-      statesGroup.get(state.stateValue)?.setValue(true);
+    // clear all county booleans
+    Object.keys(statesGroup.controls)
+      .filter((key) => key.endsWith('_counties'))
+      .forEach((countiesKey) => {
+        const countiesGroup = statesGroup.get(countiesKey) as FormGroup;
+        Object.keys(countiesGroup.controls).forEach((cKey) => {
+          countiesGroup
+            .get(cKey)
+            ?.setValue(false, { emitEvent: false });
+        });
+      });
+
+    // set all currently selected back into form
+    this.selectedStates.forEach((stateSel) => {
+      // state toggle
+      statesGroup
+        .get(stateSel.stateValue)
+        ?.setValue(true, { emitEvent: false });
+
+      // counties
       const countiesGroup = statesGroup.get(
-        `${state.stateValue}_counties`
+        `${stateSel.stateValue}_counties`
       ) as FormGroup;
-      if (countiesGroup) {
-        Object.keys(countiesGroup.controls).forEach((key) => {
-          countiesGroup.get(key)?.setValue(false);
-        });
-        state.counties.forEach((county) => {
-          if (county.selected) {
-            countiesGroup.get(county.value)?.setValue(true);
-          }
-        });
-      }
+
+      stateSel.counties.forEach((county) => {
+        countiesGroup
+          ?.get(county.value)
+          ?.setValue(county.selected, { emitEvent: false });
+      });
     });
 
-    // Create the selectedStateAbbreviations array here, before using it
-    const selectedStateAbbreviations = this.selectedStates.map(
-      (state) => state.stateValue
-    );
-
-    // Now set the lendingFootprint value using the created array
+    // update lendingFootprint array of state abbreviations
+    const abbreviations = this.selectedStates.map((s) => s.stateValue);
     this.lenderForm
-      .get('footprintInfo.lendingFootprint')
-      ?.setValue(selectedStateAbbreviations);
+      .get('lendingFootprint')
+      ?.setValue(abbreviations, { emitEvent: false });
 
-    // Mark form as touched and dirty
+    // mark dirty/touched so validation bubbles to parent
     this.lenderForm.markAsDirty();
     this.lenderForm.markAsTouched();
 
-    // Update validation status and emit change events
+    // force validation
     statesGroup.updateValueAndValidity({ onlySelf: false, emitEvent: true });
-    this.lenderForm
-      .get('footprintInfo.lendingFootprint')
-      ?.updateValueAndValidity({ onlySelf: false, emitEvent: true });
-    this.lenderForm.updateValueAndValidity({
-      onlySelf: false,
-      emitEvent: true,
-    });
+    this.lenderForm.updateValueAndValidity({ onlySelf: false, emitEvent: true });
 
-    // Debug logging
-    console.log(
-      'Form values updated with states:',
-      this.selectedStates.map((s) => s.stateValue)
-    );
-    console.log('Lending footprint updated:', selectedStateAbbreviations);
+    console.log('🌎 Selected states:', abbreviations);
+    console.log('✅ footprint valid:', this.lenderForm.valid);
+    console.log('ℹ️ statesGroup errors:', statesGroup.errors);
   }
-  toggleAllStates(): void {
-    const shouldSelectAll =
-      this.footprintLocation.length > this.selectedStates.length;
 
-    if (shouldSelectAll) {
-      this.footprintLocation.forEach((state) => {
-        if (!this.isStateSelected(state.value)) {
-          this.selectedStates.push({
-            stateValue: state.value,
-            stateName: state.name,
-            counties: state.subcategories.map((county) => ({
-              value: county.value,
-              name: county.name,
-              selected: false,
-            })),
-            allCountiesSelected: false,
-          });
-        }
-      });
+  // -----------------------------
+  // UI helpers used in template
+  // -----------------------------
+
+  areAllStatesSelected(): boolean {
+    return (
+      this.selectedStates.length === this.footprintLocation.length &&
+      this.footprintLocation.length > 0
+    );
+  }
+
+  isStateSelected(stateValue: string): boolean {
+    return this.selectedStates.some((s) => s.stateValue === stateValue);
+  }
+
+  isCountySelected(stateValue: string, countyValue: string): boolean {
+    const st = this.selectedStates.find((s) => s.stateValue === stateValue);
+    const c = st?.counties.find((cc) => cc.value === countyValue);
+    return !!c?.selected;
+  }
+
+  getSelectedCountiesCount(stateValue: string): number {
+    const st = this.selectedStates.find((s) => s.stateValue === stateValue);
+    return st ? st.counties.filter((c) => c.selected).length : 0;
+  }
+
+  getStateDisplayText(state: FootprintLocation): string {
+    const selCount = this.getSelectedCountiesCount(state.value);
+    const total = state.subcategories.length;
+
+    if (this.isStateSelected(state.value)) {
+      if (selCount === 0 || selCount === total) {
+        return `${state.name} (All counties)`;
+      } else {
+        return `${state.name} (${selCount} / ${total})`;
+      }
+    }
+
+    return state.name;
+  }
+
+  hasFormError(errorName: string): boolean {
+    // validator sets { noStateSelected: true } on states group
+    const statesGroup = this.lenderForm.get('states') as FormGroup;
+    return (
+      !!statesGroup?.errors?.[errorName] &&
+      (this.lenderForm.touched || this.lenderForm.dirty)
+    );
+  }
+
+  // -----------------------------
+  // click handlers wired in template
+  // -----------------------------
+
+  toggleAllStates(): void {
+    const selectAll = !this.areAllStatesSelected();
+
+    if (selectAll) {
+      // select every state with all counties unselected initially
+      this.selectedStates = this.footprintLocation.map((st) => ({
+        stateValue: st.value,
+        stateName: st.name,
+        counties: st.subcategories.map((cty) => ({
+          value: cty.value,
+          name: cty.name,
+          selected: false,
+        })),
+        allCountiesSelected: false,
+      }));
     } else {
+      // clear all
       this.selectedStates = [];
     }
 
+    this.expandedState = null;
     this.updateFormValues();
   }
 
-  areAllStatesSelected(): boolean {
-    return this.selectedStates.length === this.footprintLocation.length;
-  }
-
   toggleState(stateValue: string): void {
-    const stateIndex = this.selectedStates.findIndex(
+    const idx = this.selectedStates.findIndex(
       (s) => s.stateValue === stateValue
     );
 
-    if (stateIndex !== -1) {
-      this.selectedStates.splice(stateIndex, 1);
-      const statesGroup = this.lenderForm.get(
-        'footprintInfo.states'
-      ) as FormGroup;
-      if (statesGroup && statesGroup.get(stateValue)) {
-        statesGroup.get(stateValue)?.setValue(false);
+    if (idx !== -1) {
+      // deselect state
+      this.selectedStates.splice(idx, 1);
+      if (this.expandedState === stateValue) {
+        this.expandedState = null;
       }
     } else {
-      const state = this.footprintLocation.find((s) => s.value === stateValue);
-      if (state) {
+      // select state
+      const stDef = this.footprintLocation.find((s) => s.value === stateValue);
+      if (stDef) {
         this.selectedStates.push({
           stateValue,
-          stateName: state.name,
-          counties: state.subcategories.map((county) => ({
-            value: county.value,
-            name: county.name,
+          stateName: stDef.name,
+          counties: stDef.subcategories.map((cty) => ({
+            value: cty.value,
+            name: cty.name,
             selected: false,
           })),
           allCountiesSelected: false,
         });
-
-        const statesGroup = this.lenderForm.get(
-          'footprintInfo.states'
-        ) as FormGroup;
-        if (statesGroup && statesGroup.get(stateValue)) {
-          statesGroup.get(stateValue)?.setValue(true);
-        }
-
         this.expandedState = stateValue;
       }
-    }
-
-    this.updateFormValues();
-
-    // Add debugging output
-    console.log('State toggled:', stateValue);
-    console.log(
-      'Selected states:',
-      this.selectedStates.map((s) => s.stateValue)
-    );
-
-    // Force validation on the parent form
-    const statesGroup = this.lenderForm.get(
-      'footprintInfo.states'
-    ) as FormGroup;
-    statesGroup.updateValueAndValidity({ onlySelf: false, emitEvent: true });
-
-    // Important - we need to trigger validation at the parent form level
-    this.lenderForm.updateValueAndValidity({
-      onlySelf: false,
-      emitEvent: true,
-    });
-
-    // Log validation state to debug
-    console.log('Form valid after state toggle:', this.lenderForm.valid);
-    console.log('States group valid:', statesGroup.valid);
-    console.log('States group errors:', statesGroup.errors);
-  }
-
-  toggleCounty(stateValue: string, countyValue: string): void {
-    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
-    if (!state) return;
-
-    const county = state.counties.find((c) => c.value === countyValue);
-    if (!county) return;
-
-    county.selected = !county.selected;
-    state.allCountiesSelected = state.counties.every((c) => c.selected);
-
-    const statesGroup = this.lenderForm.get(
-      'footprintInfo.states'
-    ) as FormGroup;
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (countiesGroup && countiesGroup.get(countyValue)) {
-      countiesGroup.get(countyValue)?.setValue(county.selected);
-    }
-
-    this.updateFormValues();
-  }
-
-  toggleAllCounties(stateValue: string): void {
-    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
-    if (!state) return;
-
-    state.allCountiesSelected = !state.allCountiesSelected;
-    state.counties.forEach((county) => {
-      county.selected = state.allCountiesSelected;
-    });
-
-    const statesGroup = this.lenderForm.get(
-      'footprintInfo.states'
-    ) as FormGroup;
-    const countiesGroup = statesGroup.get(
-      `${stateValue}_counties`
-    ) as FormGroup;
-    if (countiesGroup) {
-      state.counties.forEach((county) => {
-        countiesGroup.get(county.value)?.setValue(county.selected);
-      });
     }
 
     this.updateFormValues();
@@ -364,40 +370,35 @@ private initializeSelectedStates(): void {
     event?.stopPropagation();
   }
 
-  isStateSelected(stateValue: string): boolean {
-    return this.selectedStates.some((s) => s.stateValue === stateValue);
+  toggleCounty(stateValue: string, countyValue: string): void {
+    const st = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!st) return;
+
+    const c = st.counties.find((cc) => cc.value === countyValue);
+    if (!c) return;
+
+    c.selected = !c.selected;
+    st.allCountiesSelected = st.counties.every((cc) => cc.selected);
+
+    this.updateFormValues();
   }
 
-  isCountySelected(stateValue: string, countyValue: string): boolean {
-    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
-    const county = state?.counties.find((c) => c.value === countyValue);
-    return county?.selected || false;
+  toggleAllCounties(stateValue: string): void {
+    const st = this.selectedStates.find((s) => s.stateValue === stateValue);
+    if (!st) return;
+
+    const newVal = !st.allCountiesSelected;
+    st.allCountiesSelected = newVal;
+    st.counties.forEach((cty) => {
+      cty.selected = newVal;
+    });
+
+    this.updateFormValues();
   }
+  // Returns true if that state's "all counties selected" flag is true
+isAllCountiesSelected(stateValue: string): boolean {
+  const st = this.selectedStates.find(s => s.stateValue === stateValue);
+  return !!st && st.allCountiesSelected === true;
+}
 
-  getSelectedCountiesCount(stateValue: string): number {
-    const state = this.selectedStates.find((s) => s.stateValue === stateValue);
-    return state ? state.counties.filter((c) => c.selected).length : 0;
-  }
-
-  getStateDisplayText(state: FootprintLocation): string {
-    const selectedCount = this.getSelectedCountiesCount(state.value);
-    const totalCount = state.subcategories.length;
-
-    if (this.isStateSelected(state.value)) {
-      if (selectedCount === 0 || selectedCount === totalCount) {
-        return `${state.name} (All counties)`;
-      } else {
-        return `${state.name} (${selectedCount} of ${totalCount} counties)`;
-      }
-    }
-
-    return state.name;
-  }
-
-  hasFormError(errorName: string): boolean {
-    return (
-      this.lenderForm.hasError(errorName) &&
-      (this.lenderForm.touched || this.lenderForm.dirty)
-    );
-  }
 }

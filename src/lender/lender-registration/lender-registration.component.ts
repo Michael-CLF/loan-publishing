@@ -1,9 +1,11 @@
-// lender-registration.component.ts - CORRECTED (NO SIGNALS)
+// lender-registration.component.ts - REFACTORED PARENT-OWNS-FORM
+
 import {
   Component,
   OnInit,
   OnDestroy,
   inject,
+  ViewChild
 } from '@angular/core';
 import {
   FormBuilder,
@@ -21,17 +23,17 @@ import { LocationService } from 'src/services/location.service';
 import { LenderFormService } from '../../services/lender-registration.service';
 import { OTPService } from '../../services/otp.service';
 import { UserService, RegistrationData } from '../../services/user.service';
+import { PaymentService } from '../../services/payment.service';
 
-// Import child components
+
+// Child components
 import { LenderContactComponent } from '../lender-contact/lender-contact.component';
 import { LenderProductComponent } from '../lender-product/lender-product.component';
 import { LenderFootprintComponent } from '../lender-footprint/lender-footprint.component';
 import { LenderReviewComponent } from '../lender-review/lender-review.component';
 import { LenderStripePaymentComponent } from '../lender-stripe-payment/lender-stripe-payment.component';
 
-// ==========================================
-// EXPORTED INTERFACES (for child components)
-// ==========================================
+// Interfaces
 export interface StateOption {
   value: string;
   name: string;
@@ -76,11 +78,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private lenderFormService = inject(LenderFormService);
   private otpService = inject(OTPService);
   private userService = inject(UserService);
+  private paymentService = inject(PaymentService);
 
   private destroy$ = new Subject<void>();
 
-  // Form groups
+  // Master form
   lenderForm!: FormGroup;
+
+  // These properties still exist to satisfy current code
   contactForm!: FormGroup;
   productForm!: FormGroup;
   footprintForm!: FormGroup;
@@ -89,7 +94,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   currentStep = 0;
   totalSteps = 5;
 
-  // OTP modal state (NO SIGNALS - regular properties)
+  // OTP modal state
   showOTPModal = false;
   otpCode = '';
   isVerifyingOTP = false;
@@ -105,7 +110,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   errorMessage = '';
   successMessage = '';
 
-  // Static data (loaded from LocationService)
+  // Static data - Initialize immediately to prevent undefined errors
   states: StateOption[] = [];
   lenderTypes: LenderTypeOption[] = [];
   propertyCategories: any[] = [];
@@ -116,6 +121,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     this.loadStaticData();
     this.initializeForms();
+    setTimeout(() => {
+      this.initializeForms();
+    }, 0);
   }
 
   ngOnDestroy(): void {
@@ -124,24 +132,31 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   private loadStaticData(): void {
-    const footprintLocations = this.locationService.getFootprintLocations();
+    // Load data synchronously and ensure it's available before form initialization
+    const footprintLocations = this.locationService.getFootprintLocations() || [];
     this.states = footprintLocations.map((location: any) => ({
-      value: location.value,
-      name: location.name,
+      value: location.value || '',
+      name: location.name || '',
       subcategories: location.subcategories || []
     }));
 
-    // Load lender types from LocationService
-    this.lenderTypes = this.locationService.getLenderTypes();
+    this.lenderTypes = this.locationService.getLenderTypes() || [];
+    this.propertyCategories = this.locationService.getPropertyCategories() || [];
+    this.loanTypes = this.locationService.getLoanTypes() || [];
 
-    // Load property categories from LocationService
-    this.propertyCategories = this.locationService.getPropertyCategories();
-
-    // Load loan types from LocationService
-    this.loanTypes = this.locationService.getLoanTypes();
+    // Log to verify data is loaded
+    console.log('Static data loaded:', {
+      lenderTypesCount: this.lenderTypes.length,
+      propertyCategoriesCount: this.propertyCategories.length,
+      loanTypesCount: this.loanTypes.length
+    });
   }
+
+  /**
+   * Build one master FormGroup and wire the local aliases
+   */
   private initializeForms(): void {
-    // Contact Form (Step 0)
+    // Build nested subgroups first so we can reuse the same instances
     this.contactForm = this.fb.group({
       company: ['', [Validators.required, Validators.minLength(2)]],
       firstName: ['', [Validators.required, Validators.minLength(2)]],
@@ -152,24 +167,24 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       state: ['', [Validators.required]],
     });
 
-
-    // Product Form (Step 1)
     this.productForm = this.fb.group({
-      lenderTypes: [[], [Validators.required]],
+      lenderTypes: this.fb.array([], [Validators.required]),
+      propertyCategories: this.fb.array([], [Validators.required]),
+      subcategorySelections: this.fb.array([]),  // <-- ADD THIS
+      loanTypes: this.fb.array([], [Validators.required]),
       minLoanAmount: ['', [Validators.required]],
       maxLoanAmount: ['', [Validators.required]],
-      propertyCategories: [[], [Validators.required]],
-      loanTypes: [[], [Validators.required]],
-      ficoScore: [620, [Validators.required]],
+      ficoScore: [620, [Validators.required, Validators.min(300), Validators.max(850)]],
     });
 
-    // Footprint Form (Step 2)
     this.footprintForm = this.fb.group({
-      lendingFootprint: ['', [Validators.required]],
-      states: [[]],
+      // footprintForm needs to be valid if and only if at least one state
+      // is selected. We will enforce that inside the child component by
+      // keeping proper controls (states, lendingFootprint) and validators.
+      lendingFootprint: [[], [Validators.required, Validators.minLength(1)]],
+      states: [{}], // placeholder, child will normalize this into proper FormGroup
     });
 
-    // Main Form (consolidates all)
     this.lenderForm = this.fb.group({
       contactInfo: this.contactForm,
       productInfo: this.productForm,
@@ -179,6 +194,22 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     });
   }
 
+
+  // -------------------------------------------------
+  // Convenience getters for validation in template
+  // -------------------------------------------------
+  get contactInfoGroup(): FormGroup {
+    return this.lenderForm.get('contactInfo') as FormGroup;
+  }
+
+  get productInfoGroup(): FormGroup {
+    return this.lenderForm.get('productInfo') as FormGroup;
+  }
+
+  get footprintInfoGroup(): FormGroup {
+    return this.lenderForm.get('footprintInfo') as FormGroup;
+  }
+
   // ==========================================
   // STEP NAVIGATION
   // ==========================================
@@ -186,28 +217,38 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   nextStep(): void {
     console.log('➡️ Next step clicked, current step:', this.currentStep);
 
-    // Step 0: Contact Info → Register and show OTP modal
+    // Step 0: Contact Info triggers backend + auth
     if (this.currentStep === 0) {
-      if (this.contactForm.invalid) {
-        this.contactForm.markAllAsTouched();
+      if (this.contactInfoGroup.invalid) {
+        this.contactInfoGroup.markAllAsTouched();
         return;
       }
       this.registerLender();
       return;
     }
 
-    // Other steps: Validate and move forward
-    if (this.currentStep === 1 && this.productForm.invalid) {
-      this.productForm.markAllAsTouched();
+    // Step 1 validation
+    if (this.currentStep === 1 && this.productInfoGroup.invalid) {
+      this.productInfoGroup.markAllAsTouched();
       return;
     }
 
-    if (this.currentStep === 2 && this.footprintForm.invalid) {
-      this.footprintForm.markAllAsTouched();
+    // Step 2 validation
+    if (this.currentStep === 2 && this.footprintInfoGroup.invalid) {
+      this.footprintInfoGroup.markAllAsTouched();
       return;
     }
 
-    // Move to next step
+    // Step 3 validation (termsAccepted must be true)
+    if (this.currentStep === 3) {
+      const termsCtrl = this.lenderForm.get('termsAccepted');
+      if (!termsCtrl || termsCtrl.invalid) {
+        termsCtrl?.markAsTouched();
+        return;
+      }
+    }
+
+    // Advance
     if (this.currentStep < this.totalSteps - 1) {
       this.currentStep++;
       this.saveSectionData();
@@ -221,13 +262,13 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   }
 
   private saveSectionData(): void {
-    // Save current step data to service
+    // Persist partial step info into LenderFormService as before
     if (this.currentStep === 1) {
-      this.lenderFormService.setFormSection('contact', this.contactForm.value);
+      this.lenderFormService.setFormSection('contact', this.contactInfoGroup.value);
     } else if (this.currentStep === 2) {
-      this.lenderFormService.setFormSection('product', this.productForm.value);
+      this.lenderFormService.setFormSection('product', this.productInfoGroup.value);
     } else if (this.currentStep === 3) {
-      this.lenderFormService.setFormSection('footprint', this.footprintForm.value);
+      this.lenderFormService.setFormSection('footprint', this.footprintInfoGroup.value);
     }
   }
 
@@ -235,25 +276,19 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // REGISTRATION (After Step 0)
   // ==========================================
 
-  /**
-  * Register lender after Step 0 (Contact Info)
-  * Calls createPendingUser Cloud Function
-  * Signs user in with custom token
-  * Then advances to payment step (Stripe)
-  */
   private registerLender(): void {
     console.log('📝 Registering lender');
 
-    if (this.contactForm.invalid) {
-      this.contactForm.markAllAsTouched();
+    if (this.contactInfoGroup.invalid) {
+      this.contactInfoGroup.markAllAsTouched();
       return;
     }
 
     this.isRegistering = true;
     this.errorMessage = '';
 
-    const contactData = this.contactForm.value;
-    const email = contactData.contactEmail.toLowerCase().trim();
+    const contactData = this.contactInfoGroup.value;
+    const email = (contactData.contactEmail || '').toLowerCase().trim();
 
     const registrationData = {
       email,
@@ -270,7 +305,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       interval: this.lenderFormService?.getFormSection('payment')?.billingInterval || 'monthly',
       promotionCode: this.lenderFormService?.getFormSection('payment')?.validatedCouponCode || null,
     } as RegistrationData;
-
 
     console.log('📤 Calling createPendingUser for lender:', registrationData);
 
@@ -297,7 +331,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
             .subscribe({
               next: () => {
                 console.log('🔐 Browser authenticated as new user. Moving to payment step.');
-                this.currentStep = 1; // show Stripe payment UI
+                this.currentStep = 1; // product details comes next in UI flow
               },
               error: (authErr) => {
                 console.error('❌ Could not authenticate after registration:', authErr);
@@ -312,15 +346,10 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       });
   }
 
-
-
   // ==========================================
-  // OTP VERIFICATION
+  // OTP
   // ==========================================
 
-  /**
-   * Verify OTP code from modal
-   */
   verifyOTP(): void {
     const code = this.otpCode;
     const email = this.registeredEmail;
@@ -351,7 +380,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
           if (response.success) {
             this.showOTPModal = false;
-            this.currentStep = 1; // Move to Product Details
+            this.currentStep = 1;
             this.successMessage = 'Email verified! Continue filling out your profile.';
             this.saveSectionData();
           } else {
@@ -365,9 +394,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Resend OTP code
-   */
   resendOTP(): void {
     const email = this.registeredEmail;
     if (!email) return;
@@ -392,9 +418,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       });
   }
 
-  /**
-   * Close OTP modal
-   */
   closeOTPModal(): void {
     this.showOTPModal = false;
     this.otpCode = '';
@@ -406,8 +429,63 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // ==========================================
 
   submitForm(): void {
-    console.log('💳 Submit form (payment step)');
-    // Payment component handles submission
+    console.log('🚀 Submit form (payment step)');
+
+    // Check we're on the correct step
+    if (this.currentStep !== 4) {
+      console.error('submitForm called but not on payment step');
+      return;
+    }
+
+    // Fallback: Direct service call
+    console.log('Payment component not found - using direct service method');
+
+    // Get payment info from the form service
+    const paymentInfo = this.lenderFormService.getFormSection('payment');
+    const interval = paymentInfo?.billingInterval || 'monthly';
+    const promotionCode = paymentInfo?.validatedCouponCode || undefined;
+
+    // Validate we have required data
+    if (!interval) {
+      this.errorMessage = 'Please select a billing option';
+      return;
+    }
+
+    console.log('Creating checkout session with:', { interval, promotionCode });
+
+    this.isLoading = true;
+    this.errorMessage = '';
+
+    // Call payment service directly
+    this.paymentService.createCheckoutSession(interval, promotionCode)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          console.log('✅ Checkout session created:', response);
+          console.log('✅ Full response from createCheckoutSession:', response);
+          console.log('✅ Checkout URL:', response.checkoutUrl);
+
+          if (response.success && response.checkoutUrl) {
+            this.successMessage = 'Redirecting to payment...';
+            console.log('🔄 Redirecting to Stripe:', response.checkoutUrl);
+
+            // Redirect to Stripe Checkout
+            // Don't use window.location.href directly, use the payment service method
+            this.paymentService.redirectToCheckout(response.checkoutUrl);
+          } else {
+            throw new Error(response.message || 'Failed to create checkout session');
+          }
+        },
+        error: (error) => {
+          console.error('❌ Payment error:', error);
+          this.errorMessage = error?.message || 'Payment processing failed. Please try again.';
+        }
+      });
   }
 
   handlePaymentComplete(result: any): void {
@@ -426,17 +504,17 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
   getLenderData(): any {
     return {
-      companyName: this.contactForm.value.company,
-      firstName: this.contactForm.value.firstName,
-      lastName: this.contactForm.value.lastName,
-      email: this.contactForm.value.contactEmail,
-      phone: this.contactForm.value.contactPhone,
-      city: this.contactForm.value.city,
-      state: this.contactForm.value.state,
+      companyName: this.contactInfoGroup.value.company,
+      firstName: this.contactInfoGroup.value.firstName,
+      lastName: this.contactInfoGroup.value.lastName,
+      email: this.contactInfoGroup.value.contactEmail,
+      phone: this.contactInfoGroup.value.contactPhone,
+      city: this.contactInfoGroup.value.city,
+      state: this.contactInfoGroup.value.state,
       completeFormData: {
-        contactInfo: this.contactForm.value,
-        productInfo: this.productForm.value,
-        footprintInfo: this.footprintForm.value,
+        contactInfo: this.contactInfoGroup.value,
+        productInfo: this.productInfoGroup.value,
+        footprintInfo: this.footprintInfoGroup.value,
       },
     };
   }

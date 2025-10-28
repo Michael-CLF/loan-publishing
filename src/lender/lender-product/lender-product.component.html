@@ -1,198 +1,279 @@
 <!-- lender-product.component.html -->
 <div class="property-container">
-    <form [formGroup]="lenderForm">
-        <h3 class="product-title">Product Details</h3>
-        <p class="property-description">Please select your lender types and property categories.</p>
+  <form [formGroup]="lenderForm">
+    <h3 class="product-title">Product Details</h3>
+    <p class="property-description">Please select your lender types and property categories.</p>
 
-        <div class="form-content">
+    <div class="form-content">
 
-            <!-- Lender Types Section -->
-            <div class="property-section">
-                <h4>Lender Types</h4>
-                <p class="helper-text">Which best describes your lender type?</p>
+      <!-- Lender Types Section -->
+      <div class="property-section">
+        <h4>Lender Types</h4>
+        <p class="helper-text">Which best describes your lender type?</p>
 
-                <!-- Lender Types Grid -->
-                <div class="property-grid">
-                    <div *ngFor="let type of lenderTypes" class="property-card"
-                        [class.selected]="isOptionSelected('lenderTypes', type.value)"
-                        [class.disabled]="isLenderTypeDisabled(type.value)">
-                        <!-- Lender Type Checkbox -->
-                        <div class="property-header" (click)="onLenderTypeChange($event, type.value)">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" [id]="'lenderType-' + type.value"
-                                    [checked]="isOptionSelected('lenderTypes', type.value)"
-                                    [disabled]="isLenderTypeDisabled(type.value)"
-                                    (change)="onLenderTypeChange($event, type.value)">
-                                <span class="state-name">{{ type.name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div *ngIf="lenderTypesArray?.invalid && lenderTypesArray?.touched" class="error-message">
-                    Please select at least one lender type.
-                </div>
+        <div class="property-grid">
+          <div
+            *ngFor="let type of lenderTypes"
+            class="property-card"
+            [class.selected]="isOptionSelected('lenderTypes', type.value)"
+            [class.disabled]="isLenderTypeDisabled(type.value)"
+          >
+            <div class="property-header" (click)="onLenderTypeChange($event, type.value)">
+              <div class="checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  [id]="'lenderType-' + type.value"
+                  [checked]="isOptionSelected('lenderTypes', type.value)"
+                  [disabled]="isLenderTypeDisabled(type.value)"
+                  (change)="onLenderTypeChange($event, type.value)"
+                />
+                <span class="state-name">{{ type.name }}</span>
+              </div>
             </div>
-
-            <!-- Property Categories Section -->
-            <div class="states-section">
-                <h4>Property Categories</h4>
-                <p class="helper-text">Select all property categories that you offer</p>
-                <p class="warning">NOTE: In order to match your products with loans, please select all subcategories you offer.
-                </p>
-
-                <!-- Property Categories Grid -->
-                <div class="states-grid">
-                    <div *ngFor="let category of propertyCategories" class="state-card"
-                        [class.selected]="isOptionSelected('propertyCategories', category.value)">
-                        <!-- Property Category Checkbox -->
-                        <div class="state-header" (click)="toggleCategory(category.value)">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" [id]="'propertyCategory-' + category.value"
-                                    [checked]="isOptionSelected('propertyCategories', category.value)"
-                                    (change)="toggleCategory(category.value)">
-                                <span class="state-name">{{ category.name }}</span>
-                            </div>
-                            <span
-                                *ngIf="isOptionSelected('propertyCategories', category.value) && category.subcategories?.length"
-                                class="county-count">
-                                {{ getSelectedSubcategoriesCount(category.value) }} / {{ category.subcategories.length
-                                }}
-                            </span>
-                        </div>
-
-                        <!-- Expand/Collapse Button (only shown for selected categories with subcategories) -->
-                        <div *ngIf="isOptionSelected('propertyCategories', category.value) && category.subcategories?.length"
-                            class="dropdown-toggle" (click)="toggleDropdown(category.value)">
-                            <span class="toggle-text">{{ expandedCategory === category.value ? 'Hide' : 'Show' }}
-                                Subcategories</span>
-                            <span class="toggle-icon">{{ expandedCategory === category.value ? '▲' : '▼' }}</span>
-                        </div>
-                    </div>
-                </div>
-                <div *ngIf="isControlInvalid('propertyCategories')" class="error-message">
-                    Please select at least one property category.
-                </div>
-            </div>
-
-            <!-- Subcategories Section (only for expanded categories) -->
-            <div *ngFor="let category of propertyCategories" class="counties-section"
-                [class.expanded]="expandedCategory === category.value && isOptionSelected('propertyCategories', category.value)">
-                <div *ngIf="category.subcategories && category.subcategories.length">
-                    <div class="counties-header">
-                        <h5>{{ category.name }} Subcategories</h5>
-                        <div class="select-all-counties">
-                            <label>
-                                <input type="checkbox" [checked]="allSubcategoriesSelected(category.value)"
-                                    (change)="toggleAllSubcategories(category.value)">
-                                <span>Select All Subcategories</span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="counties-grid">
-                        <div *ngFor="let subcategory of category.subcategories" class="county-item"
-                            [class.selected]="isSubOptionSelected(category.value, subcategory.value)">
-                            <label class="county-header">
-                                <div class="checkbox-wrapper">
-                                    <input type="checkbox" [id]="'subcategory-' + subcategory.value"
-                                        [checked]="isSubOptionSelected(category.value, subcategory.value)"
-                                        (change)="toggleSubcategory($event, category.value, subcategory.value)">
-                                    <span>{{ subcategory.name }}</span>
-                                </div>
-                            </label>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Loan Types Section -->
-            <div class="property-section">
-                <h4>Loan Types</h4>
-                <p class="helper-text">Select all the loan types you offer</p>
-
-                <!-- Loan Types Grid -->
-                <div class="property-grid">
-                    <div *ngFor="let loanType of loanTypes" class="property-card"
-                        [class.selected]="isLoanTypeSelected(loanType.value)">
-                        <!-- Loan Type Checkbox -->
-                        <div class="property-header" (click)="toggleLoanType($event, loanType.value)">
-                            <div class="checkbox-wrapper">
-                                <input type="checkbox" [id]="'loanType-' + loanType.value"
-                                    [checked]="isLoanTypeSelected(loanType.value)"
-                                    (change)="toggleLoanType($event, loanType.value)">
-                                <span class="state-name">{{ loanType.name }}</span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div *ngIf="loanTypesArray.invalid && loanTypesArray.touched" class="error-message">
-                    Please select at least one loan type.
-                </div>
-            </div>
-
-            <!-- Loan Amount Section -->
-            <div class="states-section">
-                <h4>Loan Amounts</h4>
-                <p class="helper-text">Specify the loan amount ranges you offer</p>
-
-                <div class="loan-amounts-grid">
-                    <div class="loan-amount-item">
-                        <label for="minLoanAmount" class="form-label">Minimum Loan Amount</label>
-                        <input type="text" id="minLoanAmount" class="form-control" formControlName="minLoanAmount"
-                            (blur)="formatCurrency($event, 'minLoanAmount')">
-                        <div *ngIf="lenderForm.get('minLoanAmount')?.invalid && lenderForm.get('minLoanAmount')?.touched"
-                            class="error">
-                            <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['required']">
-                                *Minimum loan amount is required
-                            </div>
-                            <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['pattern']">
-                                *6 Digits are required
-                            </div>
-                            <!-- Add other specific error messages as needed -->
-                        </div>
-                    </div>
-
-                    <div class="loan-amount-item">
-                        <label for="maxLoanAmount" class="form-label">Maximum Loan Amount</label>
-                        <input type="text" id="maxLoanAmount" class="form-control" formControlName="maxLoanAmount"
-                            (blur)="formatCurrency($event, 'maxLoanAmount')">
-                        <div *ngIf="lenderForm.get('maxLoanAmount')?.invalid && lenderForm.get('maxLoanAmount')?.touched"
-                            class="error">
-                            <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['required']">
-                                *Maximum loan amount is required
-                            </div>
-                            <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['pattern']">
-                                *6 digits are required
-                            </div>
-                            <!-- Add other specific error messages as needed -->
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="form-group mt-4">
-  <label for="ficoScore" class="fico">Minimum FICO Score</label>
-  <input
-    type="number"
-    id="ficoScore"
-    formControlName="ficoScore"
-    class="form-control"
-    placeholder="e.g. 660"
-    min="300"
-    max="850"
-  />
-  <div *ngIf="lenderForm.get('ficoScore')?.touched && lenderForm.get('ficoScore')?.invalid" class="fico-error">
-    <div *ngIf="lenderForm.get('ficoScore')?.errors?.['required']">FICO score is required.</div>
-    <div *ngIf="lenderForm.get('ficoScore')?.errors?.['min']">Minimum score is 300.</div>
-    <div *ngIf="lenderForm.get('ficoScore')?.errors?.['max']">Maximum score is 850.</div>
-    <div *ngIf="lenderForm.get('ficoScore')?.errors?.['pattern']">Only numeric values allowed.</div>
-  </div>
-</div>
-
-
-            <!-- Empty selection message (if needed) -->
-            <div *ngIf="lenderTypesArray.length === 0 && propertyCategoriesArray.length === 0" class="empty-selection">
-                Please select at least one lender type and property category to continue
-            </div>
+          </div>
         </div>
-    </form>
+
+        <div
+          *ngIf="lenderTypesArray?.invalid && lenderTypesArray?.touched"
+          class="error-message"
+        >
+          Please select at least one lender type.
+        </div>
+      </div>
+
+      <!-- Property Categories Section -->
+      <div class="states-section">
+        <h4>Property Categories</h4>
+        <p class="helper-text">Select all property categories that you offer</p>
+        <p class="warning">
+          NOTE: In order to match your products with loans, please select all subcategories you offer.
+        </p>
+
+        <div class="states-grid">
+          <div
+            *ngFor="let category of propertyCategories"
+            class="state-card"
+            [class.selected]="isOptionSelected('propertyCategories', category.value)"
+          >
+            <div class="state-header" (click)="toggleCategory(category.value)">
+              <div class="checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  [id]="'propertyCategory-' + category.value"
+                  [checked]="isOptionSelected('propertyCategories', category.value)"
+                  (change)="toggleCategory(category.value)"
+                />
+                <span class="state-name">{{ category.name }}</span>
+              </div>
+
+              <span
+                *ngIf="isOptionSelected('propertyCategories', category.value) && category.subcategories?.length"
+                class="county-count"
+              >
+                {{ getSelectedSubcategoriesCount(category.value) }} /
+                {{ category.subcategories.length }}
+              </span>
+            </div>
+
+            <div
+              *ngIf="
+                isOptionSelected('propertyCategories', category.value) &&
+                category.subcategories?.length
+              "
+              class="dropdown-toggle"
+              (click)="toggleDropdown(category.value)"
+            >
+              <span class="toggle-text">
+                {{ expandedCategory === category.value ? 'Hide' : 'Show' }} Subcategories
+              </span>
+              <span class="toggle-icon">
+                {{ expandedCategory === category.value ? '▲' : '▼' }}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="isControlInvalid('propertyCategories')" class="error-message">
+          Please select at least one property category.
+        </div>
+      </div>
+
+      <!-- Subcategories Section -->
+      <div
+        *ngFor="let category of propertyCategories"
+        class="counties-section"
+        [class.expanded]="
+          expandedCategory === category.value &&
+          isOptionSelected('propertyCategories', category.value)
+        "
+      >
+        <div *ngIf="category.subcategories && category.subcategories.length">
+          <div class="counties-header">
+            <h5>{{ category.name }} Subcategories</h5>
+            <div class="select-all-counties">
+              <label>
+                <input
+                  type="checkbox"
+                  [checked]="allSubcategoriesSelected(category.value)"
+                  (change)="toggleAllSubcategories(category.value)"
+                />
+                <span>Select All Subcategories</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="counties-grid">
+            <div
+              *ngFor="let subcategory of category.subcategories"
+              class="county-item"
+              [class.selected]="isSubOptionSelected(category.value, subcategory.value)"
+            >
+              <label class="county-header">
+                <div class="checkbox-wrapper">
+                  <input
+                    type="checkbox"
+                    [id]="'subcategory-' + subcategory.value"
+                    [checked]="isSubOptionSelected(category.value, subcategory.value)"
+                    (change)="toggleSubcategory($event, category.value, subcategory.value)"
+                  />
+                  <span>{{ subcategory.name }}</span>
+                </div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Loan Types Section -->
+      <div class="property-section">
+        <h4>Loan Types</h4>
+        <p class="helper-text">Select all the loan types you offer</p>
+
+        <div class="property-grid">
+          <div
+            *ngFor="let loanType of loanTypes"
+            class="property-card"
+            [class.selected]="isLoanTypeSelected(loanType.value)"
+          >
+            <div class="property-header" (click)="toggleLoanType($event, loanType.value)">
+              <div class="checkbox-wrapper">
+                <input
+                  type="checkbox"
+                  [id]="'loanType-' + loanType.value"
+                  [checked]="isLoanTypeSelected(loanType.value)"
+                  (change)="toggleLoanType($event, loanType.value)"
+                />
+                <span class="state-name">{{ loanType.name }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="loanTypesArray.invalid && loanTypesArray.touched" class="error-message">
+          Please select at least one loan type.
+        </div>
+      </div>
+
+      <!-- Loan Amounts -->
+      <div class="states-section">
+        <h4>Loan Amounts</h4>
+        <p class="helper-text">Specify the loan amount ranges you offer</p>
+
+        <div class="loan-amounts-grid">
+          <div class="loan-amount-item">
+            <label for="minLoanAmount" class="form-label">Minimum Loan Amount</label>
+            <input
+              type="text"
+              id="minLoanAmount"
+              class="form-control"
+              formControlName="minLoanAmount"
+              (blur)="formatCurrency($event, 'minLoanAmount')"
+            />
+            <div
+              *ngIf="
+                lenderForm.get('minLoanAmount')?.invalid &&
+                lenderForm.get('minLoanAmount')?.touched
+              "
+              class="error"
+            >
+              <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['required']">
+                *Minimum loan amount is required
+              </div>
+              <div *ngIf="lenderForm.get('minLoanAmount')?.errors?.['pattern']">
+                *6 Digits are required
+              </div>
+            </div>
+          </div>
+
+          <div class="loan-amount-item">
+            <label for="maxLoanAmount" class="form-label">Maximum Loan Amount</label>
+            <input
+              type="text"
+              id="maxLoanAmount"
+              class="form-control"
+              formControlName="maxLoanAmount"
+              (blur)="formatCurrency($event, 'maxLoanAmount')"
+            />
+            <div
+              *ngIf="
+                lenderForm.get('maxLoanAmount')?.invalid &&
+                lenderForm.get('maxLoanAmount')?.touched
+              "
+              class="error"
+            >
+              <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['required']">
+                *Maximum loan amount is required
+              </div>
+              <div *ngIf="lenderForm.get('maxLoanAmount')?.errors?.['pattern']">
+                *6 digits are required
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group mt-4">
+          <label for="ficoScore" class="fico">Minimum FICO Score</label>
+          <input
+            type="number"
+            id="ficoScore"
+            formControlName="ficoScore"
+            class="form-control"
+            placeholder="e.g. 660"
+            min="300"
+            max="850"
+          />
+          <div
+            *ngIf="
+              lenderForm.get('ficoScore')?.touched &&
+              lenderForm.get('ficoScore')?.invalid
+            "
+            class="fico-error"
+          >
+            <div *ngIf="lenderForm.get('ficoScore')?.errors?.['required']">
+              FICO score is required.
+            </div>
+            <div *ngIf="lenderForm.get('ficoScore')?.errors?.['min']">
+              Minimum score is 300.
+            </div>
+            <div *ngIf="lenderForm.get('ficoScore')?.errors?.['max']">
+              Maximum score is 850.
+            </div>
+            <div *ngIf="lenderForm.get('ficoScore')?.errors?.['pattern']">
+              Only numeric values allowed.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div
+        *ngIf="
+          lenderTypesArray.length === 0 && propertyCategoriesArray.length === 0
+        "
+        class="empty-selection"
+      >
+        Please select at least one lender type and property category to continue
+      </div>
+    </div>
+  </form>
 </div>
