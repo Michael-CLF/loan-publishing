@@ -12,12 +12,12 @@
     We sent a verification code to <strong>{{ email }}</strong>
   </p>
 
-  <div class="otp-inputs">
+ <div class="otp-inputs">
   <input
-    *ngFor="let digit of codeDigits(); let i = index"
+    *ngFor="let digit of codeDigits(); let i = index; trackBy: trackIndex"
     id="otp-{{ i }}"
-    maxlength="1"
     class="otp-box"
+    maxlength="1"
     type="text"
     [value]="codeDigits()[i]"
     (input)="onCodeDigitInput(i, $event)"
@@ -27,6 +27,8 @@
     inputmode="numeric"
   />
 </div>
+
+
 
 
   <div class="otp-timer">

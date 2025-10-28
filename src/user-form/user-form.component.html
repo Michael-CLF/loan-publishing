@@ -260,20 +260,40 @@
           </div>
         </div>
       </div>
-      <!-- Button - full width, inside form -->
-      <div class="button-container full-width">
-        <button type="submit" id="originator" class="originator-btn" [disabled]="userForm.invalid || isLoading">
-          <span *ngIf="!isLoading">Register</span>
-          <span *ngIf="isLoading">Registering...</span>
-        </button>
-      </div>
-    </form>
+     <!-- REGISTRATION FORM VIEW -->
+<div *ngIf="!showOtpBox">
+  <form [formGroup]="userForm" novalidate>
+    <!-- keep ALL your existing inputs, checkboxes, plan pricing summary, etc. -->
 
-    <!-- OTP verification UI -->
-    <div *ngIf="showOtpBox" id="otp-box" class="otp-container" style="margin-top: 30px;">
-      <app-otp-verification id="app-otp-verification" class="app-otp-verification" [email]="registeredEmail"
-        context="registration" (verified)="onOTPVerified()">
-      </app-otp-verification>
+    <!-- Submit button -->
+    <div class="button-container full-width">
+      <button
+        type="button"
+        id="originator"
+        class="originator-btn"
+        [disabled]="userForm.invalid || isLoading"
+        (click)="onSubmit()"
+      >
+        <span *ngIf="!isLoading">Register</span>
+        <span *ngIf="isLoading">Registering...</span>
+      </button>
     </div>
-  </div>
+
+    <!-- show inline error from onSubmit failure -->
+    <div *ngIf="errorMessage" class="error-message" style="margin-top:12px;">
+      {{ errorMessage }}
+    </div>
+  </form>
+</div>
+
+<!-- OTP VERIFICATION VIEW -->
+<div *ngIf="showOtpBox" id="otp-box" class="otp-container" style="margin-top:30px;">
+  <app-otp-verification
+    id="app-otp-verification"
+    class="app-otp-verification"
+    [email]="registeredEmail"
+    context="registration"
+    (verified)="onOTPVerified()"
+  >
+  </app-otp-verification>
 </div>

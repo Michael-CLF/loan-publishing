@@ -1,4 +1,5 @@
 // src/app/shared/otp-verification/otp-verification.component.ts
+
 import {
   Component,
   Input,
@@ -21,13 +22,15 @@ import { OTPService } from '../services/otp.service';
   styleUrls: ['./otp-verification.component.css'],
 })
 export class OtpVerificationComponent implements OnInit {
+  // services
   public otpService = inject(OTPService);
 
+  // inputs/outputs
   @Input() email!: string;
   @Input() context: 'login' | 'registration' = 'registration';
   @Output() verified = new EventEmitter<void>();
 
-  // signals
+  // state signals
   errorMessage = signal<string>('');
   codeDigits = signal<string[]>(['', '', '', '', '', '']);
   timeRemaining = computed(() => this.otpService.formatTimeRemaining());
@@ -37,7 +40,9 @@ export class OtpVerificationComponent implements OnInit {
     if (this.email) {
       console.log('📨 Sending OTP to', this.email);
       this.otpService.sendOTP(this.email).subscribe({
-        next: () => console.log('✅ OTP sent for', this.context),
+        next: () => {
+          console.log('✅ OTP sent for', this.context);
+        },
         error: (err) => {
           console.error('❌ OTP send error:', err);
           this.errorMessage.set('Failed to send code. Please try again.');
@@ -46,38 +51,133 @@ export class OtpVerificationComponent implements OnInit {
     }
   }
 
- onCodeDigitInput(index: number, event: any): void {
-  const raw = event.target.value ?? '';
-  const val = raw.replace(/\D/g, '').slice(0, 1); // numeric, single char
-
-  // write this digit only
-  const digits = this.codeDigits().slice();
-  digits[index] = val;
-  this.codeDigits.set(digits);
-
-  // keep the rendered input consistent with model
-  event.target.value = val;
-
-  // auto-advance if a digit was entered
-  if (val && index < 5) {
-    const nextEl = document.getElementById(`otp-${index + 1}`) as HTMLInputElement | null;
-    nextEl?.focus();
-    nextEl?.select();
+  // used by *ngFor trackBy to keep inputs stable
+  trackIndex(index: number): number {
+    return index;
   }
 
-  // if last box filled, try verify automatically
-  if (index === 5 && val) {
-    this.tryVerify();
+  /**
+   * Handles typing in a single OTP box.
+   * - restricts to 1 numeric char
+   * - writes that char to the correct index
+   * - moves focus forward
+   * - triggers verify if last box filled
+   */
+  onCodeDigitInput(index: number, event: any): void {
+    const raw = event.target.value ?? '';
+    const val = raw.replace(/\D/g, '').slice(0, 1); // numeric, single char
+
+    // clone current digits and update just this index
+    const digits = this.codeDigits().slice();
+    digits[index] = val;
+    this.codeDigits.set(digits);
+
+    // force DOM value for this box so DOM and model agree
+    event.target.value = val;
+
+    // auto-advance if we entered something and we're not in the last box
+    if (val && index < 5) {
+      const nextEl = document.getElementById(`otp-${index + 1}`) as HTMLInputElement | null;
+      nextEl?.focus();
+      nextEl?.select();
+    }
+
+    // if last box filled, try verify automatically
+    if (index === 5 && val) {
+      this.tryVerify();
+    }
   }
-}
 
+  /**
+   * Handles backspace behavior:
+   * - if current box has a digit, clear it
+   * - otherwise move back to previous box and clear that
+   */
+  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
 
+      const digits = this.codeDigits().slice();
+
+      if (digits[index]) {
+        // clear current box
+        digits[index] = '';
+        this.codeDigits.set(digits);
+
+        const el = document.getElementById(`otp-${index}`) as HTMLInputElement | null;
+        if (el) {
+          el.value = '';
+          el.focus();
+          el.select();
+        }
+      } else if (index > 0) {
+        // move back a box and clear that box too
+        digits[index - 1] = '';
+        this.codeDigits.set(digits);
+
+        const prevEl = document.getElementById(`otp-${index - 1}`) as HTMLInputElement | null;
+        if (prevEl) {
+          prevEl.value = '';
+          prevEl.focus();
+          prevEl.select();
+        }
+      }
+    }
+  }
+
+  /**
+   * Allows pasting a full code.
+   * - fills up to 6 digits
+   * - updates DOM for each box
+   * - auto verifies if we got all 6
+   */
+  onCodePaste(e: ClipboardEvent): void {
+    e.preventDefault();
+
+    const pasted = e.clipboardData?.getData('text') || '';
+    const cleaned = pasted.replace(/\D/g, '').slice(0, 6);
+    if (!cleaned) return;
+
+    // build array of exactly 6 slots
+    const nextDigits = cleaned.split('');
+    while (nextDigits.length < 6) {
+      nextDigits.push('');
+    }
+
+    this.codeDigits.set(nextDigits);
+
+    // reflect in DOM so UI matches state
+    for (let i = 0; i < 6; i++) {
+      const box = document.getElementById(`otp-${i}`) as HTMLInputElement | null;
+      if (box) {
+        box.value = nextDigits[i] || '';
+      }
+    }
+
+    if (cleaned.length === 6) {
+      // got full code
+      this.tryVerify();
+    } else {
+      // focus first empty box
+      const firstEmpty = nextDigits.findIndex((d) => d === '');
+      const focusIndex = firstEmpty === -1 ? 5 : firstEmpty;
+      const el = document.getElementById(`otp-${focusIndex}`) as HTMLInputElement | null;
+      el?.focus();
+      el?.select();
+    }
+  }
+
+  /**
+   * Resend the OTP to the same email.
+   * Resets inputs.
+   */
   resend(): void {
     this.errorMessage.set('');
     this.otpService.sendOTP(this.email).subscribe({
       next: () => {
         this.codeDigits.set(['', '', '', '', '', '']);
-        document.getElementById('otp-0')?.focus();
+        const first = document.getElementById('otp-0') as HTMLInputElement | null;
+        first?.focus();
       },
       error: (err) => {
         console.error('❌ Resend error:', err);
@@ -85,75 +185,12 @@ export class OtpVerificationComponent implements OnInit {
       },
     });
   }
-  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
-  if (e.key === 'Backspace') {
-    e.preventDefault(); // we fully control the behavior
 
-    const digits = this.codeDigits().slice();
-
-    if (digits[index]) {
-      // clear current digit
-      digits[index] = '';
-      this.codeDigits.set(digits);
-
-      const el = document.getElementById(`otp-${index}`) as HTMLInputElement | null;
-      if (el) {
-        el.value = '';
-        el.focus();
-        el.select();
-      }
-    } else if (index > 0) {
-      // move back a box
-      const prevIndex = index - 1;
-      digits[prevIndex] = '';
-      this.codeDigits.set(digits);
-
-      const prevEl = document.getElementById(`otp-${prevIndex}`) as HTMLInputElement | null;
-      if (prevEl) {
-        prevEl.value = '';
-        prevEl.focus();
-        prevEl.select();
-      }
-    }
-  }
-}
-onCodePaste(e: ClipboardEvent): void {
-  e.preventDefault();
-  const pastedText = e.clipboardData?.getData('text') || '';
-  const cleaned = pastedText.replace(/\D/g, '').slice(0, 6);
-  if (!cleaned) return;
-
-  const newDigits = cleaned.split('');
-  // pad to length 6 in case shorter than 6
-  while (newDigits.length < 6) {
-    newDigits.push('');
-  }
-
-  this.codeDigits.set(newDigits);
-
-  // reflect the digits into DOM boxes
-  for (let i = 0; i < 6; i++) {
-    const inputEl = document.getElementById(`otp-${i}`) as HTMLInputElement | null;
-    if (inputEl) {
-      inputEl.value = newDigits[i] || '';
-    }
-  }
-
-  // if we pasted 6 digits, verify immediately
-  if (cleaned.length === 6) {
-    this.tryVerify();
-  } else {
-    // otherwise focus next empty box
-    const firstEmptyIndex = newDigits.findIndex(d => d === '');
-    const focusIndex = firstEmptyIndex === -1 ? 5 : firstEmptyIndex;
-    const focusEl = document.getElementById(`otp-${focusIndex}`) as HTMLInputElement | null;
-    focusEl?.focus();
-    focusEl?.select();
-  }
-}
-
-
-
+  /**
+   * Try to verify the 6-digit code.
+   * On success, emit `verified` so the parent (registration form)
+   * can move on to Stripe checkout.
+   */
   tryVerify(): void {
     const code = this.codeDigits().join('');
     if (code.length !== 6) {
@@ -163,15 +200,21 @@ onCodePaste(e: ClipboardEvent): void {
 
     this.errorMessage.set('');
     console.log('🔐 Verifying OTP for', this.email);
+
     this.otpService.verifyOTP(this.email, code).subscribe({
       next: () => {
         console.log('✅ OTP verified successfully');
-        this.verified.emit(); // emit event to parent
+        this.verified.emit();
       },
       error: (err) => {
         console.error('❌ Verify error:', err);
         this.errorMessage.set(err.message || 'Invalid code');
         this.codeDigits.set(['', '', '', '', '', '']);
+
+        // focus first box again
+        const first = document.getElementById('otp-0') as HTMLInputElement | null;
+        first?.focus();
+        first?.select();
       },
     });
   }
