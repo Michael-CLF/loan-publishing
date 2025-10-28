@@ -1,6 +1,3 @@
-// src/user-form/user-form.component.ts
-
-// user-form.component.ts - CORRECTED (NO SIGNALS)
 import {
   Component,
   OnInit,
@@ -25,7 +22,6 @@ import { PaymentService } from '../services/payment.service';
 import { OriginatorService, RegistrationData } from '../services/originator.service';
 import { OTPService } from '../services/otp.service';
 import { EmailExistsValidator } from 'src/services/email-exists.validator';
-import { OtpVerificationComponent } from '../shared/otp-verification.component';
 
 export interface StateOption {
   value: string;
@@ -40,12 +36,12 @@ interface AppliedCouponDetails {
   description?: string;
 }
 
-type RegistrationStep = 'form' | 'otp' | 'payment';
+type RegistrationStep = 'form' | 'otp' | 'verifying';
 
 @Component({
   selector: 'app-user-form',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, OtpVerificationComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './user-form.component.html',
   styleUrls: ['./user-form.component.css']
 })
@@ -62,48 +58,48 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
   private destroy$ = new Subject<void>();
 
-  // Form state
+  // form state
   userForm!: FormGroup;
-  otpForm!: FormGroup;
   states: StateOption[] = [];
 
-  // Registration flow state (NO SIGNALS - regular properties)
-  currentStep: RegistrationStep = 'form';
+  // flow state
+  currentStep: RegistrationStep = 'form'; // 'form' -> 'otp' -> 'verifying'
   registeredEmail = '';
   registeredUserId = '';
 
-  // Loading states
-  isSubmitting = false;
-  isVerifyingOTP = false;
-  isCreatingCheckout = false;
-  isLoading = false;
+  // ui state
+  isLoading = false;          // form submit / register button spinner
+  isSubmitting = false;       // you already had this, leaving it conceptually
+  errorMessage = '';          // form-level error before we get to OTP
 
-  // Error states
-  errorMessage = '';
-  otpError = '';
-
-  // Coupon state
-  isValidatingCoupon = false;
+  // coupon state (keep this logic from your existing version)
   couponApplied = false;
   appliedCouponDetails: AppliedCouponDetails | null = null;
+  isValidatingCoupon = false;
   private isResettingCoupon = false;
 
-  // Success message
-  successMessage = '';
-  showOtpBox = false;
+  // OTP view state (mirrors login component style)
+  // Instead of 6 separate template refs, we keep an array
+  codeDigits: string[] = ['', '', '', '', '', ''];
+  otpErrorMessage = '';
+  otpIsLoading = false; // verifying / resending state
 
+  // expose timer text like login
+  get timeRemaining(): string {
+    return this.otpService.formatTimeRemaining();
+  }
 
   ngOnInit(): void {
-    console.log('🚀 UserFormComponent initialized');
+    console.log('🚀 UserFormComponent init');
 
-    // Load states for dropdown
+    // load state options
     const footprintLocations = this.locationService.getFootprintLocations();
     this.states = footprintLocations.map(location => ({
       value: location.value,
       name: location.name
     }));
 
-    // Initialize registration form
+    // build registration form
     this.userForm = this.fb.group({
       firstName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
       lastName: ['', [Validators.required, Validators.minLength(2), Validators.pattern(/^[A-Za-z ]+$/)]],
@@ -117,18 +113,11 @@ export class UserFormComponent implements OnInit, OnDestroy {
       promotion_code: ['']
     });
 
-    // Initialize OTP form
-    this.otpForm = this.fb.group({
-      otp: ['', [Validators.required, Validators.pattern(/^\d{6}$/)]]
-    });
-
-    // Clear coupon errors when user types
+    // if coupon changes, clear coupon error state
     this.userForm.get('promotion_code')?.valueChanges
       .pipe(takeUntil(this.destroy$))
       .subscribe(() => {
-        if (this.userForm.get('promotion_code')?.errors) {
-          this.clearCouponErrors();
-        }
+        // you can clear coupon form errors here if you want
       });
   }
 
@@ -137,133 +126,16 @@ export class UserFormComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  // ==========================================
-  // STEP 1: REGISTRATION FORM
-  // ==========================================
-
-  selectBilling(interval: 'monthly' | 'annually'): void {
-    this.userForm.patchValue({ interval });
-
-    // If a coupon is applied, revalidate it for the new interval
-    if (this.couponApplied && this.userForm.get('promotion_code')?.value) {
-      this.validateCoupon();
-    }
-  }
-
-  formatPhoneNumber(): void {
-    let phone = this.userForm.get('phone')?.value;
-    if (phone) {
-      phone = phone.replace(/\D/g, '').slice(0, 10);
-
-      let formatted = phone;
-      if (phone.length >= 6) {
-        formatted = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
-      } else if (phone.length >= 3) {
-        formatted = `(${phone.slice(0, 3)}) ${phone.slice(3)}`;
-      }
-
-      this.userForm.get('phone')?.setValue(formatted, { emitEvent: false });
-    }
-  }
-
-  validateCoupon(): void {
-    if (this.isResettingCoupon) return;
-
-    const promotion_code = this.userForm.get('promotion_code')?.value?.trim();
-
-    if (!promotion_code) {
-      this.resetCouponState();
-      return;
-    }
-
-    if (this.isValidatingCoupon) return;
-
-    this.isValidatingCoupon = true;
-
-    this.promotionService.validatePromotionCode(
-      promotion_code,
-      'originator',
-      this.userForm.get('interval')?.value || 'monthly'
-    )
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isValidatingCoupon = false)
-      )
-      .subscribe({
-        next: (response: any) => this.handleCouponValidationResponse(response),
-        error: (error: any) => {
-          console.error('Coupon validation error:', error);
-          this.setCouponError('Unable to validate coupon. Please try again.');
-        }
-      });
-  }
-
-  private handleCouponValidationResponse(response: any): void {
-    if (response.valid && response.promotion_code) {
-      this.couponApplied = true;
-
-      const coupon = response.promotion_code.coupon;
-      this.appliedCouponDetails = {
-        code: response.promotion_code.code,
-        displayCode: response.promotion_code.code,
-        discount: coupon.percent_off || coupon.amount_off || 0,
-        discountType: coupon.percent_off ? 'percentage' : 'fixed',
-        description: coupon.name
-      };
-      this.clearCouponErrors();
-    } else {
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid coupon code');
-    }
-  }
-
-  private clearCouponErrors(): void {
-    const control = this.userForm.get('promotion_code');
-    if (control) {
-      control.setErrors(null);
-    }
-  }
-
-  private resetCouponState(): void {
-    this.isResettingCoupon = true;
-    this.couponApplied = false;
-    this.appliedCouponDetails = null;
-    this.clearCouponErrors();
-    this.userForm.get('promotion_code')?.setValue('', { emitEvent: false });
-
-    setTimeout(() => {
-      this.isResettingCoupon = false;
-    }, 100);
-  }
-
-  private setCouponError(errorMessage: string): void {
-    const control = this.userForm.get('promotion_code');
-    if (control) {
-      if (errorMessage.includes('not valid for the selected plan')) {
-        control.setErrors({ planMismatchError: true });
-      } else {
-        control.setErrors({ couponError: errorMessage });
-      }
-    }
-  }
-
-  /**
-   * STEP 1: Submit registration form
-   * Calls createPendingUser Cloud Function
-   */
+  // ========== REGISTRATION SUBMIT (STEP 1 -> STEP 2) ==========
   onSubmit(): void {
     console.log('📝 Registration form submitted');
 
     if (this.userForm.invalid) {
-      console.log('❌ Form is invalid');
-      Object.keys(this.userForm.controls).forEach((key) => {
-        const control = this.userForm.get(key);
-        control?.markAsTouched();
-      });
+      this.markAllTouched();
       return;
     }
 
-    this.isSubmitting = true;
+    this.isLoading = true;
     this.errorMessage = '';
 
     const formData = this.userForm.value;
@@ -289,201 +161,381 @@ export class UserFormComponent implements OnInit, OnDestroy {
       }
     };
 
-    console.log('📤 Calling createPendingUser with:', registrationData);
+    console.log('📤 createPendingUser payload:', registrationData);
 
     this.originatorService.registerUser(registrationData)
       .pipe(
         takeUntil(this.destroy$),
-        finalize(() => this.isSubmitting = false)
+        finalize(() => { this.isLoading = false; })
       )
       .subscribe({
         next: (response: any) => {
-          console.log('✅ Registration successful:', response);
+          console.log('✅ Registration response:', response);
 
           if (response.success && response.userId) {
+            // store persisted identity
             this.registeredEmail = email;
             this.registeredUserId = response.userId;
-            this.successMessage = 'We just emailed you a 6-digit code. Enter it below to continue.';
-            this.showOtpBox = true;
+
+            // switch UI to OTP step
+            this.currentStep = 'otp';
+
+            // send the OTP email now
+            this.sendOTPToRegisteredEmail();
           } else {
             this.errorMessage = response.message || 'Registration failed. Please try again.';
           }
         },
-        error: (error: any) => {
-          console.error('❌ Registration error:', error);
-          this.errorMessage = error.message || 'Registration failed. Please try again.';
+        error: (err: any) => {
+          console.error('❌ Registration error:', err);
+          this.errorMessage = err.message || 'Registration failed. Please try again.';
         }
       });
   }
+  formatPhoneNumber(): void {
+    const control = this.userForm.get('phone');
+    let phone = control?.value || '';
 
-  // ==========================================
-  // STEP 2: OTP VERIFICATION
-  // ==========================================
+    // strip non-digits and limit to 10 digits
+    phone = phone.replace(/\D/g, '').slice(0, 10);
 
-  verifyOTP(): void {
-    console.log('🔐 Verifying OTP');
+    // build formatted string
+    let formatted = phone;
+    if (phone.length >= 6) {
+      formatted = `(${phone.slice(0, 3)}) ${phone.slice(3, 6)}-${phone.slice(6)}`;
+    } else if (phone.length >= 3) {
+      formatted = `(${phone.slice(0, 3)}) ${phone.slice(3)}`;
+    }
 
-    if (this.otpForm.invalid) {
-      this.otpForm.markAllAsTouched();
+    control?.setValue(formatted, { emitEvent: false });
+  }
+  selectBilling(interval: 'monthly' | 'annually'): void {
+    // update the form control
+    this.userForm.patchValue({ interval });
+
+    // revalidate coupon for the new plan if one is applied
+    if (this.couponApplied && this.userForm.get('promotion_code')?.value) {
+      this.validateCoupon();
+    }
+  }
+  validateCoupon(): void {
+    if (this.isResettingCoupon) return;
+
+    const rawCode = this.userForm.get('promotion_code')?.value?.trim();
+    if (!rawCode) {
+      // nothing entered: clear state and exit
+      this.resetCouponState();
       return;
     }
 
-    const otpCode = this.otpForm.value.otp;
-    const email = this.registeredEmail;
+    // avoid parallel calls
+    if (this.isValidatingCoupon) return;
 
-    if (!email) {
-      this.otpError = 'Email not found. Please start registration again.';
-      return;
-    }
-
-    this.isVerifyingOTP = true;
-    this.otpError = '';
-
-    console.log('📤 Verifying OTP for:', email);
-
-    this.otpService.verifyOTP(email, otpCode)
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => this.isVerifyingOTP = false)
-      )
-      .subscribe({
-        next: (response: any) => {
-          console.log('✅ OTP verification response:', response);
-
-          if (response.success) {
-            this.currentStep = 'payment';
-            this.successMessage = 'Email verified! Complete your payment to activate your account.';
-          } else {
-            this.otpError = response.message || 'Invalid verification code. Please try again.';
-          }
-        },
-        error: (error: any) => {
-          console.error('❌ OTP verification error:', error);
-          this.otpError = error.message || 'Verification failed. Please try again.';
-        }
-      });
-  }
-
-  /**
-  * Called when OTP component emits verified event.
-  * Proceeds directly to Stripe checkout.
-  */
-  /**
-   * Handles OTP success event — proceeds to Stripe checkout
-   */
-  onOTPVerified(): void {
-    console.log('✅ OTP verified successfully. Proceeding to Stripe checkout...');
-    this.proceedToPayment();
-  }
-
-
-  resendOTP(): void {
-    const email = this.registeredEmail;
-    if (!email) return;
-
-    console.log('📧 Resending OTP to:', email);
-
-    this.otpService.sendOTP(email)
-      .pipe(takeUntil(this.destroy$))
-      .subscribe({
-        next: (response: any) => {
-          if (response.success) {
-            this.successMessage = 'New code sent! Check your email.';
-            this.otpError = '';
-          } else {
-            this.otpError = 'Failed to resend code. Please try again.';
-          }
-        },
-        error: (error: any) => {
-          console.error('❌ Resend OTP error:', error);
-          this.otpError = 'Failed to resend code. Please try again.';
-        }
-      });
-  }
-
-  // ==========================================
-  // STEP 3: PAYMENT (Design B)
-  // ==========================================
-
-  proceedToPayment(): void {
-    console.log('💳 Proceeding to payment');
-
-    this.isCreatingCheckout = true;
-    this.errorMessage = '';
-
-    const intervalRaw = this.userForm.value.interval || 'monthly';
+    // figure out which plan the user selected
     const interval: 'monthly' | 'annually' =
-      intervalRaw === 'annually' ? 'annually' : 'monthly';
+      this.userForm.get('interval')?.value === 'annually' ? 'annually' : 'monthly';
 
-    const promotionCode = this.couponApplied && this.appliedCouponDetails
-      ? this.appliedCouponDetails.code
-      : undefined;
+    this.isValidatingCoupon = true;
 
-    const email = this.registeredEmail?.toLowerCase().trim();
-    const role: 'originator' = 'originator';
-    const userId = this.registeredUserId || null;
+    this.promotionService
+      .validatePromotionCode(rawCode, 'originator', interval)
+      .pipe(finalize(() => { this.isValidatingCoupon = false; }))
+      .subscribe({
+        next: (response: any) => {
+          // valid code
+          if (response?.valid && response?.promotion_code) {
+            const pc = response.promotion_code;
+            const coupon = pc.coupon;
 
-    if (!email || !userId) {
-      console.error('Missing email or userId for checkout.', { email, userId });
-      this.isCreatingCheckout = false;
-      this.errorMessage = 'Unable to start checkout. Please re-register.';
-      return;
-    }
+            this.couponApplied = true;
+            this.appliedCouponDetails = {
+              code: pc.code,
+              displayCode: pc.code,
+              discount: coupon.percent_off || coupon.amount_off || 0,
+              discountType: coupon.percent_off ? 'percentage' : 'fixed',
+              description: coupon.name
+            };
 
-    console.log('📤 Creating checkout session:', {
+            this.clearCouponErrors();
+          } else {
+            // invalid code
+            this.resetCouponState();
+            this.setCouponError(response?.error || 'Invalid promotion code');
+          }
+        },
+        error: (err: any) => {
+          console.error('Coupon validation error:', err);
+          this.setCouponError('Unable to validate promotion code. Please try again.');
+        }
+      });
+  }
+  private setCouponError(msg: string): void {
+    const ctrl = this.userForm.get('promotion_code');
+    if (!ctrl) return;
+    // store error on the control so you can show red styling if you want
+    ctrl.setErrors({ couponError: msg });
+  }
+
+  private clearCouponErrors(): void {
+    const ctrl = this.userForm.get('promotion_code');
+    if (!ctrl) return;
+    ctrl.setErrors(null);
+  }
+
+  private resetCouponState(): void {
+    this.isResettingCoupon = true;
+
+    this.couponApplied = false;
+    this.appliedCouponDetails = null;
+
+    // clear coupon field UI, but don't emit valueChanges to spam validation
+    this.userForm.get('promotion_code')?.setValue('', { emitEvent: false });
+    this.clearCouponErrors();
+
+    // release after short delay so blur handler won't instantly re-run
+    setTimeout(() => {
+      this.isResettingCoupon = false;
+    }, 100);
+  }
+
+proceedToPayment(): void {
+  // we are now after OTP success
+  // pull billing interval and promo from the form
+  const intervalControl = this.userForm.get('interval')?.value || 'monthly';
+  const interval: 'monthly' | 'annually' =
+    intervalControl === 'annually' ? 'annually' : 'monthly';
+
+  const promoCodeRaw = this.userForm.get('promotion_code')?.value?.trim();
+  const promotionCode = this.couponApplied && promoCodeRaw ? promoCodeRaw : undefined;
+
+  const email = this.registeredEmail;
+  const userId = this.registeredUserId;
+
+  if (!email || !userId) {
+    console.error('Missing email or userId for Stripe checkout', { email, userId });
+    return;
+  }
+
+  this.otpIsLoading = true;
+
+  // role is fixed for this component
+  const role: 'originator' = 'originator';
+
+  this.paymentService
+    .createCheckoutSession(
       email,
       role,
       interval,
       userId,
       promotionCode
-    });
-
-    this.paymentService.createCheckoutSession(
-      this.registeredEmail,
-      'originator',
-      interval,
-      this.registeredUserId,
-      promotionCode
     )
+    .pipe(finalize(() => { this.otpIsLoading = false; }))
+    .subscribe({
+      next: (resp: any) => {
+        // expected resp: { url?: string; sessionId?: string; error?: string }
+        if (resp && resp.url && !resp.error) {
+          console.log('Redirecting to Stripe checkout:', resp.url);
+          this.paymentService.redirectToCheckout(resp.url);
+        } else {
+          const msg =
+            resp?.error ||
+            'Failed to create checkout session';
+          console.error('Checkout error:', msg);
+          this.otpErrorMessage = msg;
+        }
+      },
+      error: (err: any) => {
+        console.error('Checkout request failed:', err);
+        this.otpErrorMessage = err.message || 'Payment setup failed. Please try again.';
+      }
+    });
+}
 
-      .pipe(
-        takeUntil(this.destroy$),
-        finalize(() => (this.isCreatingCheckout = false))
-      )
+  private markAllTouched(): void {
+    Object.keys(this.userForm.controls).forEach(key => {
+      this.userForm.get(key)?.markAsTouched();
+    });
+  }
+
+  // ========== OTP FLOW (STEP 2) ==========
+
+  private sendOTPToRegisteredEmail(): void {
+    if (!this.registeredEmail) {
+      this.otpErrorMessage = 'Missing email for verification.';
+      return;
+    }
+
+    this.otpErrorMessage = '';
+    this.otpIsLoading = true;
+
+    this.otpService.sendOTP(this.registeredEmail).subscribe({
+      next: () => {
+        console.log('✅ OTP sent to', this.registeredEmail);
+        this.otpIsLoading = false;
+
+        // focus first box
+        const first = document.getElementById('code-0') as HTMLInputElement | null;
+        first?.focus();
+      },
+      error: (err) => {
+        console.error('❌ OTP send error:', err);
+        this.otpIsLoading = false;
+        this.otpErrorMessage = 'Failed to send code. Please try again.';
+      }
+    });
+  }
+
+  // user types in a code box
+  onCodeDigitInput(index: number, event: any): void {
+    const raw = event.target.value ?? '';
+    const val = raw.replace(/\D/g, '').slice(0, 1); // only one numeric char
+
+    this.codeDigits[index] = val;
+    event.target.value = val;
+
+    // auto-advance
+    if (val && index < 5) {
+      const next = document.getElementById(`code-${index + 1}`) as HTMLInputElement | null;
+      next?.focus();
+      next?.select();
+    }
+
+    // if last digit filled, try verify
+    if (index === 5 && val) {
+      this.verifyOTPCode();
+    }
+  }
+
+  // handle backspace nav
+  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
+    if (e.key === 'Backspace') {
+      e.preventDefault();
+
+      if (this.codeDigits[index]) {
+        // clear current box
+        this.codeDigits[index] = '';
+        const el = document.getElementById(`code-${index}`) as HTMLInputElement | null;
+        if (el) {
+          el.value = '';
+          el.focus();
+          el.select();
+        }
+      } else if (index > 0) {
+        // clear previous
+        this.codeDigits[index - 1] = '';
+        const prev = document.getElementById(`code-${index - 1}`) as HTMLInputElement | null;
+        if (prev) {
+          prev.value = '';
+          prev.focus();
+          prev.select();
+        }
+      }
+    }
+  }
+
+  // allow paste of full code
+  onCodePaste(e: ClipboardEvent): void {
+    e.preventDefault();
+    const pasted = e.clipboardData?.getData('text') || '';
+    const cleaned = pasted.replace(/\D/g, '').slice(0, 6);
+    if (!cleaned) return;
+
+    const chars = cleaned.split('');
+    for (let i = 0; i < 6; i++) {
+      this.codeDigits[i] = chars[i] || '';
+      const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
+      if (box) {
+        box.value = this.codeDigits[i];
+      }
+    }
+
+    if (cleaned.length === 6) {
+      this.verifyOTPCode();
+    } else {
+      const firstEmpty = this.codeDigits.findIndex(d => d === '');
+      const focusIndex = firstEmpty === -1 ? 5 : firstEmpty;
+      const focusEl = document.getElementById(`code-${focusIndex}`) as HTMLInputElement | null;
+      focusEl?.focus();
+      focusEl?.select();
+    }
+  }
+
+  resendOTPCode(): void {
+    if (!this.registeredEmail) return;
+
+    this.otpErrorMessage = '';
+    this.otpIsLoading = true;
+
+    this.otpService.sendOTP(this.registeredEmail).subscribe({
+      next: () => {
+        console.log('🔄 OTP resent');
+        this.otpIsLoading = false;
+        this.codeDigits = ['', '', '', '', '', ''];
+
+        const first = document.getElementById('code-0') as HTMLInputElement | null;
+        first?.focus();
+      },
+      error: (err) => {
+        console.error('❌ Resend error:', err);
+        this.otpIsLoading = false;
+        this.otpErrorMessage = 'Failed to resend code. Please try again.';
+      }
+    });
+  }
+
+  // user clicks Verify Code or auto-verify triggers
+  verifyOTPCode(): void {
+    const email = this.registeredEmail;
+    const code = this.codeDigits.join('');
+
+    if (!email) {
+      this.otpErrorMessage = 'Missing email. Please restart.';
+      return;
+    }
+
+    if (code.length !== 6 || this.codeDigits.some(d => d === '')) {
+      this.otpErrorMessage = 'Please enter all 6 digits';
+      return;
+    }
+
+    console.log('🔐 Verifying OTP for:', email);
+
+    this.otpErrorMessage = '';
+    this.otpIsLoading = true;
+
+    this.otpService.verifyOTP(email, code)
+      .pipe(finalize(() => { this.otpIsLoading = false; }))
       .subscribe({
-        next: (response: any) => {
-          console.log('✅ Checkout session response:', response);
+        next: () => {
+          console.log('✅ OTP verified, proceeding');
+          this.currentStep = 'verifying';
 
-          // Design B response: { url?: string; sessionId?: string; error?: string }
-          if (response.url && !response.error) {
-            console.log('🔄 Redirecting to Stripe checkout:', response.url);
-            this.paymentService.redirectToCheckout(response.url);
-          } else {
-            const msg =
-              response.error ||
-              'Failed to create checkout session.';
-            console.error('❌ Checkout session error:', msg);
-            this.errorMessage = msg;
-          }
+          // call your existing handler chain
+          this.onOTPVerified();
         },
-        error: (error: any) => {
-          console.error('❌ Checkout creation error:', error);
-          this.errorMessage =
-            error.message ||
-            'Failed to create checkout session. Please try again.';
+        error: (err: any) => {
+          console.error('❌ OTP verification error:', err);
+          this.otpErrorMessage = err.message || 'Invalid code';
+
+          // clear all boxes, refocus first
+          this.codeDigits = ['', '', '', '', '', ''];
+          for (let i = 0; i < 6; i++) {
+            const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
+            if (box) {
+              box.value = '';
+            }
+          }
+          const first = document.getElementById('code-0') as HTMLInputElement | null;
+          first?.focus();
+          first?.select();
         }
       });
   }
 
-  // Navigation helpers
-
-  backToForm(): void {
-    this.currentStep = 'form';
-    this.otpForm.reset();
-    this.otpError = '';
-  }
-
-  backToOTP(): void {
-    this.currentStep = 'otp';
+  // called after OTP success
+  onOTPVerified(): void {
+    // do not rename this: your code already relies on it
+    // after OTP is good, go to Stripe
+    this.proceedToPayment();
   }
 }
