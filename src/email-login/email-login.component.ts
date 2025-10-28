@@ -156,9 +156,8 @@ export class EmailLoginComponent implements OnInit {
     }
   }
 
- /**
+/**
  * Verifies the OTP code entered by user
- * FIXED: Now actually signs in with the customToken
  */
 verifyOTPCode(): void {
   const email = this.loginForm.get('email')?.value?.trim().toLowerCase();
@@ -177,22 +176,26 @@ verifyOTPCode(): void {
       console.log('✅ OTP verification response:', response);
       
       // Check if we got a customToken
-      if (!response.success || !response.customToken) {
+      if (!response.customToken && !response.token) {
+        console.error('❌ No customToken in response:', response);
         this.currentStep.set('code');
-        this.errorMessage.set(response.message || 'Verification failed. Please try again.');
+        this.errorMessage.set('Authentication failed. Please try again.');
         return;
       }
 
+      const customToken = response.customToken || response.token;
       console.log('🎫 Got customToken, signing in with Firebase Auth...');
 
       // Sign in with the customToken
-      this.authService.signInWithCustomToken(response.customToken).subscribe({
-        next: () => {
-          console.log('✅ Signed in with customToken successfully');
+      this.authService.signInWithCustomToken(customToken).subscribe({
+        next: (userCredential) => {
+          console.log('✅ Signed in successfully:', userCredential.user.uid);
 
-          // Now check account exists and has proper access
+          // Check account status
           this.authService.checkAccountExists(email).subscribe({
             next: (accountInfo) => {
+              console.log('📊 Account info:', accountInfo);
+
               if (!accountInfo.exists) {
                 this.currentStep.set('code');
                 this.errorMessage.set('Account not found. Please contact support.');
@@ -218,7 +221,7 @@ verifyOTPCode(): void {
               });
             },
             error: (error) => {
-              console.error('❌ Error validating account:', error);
+              console.error('❌ Error checking account:', error);
               this.currentStep.set('code');
               this.errorMessage.set('Unable to verify account. Please try again.');
             }
@@ -228,6 +231,11 @@ verifyOTPCode(): void {
           console.error('❌ Error signing in with customToken:', error);
           this.currentStep.set('code');
           this.errorMessage.set('Sign-in failed. Please try again.');
+          
+          // Clear code boxes
+          this.codeDigits.set(['', '', '', '', '', '']);
+          const firstInput = document.getElementById('code-0') as HTMLInputElement;
+          firstInput?.focus();
         }
       });
     },
@@ -244,10 +252,6 @@ verifyOTPCode(): void {
   });
 }
 
-  /**
-   * Goes back to email entry screen
-   * Keeps email filled but hides Google button
-   */
   goBackToEmail(): void {
     console.log('🔙 Going back to email entry');
     this.currentStep.set('email');
