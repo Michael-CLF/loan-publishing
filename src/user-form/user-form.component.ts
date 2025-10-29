@@ -55,6 +55,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private otpService = inject(OTPService);
   private paymentService = inject(PaymentService);
   private emailValidator = inject(EmailExistsValidator);
+  private validatedPromoResult: any = null;
+
 
   private destroy$ = new Subject<void>();
 
@@ -165,7 +167,8 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
     console.log('📤 createPendingUser payload:', registrationData);
 
-    this.userService.registerUser(registrationData)
+    this.userService.registerUser(registrationData, this.validatedPromoResult)
+
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => { this.isLoading = false; })
@@ -251,7 +254,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
           if (response?.valid && response?.promotion_code) {
             const pc = response.promotion_code;
             const coupon = pc.coupon;
-
+            this.validatedPromoResult = response;
             this.couponApplied = true;
             this.appliedCouponDetails = {
               code: pc.code,
@@ -327,14 +330,13 @@ export class UserFormComponent implements OnInit, OnDestroy {
     // role is fixed for this component
     const role: 'originator' = 'originator';
 
-    this.paymentService
-      .createCheckoutSession(
-        email,
-        role,
-        interval,
-        userId,
-        promotionCode
-      )
+    this.paymentService.createCheckoutSession(
+      email,
+      role,
+      interval,
+      userId
+    )
+
       .pipe(finalize(() => { this.otpIsLoading = false; }))
       .subscribe({
         next: (resp: any) => {
@@ -538,10 +540,63 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  // called after OTP success
-  onOTPVerified(): void {
-    // do not rename this: your code already relies on it
-    // after OTP is good, go to Stripe
-    this.proceedToPayment();
+  private onOTPVerified(): void {
+    // values captured earlier in the flow
+    const email = this.registeredEmail;
+    const userId = this.registeredUserId;
+
+    // role for this registration flow
+    // if this form is ONLY for originators leave 'originator'
+    // if this form is ONLY for lenders change to 'lender'
+    const role: 'originator' | 'lender' = 'originator';
+
+    // billing interval from the form. default to monthly.
+    const intervalControl = this.userForm.get('interval');
+    const intervalValue =
+      intervalControl && intervalControl.value === 'annually'
+        ? 'annually'
+        : 'monthly';
+
+    if (!email || !userId) {
+      console.error('onOTPVerified: missing email or userId', { email, userId });
+      this.otpErrorMessage = 'Setup error. Please restart registration.';
+      return;
+    }
+
+    // show spinner while we create Stripe checkout
+    this.otpIsLoading = true;
+
+    this.paymentService
+      .createCheckoutSession(
+        email,
+        role,
+        intervalValue,
+        userId
+      )
+      .pipe(
+        finalize(() => {
+          this.otpIsLoading = false;
+        })
+      )
+      .subscribe({
+        next: (resp: any) => {
+          if (resp && resp.url && !resp.error) {
+            // redirect browser straight to Stripe Checkout
+            this.paymentService.redirectToCheckout(resp.url);
+          } else {
+            const msg =
+              resp?.error ||
+              'Failed to create checkout session';
+            console.error('Checkout error:', msg);
+            this.otpErrorMessage = msg;
+          }
+        },
+        error: (err: any) => {
+          console.error('Checkout request failed:', err);
+          this.otpErrorMessage =
+            err?.message ||
+            'Payment setup failed. Please try again.';
+        }
+      });
   }
 }

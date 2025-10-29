@@ -39,66 +39,60 @@ export class PaymentService {
    * Starts Stripe Checkout for this user.
    * Do not rename this method.
    */
-  createCheckoutSession(
-    email: string,
-    role: 'lender' | 'originator',
-    interval: 'monthly' | 'annually',
-    userId: string,
-    promoCode?: string
-  ): Observable<CreateCheckoutResponse> {
-    this.isCreatingCheckout.set(true);
-    this.checkoutError.set(null);
+ /**
+ * createCheckoutSession
+ *
+ * Starts Stripe Checkout for this user.
+ * Backend no longer accepts raw promo data here.
+ * It only needs email, role, interval, and userId.
+ */
+createCheckoutSession(
+  email: string,
+  role: 'lender' | 'originator',
+  interval: 'monthly' | 'annually',
+  userId: string
+): Observable<CreateCheckoutResponse> {
+  this.isCreatingCheckout.set(true);
+  this.checkoutError.set(null);
 
-    const payload: any = {
-      email: email.toLowerCase().trim(),
-      role,
-      interval,
-      userData: { userId }
-    };
+  const payload = {
+    email: email.toLowerCase().trim(),
+    role,
+    interval,
+    userData: { userId } // backend reads this to attach the checkout to the correct Firestore doc
+  };
 
-    // Backend expects promotion_code (snake case)
-    if (promoCode) {
-      payload.promotion_code = promoCode.toUpperCase().trim();
-    }
+  const headers = new HttpHeaders({
+    'Content-Type': 'application/json'
+    // No Authorization header. Design B does not require ID token.
+  });
 
-    const headers = new HttpHeaders({
-      'Content-Type': 'application/json'
-      // No Authorization header. Design B does not require ID token.
-    });
-
-    return this.http
-      .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload, { headers })
-      .pipe(
-        tap((resp) => {
-          // If backend sent an error field
-          if (!resp || resp.error) {
-            const msg =
-              resp?.error ||
-              'Failed to create checkout session';
-            console.error('Checkout creation failed:', msg);
-            this.checkoutError.set(msg);
-          } else {
-            // happy path
-            console.log('Checkout session created:', resp);
-          }
-
-          this.isCreatingCheckout.set(false);
-        }),
-        map((resp) => resp),
-        catchError((err) => {
-          const msg =
-            err?.error?.error ||
-            err?.message ||
-            'Failed to create checkout session';
-
-          console.error('Checkout HTTP error:', msg, err);
+  return this.http
+    .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload, { headers })
+    .pipe(
+      tap((resp) => {
+        if (!resp || resp.error) {
+          const msg = resp?.error || 'Failed to create checkout session';
+          console.error('Checkout creation failed:', msg);
           this.checkoutError.set(msg);
-          this.isCreatingCheckout.set(false);
-
-          return throwError(() => err);
-        })
-      );
-  }
+        } else {
+          console.log('Checkout session created:', resp);
+        }
+        this.isCreatingCheckout.set(false);
+      }),
+      map((resp) => resp),
+      catchError((err) => {
+        const msg =
+          err?.error?.error ||
+          err?.message ||
+          'Failed to create checkout session';
+        console.error('Checkout HTTP error:', msg, err);
+        this.checkoutError.set(msg);
+        this.isCreatingCheckout.set(false);
+        return throwError(() => err);
+      })
+    );
+}
 
   /**
    * redirectToCheckout

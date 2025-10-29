@@ -49,14 +49,71 @@ export class UserService {
 
 /**
  * Registers user via createPendingUser Cloud Function
+ * Sends locked billing interval and normalized promo metadata
  */
-registerUser(userData: RegistrationData): Observable<any> {
+registerUser(
+  userData: RegistrationData,
+  validatedPromo: any | null // PromotionValidationResponse from PromotionService.validatePromotionCode()
+): Observable<any> {
   const createPendingUserCallable = httpsCallable(
-    this.functions, 
+    this.functions,
     'createPendingUser'
   );
-  
-  return from(createPendingUserCallable(userData)).pipe(
+
+  // Extract promo info safely
+  const promoValid = validatedPromo?.valid === true && validatedPromo?.promo;
+
+  const promoPayload = promoValid
+    ? {
+        promotionCodeStatus: 'validated',
+        promotionCodeType: validatedPromo.promo.promoType || 'none',
+        promotionCodeTerms: {
+          percentOff: validatedPromo.promo.percentOff ?? null,
+          durationInMonths: validatedPromo.promo.durationInMonths ?? null,
+          durationType: validatedPromo.promo.durationType ?? null,
+          trialDays: validatedPromo.promo.trialDays ?? null,
+          onboardingFeeCents: validatedPromo.promo.onboardingFeeCents ?? null,
+          promoExpiresAt: validatedPromo.promo.promoExpiresAt ?? null,
+        },
+        promoInternalId: validatedPromo.promo.promoInternalId ?? null,
+      }
+    : {
+        promotionCodeStatus: userData.promotionCode ? 'invalid' : 'none',
+        promotionCodeType: 'none',
+        promotionCodeTerms: {
+          percentOff: null,
+          durationInMonths: null,
+          durationType: null,
+          trialDays: null,
+          onboardingFeeCents: null,
+          promoExpiresAt: null,
+        },
+        promoInternalId: null,
+      };
+
+  // Build payload for createPendingUser
+  const payload = {
+    email: userData.email,
+    role: userData.role,
+    firstName: userData.firstName,
+    lastName: userData.lastName,
+    phone: userData.phone,
+    city: userData.city,
+    state: userData.state,
+    company: userData.company || '',
+    interval: userData.interval || 'monthly',
+
+    // what they typed
+    promotionCode: userData.promotionCode || null,
+
+    // new fields expected by backend
+    promotionCodeStatus: promoPayload.promotionCodeStatus,
+    promotionCodeType: promoPayload.promotionCodeType,
+    promotionCodeTerms: promoPayload.promotionCodeTerms,
+    promoInternalId: promoPayload.promoInternalId,
+  };
+
+  return from(createPendingUserCallable(payload)).pipe(
     map((result: any) => result.data),
     catchError((error) => {
       console.error('❌ Registration error:', error);
@@ -64,6 +121,7 @@ registerUser(userData: RegistrationData): Observable<any> {
     })
   );
 }
+
 
   private auth = inject(Auth);
   private http = inject(HttpClient);

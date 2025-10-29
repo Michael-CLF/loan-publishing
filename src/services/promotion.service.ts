@@ -39,9 +39,6 @@ private endpoint = (path: string) => `${this.functionsBase}/${path.replace(/^\/+
     return this.http.get(this.endpoint('getPromotionCodes'));
   }
 
-  /**
-   * Validate a promotion code for user registration
-   */
   validatePromotionCode(
     code: string,
     role: 'originator' | 'lender',
@@ -49,8 +46,24 @@ private endpoint = (path: string) => `${this.functionsBase}/${path.replace(/^\/+
   ): Observable<PromotionValidationResponse> {
     const cleanedCode = (code ?? '').trim().toUpperCase();
 
+    // If no code entered, treat as "no promo" and valid
     if (!cleanedCode) {
-      return of({ valid: true }); // No code = valid (no discount)
+      return of({
+        valid: true,
+        promo: {
+          code: '',
+          promoType: 'none',
+          percentOff: null,
+          durationInMonths: null,
+          durationType: null,
+          trialDays: null,
+          onboardingFeeCents: null,
+          promoExpiresAt: null,
+          allowedIntervals: [interval],
+          allowedRoles: [role],
+          promoInternalId: null,
+        }
+      });
     }
 
     const request: PromotionValidationRequest = {
@@ -59,41 +72,81 @@ private endpoint = (path: string) => `${this.functionsBase}/${path.replace(/^\/+
       interval
     };
 
-    return this.http.post<PromotionValidationResponse>(
-  this.endpoint('validatePromotionCode'),
-  request,
-  { headers: this.headers }
-).pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      shareReplay(1),
-      map((response): PromotionValidationResponse => {
-        // Ensure consistent response format
-        if (response?.valid && response?.promotion_code) {
-          return {
-            valid: true,
-            promotion_code: {
-              code: response.promotion_code.code ?? cleanedCode,
-              id: response.promotion_code.id,
-              coupon: { ...(response.promotion_code.coupon ?? {}) }
-            }
-          };
-        }
+    return this.http
+      .post<PromotionValidationResponse>(
+        this.endpoint('validatePromotionCode'),
+        request,
+        { headers: this.headers }
+      )
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        shareReplay(1),
+        map((response): PromotionValidationResponse => {
+          // Backend will send a normalized shape. We just trust it.
+          // Expected success shape (example):
+          // {
+          //   valid: true,
+          //   promo: {
+          //     code: 'LENDER2025',
+          //     promoType: 'percentage' | 'trial' | 'none',
+          //     percentOff: 100,
+          //     durationInMonths: 3,
+          //     durationType: 'repeating',
+          //     trialDays: null,
+          //     onboardingFeeCents: 6900,
+          //     promoExpiresAt: 1735622400000,
+          //     allowedIntervals: ['monthly'],
+          //     allowedRoles: ['lender'],
+          //     promoInternalId: 'signed-server-token-or-id'
+          //   },
+          //   error: null
+          // }
+          //
+          // Expected failure shape (example):
+          // {
+          //   valid: false,
+          //   promo: null,
+          //   error: 'Code expired'
+          // }
 
-        return {
-          valid: false,
-          error: response?.error || 'Invalid promotion code'
-        };
-      }),
-      catchError((error) => {
-        console.error('Error validating promotion code:', error);
-        return of({
-          valid: false,
-          error: 'Failed to validate promotion code. Please try again.'
-        });
-      })
-    );
+          if (response?.valid && response?.promo) {
+            return {
+              valid: true,
+              promo: {
+                code: response.promo.code ?? cleanedCode,
+                promoType: response.promo.promoType,
+                percentOff: response.promo.percentOff ?? null,
+                durationInMonths: response.promo.durationInMonths ?? null,
+                durationType: response.promo.durationType ?? null,
+                trialDays: response.promo.trialDays ?? null,
+                onboardingFeeCents: response.promo.onboardingFeeCents ?? null,
+                promoExpiresAt: response.promo.promoExpiresAt ?? null,
+                allowedIntervals: response.promo.allowedIntervals ?? [interval],
+                allowedRoles: response.promo.allowedRoles ?? [role],
+                promoInternalId: response.promo.promoInternalId ?? null,
+              },
+              error: null
+            };
+          }
+
+          return {
+            valid: false,
+            promo: null,
+            error: response?.error || 'Invalid promotion code'
+          };
+        }),
+        catchError((error) => {
+          console.error('Error validating promotion code:', error);
+          return of({
+            valid: false,
+            promo: null,
+            error: 'Failed to validate promotion code. Please try again.'
+          });
+        })
+      );
   }
+
 
   // ============================================
   // ADMIN METHODS (for admin dashboard)

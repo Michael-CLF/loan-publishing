@@ -11,24 +11,24 @@ export interface PromotionValidationRequest {
   durationInMonths?: number;
 }
 
-/**
- * Frontend promotion code validation response
- */
 export interface PromotionValidationResponse {
   valid: boolean;
-  promotion_code?: {
-    id: string;
+  promo?: {
     code: string;
-    coupon: {
-      id: string;
-      name: string;
-      percent_off?: number;
-      amount_off?: number;
-      currency?: string;
-    };
-  };
-  error?: string;
+    promoType: 'percentage' | 'trial' | 'none';
+    percentOff: number | null;
+    durationInMonths: number | null;
+    durationType: 'repeating' | 'forever' | null;
+    trialDays: number | null;
+    onboardingFeeCents: number | null;
+    promoExpiresAt: number | null;
+    allowedIntervals: ('monthly' | 'annually')[];
+    allowedRoles: ('lender' | 'originator')[];
+    promoInternalId: string | null;
+  } | null;
+  error?: string | null;
 }
+
 
 /**
  * Applied coupon details for UI display
