@@ -521,14 +521,14 @@ input.error {
 .email-sent-to {
   color: #272727;
   font-family: "roboto", sans-serif;
-  font-size: 0.95rem;
+  font-size: 1.3rem;
   line-height: 1.5;
 }
 
 .email-sent-to strong {
   color: #0a2463;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 1.2rem;
   display: block;
   margin-top: 0.25rem;
 }
@@ -542,8 +542,8 @@ input.error {
 }
 
 .code-digit-input {
-  width: 50px;
-  height: 60px;
+  width: 40px;
+  height: 50px;
   font-size: 1.75rem;
   font-weight: 600;
   text-align: center;
