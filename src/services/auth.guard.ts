@@ -60,17 +60,28 @@ export const authGuard: CanActivateFn = (
         map(([lenderSnap, originatorSnap]) => {
           const profile: any =
             lenderSnap.exists() ? lenderSnap.data() :
-            originatorSnap.exists() ? originatorSnap.data() :
-            null;
+              originatorSnap.exists() ? originatorSnap.data() :
+                null;
 
-          // If we have no profile doc at all, user didn't finish onboarding.
-          // Send them to /pricing so they can pick a plan.
+          // No profile at all -> they never onboarded -> pricing
           if (!profile) {
             return router.parseUrl('/pricing');
           }
-          return true;
+
+          const status = profile.subscriptionStatus;
+
+          const allowedStatuses = ['active', 'grandfathered', 'trial'];
+
+          // Allowed -> let them in
+          if (allowedStatuses.includes(status)) {
+            return true;
+          }
+
+          // Not allowed (pending, cancelled, etc.) -> pricing
+          return router.parseUrl('/pricing');
         })
       );
+
     })
   );
 };
