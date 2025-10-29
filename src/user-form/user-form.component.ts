@@ -244,40 +244,52 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.userForm.get('interval')?.value === 'annually' ? 'annually' : 'monthly';
 
     this.isValidatingCoupon = true;
-
+    console.log('🔍 Applying coupon', {
+      rawCode,
+      role: 'originator',
+      interval
+    });
     this.promotionService
       .validatePromotionCode(rawCode, 'originator', interval)
       .pipe(finalize(() => { this.isValidatingCoupon = false; }))
+
       .subscribe({
         next: (response: any) => {
-          // valid code
-          if (response?.valid && response?.promotion_code) {
-            const pc = response.promotion_code;
-            const coupon = pc.coupon;
-            this.validatedPromoResult = response;
+          console.log('✅ validatePromotionCode response:', response);
+
+          // success case: valid promo returned
+          if (response?.valid && response?.promo) {
+            const promo = response.promo;
+
+            this.validatedPromoResult = response; // keep full server payload
             this.couponApplied = true;
+
+            // build what the UI shows in the summary box
             this.appliedCouponDetails = {
-              code: pc.code,
-              displayCode: pc.code,
-              discount: coupon.percent_off || coupon.amount_off || 0,
-              discountType: coupon.percent_off ? 'percentage' : 'fixed',
-              description: coupon.name
+              code: promo.code,
+              displayCode: promo.code,
+              discount: promo.percentOff || 0,
+              discountType: promo.promoType, // 'percentage' | 'fixed'
+              description: promo.code,  
             };
 
             this.clearCouponErrors();
-          } else {
-            // invalid code
-            this.resetCouponState();
-            this.setCouponError(response?.error || 'Invalid promotion code');
+            return;
           }
+
+          // fallback: invalid promo
+          this.resetCouponState();
+          this.setCouponError(response?.error || 'Invalid promotion code');
         },
+
         error: (err: any) => {
-          console.error('Coupon validation error:', err);
-          this.setCouponError('Unable to validate promotion code. Please try again.');
+          console.error('❌ validatePromotionCode error:', err);
+          this.resetCouponState();
+          this.setCouponError('Failed to validate promotion code. Please try again.');
         }
       });
   }
-
+  
   private setCouponError(msg: string): void {
     const ctrl = this.userForm.get('promotion_code');
     if (!ctrl) return;
