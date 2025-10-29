@@ -14,6 +14,8 @@ import { Observable, from, throwError, switchMap, of, map } from 'rxjs';
 import { catchError } from 'rxjs/operators';
 import { environment } from 'src/environments/environment';
 import { Functions, httpsCallable } from '@angular/fire/functions';
+import { AuthService } from './auth.service';
+import { firstValueFrom } from 'rxjs';
 
 export interface RegistrationData {
   email: string;
@@ -43,6 +45,7 @@ export interface RegistrationResponse {
 export class UserService {
   private firestore = inject(Firestore);
   private functions = inject(Functions); 
+  private authService = inject(AuthService);
   private get db() {
   return this.firestore;
 }
@@ -113,13 +116,23 @@ registerUser(
     promoInternalId: promoPayload.promoInternalId,
   };
 
-  return from(createPendingUserCallable(payload)).pipe(
-    map((result: any) => result.data),
-    catchError((error) => {
-      console.error('❌ Registration error:', error);
-      throw error;
-    })
-  );
+return from(createPendingUserCallable(payload)).pipe(
+  switchMap(async (result: any) => {
+    const data = result.data;
+    if (data?.success && data?.customToken) {
+      console.log('✅ Minted custom token, signing in before Stripe...');
+      await firstValueFrom(this.authService.signInWithCustomToken(data.customToken));
+      console.log('✅ Firebase Auth session established, UID:', this.authService.currentUserUid);
+    } else {
+      console.warn('⚠️ No custom token returned from createPendingUser');
+    }
+    return data;
+  }),
+  catchError((error) => {
+    console.error('❌ Registration error:', error);
+    throw error;
+  })
+);
 }
 
 
