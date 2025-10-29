@@ -328,7 +328,7 @@ export class LenderStripePaymentComponent implements OnInit {
     }
 
     this.paymentService
-      .createCheckoutSession(email, role, interval, userId, validatedPromotionCode)
+      .createCheckoutSession(email, role, interval, userId)
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {

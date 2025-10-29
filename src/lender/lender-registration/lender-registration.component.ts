@@ -79,6 +79,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private otpService = inject(OTPService);
   private userService = inject(UserService);
   private paymentService = inject(PaymentService);
+  private validatedPromoResult: any = null;
+
 
   private destroy$ = new Subject<void>();
 
@@ -116,8 +118,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   propertyCategories: any[] = [];
   loanTypes: LoanTypes[] = [];
 
-   billingInterval: 'monthly' | 'annually' = 'monthly';
-   createdUserId: string | null = null;
+  billingInterval: 'monthly' | 'annually' = 'monthly';
+  createdUserId: string | null = null;
 
   ngOnInit(): void {
     console.log('🚀 LenderRegistrationComponent initialized');
@@ -125,8 +127,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.loadStaticData();
     this.initializeForms();
     setTimeout(() => {
-    this.initializeForms();
-  }, 0);
+      this.initializeForms();
+    }, 0);
   }
 
   ngOnDestroy(): void {
@@ -134,26 +136,26 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
- private loadStaticData(): void {
-  // Load data synchronously and ensure it's available before form initialization
-  const footprintLocations = this.locationService.getFootprintLocations() || [];
-  this.states = footprintLocations.map((location: any) => ({
-    value: location.value || '',
-    name: location.name || '',
-    subcategories: location.subcategories || []
-  }));
+  private loadStaticData(): void {
+    // Load data synchronously and ensure it's available before form initialization
+    const footprintLocations = this.locationService.getFootprintLocations() || [];
+    this.states = footprintLocations.map((location: any) => ({
+      value: location.value || '',
+      name: location.name || '',
+      subcategories: location.subcategories || []
+    }));
 
-  this.lenderTypes = this.locationService.getLenderTypes() || [];
-  this.propertyCategories = this.locationService.getPropertyCategories() || [];
-  this.loanTypes = this.locationService.getLoanTypes() || [];
-  
-  // Log to verify data is loaded
-  console.log('Static data loaded:', {
-    lenderTypesCount: this.lenderTypes.length,
-    propertyCategoriesCount: this.propertyCategories.length,
-    loanTypesCount: this.loanTypes.length
-  });
-}
+    this.lenderTypes = this.locationService.getLenderTypes() || [];
+    this.propertyCategories = this.locationService.getPropertyCategories() || [];
+    this.loanTypes = this.locationService.getLoanTypes() || [];
+
+    // Log to verify data is loaded
+    console.log('Static data loaded:', {
+      lenderTypesCount: this.lenderTypes.length,
+      propertyCategoriesCount: this.propertyCategories.length,
+      loanTypesCount: this.loanTypes.length
+    });
+  }
 
   /**
    * Build one master FormGroup and wire the local aliases
@@ -170,15 +172,15 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       state: ['', [Validators.required]],
     });
 
-   this.productForm = this.fb.group({
-  lenderTypes: this.fb.array([], [Validators.required]),
-  propertyCategories: this.fb.array([], [Validators.required]),
-  subcategorySelections: this.fb.array([]),  // <-- ADD THIS
-  loanTypes: this.fb.array([], [Validators.required]),
-  minLoanAmount: ['', [Validators.required]],
-  maxLoanAmount: ['', [Validators.required]],
-  ficoScore: [620, [Validators.required, Validators.min(300), Validators.max(850)]],
-});
+    this.productForm = this.fb.group({
+      lenderTypes: this.fb.array([], [Validators.required]),
+      propertyCategories: this.fb.array([], [Validators.required]),
+      subcategorySelections: this.fb.array([]),  // <-- ADD THIS
+      loanTypes: this.fb.array([], [Validators.required]),
+      minLoanAmount: ['', [Validators.required]],
+      maxLoanAmount: ['', [Validators.required]],
+      ficoScore: [620, [Validators.required, Validators.min(300), Validators.max(850)]],
+    });
 
     this.footprintForm = this.fb.group({
       // footprintForm needs to be valid if and only if at least one state
@@ -311,7 +313,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     console.log('📤 Calling createPendingUser for lender:', registrationData);
 
-    this.userService.registerUser(registrationData)
+    this.userService.registerUser(registrationData, this.validatedPromoResult)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => this.isRegistering = false)
@@ -327,6 +329,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
           this.registeredEmail = email;
           this.registeredUserId = response.userId;
+          this.createdUserId = response.userId;
+
 
           // sign browser into Firebase using the custom token from backend
           this.authService.signInWithCustomToken(response.customToken)
@@ -431,96 +435,96 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // PAYMENT (Step 4)
   // ==========================================
 
- // ... other class code above ...
+  // ... other class code above ...
 
-submitForm(): void {
-  // Basic guard
-  if (!this.lenderForm || this.lenderForm.invalid) {
-    console.error('Form invalid. Cannot start checkout.');
-    return;
-  }
+  submitForm(): void {
+    // Basic guard
+    if (!this.lenderForm || this.lenderForm.invalid) {
+      console.error('Form invalid. Cannot start checkout.');
+      return;
+    }
 
-  // Local UI state
-  this.isLoading = true;
-  this.successMessage = '';
-  this.paymentService.clearState();
+    // Local UI state
+    this.isLoading = true;
+    this.successMessage = '';
+    this.paymentService.clearState();
 
-  // 1. Collect required values for checkout
+    // 1. Collect required values for checkout
 
-  // email from the form
-  const emailCtrl = this.lenderForm.get('email');
-  const email: string | undefined = emailCtrl
-    ? String(emailCtrl.value || '').toLowerCase().trim()
-    : undefined;
+    // email from the form
+    const emailCtrl = this.lenderForm.get('email');
+    const email: string | undefined = emailCtrl
+      ? String(emailCtrl.value || '').toLowerCase().trim()
+      : undefined;
 
-  // role is fixed for this component
-  const role: 'lender' = 'lender';
+    // role is fixed for this component
+    const role: 'lender' = 'lender';
 
-  // billing interval: component should be tracking what the user chose
-  // If you already have something like this.billingInterval set elsewhere,
-  // we normalize it here.
-  const interval: 'monthly' | 'annually' =
-    this.billingInterval === 'annually' ? 'annually' : 'monthly';
+    // billing interval: component should be tracking what the user chose
+    // If you already have something like this.billingInterval set elsewhere,
+    // we normalize it here.
+    const interval: 'monthly' | 'annually' =
+      this.billingInterval === 'annually' ? 'annually' : 'monthly';
 
-  // userId: must be the Firestore doc ID returned by createPendingUser
-  // You told me you save that. We assume it's on this.createdUserId.
-const userId = this.createdUserId ?? undefined;
+    // userId: must be the Firestore doc ID returned by createPendingUser
+    // You told me you save that. We assume it's on this.createdUserId.
+    const userId = this.createdUserId ?? undefined;
 
-  
 
-  // optional promo code
-  const promoCtrl = this.lenderForm.get('promotionCode');
-  const rawPromo = promoCtrl ? String(promoCtrl.value || '').trim() : '';
-  const promoCode = rawPromo.length ? rawPromo : undefined;
 
-  if (!email || !userId) {
-    console.error('Missing email or userId for checkout.', { email, userId });
-    this.isLoading = false;
-    return;
-  }
+    // optional promo code
+    const promoCtrl = this.lenderForm.get('promotionCode');
+    const rawPromo = promoCtrl ? String(promoCtrl.value || '').trim() : '';
+    const promoCode = rawPromo.length ? rawPromo : undefined;
 
-  // 2. Call PaymentService
-  this.paymentService
-    .createCheckoutSession(email, role, interval, userId, promoCode)
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => {
-        this.isLoading = false;
-      })
-    )
-    .subscribe({
-      next: (response) => {
-        // response is { url?: string; sessionId?: string; error?: string; }
+    if (!email || !userId) {
+      console.error('Missing email or userId for checkout.', { email, userId });
+      this.isLoading = false;
+      return;
+    }
 
-        console.log('✅ createCheckoutSession response:', response);
+    // 2. Call PaymentService
+    this.paymentService
+      .createCheckoutSession(email, role, interval, userId)
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe({
+        next: (response) => {
+          // response is { url?: string; sessionId?: string; error?: string; }
 
-        if (response.url && !response.error) {
-          // Good path
-          this.successMessage = 'Redirecting to payment...';
-          console.log('🔄 Redirecting to Stripe:', response.url);
+          console.log('✅ createCheckoutSession response:', response);
 
-          // Send browser to Stripe-hosted checkout
-          this.paymentService.redirectToCheckout(response.url);
-        } else {
-          // Error path
-          const msg =
-            response.error ||
-            'Failed to create checkout session';
+          if (response.url && !response.error) {
+            // Good path
+            this.successMessage = 'Redirecting to payment...';
+            console.log('🔄 Redirecting to Stripe:', response.url);
 
-          console.error('❌ Checkout session error:', msg);
+            // Send browser to Stripe-hosted checkout
+            this.paymentService.redirectToCheckout(response.url);
+          } else {
+            // Error path
+            const msg =
+              response.error ||
+              'Failed to create checkout session';
+
+            console.error('❌ Checkout session error:', msg);
+            this.successMessage = '';
+          }
+        },
+        error: (err) => {
+          // Network / HTTP / thrown errors
+          console.error('❌ Checkout request failed:', err);
           this.successMessage = '';
+        },
+        complete: () => {
+          console.log('ℹ️ Checkout flow complete');
         }
-      },
-      error: (err) => {
-        // Network / HTTP / thrown errors
-        console.error('❌ Checkout request failed:', err);
-        this.successMessage = '';
-      },
-      complete: () => {
-        console.log('ℹ️ Checkout flow complete');
-      }
-    });
-}
+      });
+  }
 
 
   handlePaymentComplete(result: any): void {
@@ -533,9 +537,11 @@ const userId = this.createdUserId ?? undefined;
     this.errorMessage = result.error || 'Payment failed. Please try again.';
   }
 
-  onCouponValidated(event: any): void {
-    console.log('🎫 Coupon validated:', event);
-  }
+onCouponValidated(event: any): void {
+  console.log('🎫 Coupon validated:', event);
+  this.validatedPromoResult = event;
+}
+
 
   getLenderData(): any {
     return {
