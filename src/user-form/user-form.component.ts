@@ -19,7 +19,7 @@ import { AuthService } from '../services/auth.service';
 import { LocationService } from 'src/services/location.service';
 import { PromotionService } from '../services/promotion.service';
 import { PaymentService } from '../services/payment.service';
-import { OriginatorService, RegistrationData } from '../services/originator.service';
+import { UserService, RegistrationData } from '../services/user.service';
 import { OTPService } from '../services/otp.service';
 import { EmailExistsValidator } from 'src/services/email-exists.validator';
 
@@ -51,7 +51,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
   private router = inject(Router);
   private locationService = inject(LocationService);
   private promotionService = inject(PromotionService);
-  private originatorService = inject(OriginatorService);
+  private userService = inject(UserService);
   private otpService = inject(OTPService);
   private paymentService = inject(PaymentService);
   private emailValidator = inject(EmailExistsValidator);
@@ -158,12 +158,14 @@ export class UserFormComponent implements OnInit, OnDestroy {
         company: formData.company,
         city: formData.city,
         state: formData.state
-      }
+      },
+      promotionCode: this.couponApplied ? formData.promotion_code?.trim().toUpperCase() : undefined,
+      interval: formData.interval || 'monthly'
     };
 
     console.log('📤 createPendingUser payload:', registrationData);
 
-    this.originatorService.registerUser(registrationData)
+    this.userService.registerUser(registrationData)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => { this.isLoading = false; })
@@ -192,6 +194,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
         }
       });
   }
+
   formatPhoneNumber(): void {
     const control = this.userForm.get('phone');
     let phone = control?.value || '';
@@ -209,6 +212,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
 
     control?.setValue(formatted, { emitEvent: false });
   }
+
   selectBilling(interval: 'monthly' | 'annually'): void {
     // update the form control
     this.userForm.patchValue({ interval });
@@ -218,6 +222,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
       this.validateCoupon();
     }
   }
+
   validateCoupon(): void {
     if (this.isResettingCoupon) return;
 
@@ -269,6 +274,7 @@ export class UserFormComponent implements OnInit, OnDestroy {
         }
       });
   }
+
   private setCouponError(msg: string): void {
     const ctrl = this.userForm.get('promotion_code');
     if (!ctrl) return;
@@ -298,58 +304,58 @@ export class UserFormComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-proceedToPayment(): void {
-  // we are now after OTP success
-  // pull billing interval and promo from the form
-  const intervalControl = this.userForm.get('interval')?.value || 'monthly';
-  const interval: 'monthly' | 'annually' =
-    intervalControl === 'annually' ? 'annually' : 'monthly';
+  proceedToPayment(): void {
+    // we are now after OTP success
+    // pull billing interval and promo from the form
+    const intervalControl = this.userForm.get('interval')?.value || 'monthly';
+    const interval: 'monthly' | 'annually' =
+      intervalControl === 'annually' ? 'annually' : 'monthly';
 
-  const promoCodeRaw = this.userForm.get('promotion_code')?.value?.trim();
-  const promotionCode = this.couponApplied && promoCodeRaw ? promoCodeRaw : undefined;
+    const promoCodeRaw = this.userForm.get('promotion_code')?.value?.trim();
+    const promotionCode = this.couponApplied && promoCodeRaw ? promoCodeRaw : undefined;
 
-  const email = this.registeredEmail;
-  const userId = this.registeredUserId;
+    const email = this.registeredEmail;
+    const userId = this.registeredUserId;
 
-  if (!email || !userId) {
-    console.error('Missing email or userId for Stripe checkout', { email, userId });
-    return;
-  }
+    if (!email || !userId) {
+      console.error('Missing email or userId for Stripe checkout', { email, userId });
+      return;
+    }
 
-  this.otpIsLoading = true;
+    this.otpIsLoading = true;
 
-  // role is fixed for this component
-  const role: 'originator' = 'originator';
+    // role is fixed for this component
+    const role: 'originator' = 'originator';
 
-  this.paymentService
-    .createCheckoutSession(
-      email,
-      role,
-      interval,
-      userId,
-      promotionCode
-    )
-    .pipe(finalize(() => { this.otpIsLoading = false; }))
-    .subscribe({
-      next: (resp: any) => {
-        // expected resp: { url?: string; sessionId?: string; error?: string }
-        if (resp && resp.url && !resp.error) {
-          console.log('Redirecting to Stripe checkout:', resp.url);
-          this.paymentService.redirectToCheckout(resp.url);
-        } else {
-          const msg =
-            resp?.error ||
-            'Failed to create checkout session';
-          console.error('Checkout error:', msg);
-          this.otpErrorMessage = msg;
+    this.paymentService
+      .createCheckoutSession(
+        email,
+        role,
+        interval,
+        userId,
+        promotionCode
+      )
+      .pipe(finalize(() => { this.otpIsLoading = false; }))
+      .subscribe({
+        next: (resp: any) => {
+          // expected resp: { url?: string; sessionId?: string; error?: string }
+          if (resp && resp.url && !resp.error) {
+            console.log('Redirecting to Stripe checkout:', resp.url);
+            this.paymentService.redirectToCheckout(resp.url);
+          } else {
+            const msg =
+              resp?.error ||
+              'Failed to create checkout session';
+            console.error('Checkout error:', msg);
+            this.otpErrorMessage = msg;
+          }
+        },
+        error: (err: any) => {
+          console.error('Checkout request failed:', err);
+          this.otpErrorMessage = err.message || 'Payment setup failed. Please try again.';
         }
-      },
-      error: (err: any) => {
-        console.error('Checkout request failed:', err);
-        this.otpErrorMessage = err.message || 'Payment setup failed. Please try again.';
-      }
-    });
-}
+      });
+  }
 
   private markAllTouched(): void {
     Object.keys(this.userForm.controls).forEach(key => {

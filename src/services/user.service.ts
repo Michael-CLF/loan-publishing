@@ -26,6 +26,8 @@ export interface RegistrationData {
   company?: string;
   contactInfo?: any;
   lenderData?: any;
+  promotionCode?: string;
+  interval?: 'monthly' | 'annually';
 }
 
 export interface RegistrationResponse {
