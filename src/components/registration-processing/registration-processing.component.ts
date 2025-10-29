@@ -147,56 +147,56 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   // Step 2a: Attempt auto-login using custom token
   // -------------------------------------------------
   private attemptAutoLoginWithToken(
-  token: string | null,
-  emailForAfterAuth: string | null
-): void {
-  if (!token) {
-    this.showProcessingSpinner.set(false);
-    this.showErrorMessage.set(false);
-    this.showSuccessMessage.set(true);
-    this.processingMessage.set(
-      'Registration complete. Please sign in to access your dashboard.'
-    );
-    return;
-  }
-
-  console.log('🎟️ Using custom token from Stripe return:', token.slice(0, 12) + '...');
-
-  this.processingMessage.set('Creating your account…');
-  this.showProcessingSpinner.set(true);
-  this.showErrorMessage.set(false);
-  this.showSuccessMessage.set(false);
-
-  signInWithCustomToken(this.afAuth, token)
-    .then(async (credential) => {
-      const user = credential.user;
-      console.log('✅ Firebase sign-in success:', user?.uid);
-
-      // Confirm persistence
-     await this.afAuth.setPersistence(browserLocalPersistence);
-
-      const effectiveEmail =
-        emailForAfterAuth || this.email() || user?.email || '';
-
-      if (!effectiveEmail) {
-        console.warn('⚠️ No email found after sign-in, routing to dashboard.');
-        this.router.navigate(['/dashboard']);
-        return;
-      }
-
-      this.processingMessage.set('Finalizing your account…');
-      this.pollForAccountActivation(effectiveEmail, 0);
-    })
-    .catch((err) => {
-      console.error('❌ Sign-in with custom token failed:', err);
+    token: string | null,
+    emailForAfterAuth: string | null
+  ): void {
+    if (!token) {
       this.showProcessingSpinner.set(false);
-      this.showErrorMessage.set(true);
-      this.showSuccessMessage.set(false);
+      this.showErrorMessage.set(false);
+      this.showSuccessMessage.set(true);
       this.processingMessage.set(
-        'Sign-in failed after payment. Please log in manually.'
+        'Registration complete. Please sign in to access your dashboard.'
       );
-    });
-}
+      return;
+    }
+
+    console.log('🎟️ Using custom token from Stripe return:', token.slice(0, 12) + '...');
+
+    this.processingMessage.set('Creating your account…');
+    this.showProcessingSpinner.set(true);
+    this.showErrorMessage.set(false);
+    this.showSuccessMessage.set(false);
+
+    signInWithCustomToken(this.afAuth, token)
+      .then(async (credential) => {
+        const user = credential.user;
+        console.log('✅ Firebase sign-in success:', user?.uid);
+
+        // Confirm persistence
+        await this.afAuth.setPersistence(browserLocalPersistence);
+
+        const effectiveEmail =
+          emailForAfterAuth || this.email() || user?.email || '';
+
+        if (!effectiveEmail) {
+          console.warn('⚠️ No email found after sign-in, routing to dashboard.');
+          this.router.navigate(['/dashboard']);
+          return;
+        }
+
+        this.processingMessage.set('Finalizing your account…');
+        this.pollForAccountActivation(effectiveEmail, 0);
+      })
+      .catch((err) => {
+        console.error('❌ Sign-in with custom token failed:', err);
+        this.showProcessingSpinner.set(false);
+        this.showErrorMessage.set(true);
+        this.showSuccessMessage.set(false);
+        this.processingMessage.set(
+          'Sign-in failed after payment. Please log in manually.'
+        );
+      });
+  }
 
 
   // -------------------------------------------------
@@ -207,83 +207,81 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   //
   // When subscriptionStatus === 'active', we route to /dashboard.
   // -------------------------------------------------
-  private pollForAccountActivation(
-    email: string,
-    attemptCount: number
-  ): void {
-    const MAX_ATTEMPTS = 20; // ~60s
-    const POLL_INTERVAL = 3000;
+ private pollForAccountActivation(
+  email: string,
+  attemptCount: number
+): void {
 
-    if (attemptCount >= MAX_ATTEMPTS) {
-      this.processingMessage.set(
-        'Account setup is taking longer than expected. Please refresh the page or contact support.'
-      );
-      this.showErrorMessage.set(true);
-      this.showProcessingSpinner.set(false);
-      this.showSuccessMessage.set(false);
-      return;
-    }
+  this.authService.getUserProfile()
+    .pipe(take(1))
+    .subscribe({
+      next: (profile) => {
+        // We got a Firestore doc for the signed-in UID
+        if (profile) {
+          console.log('✅ User profile detected during poll:', profile);
 
-    this.authService.checkAccountExists(email).subscribe({
-      next: (accountInfo) => {
-        // Success condition
-        if (
-          accountInfo?.subscriptionStatus === 'active' ||
-          accountInfo?.subscriptionStatus === 'grandfathered' ||
-          accountInfo?.needsPayment === false
-        ) {
+          const subActive =
+            profile.subscriptionStatus === 'active' ||
+            profile.subscriptionStatus === 'grandfathered';
+
+          const paid =
+            profile.paymentStatus === 'paid' ||
+            profile.paymentStatus === 'trialing';
+
+          if (subActive || paid) {
+            // Account is active / trialing. Go now.
+            this.finishAndRouteToDashboard();
+            return;
+          }
+
+          // Not flipped to active yet
+          if (attemptCount >= 2) {
+            console.warn('⚠️ Subscription still pending but routing anyway.');
+            this.finishAndRouteToDashboard();
+            return;
+          }
+        }
+
+        // No profile yet OR still pending and attemptCount < 2.
+        const MAX_ATTEMPTS = 20;
+        const POLL_INTERVAL = 3000;
+
+        if (attemptCount >= MAX_ATTEMPTS) {
           this.processingMessage.set(
-            'Account ready. Redirecting to dashboard…'
+            'Account setup is taking longer than expected. Please refresh the page or contact support.'
           );
-          this.showProcessingSpinner.set(true);
-          this.showErrorMessage.set(false);
+          this.showErrorMessage.set(true);
+          this.showProcessingSpinner.set(false);
           this.showSuccessMessage.set(false);
-
-          setTimeout(() => {
-            this.router.navigate(['/dashboard']);
-          }, 800);
-
           return;
         }
 
-        // Still provisioning
         if (attemptCount % 3 === 0) {
           this.processingMessage.set(
             'Setting up your account… Please wait…'
           );
         }
 
-        setTimeout(
-          () =>
-            this.pollForAccountActivation(
-              email,
-              attemptCount + 1
-            ),
-          POLL_INTERVAL
-        );
+        setTimeout(() => {
+          this.pollForAccountActivation(email, attemptCount + 1);
+        }, POLL_INTERVAL);
       },
+
       error: () => {
-        // Network or Firestore read issue
-        if (attemptCount < MAX_ATTEMPTS - 1) {
-          setTimeout(
-            () =>
-              this.pollForAccountActivation(
-                email,
-                attemptCount + 1
-              ),
-            POLL_INTERVAL
-          );
-        } else {
-          this.processingMessage.set(
-            'Unable to verify account status. Please refresh this page.'
-          );
-          this.showErrorMessage.set(true);
-          this.showProcessingSpinner.set(false);
-          this.showSuccessMessage.set(false);
+        // If profile lookup fails twice, stop blocking UI and route anyway
+        if (attemptCount >= 2) {
+          console.warn('⚠️ Error reading profile. Routing anyway.');
+          this.finishAndRouteToDashboard();
+          return;
         }
-      },
+
+        setTimeout(() => {
+          this.pollForAccountActivation(email, attemptCount + 1);
+        }, 2000);
+      }
     });
-  }
+}
+
 
   // -------------------------------------------------
   // helpers
@@ -294,6 +292,19 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       this.redirectTimerId = null;
     }
   }
+  // New helper: confirm user doc by UID once, then go to dashboard
+  private finishAndRouteToDashboard(): void {
+    this.processingMessage.set('Account ready. Redirecting to dashboard…');
+    this.showProcessingSpinner.set(true);
+    this.showErrorMessage.set(false);
+    this.showSuccessMessage.set(false);
+
+    // small delay so UI can update
+    setTimeout(() => {
+      this.router.navigate(['/dashboard']);
+    }, 300);
+  }
+
 
   // template helpers
   goToPricing(): void {
