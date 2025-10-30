@@ -14,7 +14,10 @@
     <div class="step" [ngClass]="{'active': currentStep === 3, 'completed': currentStep > 3}">
       Review
     </div>
-    <div class="step" [ngClass]="{'active': currentStep === 4}">
+    <div class="step" [ngClass]="{'active': currentStep === 4, 'completed': currentStep > 4}">
+      Verify Email
+    </div>
+    <div class="step" [ngClass]="{'active': currentStep === 5}">
       Payment
     </div>
   </div>
@@ -35,6 +38,39 @@
         [propertyCategories]="propertyCategories" [loanTypes]="loanTypes">
       </app-lender-review>
       } @else if (currentStep === 4) {
+      <!-- OTP VERIFICATION STEP -->
+      <div class="otp-verification-section">
+        <h3>Verify Your Email</h3>
+        <p class="mb-4">We've sent a 6-digit code to {{ registeredEmail }}. Please enter it below:</p>
+        
+        <div class="otp-input-container d-flex justify-content-center gap-2 mb-4">
+          @for (digit of [0,1,2,3,4,5]; track digit) {
+            <input
+              type="text"
+              class="otp-input"
+              [id]="'code-' + digit"
+              maxlength="1"
+              [(ngModel)]="codeDigits[digit]"
+              [ngModelOptions]="{standalone: true}"
+              (input)="onCodeDigitInput(digit, $event)"
+              (keydown)="onCodeDigitKeydown(digit, $event)"
+              (paste)="onCodePaste($event)"
+              autocomplete="off"
+            />
+          }
+        </div>
+
+        @if (otpErrorMessage) {
+        <div class="alert alert-danger">{{ otpErrorMessage }}</div>
+        }
+
+        <div class="text-center">
+          <button type="button" class="btn btn-link" (click)="resendOTP()" [disabled]="otpIsLoading">
+            Resend Code
+          </button>
+        </div>
+      </div>
+      } @else if (currentStep === 5) {
       <app-lender-stripe-payment [lenderData]="getLenderData()" (paymentComplete)="handlePaymentComplete($event)"
         (paymentError)="handlePaymentError($event)" #paymentComponent>
       </app-lender-stripe-payment>
@@ -49,36 +85,56 @@
       }
 
       <div class="button-container">
-        @if (currentStep > 0) {
+        @if (currentStep > 0 && currentStep !== 4) {
         <button type="button" class="btn btn-secondary" (click)="prevStep()">
           Previous
         </button>
         }
 
-        @if (currentStep >= 0 && currentStep <= 2) { <button type="button" class="btn btn-primary" id="next-btn"
-          (click)="nextStep()" [disabled]="
-    (currentStep === 0 && contactForm.invalid) ||
-    (currentStep === 1 && productForm.invalid) ||
-    (currentStep === 2 && footprintForm.invalid)
-  ">
+        @if (currentStep >= 0 && currentStep <= 2) { 
+        <button type="button" class="btn btn-primary" id="next-btn"
+          (click)="nextStep()" 
+          [disabled]="
+            (currentStep === 0 && contactForm.invalid) ||
+            (currentStep === 1 && productForm.invalid) ||
+            (currentStep === 2 && footprintForm.invalid)
+          ">
           Next
-          </button>
+        </button>
+        }
 
+      @if (currentStep === 3) {
+        <button type="button" class="btn btn-success" id="proceed-to-verify-btn"
+          [disabled]="!lenderForm.get('termsAccepted')?.value || isRegistering" 
+          (click)="nextStep()">
+          @if (!isRegistering) {
+            <span>Proceed to Verification</span>
           }
+          @if (isRegistering) {
+            <span>Creating Account...</span>
+          }
+        </button>
+        }
 
-          @if (currentStep === 3) {
-          <button type="button" class="btn btn-success" id="proceed-to-payment-btn"
-            [disabled]="!lenderForm.get('termsAccepted')?.value" (click)="nextStep()">
-            Next
-          </button>
+      @if (currentStep === 4) {
+        <button type="button" class="btn btn-primary" 
+          [disabled]="otpIsLoading || codeDigits.join('').length !== 6" 
+          (click)="verifyOTPCode()">
+          @if (!otpIsLoading) {
+            <span>Verify Code</span>
           }
+          @if (otpIsLoading) {
+            <span>Verifying...</span>
+          }
+        </button>
+        }
 
-          @if (currentStep === 4) {
-          <button type="button" class="btn btn-success" [disabled]="isLoading" (click)="submitForm()">
-            <span *ngIf="!isLoading">Complete Registration</span>
-            <span *ngIf="isLoading">Processing...</span>
-          </button>
-          }
+        @if (currentStep === 5) {
+        <button type="button" class="btn btn-success" [disabled]="isLoading" (click)="submitForm()">
+          <span *ngIf="!isLoading">Complete Registration</span>
+          <span *ngIf="isLoading">Processing...</span>
+        </button>
+        }
       </div>
     </form>
   </div>
