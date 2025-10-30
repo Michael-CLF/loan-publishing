@@ -452,30 +452,34 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     // 1. Collect required values for checkout
 
     // email from the form
-    const emailCtrl = this.lenderForm.get('email');
+    const emailCtrl =
+      this.contactInfoGroup.get('contactEmail') ??
+      this.lenderForm.get('contactInfo.contactEmail'); // fallback path syntax
+
     const email: string | undefined = emailCtrl
       ? String(emailCtrl.value || '').toLowerCase().trim()
       : undefined;
 
+    console.log('checkout email/userId debug =>', {
+      email,
+      userId: this.createdUserId
+    });
+
     // role is fixed for this component
     const role: 'lender' = 'lender';
 
-    // billing interval: component should be tracking what the user chose
-    // If you already have something like this.billingInterval set elsewhere,
-    // we normalize it here.
     const interval: 'monthly' | 'annually' =
       this.billingInterval === 'annually' ? 'annually' : 'monthly';
 
-    // userId: must be the Firestore doc ID returned by createPendingUser
-    // You told me you save that. We assume it's on this.createdUserId.
     const userId = this.createdUserId ?? undefined;
 
 
+   // optional promo code
+const promoCode: string | undefined =
+  this.validatedPromoResult?.code ??
+  this.validatedPromoResult?.promotionCode ??
+  undefined;
 
-    // optional promo code
-    const promoCtrl = this.lenderForm.get('promotionCode');
-    const rawPromo = promoCtrl ? String(promoCtrl.value || '').trim() : '';
-    const promoCode = rawPromo.length ? rawPromo : undefined;
 
     if (!email || !userId) {
       console.error('Missing email or userId for checkout.', { email, userId });
@@ -537,10 +541,10 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.errorMessage = result.error || 'Payment failed. Please try again.';
   }
 
-onCouponValidated(event: any): void {
-  console.log('🎫 Coupon validated:', event);
-  this.validatedPromoResult = event;
-}
+  onCouponValidated(event: any): void {
+    console.log('🎫 Coupon validated:', event);
+    this.validatedPromoResult = event;
+  }
 
   getLenderData(): any {
     return {
