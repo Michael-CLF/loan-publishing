@@ -46,35 +46,37 @@ export class PaymentService {
  * Backend no longer accepts raw promo data here.
  * It only needs email, role, interval, and userId.
  */
+// --- replace the whole createCheckoutSession(...) method ---
 createCheckoutSession(
   email: string,
   role: 'lender' | 'originator',
   interval: 'monthly' | 'annually',
-  userId: string
+  userId: string,
+  promotionCode?: string
 ): Observable<CreateCheckoutResponse> {
   this.isCreatingCheckout.set(true);
   this.checkoutError.set(null);
 
-  const payload = {
+  const payload: any = {
     email: email.toLowerCase().trim(),
     role,
     interval,
-    userData: { userId } // backend reads this to attach the checkout to the correct Firestore doc
+    userId
   };
+  if (promotionCode && promotionCode.trim().length > 0) {
+    payload.promotionCode = promotionCode.trim();
+  }
 
-  const headers = new HttpHeaders({
-    'Content-Type': 'application/json'
-    // No Authorization header. Design B does not require ID token.
-  });
-
+  // headers are optional; keep if you already have them defined above
   return this.http
-    .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload, { headers })
+    .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload /*, { headers }*/)
     .pipe(
       tap((resp) => {
-        if (!resp || resp.error) {
-          const msg = resp?.error || 'Failed to create checkout session';
-          console.error('Checkout creation failed:', msg);
+        if (!resp || (resp as any).error) {
+          const msg =
+            ((resp as any)?.error as string) || 'Failed to create checkout session';
           this.checkoutError.set(msg);
+          console.error('Checkout creation failed:', msg);
         } else {
           console.log('Checkout session created:', resp);
         }
@@ -86,13 +88,15 @@ createCheckoutSession(
           err?.error?.error ||
           err?.message ||
           'Failed to create checkout session';
-        console.error('Checkout HTTP error:', msg, err);
         this.checkoutError.set(msg);
         this.isCreatingCheckout.set(false);
+        console.error('Checkout HTTP error:', msg, err);
         return throwError(() => err);
       })
     );
 }
+// --- end replacement ---
+
 
   /**
    * redirectToCheckout

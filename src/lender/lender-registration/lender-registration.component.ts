@@ -542,7 +542,6 @@ onCouponValidated(event: any): void {
   this.validatedPromoResult = event;
 }
 
-
   getLenderData(): any {
     return {
       companyName: this.contactInfoGroup.value.company,
