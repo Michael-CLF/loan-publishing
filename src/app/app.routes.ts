@@ -31,13 +31,9 @@ export const routes: Routes = [
     canActivate: [authGuard],
     title: 'Dashboard - LoanPost'
   },
-  
-  {
+{
   path: 'admin',
   children: [
-    { path: '', pathMatch: 'full', redirectTo: 'dashboard' },
-
-    // UNGUARDED: shows the password form and sets localStorage.adminAccess='true'
     {
       path: 'dashboard',
       loadComponent: () =>
@@ -45,55 +41,42 @@ export const routes: Routes = [
           .then(m => m.AdminDashboardComponent),
       title: 'Admin Dashboard - LoanPost'
     },
-
-    // GUARDED: require adminAccess flag
     {
       path: 'billing',
+      canActivate: [AdminAuthGuard],
       loadComponent: () =>
         import('src/components/admin/admin-billing/admin-billing.component')
           .then(m => m.AdminBillingComponent),
-      canActivate: [AdminAuthGuard],
       title: 'Admin Billing - LoanPost'
     },
     {
       path: 'users',
+      canActivate: [AdminAuthGuard],
       loadComponent: () =>
         import('src/components/admin/admin-users/admin-users.component')
           .then(m => m.AdminUsersComponent),
-      canActivate: [AdminAuthGuard],
       title: 'Admin Users - LoanPost'
     },
     {
       path: 'lenders',
+      canActivate: [AdminAuthGuard],
       loadComponent: () =>
         import('src/components/admin/admin-lenders/admin-lenders.component')
           .then(m => m.AdminLendersComponent),
-      canActivate: [AdminAuthGuard],
       title: 'Admin Lenders - LoanPost'
     },
     {
       path: 'loans',
+      canActivate: [AdminAuthGuard],
       loadComponent: () =>
         import('src/components/admin/admin-loans/admin-loans.component')
           .then(m => m.AdminLoansComponent),
-      canActivate: [AdminAuthGuard],
       title: 'Admin Loans - LoanPost'
     },
-    {
-      path: 'payments',
-      loadComponent: () =>
-        import('src/components/admin/admin-payments/admin-payments.component')
-          .then(m => m.AdminPaymentsComponent),
-      canActivate: [AdminAuthGuard],
-      title: 'Admin Payments - LoanPost'
-    },
+    { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
   ]
-},
-// optional legacy redirect
-{ path: 'admin-dashboard', redirectTo: 'admin/dashboard', pathMatch: 'full' },
-
-  
-  // Loan routes - lazy load
+}, 
+ 
   {
     path: 'loan',
     loadComponent: () => import('../loan/loan.component').then(m => m.LoanComponent),

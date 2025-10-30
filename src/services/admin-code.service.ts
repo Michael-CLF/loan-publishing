@@ -1,45 +1,45 @@
 // src/app/services/admin-code.service.ts
 import { Injectable } from '@angular/core';
-import { BehaviorSubject, Observable } from 'rxjs';
+import { BehaviorSubject, firstValueFrom } from 'rxjs';
 
-@Injectable({
-  providedIn: 'root',
-})
+@Injectable({ providedIn: 'root' })
 export class AdminCodeService {
-  // The secure admin code - change this to your preferred secret code
-  private readonly adminCode: string = 'gk#1uykG&R%pH*2L10UW1';
-
-  // Track admin status
   private isAdminSubject = new BehaviorSubject<boolean>(false);
   public isAdmin$ = this.isAdminSubject.asObservable();
 
   constructor() {
-    // Check localStorage for existing admin session
-    const hasAdminAccess = localStorage.getItem('adminAccess') === 'true';
-    this.isAdminSubject.next(hasAdminAccess);
+    // Optional bootstrap check: ask /admin/me on load to restore session
+    this.refreshSessionStatus();
   }
 
-  // Verify the admin code
-  verifyAdminCode(code: string): boolean {
-    const isValid = code === this.adminCode;
-
-    if (isValid) {
-      // Store admin access in session
-      localStorage.setItem('adminAccess', 'true');
-      this.isAdminSubject.next(true);
+  async refreshSessionStatus(): Promise<void> {
+    try {
+      const resp = await fetch('/admin/me', { method: 'GET', credentials: 'include' });
+      this.isAdminSubject.next(resp.ok);
+    } catch {
+      this.isAdminSubject.next(false);
     }
-
-    return isValid;
   }
 
-  // Clear admin access
-  clearAdminAccess(): void {
-    localStorage.removeItem('adminAccess');
+  // Submit code to server which sets HttpOnly cookie on success
+  async verifyAdminCode(code: string): Promise<boolean> {
+    const resp = await fetch('/admin/exchange-code', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ code })
+    });
+
+    const ok = resp.ok;
+    this.isAdminSubject.next(ok);
+    return ok;
+  }
+
+ async clearAdminAccess(): Promise<void> {
+  try {
+    await fetch('/admin/logout', { method: 'GET', credentials: 'include' });
+  } finally {
     this.isAdminSubject.next(false);
   }
-
-  // Check if user has admin access
-  hasAdminAccess(): Observable<boolean> {
-    return this.isAdmin$;
-  }
+ }
 }

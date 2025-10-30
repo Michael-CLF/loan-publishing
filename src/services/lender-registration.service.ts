@@ -45,6 +45,13 @@ export interface LenderFormData {
   product: ProductInfo | null;
   footprint: FootprintInfo | null;
   payment: PaymentInfo | null;
+  registrationMeta?: {
+    userId?: string;
+    email?: string;
+    currentStep?: number;
+    otpVerified?: boolean;
+    timestamp?: string;
+  };
   termsAccepted?: boolean;
 }
 
@@ -72,6 +79,11 @@ export class LenderFormService {
     product: null,
     footprint: null,
     payment: null,
+    registrationMeta: {
+      currentStep: 0,
+      otpVerified: false,
+      timestamp: new Date().toISOString()
+    },
     termsAccepted: false,
   });
   public formData$: Observable<LenderFormData> = this.formDataSubject.asObservable();
@@ -79,21 +91,24 @@ export class LenderFormService {
   // Firestore
   private firestore = inject(Firestore);
 
-  constructor() {}
+  constructor() {
+     this.loadFromSessionStorage();
+  }
 
   // ----------------------------
   // Form state helpers
   // ----------------------------
-  setFormSection(
-    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted',
+ setFormSection(
+    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted' | 'registrationMeta',
     data: any
   ): void {
     const current = this.formDataSubject.getValue();
     this.formDataSubject.next({ ...current, [section]: data });
+    this.saveToSessionStorage(); 
   }
 
   getFormSection(
-    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted'
+    section: 'contact' | 'product' | 'footprint' | 'payment' | 'termsAccepted' |'registrationMeta',
   ): any {
     return this.formDataSubject.getValue()[section];
   }
@@ -111,14 +126,74 @@ export class LenderFormService {
     return sectionData !== null && Object.keys(sectionData || {}).length > 0;
   }
 
-  clearForm(): void {
+ clearForm(): void {
     this.formDataSubject.next({
       contact: null,
       product: null,
       footprint: null,
       payment: null,
+      registrationMeta: {
+        currentStep: 0,
+        otpVerified: false,
+        timestamp: new Date().toISOString()
+      },
       termsAccepted: false,
     });
+    this.clearSessionStorage();
+  }
+
+  // Session Storage Management
+  private readonly STORAGE_KEY = 'lender_registration_form';
+  
+  saveToSessionStorage(): void {
+    const formData = this.formDataSubject.getValue();
+    sessionStorage.setItem(this.STORAGE_KEY, JSON.stringify(formData));
+    console.log('💾 Saved form to sessionStorage');
+  }
+
+  loadFromSessionStorage(): boolean {
+    const stored = sessionStorage.getItem(this.STORAGE_KEY);
+    if (stored) {
+      try {
+        const formData = JSON.parse(stored);
+        // Check if data is not stale (24 hours)
+        const timestamp = formData.registrationMeta?.timestamp;
+        if (timestamp) {
+          const hoursSinceCreated = (Date.now() - new Date(timestamp).getTime()) / (1000 * 60 * 60);
+          if (hoursSinceCreated > 24) {
+            console.log('🗑️ Clearing stale form data (>24 hours old)');
+            this.clearSessionStorage();
+            return false;
+          }
+        }
+        this.formDataSubject.next(formData);
+        console.log('📂 Loaded form from sessionStorage', formData);
+        return true;
+      } catch (e) {
+        console.error('Failed to parse stored form data', e);
+        this.clearSessionStorage();
+        return false;
+      }
+    }
+    return false;
+  }
+
+  clearSessionStorage(): void {
+    sessionStorage.removeItem(this.STORAGE_KEY);
+    console.log('🗑️ Cleared sessionStorage');
+  }
+
+  updateRegistrationMeta(meta: Partial<LenderFormData['registrationMeta']>): void {
+    const current = this.formDataSubject.getValue();
+    const updatedMeta = {
+      ...current.registrationMeta,
+      ...meta
+    };
+    this.formDataSubject.next({
+      ...current,
+      registrationMeta: updatedMeta
+    });
+    this.saveToSessionStorage();
   }
 
   // ----------------------------

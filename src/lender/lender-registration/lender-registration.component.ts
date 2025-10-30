@@ -126,14 +126,68 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     this.loadStaticData();
     this.initializeForms();
+
+    // Restore form state from sessionStorage if available
+    const hasStoredData = this.lenderFormService.loadFromSessionStorage();
+    if (hasStoredData) {
+      console.log('📂 Restoring form from session');
+      this.restoreFormFromService();
+
+      // Restore to the saved step
+      const meta = this.lenderFormService.getFormSection('registrationMeta');
+      if (meta?.currentStep !== undefined) {
+        this.currentStep = meta.currentStep;
+        console.log('📍 Restored to step:', this.currentStep);
+      }
+    }
+
     setTimeout(() => {
-      this.initializeForms();
+      if (!hasStoredData) {
+        this.initializeForms();
+      }
     }, 0);
   }
 
   ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+  }
+
+  private restoreFormFromService(): void {
+    const formData = this.lenderFormService.getFullForm();
+
+    // Restore contact info
+    if (formData.contact) {
+      this.contactForm.patchValue(formData.contact);
+    }
+
+    // Restore product info
+    if (formData.product) {
+      this.productForm.patchValue(formData.product);
+    }
+
+    // Restore footprint info
+    if (formData.footprint) {
+      this.footprintForm.patchValue(formData.footprint);
+    }
+
+    // Restore payment info
+    if (formData.payment) {
+      this.billingInterval = formData.payment.billingInterval || 'monthly';
+    }
+
+    // Restore terms
+    if (formData.termsAccepted !== undefined) {
+      this.lenderForm.patchValue({ termsAccepted: formData.termsAccepted });
+    }
+
+    // Restore registration meta
+    const meta = formData.registrationMeta;
+    if (meta) {
+      this.registeredEmail = meta.email || '';
+      this.registeredUserId = meta.userId || '';
+      this.createdUserId = meta.userId || null;
+    }
   }
 
   private loadStaticData(): void {
@@ -254,15 +308,26 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     }
 
     // Advance
+    // Advance
     if (this.currentStep < this.totalSteps - 1) {
       this.currentStep++;
       this.saveSectionData();
+
+      // Save current step to sessionStorage
+      this.lenderFormService.updateRegistrationMeta({
+        currentStep: this.currentStep
+      });
     }
   }
 
   prevStep(): void {
     if (this.currentStep > 0) {
       this.currentStep--;
+
+      // Save current step to sessionStorage
+      this.lenderFormService.updateRegistrationMeta({
+        currentStep: this.currentStep
+      });
     }
   }
 
@@ -330,6 +395,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
           this.registeredEmail = email;
           this.registeredUserId = response.userId;
           this.createdUserId = response.userId;
+
+          // Store registration info in service for persistence
+          this.lenderFormService.updateRegistrationMeta({
+            userId: response.userId,
+            email: email,
+            currentStep: this.currentStep
+          });
+
 
 
           // sign browser into Firebase using the custom token from backend
@@ -449,19 +522,21 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     this.successMessage = '';
     this.paymentService.clearState();
 
-    // 1. Collect required values for checkout
+    // 1. Get values from form or service (in case of refresh)
+    const meta = this.lenderFormService.getFormSection('registrationMeta');
 
     const emailCtrl =
       this.contactInfoGroup.get('contactEmail') ??
       this.lenderForm.get('contactInfo.contactEmail');
 
-    const email = String(emailCtrl?.value || '').toLowerCase().trim();
-    const userId = this.createdUserId ?? this.registeredUserId ?? undefined;
+    const email = meta?.email || String(emailCtrl?.value || '').toLowerCase().trim();
+    const userId = meta?.userId || this.createdUserId || this.registeredUserId || undefined;
 
-    console.log('[checkout] email/userId debug ->', { email, userId });
+    console.log('[checkout] Using stored values ->', { email, userId, meta });
 
     if (!email || !userId) {
       console.error('Missing email or userId for checkout.', { email, userId });
+      this.errorMessage = 'Registration data missing. Please restart registration.';
       this.isLoading = false;
       return;
     }
