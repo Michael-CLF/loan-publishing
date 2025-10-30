@@ -40,8 +40,8 @@
       } @else if (currentStep === 4) {
       <!-- OTP VERIFICATION STEP -->
       <div class="otp-verification-section">
-        <h3>Verify Your Email</h3>
-        <p class="mb-4">We've sent a 6-digit code to {{ registeredEmail }}. Please enter it below:</p>
+        <h3 class="verify-txt">Verify Your Email</h3>
+        <p class="instruction-txt mb-4">We've sent a 6-digit code to {{ registeredEmail }}.<br> Please enter it below:</p>
         
         <div class="otp-input-container d-flex justify-content-center gap-2 mb-4">
           @for (digit of [0,1,2,3,4,5]; track digit) {
