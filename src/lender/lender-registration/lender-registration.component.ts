@@ -451,14 +451,20 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
 
     // 1. Collect required values for checkout
 
-    // email from the form
     const emailCtrl =
       this.contactInfoGroup.get('contactEmail') ??
-      this.lenderForm.get('contactInfo.contactEmail'); // fallback path syntax
+      this.lenderForm.get('contactInfo.contactEmail');
 
-    const email: string | undefined = emailCtrl
-      ? String(emailCtrl.value || '').toLowerCase().trim()
-      : undefined;
+    const email = String(emailCtrl?.value || '').toLowerCase().trim();
+    const userId = this.createdUserId ?? this.registeredUserId ?? undefined;
+
+    console.log('[checkout] email/userId debug ->', { email, userId });
+
+    if (!email || !userId) {
+      console.error('Missing email or userId for checkout.', { email, userId });
+      this.isLoading = false;
+      return;
+    }
 
     console.log('checkout email/userId debug =>', {
       email,
@@ -471,14 +477,11 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const interval: 'monthly' | 'annually' =
       this.billingInterval === 'annually' ? 'annually' : 'monthly';
 
-    const userId = this.createdUserId ?? undefined;
-
-
-   // optional promo code
-const promoCode: string | undefined =
-  this.validatedPromoResult?.code ??
-  this.validatedPromoResult?.promotionCode ??
-  undefined;
+    // optional promo code
+    const promoCode: string | undefined =
+      this.validatedPromoResult?.code ??
+      this.validatedPromoResult?.promotionCode ??
+      undefined;
 
 
     if (!email || !userId) {
