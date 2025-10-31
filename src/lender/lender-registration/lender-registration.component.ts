@@ -479,45 +479,50 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         finalize(() => this.isRegistering = false)
       )
       .subscribe({
-        next: async (response: any) => {
-          // ...
-          if (this.validatedPromoResult?.valid && this.validatedPromoResult?.promo) {
-            try {
-              await this.userService.applyPromoToPendingUser(
-                response.userId,
-                'lender',
-                {
-                  code: this.validatedPromoResult.promo.code,
-                  promoInternalId: this.validatedPromoResult.promo.promoInternalId,
-                  promoType: this.validatedPromoResult.promo.promoType,
-                  percentOff: this.validatedPromoResult.promo.percentOff ?? null,
-                  durationType: this.validatedPromoResult.promo.durationType ?? null,
-                  durationInMonths: this.validatedPromoResult.promo.durationInMonths ?? null,
-                  trialDays: this.validatedPromoResult.promo.trialDays ?? null,
-                  onboardingFeeCents: this.validatedPromoResult.promo.onboardingFeeCents ?? null,
-                  promoExpiresAt: this.validatedPromoResult.promo.promoExpiresAt ?? null,
-                }
-              );
-            } catch (e) {
-              console.error('applyPromoToPendingUser failed', e);
-            }
+        // inside registerLenderWithAllData() -> .subscribe({
+        next: (response: any) => {
+          console.log('✅ Lender registration successful:', response);
+
+          if (!response?.success || !response?.userId) {
+            this.errorMessage = response?.message || 'Registration failed. Please try again.';
+            return;
           }
 
+          // Store IDs for OTP + later steps
+          this.registeredEmail = email;
+          this.registeredUserId = response.userId;
+          this.createdUserId = response.userId;
 
-          // Store in service for persistence
+          // If a validated promo exists, persist it to the pending user *now*
+          if (this.validatedPromoResult?.valid && this.validatedPromoResult?.promo) {
+            this.userService.applyPromoToPendingUser(
+              response.userId,
+              'lender',
+              {
+                code: this.validatedPromoResult.promo.code,
+                promoInternalId: this.validatedPromoResult.promo.promoInternalId,
+                promoType: this.validatedPromoResult.promo.promoType,
+                percentOff: this.validatedPromoResult.promo.percentOff ?? null,
+                durationType: this.validatedPromoResult.promo.durationType ?? null,
+                durationInMonths: this.validatedPromoResult.promo.durationInMonths ?? null,
+                trialDays: this.validatedPromoResult.promo.trialDays ?? null,
+                onboardingFeeCents: this.validatedPromoResult.promo.onboardingFeeCents ?? null,
+                promoExpiresAt: this.validatedPromoResult.promo.promoExpiresAt ?? null,
+              }
+            ).catch(err => console.error('applyPromoToPendingUser failed', err));
+          }
+
+          // Persist meta and move to OTP step
           this.lenderFormService.updateRegistrationMeta({
             userId: response.userId,
-            email: email,
-            currentStep: 4, // Move to OTP step
+            email,
+            currentStep: 4,
             otpVerified: false
           });
-
-          // Move to Step 4 (which we'll make the OTP step)
           this.currentStep = 4;
-
-          // Send OTP immediately
           this.sendOTPCode();
         },
+
         error: (error: any) => {
           console.error('❌ Lender registration error:', error);
           this.errorMessage = error.message || 'Registration failed. Please try again.';
@@ -732,24 +737,22 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     // Clear form data from sessionStorage
     this.lenderFormService.clearSessionStorage();
 
-    // If we have a custom token from the payment response, authenticate now
-    if (result.customToken) {
-      this.authService.signInWithCustomToken(result.customToken)
-        .pipe(take(1))
-        .subscribe({
-          next: () => {
-            console.log('🔐 Authenticated after payment');
-            this.router.navigate(['/dashboard/lender']);
-          },
-          error: (err) => {
-            console.error('Authentication failed after payment:', err);
-            // Still navigate - user can sign in manually
-            this.router.navigate(['/login']);
-          }
-        });
-    } else {
-      // No token in response - redirect to dashboard anyway
-      this.router.navigate(['/dashboard/lender']);
+   if (result.customToken) {
+  this.authService
+    .signInWithCustomToken(result.customToken)
+    .pipe(take(1))
+    .subscribe({
+      next: () => {
+        console.log('🔐 Authenticated after payment');
+        this.router.navigate(['/dashboard/lender']);
+      },
+      error: (err: unknown) => {
+        console.error('Authentication failed after payment:', err);
+        this.router.navigate(['/login']);
+      },
+    });
+} else {
+  this.router.navigate(['/dashboard/lender']);
+}
     }
   }
-}
