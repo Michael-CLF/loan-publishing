@@ -340,10 +340,22 @@ input[type="checkbox"] {
     gap: 12px;
   }
 }
-#minLoanAmount,
-#maxLoanAmount {
-  border: 1px solid #0a2463;
+#minLoanAmout {
+  font-size: 1rem;
+  color: #0a2463;
 }
+#maxLoanAmout {
+  font-size: 1rem;
+    color: #0a2463;
+}
+.fico-block {
+  margin-top: 10px;
+}
+#fico-score {
+    color: #0a2463;
+     font-size: 1rem;
+}
+
 .error {
   color: #c00000;
   font-weight: 500;

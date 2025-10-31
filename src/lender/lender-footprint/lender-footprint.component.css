@@ -250,15 +250,6 @@ input[type="checkbox"] {
   height: 15px;
   border-radius: 4px;
 }
-#minLoanAmout {
-  font-size: 1rem;
-}
-#maxLoanAmout {
-  font-size: 1rem;
-}
-.fico-block {
-  margin-top: 10px;
-}
 
 /* Empty state */
 .empty-selection {
