@@ -179,48 +179,86 @@ export class LenderStripePaymentComponent implements OnInit {
   }
 
   private handleCouponValidationResponse(response: any): void {
-    console.log('🎫 Handling coupon validation response:', response);
+  console.log('🎫 Handling coupon validation response:', response);
 
-    if (response.valid && response.promotion_code) {
-      const coupon = response.promotion_code.coupon;
-      let couponDetails: any;
+  // Accept either shape:
+  // A) { valid: true, promo: { promoType, percentOff, durationInMonths, durationType, trialDays, onboardingFeeCents, promoInternalId, promoExpiresAt, code } }
+  // B) { valid: true, promotion_code: { code, coupon: { percent_off?, amount_off?, name } } }
+  const isValid = !!response?.valid;
 
-      if (response.promotion_code.code === 'LENDER7TRIAL') {
-        couponDetails = {
-          promotion_code: response.promotion_code.code,
-          displayCode: response.promotion_code.code,
-          discount: 0,
-          discountType: 'trial',
-          description: '7-Day Free Trial',
-        };
-      } else {
-        couponDetails = {
-          promotion_code: response.promotion_code.code,
-          displayCode: response.promotion_code.code,
-          discount: coupon.percent_off || coupon.amount_off || 0,
-          discountType: coupon.percent_off ? 'percentage' : 'fixed',
-          description: coupon.name,
-        };
-      }
+  // Normalize a single object "norm" with fields we need
+  const fromA = response?.promo;
+  const fromB = response?.promotion_code;
 
-      const currentPayment =
-        this.lenderFormService.getFormSection('payment') || ({} as PaymentInfo);
-      this.lenderFormService.setFormSection('payment', {
-        ...currentPayment,
-        billingInterval: this.paymentForm.get('interval')?.value || 'monthly',
-        promotion_code: response.promotion_code.code,
-        couponApplied: true,
-        appliedCouponDetails: couponDetails,
-        validatedCouponCode: response.promotion_code.code,
-      });
+  let norm: {
+    code: string;
+    type: 'trial' | 'percentage' | 'fixed';
+    percentOff?: number | null;
+    amountOff?: number | null;
+    durationType?: 'once' | 'repeating' | 'forever' | null;
+    durationInMonths?: number | null;
+    trialDays?: number | null;
+    onboardingFeeCents?: number | null;
+    description?: string | null;
+  } | null = null;
 
-      this.clearCouponErrors();
-    } else {
-      console.log('❌ Coupon validation failed:', response?.error);
-      this.resetCouponState();
-      this.setCouponError(response.error || 'Invalid promotion code');
-    }
+  if (isValid && fromA?.promoType) {
+    norm = {
+      code: fromA.code,
+      type: fromA.promoType === 'trial' ? 'trial' : (fromA.percentOff ? 'percentage' : 'fixed'),
+      percentOff: fromA.percentOff ?? null,
+      amountOff: null,
+      durationType: fromA.durationType ?? null,
+      durationInMonths: fromA.durationInMonths ?? null,
+      trialDays: fromA.trialDays ?? null,
+      onboardingFeeCents: fromA.onboardingFeeCents ?? null,
+      description: null,
+    };
+  } else if (isValid && fromB?.code) {
+    const c = fromB.coupon || {};
+    norm = {
+      code: fromB.code,
+      type: c.percent_off ? 'percentage' : 'fixed',
+      percentOff: c.percent_off ?? null,
+      amountOff: c.amount_off ?? null,
+      durationType: (c.duration as any) ?? null,
+      durationInMonths: c.duration_in_months ?? null,
+      trialDays: null,
+      onboardingFeeCents: null,
+      description: c.name ?? null,
+    };
   }
+
+  if (isValid && norm) {
+    const currentPayment =
+      this.lenderFormService.getFormSection('payment') || ({} as PaymentInfo);
+
+    const couponDetails = {
+      promotion_code: norm.code,
+      displayCode: norm.code,
+      discount: norm.percentOff ?? norm.amountOff ?? 0,
+      discountType: norm.type,
+      description: norm.description || (norm.type === 'trial' ? 'Free Trial' : ''),
+    };
+
+    this.lenderFormService.setFormSection('payment', {
+      ...currentPayment,
+      billingInterval: this.paymentForm.get('interval')?.value || 'monthly',
+      promotion_code: norm.code,
+      couponApplied: true,
+      appliedCouponDetails: couponDetails,
+      validatedCouponCode: norm.code,
+    });
+
+    this.clearCouponErrors();
+    return;
+  }
+
+  console.log('❌ Coupon validation failed:', response?.error);
+  this.resetCouponState();
+  this.setCouponError(response?.error || 'Invalid promotion code');
+}
+
 
   private setCouponError(errorMessage: string): void {
     const couponControl = this.paymentForm.get('promotion_code');
@@ -328,7 +366,7 @@ export class LenderStripePaymentComponent implements OnInit {
     }
 
     this.paymentService
-      .createCheckoutSession(email, role, interval, userId)
+      .createCheckoutSession(email, role, interval, userId, validatedPromotionCode)
       .pipe(finalize(() => (this.isLoading = false)))
       .subscribe({
         next: (response) => {
