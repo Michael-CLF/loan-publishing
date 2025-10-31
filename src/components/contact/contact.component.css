@@ -19,7 +19,12 @@ label {
   font-weight: 500;
   color: #0a2463;
   font-family: 'roboto', sans-serif;
-  font-size: 1.2rem;
+  font-size: 1rem;
+}
+.error {
+  color: #c00000;
+  font-size: 0.95rem;
+  font-weight: 600;
 }
 
 textarea {
@@ -59,5 +64,7 @@ textarea.ng-touched.ng-invalid {
     border-radius: 4px;
     padding-left: 8px;
     border-color: #cdcdcd;
+    padding: 10px;
+    font-size: 1.1rem;
 }
 

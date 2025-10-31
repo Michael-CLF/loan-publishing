@@ -642,11 +642,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       this.billingInterval === 'annually' ? 'annually' : 'monthly';
 
     const paymentSection: any = this.lenderFormService.getFormSection('payment');
-    const validatedPromotionCode =
-      this.validatedPromoResult?.code ||
-      paymentSection?.validatedCouponCode ||
-      paymentSection?.promotion_code ||
-      '';
+
+    // Get a single clean promo string from any shape the child emits
+const validatedPromotionCode =
+  (this.validatedPromoResult?.promo?.code ??
+   this.validatedPromoResult?.code ??
+   paymentSection?.validatedCouponCode ??
+   paymentSection?.promotion_code ??
+   '')
+    .toString()
+    .trim();
 
     console.info('[checkout] about to POST', {
       email, role, interval, userId, validatedPromotionCode

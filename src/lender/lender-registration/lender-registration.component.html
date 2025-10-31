@@ -41,22 +41,14 @@
       <!-- OTP VERIFICATION STEP -->
       <div class="otp-verification-section">
         <h3 class="verify-txt">Verify Your Email</h3>
-        <p class="instruction-txt mb-4">We've sent a 6-digit code to {{ registeredEmail }}.<br> Please enter it below:</p>
-        
+        <p class="instruction-txt mb-4">We've sent a 6-digit code to {{ registeredEmail }}.<br> Please enter it below:
+        </p>
+
         <div class="otp-input-container d-flex justify-content-center gap-2 mb-4">
           @for (digit of [0,1,2,3,4,5]; track digit) {
-            <input
-              type="text"
-              class="otp-input"
-              [id]="'code-' + digit"
-              maxlength="1"
-              [(ngModel)]="codeDigits[digit]"
-              [ngModelOptions]="{standalone: true}"
-              (input)="onCodeDigitInput(digit, $event)"
-              (keydown)="onCodeDigitKeydown(digit, $event)"
-              (paste)="onCodePaste($event)"
-              autocomplete="off"
-            />
+          <input type="text" class="otp-input" [id]="'code-' + digit" maxlength="1" [(ngModel)]="codeDigits[digit]"
+            [ngModelOptions]="{standalone: true}" (input)="onCodeDigitInput(digit, $event)"
+            (keydown)="onCodeDigitKeydown(digit, $event)" (paste)="onCodePaste($event)" autocomplete="off" />
           }
         </div>
 
@@ -91,50 +83,48 @@
         </button>
         }
 
-        @if (currentStep >= 0 && currentStep <= 2) { 
-        <button type="button" class="btn btn-primary" id="next-btn"
-          (click)="nextStep()" 
-          [disabled]="
+        @if (currentStep >= 0 && currentStep <= 2) { <button type="button" class="btn btn-primary" id="next-btn"
+          (click)="nextStep()" [disabled]="
             (currentStep === 0 && contactForm.invalid) ||
             (currentStep === 1 && productForm.invalid) ||
             (currentStep === 2 && footprintForm.invalid)
           ">
           Next
-        </button>
-        }
+          </button>
+          }
 
-      @if (currentStep === 3) {
-        <button type="button" class="btn btn-success" id="proceed-to-verify-btn"
-          [disabled]="!lenderForm.get('termsAccepted')?.value || isRegistering" 
-          (click)="nextStep()">
-          @if (!isRegistering) {
+          @if (currentStep === 3) {
+          <button type="button" class="btn btn-success" id="proceed-to-verify-btn"
+            [disabled]="!lenderForm.get('termsAccepted')?.value || isRegistering" (click)="nextStep()">
+            @if (!isRegistering) {
             <span>Proceed to Verification</span>
-          }
-          @if (isRegistering) {
+            }
+            @if (isRegistering) {
             <span>Creating Account...</span>
+            }
+          </button>
           }
-        </button>
-        }
 
-      @if (currentStep === 4) {
-        <button type="button" class="btn btn-primary" 
-          [disabled]="otpIsLoading || codeDigits.join('').length !== 6" 
-          (click)="verifyOTPCode()">
-          @if (!otpIsLoading) {
+          @if (currentStep === 4) {
+          <button type="button" class="btn btn-primary" [disabled]="otpIsLoading || codeDigits.join('').length !== 6"
+            (click)="verifyOTPCode()">
+            @if (!otpIsLoading) {
             <span>Verify Code</span>
-          }
-          @if (otpIsLoading) {
+            }
+            @if (otpIsLoading) {
             <span>Verifying...</span>
+            }
+          </button>
           }
-        </button>
-        }
 
-        @if (currentStep === 5) {
-        <button type="button" class="btn btn-success" [disabled]="isLoading" (click)="submitForm()">
-          <span *ngIf="!isLoading">Complete Registration</span>
-          <span *ngIf="isLoading">Processing...</span>
-        </button>
-        }
+          @if (currentStep === 5) {
+          <button type="button" class="btn btn-success" [disabled]="isLoading || !registeredUserId"
+            (click)="submitForm()">
+            <span *ngIf="!isLoading">Complete Registration</span>
+            <span *ngIf="isLoading">Processing...</span>
+          </button>
+          }
+
       </div>
     </form>
   </div>
