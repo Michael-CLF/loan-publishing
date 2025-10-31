@@ -112,6 +112,7 @@
 .ebook__cta {
   padding: 16px 18px 20px;
   background-color: #002b4e;
+  text-align: center;
 }
 .ebook__cta:hover {
   background-color: #00555a
