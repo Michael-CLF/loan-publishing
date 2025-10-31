@@ -181,11 +181,6 @@ verifyOTPCode(): void {
   currentStep = 0;
   totalSteps = 6;
 
-  // OTP modal state
-  showOTPModal = false;
-  otpCode = '';
-  isVerifyingOTP = false;
-  otpError = '';
   registeredEmail = '';
   registeredUserId = '';
   codeDigits: string[] = ['', '', '', '', '', ''];
@@ -545,88 +540,44 @@ verifyOTPCode(): void {
   // OTP
   // ==========================================
 
- verifyOTP(): void {
-  const code = this.otpCode;
-  const email = this.registeredEmail;
-
-  if (!code || code.length !== 6) {
-    this.otpError = 'Please enter a valid 6-digit code';
-    return;
-  }
-
-  if (!email) {
-    this.otpError = 'Email not found. Please start registration again.';
-    return;
-  }
-
-  this.isVerifyingOTP = true;
-  this.otpError = '';
-
-  console.log('🔐 Verifying OTP for lender:', email);
-
-  this.otpService.verifyOTP(email, code)
-    .pipe(
-      takeUntil(this.destroy$),
-      finalize(() => this.isVerifyingOTP = false)
-    )
-    .subscribe({
-      next: (response: any) => {
-        console.log('✅ OTP verification response:', response);
-
-        if (response.success) {
-          this.showOTPModal = false;
-          
-          // Update meta to mark OTP as verified
-          this.lenderFormService.updateRegistrationMeta({
-            otpVerified: true,
-            currentStep: 5  // Move to payment step
-          });
-          
-          this.currentStep = 5; // Payment is now step 5
-          this.successMessage = 'Email verified! Proceeding to payment...';
-          
-          // Now redirect to Stripe
-          this.submitForm();
-        } else {
-          this.otpError = response.message || 'Invalid verification code. Please try again.';
-        }
-      },
-      error: (error: any) => {
-        console.error('❌ OTP verification error:', error);
-        this.otpError = error.message || 'Verification failed. Please try again.';
-      }
-    });
-}
+ 
 
   resendOTP(): void {
-    const email = this.registeredEmail;
+    const email = this.registeredEmail || this.lenderFormService.getFormSection('registrationMeta')?.email;
     if (!email) return;
 
     console.log('📧 Resending OTP to:', email);
+    this.otpIsLoading = true;
 
     this.otpService.sendOTP(email)
-      .pipe(takeUntil(this.destroy$))
+      .pipe(
+        takeUntil(this.destroy$),
+        finalize(() => this.otpIsLoading = false)
+      )
       .subscribe({
-        next: (response: any) => {
-          if (response.success) {
-            this.successMessage = 'New code sent! Check your email.';
-            this.otpError = '';
-          } else {
-            this.otpError = 'Failed to resend code. Please try again.';
+        next: () => {
+          console.log('✅ OTP resent');
+          this.otpErrorMessage = '';
+          this.successMessage = 'New code sent! Check your email.';
+          
+          // Clear the digit boxes
+          this.codeDigits = ['', '', '', '', '', ''];
+          for (let i = 0; i < 6; i++) {
+            const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
+            if (box) box.value = '';
           }
+          
+          // Focus first box
+          const first = document.getElementById('code-0') as HTMLInputElement | null;
+          first?.focus();
         },
-        error: (error: any) => {
-          console.error('❌ Resend OTP error:', error);
-          this.otpError = 'Failed to resend code. Please try again.';
+        error: (err) => {
+          console.error('❌ Resend OTP error:', err);
+          this.otpErrorMessage = 'Failed to resend code. Please try again.';
         }
       });
-  }
+  } 
 
-  closeOTPModal(): void {
-    this.showOTPModal = false;
-    this.otpCode = '';
-    this.otpError = '';
-  }
 
   // ==========================================
   // PAYMENT (Step 4)
@@ -732,12 +683,6 @@ verifyOTPCode(): void {
       });
   }
 
-
-  handlePaymentComplete(result: any): void {
-    console.log('✅ Payment complete:', result);
-    this.successMessage = result.message || 'Payment successful!';
-  }
-
   handlePaymentError(result: any): void {
     console.error('❌ Payment error:', result);
     this.errorMessage = result.error || 'Payment failed. Please try again.';
@@ -763,5 +708,32 @@ verifyOTPCode(): void {
         footprintInfo: this.footprintInfoGroup.value,
       },
     };
+  }
+  handlePaymentComplete(result: any): void {
+    console.log('✅ Payment complete:', result);
+    this.successMessage = result.message || 'Payment successful!';
+    
+    // Clear form data from sessionStorage
+    this.lenderFormService.clearSessionStorage();
+    
+    // If we have a custom token from the payment response, authenticate now
+    if (result.customToken) {
+      this.authService.signInWithCustomToken(result.customToken)
+        .pipe(take(1))
+        .subscribe({
+          next: () => {
+            console.log('🔐 Authenticated after payment');
+            this.router.navigate(['/dashboard/lender']);
+          },
+          error: (err) => {
+            console.error('Authentication failed after payment:', err);
+            // Still navigate - user can sign in manually
+            this.router.navigate(['/login']);
+          }
+        });
+    } else {
+      // No token in response - redirect to dashboard anyway
+      this.router.navigate(['/dashboard/lender']);
+    }
   }
 }
