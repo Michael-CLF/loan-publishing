@@ -48,7 +48,8 @@ createCheckoutSession(
     email: email.toLowerCase().trim(),
     role,
     interval,
-    userData: { userId },                 // <-- required by backend
+    userData: { userId },    
+     promotion_code: promotionCode?.trim() || '' 
   };
   if (promotionCode && promotionCode.trim().length > 0) {
     payload.promotion_code = promotionCode.trim();   // <-- backend key
