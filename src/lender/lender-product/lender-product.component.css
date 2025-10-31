@@ -285,6 +285,7 @@
   border-radius: 4px;
   font-family: "roboto", sans-serif;
   color: #0a2463;
+  font-size: 1rem;
 }
 
 .form-control:focus {
