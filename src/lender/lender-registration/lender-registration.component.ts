@@ -435,7 +435,7 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // REGISTRATION (After Step 0)
   // ==========================================
 
-  private registerLenderWithAllData(): void {
+  private async registerLenderWithAllData(): Promise<void> {
     console.log('📝 Registering lender with complete data');
 
     // Validate entire form
@@ -443,7 +443,6 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
       this.lenderForm.markAllAsTouched();
       return;
     }
-
     this.isRegistering = true;
     this.errorMessage = '';
 
@@ -478,9 +477,9 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$),
         finalize(() => this.isRegistering = false)
       )
+
       .subscribe({
-        // inside registerLenderWithAllData() -> .subscribe({
-        next: (response: any) => {
+        next: async (response: any) => {
           console.log('✅ Lender registration successful:', response);
 
           if (!response?.success || !response?.userId) {
@@ -488,14 +487,20 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
             return;
           }
 
-          // Store IDs for OTP + later steps
           this.registeredEmail = email;
           this.registeredUserId = response.userId;
           this.createdUserId = response.userId;
 
-          // If a validated promo exists, persist it to the pending user *now*
+          this.lenderFormService.updateRegistrationMeta({
+            userId: response.userId,
+            email,
+            currentStep: 4,
+            otpVerified: false,
+          });
+
+          // Persist validated promo on pending user BEFORE OTP/Stripe
           if (this.validatedPromoResult?.valid && this.validatedPromoResult?.promo) {
-            this.userService.applyPromoToPendingUser(
+            await this.userService.applyPromoToPendingUser(
               response.userId,
               'lender',
               {
@@ -509,24 +514,16 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
                 onboardingFeeCents: this.validatedPromoResult.promo.onboardingFeeCents ?? null,
                 promoExpiresAt: this.validatedPromoResult.promo.promoExpiresAt ?? null,
               }
-            ).catch(err => console.error('applyPromoToPendingUser failed', err));
+            );
           }
-
-          // Persist meta and move to OTP step
-          this.lenderFormService.updateRegistrationMeta({
-            userId: response.userId,
-            email,
-            currentStep: 4,
-            otpVerified: false
-          });
+          // Move to OTP step and send code
           this.currentStep = 4;
           this.sendOTPCode();
         },
-
         error: (error: any) => {
           console.error('❌ Lender registration error:', error);
           this.errorMessage = error.message || 'Registration failed. Please try again.';
-        }
+        },
       });
   }
   private sendOTPCode(): void {
@@ -737,22 +734,22 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     // Clear form data from sessionStorage
     this.lenderFormService.clearSessionStorage();
 
-   if (result.customToken) {
-  this.authService
-    .signInWithCustomToken(result.customToken)
-    .pipe(take(1))
-    .subscribe({
-      next: () => {
-        console.log('🔐 Authenticated after payment');
-        this.router.navigate(['/dashboard/lender']);
-      },
-      error: (err: unknown) => {
-        console.error('Authentication failed after payment:', err);
-        this.router.navigate(['/login']);
-      },
-    });
-} else {
-  this.router.navigate(['/dashboard/lender']);
-}
+    if (result.customToken) {
+      this.authService
+        .signInWithCustomToken(result.customToken)
+        .pipe(take(1))
+        .subscribe({
+          next: () => {
+            console.log('🔐 Authenticated after payment');
+            this.router.navigate(['/dashboard/lender']);
+          },
+          error: (err: unknown) => {
+            console.error('Authentication failed after payment:', err);
+            this.router.navigate(['/login']);
+          },
+        });
+    } else {
+      this.router.navigate(['/dashboard/lender']);
     }
   }
+}
