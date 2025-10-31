@@ -116,6 +116,7 @@ registerUser(
     promoInternalId: promoPayload.promoInternalId,
   };
 
+  
 return from(createPendingUserCallable(payload)).pipe(
   switchMap(async (result: any) => {
     const data = result.data;
@@ -134,6 +135,47 @@ return from(createPendingUserCallable(payload)).pipe(
   })
 );
 }
+  /**
+   * Persist a validated promotion on the pending user document.
+   * Backend checks these keys before honoring promotion_code at checkout.
+   */
+  async applyPromoToPendingUser(
+    userId: string,
+    role: 'lender' | 'originator',
+    validatedPromo: {
+      code: string;
+      promoInternalId: string;
+      promoType: 'percentage' | 'trial';
+      percentOff?: number | null;
+      durationType?: 'once' | 'repeating' | 'forever' | null;
+      durationInMonths?: number | null;
+      trialDays?: number | null;
+      onboardingFeeCents?: number | null;
+      promoExpiresAt?: string | null;
+    }
+  ): Promise<void> {
+    const coll = role === 'lender' ? 'lenders' : 'originators';
+    const ref = doc(this.db, `${coll}/${userId}`);
+
+    const terms: any = {
+      percentOff: validatedPromo.percentOff ?? null,
+      durationInMonths: validatedPromo.durationInMonths ?? null,
+      durationType: validatedPromo.durationType ?? null,
+      trialDays: validatedPromo.trialDays ?? null,
+      onboardingFeeCents: validatedPromo.onboardingFeeCents ?? null,
+      promoExpiresAt: validatedPromo.promoExpiresAt ?? null,
+    };
+
+    await updateDoc(ref, {
+      promotionCodeRequested: validatedPromo.code,
+      promotionCodeApplied: true,
+      promotionCodeStatus: 'validated',
+      promotionCodeType: validatedPromo.promoType,
+      promotionCodeTerms: terms,
+      promoInternalId: validatedPromo.promoInternalId,
+      updatedAt: serverTimestamp(),
+    });
+  }
 
 
   private auth = inject(Auth);
