@@ -627,12 +627,16 @@ verifyOTPCode(): void {
     const interval: 'monthly' | 'annually' =
       this.billingInterval === 'annually' ? 'annually' : 'monthly';
 
-    // optional promo code
-    const promoCode: string | undefined =
-      this.validatedPromoResult?.code ??
-      this.validatedPromoResult?.promotionCode ??
-      undefined;
+    const paymentSection: any = this.lenderFormService.getFormSection('payment');
+    const validatedPromotionCode =
+      this.validatedPromoResult?.code ||
+      paymentSection?.validatedCouponCode ||
+      paymentSection?.promotion_code ||
+      '';
 
+    console.info('[checkout] about to POST', {
+      email, role, interval, userId, validatedPromotionCode
+    });
 
     if (!email || !userId) {
       console.error('Missing email or userId for checkout.', { email, userId });
@@ -642,7 +646,7 @@ verifyOTPCode(): void {
 
     // 2. Call PaymentService
     this.paymentService
-      .createCheckoutSession(email, role, interval, userId)
+      .createCheckoutSession(email, role, interval, userId, validatedPromotionCode)
       .pipe(
         takeUntil(this.destroy$),
         finalize(() => {

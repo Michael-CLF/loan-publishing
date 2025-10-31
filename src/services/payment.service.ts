@@ -33,7 +33,7 @@ export class PaymentService {
   isCreatingCheckout = signal<boolean>(false);
   checkoutError = signal<string | null>(null);
 
-// payment.service.ts  — REPLACE THIS METHOD
+// payment.service.ts — REPLACE THIS METHOD
 createCheckoutSession(
   email: string,
   role: 'lender' | 'originator',
@@ -48,15 +48,19 @@ createCheckoutSession(
     email: email.toLowerCase().trim(),
     role,
     interval,
-    userData: { userId },    
-     promotion_code: promotionCode?.trim() || '' 
+    userData: { userId } // backend expects userData.userId
   };
-  if (promotionCode && promotionCode.trim().length > 0) {
-    payload.promotion_code = promotionCode.trim();   // <-- backend key
+
+  // Only include if present; avoid sending an empty string
+  const promo = promotionCode?.trim();
+  if (promo) {
+    payload.promotion_code = promo; // backend key is snake_case
   }
 
+  console.info('[payment] payload', payload);
+
   return this.http
-    .post<CreateCheckoutResponse>('https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout', payload)
+    .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload)
     .pipe(
       tap((resp) => {
         if (!resp || (resp as any).error) {
@@ -78,7 +82,6 @@ createCheckoutSession(
       })
     );
 }
-
 
 // --- end replacement ---
 
