@@ -83,89 +83,89 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private paymentService = inject(PaymentService);
   private validatedPromoResult: any = null;
 
-// [(input)] handler
-onCodeDigitInput(index: number, event: any): void {
-  const raw = event.target.value ?? '';
-  const val = raw.replace(/\D/g, '').slice(0, 1);
-  this.codeDigits[index] = val;
-  event.target.value = val;
+  // [(input)] handler
+  onCodeDigitInput(index: number, event: any): void {
+    const raw = event.target.value ?? '';
+    const val = raw.replace(/\D/g, '').slice(0, 1);
+    this.codeDigits[index] = val;
+    event.target.value = val;
 
-  if (val && index < 5) {
-    const next = document.getElementById(`code-${index + 1}`) as HTMLInputElement | null;
-    next?.focus();
-    next?.select();
-  }
-  if (index === 5 && val) this.verifyOTPCode();
-}
-
-// (keydown) handler for Backspace navigation
-onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
-  if (e.key !== 'Backspace') return;
-  e.preventDefault();
-
-  if (this.codeDigits[index]) {
-    this.codeDigits[index] = '';
-    const el = document.getElementById(`code-${index}`) as HTMLInputElement | null;
-    if (el) { el.value = ''; el.focus(); el.select(); }
-  } else if (index > 0) {
-    this.codeDigits[index - 1] = '';
-    const prev = document.getElementById(`code-${index - 1}`) as HTMLInputElement | null;
-    if (prev) { prev.value = ''; prev.focus(); prev.select(); }
-  }
-}
-
-// (paste) handler to accept all 6 digits at once
-onCodePaste(e: ClipboardEvent): void {
-  e.preventDefault();
-  const pasted = e.clipboardData?.getData('text') || '';
-  const cleaned = pasted.replace(/\D/g, '').slice(0, 6);
-  if (!cleaned) return;
-
-  const chars = cleaned.split('');
-  for (let i = 0; i < 6; i++) {
-    this.codeDigits[i] = chars[i] || '';
-    const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
-    if (box) box.value = this.codeDigits[i];
-  }
-  if (cleaned.length === 6) this.verifyOTPCode();
-}
-
-// Click handler for “Verify Code” button in template
-verifyOTPCode(): void {
-  const code = this.codeDigits.join('');
-  if (code.length !== 6 || this.codeDigits.some(d => d === '')) {
-    this.otpErrorMessage = 'Please enter all 6 digits';
-    return;
-  }
-  if (!this.registeredEmail) {
-    this.otpErrorMessage = 'Missing email for verification.';
-    return;
+    if (val && index < 5) {
+      const next = document.getElementById(`code-${index + 1}`) as HTMLInputElement | null;
+      next?.focus();
+      next?.select();
+    }
+    if (index === 5 && val) this.verifyOTPCode();
   }
 
-  this.otpErrorMessage = '';
-  this.otpIsLoading = true;
+  // (keydown) handler for Backspace navigation
+  onCodeDigitKeydown(index: number, e: KeyboardEvent): void {
+    if (e.key !== 'Backspace') return;
+    e.preventDefault();
 
-  this.otpService.verifyOTP(this.registeredEmail, code)
-    .pipe(finalize(() => this.otpIsLoading = false))
-    .subscribe({
-      next: () => {
-        // advance to Stripe step when verified
-        this.currentStep = 5;
-      },
-      error: (err) => {
-        this.otpErrorMessage = err?.message || 'Invalid code';
-        // clear boxes
-        this.codeDigits = ['', '', '', '', '', ''];
-        for (let i = 0; i < 6; i++) {
-          const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
-          if (box) box.value = '';
+    if (this.codeDigits[index]) {
+      this.codeDigits[index] = '';
+      const el = document.getElementById(`code-${index}`) as HTMLInputElement | null;
+      if (el) { el.value = ''; el.focus(); el.select(); }
+    } else if (index > 0) {
+      this.codeDigits[index - 1] = '';
+      const prev = document.getElementById(`code-${index - 1}`) as HTMLInputElement | null;
+      if (prev) { prev.value = ''; prev.focus(); prev.select(); }
+    }
+  }
+
+  // (paste) handler to accept all 6 digits at once
+  onCodePaste(e: ClipboardEvent): void {
+    e.preventDefault();
+    const pasted = e.clipboardData?.getData('text') || '';
+    const cleaned = pasted.replace(/\D/g, '').slice(0, 6);
+    if (!cleaned) return;
+
+    const chars = cleaned.split('');
+    for (let i = 0; i < 6; i++) {
+      this.codeDigits[i] = chars[i] || '';
+      const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
+      if (box) box.value = this.codeDigits[i];
+    }
+    if (cleaned.length === 6) this.verifyOTPCode();
+  }
+
+  // Click handler for “Verify Code” button in template
+  verifyOTPCode(): void {
+    const code = this.codeDigits.join('');
+    if (code.length !== 6 || this.codeDigits.some(d => d === '')) {
+      this.otpErrorMessage = 'Please enter all 6 digits';
+      return;
+    }
+    if (!this.registeredEmail) {
+      this.otpErrorMessage = 'Missing email for verification.';
+      return;
+    }
+
+    this.otpErrorMessage = '';
+    this.otpIsLoading = true;
+
+    this.otpService.verifyOTP(this.registeredEmail, code)
+      .pipe(finalize(() => this.otpIsLoading = false))
+      .subscribe({
+        next: () => {
+          // advance to Stripe step when verified
+          this.currentStep = 5;
+        },
+        error: (err) => {
+          this.otpErrorMessage = err?.message || 'Invalid code';
+          // clear boxes
+          this.codeDigits = ['', '', '', '', '', ''];
+          for (let i = 0; i < 6; i++) {
+            const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
+            if (box) box.value = '';
+          }
+          const first = document.getElementById('code-0') as HTMLInputElement | null;
+          first?.focus();
+          first?.select();
         }
-        const first = document.getElementById('code-0') as HTMLInputElement | null;
-        first?.focus();
-        first?.select();
-      }
-    });
-}
+      });
+  }
 
   private destroy$ = new Subject<void>();
 
@@ -479,18 +479,30 @@ verifyOTPCode(): void {
         finalize(() => this.isRegistering = false)
       )
       .subscribe({
-        next: (response: any) => {
-          console.log('✅ Lender registration successful:', response);
-
-          if (!response?.success || !response?.userId) {
-            this.errorMessage = response?.message || 'Registration failed. Please try again.';
-            return;
+        next: async (response: any) => {
+          // ...
+          if (this.validatedPromoResult?.valid && this.validatedPromoResult?.promo) {
+            try {
+              await this.userService.applyPromoToPendingUser(
+                response.userId,
+                'lender',
+                {
+                  code: this.validatedPromoResult.promo.code,
+                  promoInternalId: this.validatedPromoResult.promo.promoInternalId,
+                  promoType: this.validatedPromoResult.promo.promoType,
+                  percentOff: this.validatedPromoResult.promo.percentOff ?? null,
+                  durationType: this.validatedPromoResult.promo.durationType ?? null,
+                  durationInMonths: this.validatedPromoResult.promo.durationInMonths ?? null,
+                  trialDays: this.validatedPromoResult.promo.trialDays ?? null,
+                  onboardingFeeCents: this.validatedPromoResult.promo.onboardingFeeCents ?? null,
+                  promoExpiresAt: this.validatedPromoResult.promo.promoExpiresAt ?? null,
+                }
+              );
+            } catch (e) {
+              console.error('applyPromoToPendingUser failed', e);
+            }
           }
 
-          // Store IDs but DON'T authenticate yet
-          this.registeredEmail = email;
-          this.registeredUserId = response.userId;
-          this.createdUserId = response.userId;
 
           // Store in service for persistence
           this.lenderFormService.updateRegistrationMeta({
@@ -540,7 +552,7 @@ verifyOTPCode(): void {
   // OTP
   // ==========================================
 
- 
+
 
   resendOTP(): void {
     const email = this.registeredEmail || this.lenderFormService.getFormSection('registrationMeta')?.email;
@@ -559,14 +571,14 @@ verifyOTPCode(): void {
           console.log('✅ OTP resent');
           this.otpErrorMessage = '';
           this.successMessage = 'New code sent! Check your email.';
-          
+
           // Clear the digit boxes
           this.codeDigits = ['', '', '', '', '', ''];
           for (let i = 0; i < 6; i++) {
             const box = document.getElementById(`code-${i}`) as HTMLInputElement | null;
             if (box) box.value = '';
           }
-          
+
           // Focus first box
           const first = document.getElementById('code-0') as HTMLInputElement | null;
           first?.focus();
@@ -576,7 +588,7 @@ verifyOTPCode(): void {
           this.otpErrorMessage = 'Failed to resend code. Please try again.';
         }
       });
-  } 
+  }
 
 
   // ==========================================
@@ -716,10 +728,10 @@ verifyOTPCode(): void {
   handlePaymentComplete(result: any): void {
     console.log('✅ Payment complete:', result);
     this.successMessage = result.message || 'Payment successful!';
-    
+
     // Clear form data from sessionStorage
     this.lenderFormService.clearSessionStorage();
-    
+
     // If we have a custom token from the payment response, authenticate now
     if (result.customToken) {
       this.authService.signInWithCustomToken(result.customToken)

@@ -94,8 +94,7 @@ registerUser(
         promoInternalId: null,
       };
 
-  // Build payload for createPendingUser
-  const payload = {
+    const payload = {
     email: userData.email,
     role: userData.role,
     firstName: userData.firstName,
@@ -109,12 +108,14 @@ registerUser(
     // what they typed
     promotionCode: userData.promotionCode || null,
 
-    // new fields expected by backend
+    // normalized promo metadata
+    promotionCodeApplied: promoValid === true,
     promotionCodeStatus: promoPayload.promotionCodeStatus,
     promotionCodeType: promoPayload.promotionCodeType,
     promotionCodeTerms: promoPayload.promotionCodeTerms,
     promoInternalId: promoPayload.promoInternalId,
   };
+
 
   
 return from(createPendingUserCallable(payload)).pipe(
