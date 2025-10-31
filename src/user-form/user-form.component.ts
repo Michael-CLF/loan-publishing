@@ -319,58 +319,45 @@ export class UserFormComponent implements OnInit, OnDestroy {
     }, 100);
   }
 
-  proceedToPayment(): void {
-    // we are now after OTP success
-    // pull billing interval and promo from the form
-    const intervalControl = this.userForm.get('interval')?.value || 'monthly';
-    const interval: 'monthly' | 'annually' =
-      intervalControl === 'annually' ? 'annually' : 'monthly';
+ proceedToPayment(): void {
+  // after OTP success
+  const intervalValue: 'monthly' | 'annually' =
+    this.userForm.get('interval')?.value === 'annually' ? 'annually' : 'monthly';
 
-    const promoCodeRaw = this.userForm.get('promotion_code')?.value?.trim();
-    const promotionCode = this.couponApplied && promoCodeRaw ? promoCodeRaw : undefined;
+  const promoRaw = this.userForm.get('promotion_code')?.value?.trim();
+  const promotionCode = this.couponApplied && promoRaw ? promoRaw.toUpperCase() : undefined;
+  const rawPhone = (this.userForm.get('phone')?.value || '').replace(/\D/g, '');
+  const email = this.registeredEmail;
+  const userId = this.registeredUserId;
 
-    const email = this.registeredEmail;
-    const userId = this.registeredUserId;
-
-    if (!email || !userId) {
-      console.error('Missing email or userId for Stripe checkout', { email, userId });
-      return;
-    }
-
-    this.otpIsLoading = true;
-
-    // role is fixed for this component
-    const role: 'originator' = 'originator';
-
-    this.paymentService.createCheckoutSession(
-      email,
-      role,
-      interval,
-      userId
-    )
-
-      .pipe(finalize(() => { this.otpIsLoading = false; }))
-      .subscribe({
-        next: (resp: any) => {
-          // expected resp: { url?: string; sessionId?: string; error?: string }
-          if (resp && resp.url && !resp.error) {
-            console.log('Redirecting to Stripe checkout:', resp.url);
-            this.paymentService.redirectToCheckout(resp.url);
-          } else {
-            const msg =
-              resp?.error ||
-              'Failed to create checkout session';
-            console.error('Checkout error:', msg);
-            this.otpErrorMessage = msg;
-          }
-        },
-        error: (err: any) => {
-          console.error('Checkout request failed:', err);
-          this.otpErrorMessage = err.message || 'Payment setup failed. Please try again.';
-        }
-      });
+  if (!email || !userId) {
+    console.error('Missing email or userId for Stripe checkout', { email, userId });
+    return;
   }
 
+  this.otpIsLoading = true;
+
+  const role: 'originator' = 'originator';
+
+  this.paymentService
+    .createCheckoutSession(email, role, intervalValue, userId, promotionCode, rawPhone)
+    .pipe(finalize(() => { this.otpIsLoading = false; }))
+    .subscribe({
+      next: (resp: any) => {
+        if (resp && resp.url && !resp.error) {
+          this.paymentService.redirectToCheckout(resp.url);
+        } else {
+          const msg = resp?.error || 'Failed to create checkout session';
+          console.error('Checkout error:', msg);
+          this.otpErrorMessage = msg;
+        }
+      },
+      error: (err: any) => {
+        console.error('Checkout request failed:', err);
+        this.otpErrorMessage = err?.message || 'Payment setup failed. Please try again.';
+      }
+    });
+}
   private markAllTouched(): void {
     Object.keys(this.userForm.controls).forEach(key => {
       this.userForm.get(key)?.markAsTouched();
@@ -552,63 +539,18 @@ export class UserFormComponent implements OnInit, OnDestroy {
       });
   }
 
-  private onOTPVerified(): void {
-    // values captured earlier in the flow
-    const email = this.registeredEmail;
-    const userId = this.registeredUserId;
+ private onOTPVerified(): void {
+  // rely on values captured earlier
+  const email = this.registeredEmail;
+  const userId = this.registeredUserId;
 
-    // role for this registration flow
-    // if this form is ONLY for originators leave 'originator'
-    // if this form is ONLY for lenders change to 'lender'
-    const role: 'originator' | 'lender' = 'originator';
-
-    // billing interval from the form. default to monthly.
-    const intervalControl = this.userForm.get('interval');
-    const intervalValue =
-      intervalControl && intervalControl.value === 'annually'
-        ? 'annually'
-        : 'monthly';
-
-    if (!email || !userId) {
-      console.error('onOTPVerified: missing email or userId', { email, userId });
-      this.otpErrorMessage = 'Setup error. Please restart registration.';
-      return;
-    }
-
-    // show spinner while we create Stripe checkout
-    this.otpIsLoading = true;
-
-    this.paymentService
-      .createCheckoutSession(
-        email,
-        role,
-        intervalValue,
-        userId
-      )
-      .pipe(
-        finalize(() => {
-          this.otpIsLoading = false;
-        })
-      )
-      .subscribe({
-        next: (resp: any) => {
-          if (resp && resp.url && !resp.error) {
-            // redirect browser straight to Stripe Checkout
-            this.paymentService.redirectToCheckout(resp.url);
-          } else {
-            const msg =
-              resp?.error ||
-              'Failed to create checkout session';
-            console.error('Checkout error:', msg);
-            this.otpErrorMessage = msg;
-          }
-        },
-        error: (err: any) => {
-          console.error('Checkout request failed:', err);
-          this.otpErrorMessage =
-            err?.message ||
-            'Payment setup failed. Please try again.';
-        }
-      });
+  if (!email || !userId) {
+    console.error('onOTPVerified: missing email or userId', { email, userId });
+    this.otpErrorMessage = 'Setup error. Please restart registration.';
+    return;
   }
+
+  this.currentStep = 'verifying';
+  this.proceedToPayment();  // single source of truth for checkout
+}
 }

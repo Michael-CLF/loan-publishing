@@ -39,7 +39,8 @@ createCheckoutSession(
   role: 'lender' | 'originator',
   interval: 'monthly' | 'annually',
   userId: string,
-  promotionCode?: string
+  promotionCode?: string,
+  phone?: string
 ): Observable<CreateCheckoutResponse> {
   this.isCreatingCheckout.set(true);
   this.checkoutError.set(null);
@@ -54,7 +55,8 @@ createCheckoutSession(
   // Only include if present; avoid sending an empty string
   const promo = promotionCode?.trim();
   if (promo) {
-    payload.promotion_code = promo; // backend key is snake_case
+    payload.promotion_code = promo;
+    if (phone) payload.phone = phone.replace(/\D/g, '');
   }
 
   console.info('[payment] payload', payload);
