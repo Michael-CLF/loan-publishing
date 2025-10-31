@@ -33,20 +33,7 @@ export class PaymentService {
   isCreatingCheckout = signal<boolean>(false);
   checkoutError = signal<string | null>(null);
 
-  /**
-   * createCheckoutSession
-   *
-   * Starts Stripe Checkout for this user.
-   * Do not rename this method.
-   */
- /**
- * createCheckoutSession
- *
- * Starts Stripe Checkout for this user.
- * Backend no longer accepts raw promo data here.
- * It only needs email, role, interval, and userId.
- */
-// --- replace the whole createCheckoutSession(...) method ---
+// payment.service.ts  — REPLACE THIS METHOD
 createCheckoutSession(
   email: string,
   role: 'lender' | 'originator',
@@ -61,20 +48,18 @@ createCheckoutSession(
     email: email.toLowerCase().trim(),
     role,
     interval,
-    userId
+    userData: { userId },                 // <-- required by backend
   };
   if (promotionCode && promotionCode.trim().length > 0) {
-    payload.promotionCode = promotionCode.trim();
+    payload.promotion_code = promotionCode.trim();   // <-- backend key
   }
 
-  // headers are optional; keep if you already have them defined above
   return this.http
-    .post<CreateCheckoutResponse>(this.checkoutEndpoint, payload /*, { headers }*/)
+    .post<CreateCheckoutResponse>('https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout', payload)
     .pipe(
       tap((resp) => {
         if (!resp || (resp as any).error) {
-          const msg =
-            ((resp as any)?.error as string) || 'Failed to create checkout session';
+          const msg = ((resp as any)?.error as string) || 'Failed to create checkout session';
           this.checkoutError.set(msg);
           console.error('Checkout creation failed:', msg);
         } else {
@@ -84,10 +69,7 @@ createCheckoutSession(
       }),
       map((resp) => resp),
       catchError((err) => {
-        const msg =
-          err?.error?.error ||
-          err?.message ||
-          'Failed to create checkout session';
+        const msg = err?.error?.error || err?.message || 'Failed to create checkout session';
         this.checkoutError.set(msg);
         this.isCreatingCheckout.set(false);
         console.error('Checkout HTTP error:', msg, err);
@@ -95,6 +77,8 @@ createCheckoutSession(
       })
     );
 }
+
+
 // --- end replacement ---
 
 
