@@ -1,20 +1,24 @@
-// admin-dashboard.component.ts
+// admin-dashboard.component.ts (NEW COMPLETE FILE)
+
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormsModule } from '@angular/forms';
+// 🔑 NEW: Replace FormsModule with ReactiveFormsModule for proper form handling
+import { FormsModule, ReactiveFormsModule, FormBuilder, FormGroup, Validators } from '@angular/forms'; 
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AdminStateService } from '../../../services/admin-state.service';
 import { AdminApiService } from '../../../services/admin-api.service';
 import { PromotionService } from '../../../services/promotion.service';
 import { AdminOverview } from '../../../services/admin-api.service';
-
+// 🗑️ REMOVED: FormBuilder, FormGroup, Validators import from root
+// (They are now imported from @angular/forms above)
 
 
 @Component({
   selector: 'app-admin-dashboard',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  // 🔑 NEW: Add ReactiveFormsModule to imports
+  imports: [CommonModule, FormsModule, ReactiveFormsModule], 
   templateUrl: './admin-dashboard.component.html',
   styleUrls: ['./admin-dashboard.component.css'],
 })
@@ -24,17 +28,22 @@ export class AdminDashboardComponent implements OnInit {
   private readonly adminState = inject(AdminStateService);
   private readonly adminApi = inject(AdminApiService);
   private promotionService = inject(PromotionService);
+  // 🔑 NEW: Inject FormBuilder at the class level
+  private readonly fb = inject(FormBuilder); 
 
+  // --- Login State ---
+  
+  // 🔑 NEW: Form Group for Email/Password login
+  loginForm: FormGroup; 
+  loading = signal(false); // Unified loading state
+  errorMessage = signal<string | null>(null); // New error message for login
 
-  // UI-only gate text (this is just for the UI, real validation happens server-side)
-  private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
+  // 🗑️ REMOVED: enteredCode, codeError
 
   // Auth state - using signals from AdminStateService
   adminAuthenticated = this.adminState.isAuthenticated;
-  enteredCode = '';
-  codeError = signal(false);
-
-  // +++ INSERT
+  
+  // --- Dashboard Data State ---
   overview: AdminOverview | null = null;
   overviewLoading = false;
   overviewError = '';
@@ -49,12 +58,16 @@ export class AdminDashboardComponent implements OnInit {
   totalLenders = this.adminState.totalLenders;
   totalLoans = this.adminState.totalLoans;
   activePromotions = this.adminState.activePromotions;
-  loading = this.adminState.isLoading;
+  // 🗑️ REMOVED: loading = this.adminState.isLoading;
 
+  // 🗑️ REMOVED: showCode, toggleShowCode()
 
-  showCode = false;
-  toggleShowCode(): void {
-    this.showCode = !this.showCode;
+  constructor() {
+    // 🔑 CONSTRUCTOR LOGIC: Initialize the form with Validators
+    this.loginForm = this.fb.group({
+      email: ['', [Validators.required, Validators.email]],
+      password: ['', Validators.required]
+    });
   }
 
   ngOnInit(): void {
@@ -67,23 +80,46 @@ export class AdminDashboardComponent implements OnInit {
     if (isAuth) this.refreshAdminDashboard();
   }
 
-  /** Submit admin code for verification */
+  /**
+   * 🔑 NEW LOGIN LOGIC: Signs in with Firebase and exchanges token for session cookie.
+   * This replaces the old code verification method.
+   */
   async verifyAdminCode(): Promise<void> {
-    if (!this.enteredCode) {
-      this.codeError.set(true);
-      return;
+    if (this.loginForm.invalid) {
+        this.errorMessage.set('Please enter a valid email and password.');
+        return;
     }
 
-    this.codeError.set(false);
-    const result = await this.adminState.login(this.enteredCode);
+    this.loading.set(true);
+    this.errorMessage.set(null);
 
-    if (result?.success) {
-      this.enteredCode = '';
-      this.refreshAdminDashboard();  // load data after successful auth
-    } else {
-      this.codeError.set(true);
+    try {
+        const { email, password } = this.loginForm.value;
+        
+        // Call the refactored service method with email/password
+        const loginResult = await this.adminApi.login({ email, password });
+
+        if (loginResult.ok || loginResult.success) { 
+            // 1. Refresh global state
+            await this.adminState.refresh();
+            
+            // 2. Navigate away from the login form to the dashboard
+            this.router.navigate(['/admin/dashboard']); 
+            
+            // 3. Load initial data
+            this.refreshAdminDashboard();
+        } else {
+            // Failed login (Firebase Auth or missing admin claim)
+            this.errorMessage.set(loginResult.error || loginResult.message || 'Login failed. Check your credentials and admin status.');
+        }
+    } catch (error: any) {
+        console.error('Login error:', error);
+        this.errorMessage.set(error.message || 'An unexpected network error occurred during login.');
+    } finally {
+        this.loading.set(false);
     }
   }
+
 
   /** Convenience refresher used by both paths */
   refreshAdminDashboard(): void {
@@ -139,8 +175,10 @@ export class AdminDashboardComponent implements OnInit {
    */
   async exitAdminMode(): Promise<void> {
     await this.adminState.logout();
-    this.enteredCode = '';
+    // 🗑️ REMOVED: this.enteredCode = '';
     this.router.navigate(['/dashboard']);
+    // 🔑 NEW: Clear the form on logout
+    this.loginForm.reset(); 
   }
 
   // Quick action methods

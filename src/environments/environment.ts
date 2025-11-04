@@ -9,11 +9,11 @@ export const environment = {
 
   appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw',
   adminApiBase: 'https://us-central1-loanpub.cloudfunctions.net',
-  adminBearer: 'HlOx69lTCrbRGu3UyvHFwICjLlbaokbE3GKGP-laZ9q3QA2ciuqA_vROP-MR64mR7BfFDaITXk3Tc36D5ouupA',   
-  adminExchangeCodeUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/exchange-code',
   adminCheckAuthUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/check-auth',
   adminLoginUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/login',
   adminLogoutUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/logout',
+  adminBearer: '', 
+  adminExchangeCodeUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/auth-admin',
 
   firebase: {
     apiKey: "AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas",
