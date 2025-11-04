@@ -1,4 +1,6 @@
 // lender-registration.component.ts - REFACTORED PARENT-OWNS-FORM
+// INSERT above other imports
+import { PromotionService } from '../../services/promotion.service';
 
 import {
   Component,
@@ -81,7 +83,8 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   private otpService = inject(OTPService);
   private userService = inject(UserService);
   private paymentService = inject(PaymentService);
-  private validatedPromoResult: any = null;
+  private promotionService = inject(PromotionService);
+
 
   // [(input)] handler
   onCodeDigitInput(index: number, event: any): void {
@@ -195,6 +198,20 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
   // Messages
   errorMessage = '';
   successMessage = '';
+
+  // INSERT below existing state fields
+  couponApplied = false;
+  isValidatingCoupon = false;
+  isResettingCoupon = false;
+  validatedPromoResult: any | null = null;
+  appliedCouponDetails: {
+    code: string;
+    displayCode: string;
+    discount: number;
+    discountType: 'percentage' | 'trial' | 'none';
+    description?: string;
+  } | null = null;
+
 
   // Static data - Initialize immediately to prevent undefined errors
   states: StateOption[] = [];
@@ -526,6 +543,89 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
         },
       });
   }
+
+  validateCoupon(): void {
+    if (this.isResettingCoupon) return;
+
+    const ctrl = this.contactInfoGroup?.get('promotion_code')
+      || this.lenderForm.get('promotion_code'); // parent-level fallback
+    const rawCode = ctrl?.value?.trim();
+
+    // nothing entered: clear state and exit
+    if (!rawCode) {
+      this.resetCouponState();
+      return;
+    }
+
+    // avoid parallel calls
+    if (this.isValidatingCoupon) return;
+
+    // figure out which plan the user selected (billingInterval already exists)
+    const interval: 'monthly' | 'annually' = this.billingInterval === 'annually' ? 'annually' : 'monthly';
+
+    this.isValidatingCoupon = true;
+
+    this.promotionService
+      .validatePromotionCode(rawCode, 'lender', interval)
+      .pipe(finalize(() => { this.isValidatingCoupon = false; }))
+      .subscribe({
+        next: (response: any) => {
+          if (response?.valid && response?.promo) {
+            const promo = response.promo;
+
+            this.validatedPromoResult = response; // keep full server payload
+            this.couponApplied = true;
+
+            this.appliedCouponDetails = {
+              code: promo.code,
+              displayCode: promo.code,
+              discount: promo.percentOff || 0,
+              discountType: promo.promoType, // 'percentage' | 'trial' | 'none'
+              description: promo.code
+            };
+
+            this.clearCouponErrors();
+            return;
+          }
+
+          // fallback: invalid promo
+          this.resetCouponState();
+          this.setCouponError(response?.error || 'Invalid promotion code');
+        },
+        error: () => {
+          this.resetCouponState();
+          this.setCouponError('Failed to validate promotion code. Please try again.');
+        }
+      });
+  }
+
+  private setCouponError(msg: string): void {
+    const ctrl = this.contactInfoGroup?.get('promotion_code')
+      || this.lenderForm.get('promotion_code');
+    if (!ctrl) return;
+    ctrl.setErrors({ couponError: msg });
+  }
+
+  private clearCouponErrors(): void {
+    const ctrl = this.contactInfoGroup?.get('promotion_code')
+      || this.lenderForm.get('promotion_code');
+    if (!ctrl) return;
+    ctrl.setErrors(null);
+  }
+
+  private resetCouponState(): void {
+    this.isResettingCoupon = true;
+
+    this.couponApplied = false;
+    this.appliedCouponDetails = null;
+    const ctrl = this.contactInfoGroup?.get('promotion_code')
+      || this.lenderForm.get('promotion_code');
+    ctrl?.setValue('', { emitEvent: false });
+    this.clearCouponErrors();
+
+    setTimeout(() => { this.isResettingCoupon = false; }, 100);
+  }
+
   private sendOTPCode(): void {
     const email = this.registeredEmail || this.lenderFormService.getFormSection('registrationMeta')?.email;
 
@@ -644,14 +744,14 @@ export class LenderRegistrationComponent implements OnInit, OnDestroy {
     const paymentSection: any = this.lenderFormService.getFormSection('payment');
 
     // Get a single clean promo string from any shape the child emits
-const validatedPromotionCode =
-  (this.validatedPromoResult?.promo?.code ??
-   this.validatedPromoResult?.code ??
-   paymentSection?.validatedCouponCode ??
-   paymentSection?.promotion_code ??
-   '')
-    .toString()
-    .trim();
+    const validatedPromotionCode =
+      (this.validatedPromoResult?.promo?.code ??
+        this.validatedPromoResult?.code ??
+        paymentSection?.validatedCouponCode ??
+        paymentSection?.promotion_code ??
+        '')
+        .toString()
+        .trim();
 
     console.info('[checkout] about to POST', {
       email, role, interval, userId, validatedPromotionCode

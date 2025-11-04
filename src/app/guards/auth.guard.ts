@@ -10,8 +10,8 @@ import {
 import { Observable, of, from, combineLatest } from 'rxjs';
 import { map, switchMap, take } from 'rxjs/operators';
 import { User } from '@angular/fire/auth';
-import { AuthService } from './auth.service';
-import { FirestoreService } from './firestore.service';
+import { AuthService } from '../../services/auth.service';
+import { FirestoreService } from '../../services/firestore.service';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 
 export const authGuard: CanActivateFn = (

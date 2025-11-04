@@ -13,6 +13,9 @@ import {
   PromotionOperationResponse,
   PromotionListResponse
 } from '../interfaces/promotion-code.interface';
+import { getFunctions, httpsCallable } from 'firebase/functions';
+import { from } from 'rxjs';
+
 
 @Injectable({
   providedIn: 'root'
@@ -27,6 +30,8 @@ export class PromotionService {
     (environment.functionsBaseUrl || 'https://us-central1-loanpub.cloudfunctions.net').replace(/\/+$/, '');
 
   private readonly headers = new HttpHeaders({ 'Content-Type': 'application/json' });
+  private readonly functions = getFunctions(undefined, 'us-central1');
+
 
   // Safe join helper
 // Safe join helper
@@ -40,114 +45,73 @@ private endpoint = (path: string) => `${this.functionsBase}/${path.replace(/^\/+
   }
 
   validatePromotionCode(
-    code: string,
-    role: 'originator' | 'lender',
-    interval: 'monthly' | 'annually'
-  ): Observable<PromotionValidationResponse> {
-    const cleanedCode = (code ?? '').trim().toUpperCase();
+  code: string,
+  role: 'originator' | 'lender',
+  interval: 'monthly' | 'annually'
+): Observable<PromotionValidationResponse> {
+  const cleanedCode = (code ?? '').trim().toUpperCase();
 
-    // If no code entered, treat as "no promo" and valid
-    if (!cleanedCode) {
-      return of({
-        valid: true,
-        promo: {
-          code: '',
-          promoType: 'none',
-          percentOff: null,
-          durationInMonths: null,
-          durationType: null,
-          trialDays: null,
-          onboardingFeeCents: null,
-          promoExpiresAt: null,
-          allowedIntervals: [interval],
-          allowedRoles: [role],
-          promoInternalId: null,
-        }
-      });
-    }
-
-    const request: PromotionValidationRequest = {
-      code: cleanedCode,
-      role,
-      interval
-    };
-
-    return this.http
-      .post<PromotionValidationResponse>(
-        this.endpoint('validatePromotionCode'),
-        request,
-        { headers: this.headers }
-      )
-      .pipe(
-        debounceTime(300),
-        distinctUntilChanged(),
-        shareReplay(1),
-        map((response): PromotionValidationResponse => {
-          // Backend will send a normalized shape. We just trust it.
-          // Expected success shape (example):
-          // {
-          //   valid: true,
-          //   promo: {
-          //     code: 'LENDER2025',
-          //     promoType: 'percentage' | 'trial' | 'none',
-          //     percentOff: 100,
-          //     durationInMonths: 3,
-          //     durationType: 'repeating',
-          //     trialDays: null,
-          //     onboardingFeeCents: 6900,
-          //     promoExpiresAt: 1735622400000,
-          //     allowedIntervals: ['monthly'],
-          //     allowedRoles: ['lender'],
-          //     promoInternalId: 'signed-server-token-or-id'
-          //   },
-          //   error: null
-          // }
-          //
-          // Expected failure shape (example):
-          // {
-          //   valid: false,
-          //   promo: null,
-          //   error: 'Code expired'
-          // }
-
-          if (response?.valid && response?.promo) {
-            return {
-              valid: true,
-              promo: {
-                code: response.promo.code ?? cleanedCode,
-                promoType: response.promo.promoType,
-                percentOff: response.promo.percentOff ?? null,
-                durationInMonths: response.promo.durationInMonths ?? null,
-                durationType: response.promo.durationType ?? null,
-                trialDays: response.promo.trialDays ?? null,
-                onboardingFeeCents: response.promo.onboardingFeeCents ?? null,
-                promoExpiresAt: response.promo.promoExpiresAt ?? null,
-                allowedIntervals: response.promo.allowedIntervals ?? [interval],
-                allowedRoles: response.promo.allowedRoles ?? [role],
-                promoInternalId: response.promo.promoInternalId ?? null,
-              },
-              error: null
-            };
-          }
-
-          return {
-            valid: false,
-            promo: null,
-            error: response?.error || 'Invalid promotion code'
-          };
-        }),
-        catchError((error) => {
-          console.error('Error validating promotion code:', error);
-          return of({
-            valid: false,
-            promo: null,
-            error: 'Failed to validate promotion code. Please try again.'
-          });
-        })
-      );
+  // No code entered → treat as valid “no promo”
+  if (!cleanedCode) {
+    return of({
+      valid: true,
+      promo: {
+        code: '',
+        promoType: 'none',
+        percentOff: null,
+        durationInMonths: null,
+        durationType: null,
+        trialDays: null,
+        onboardingFeeCents: null,
+        promoExpiresAt: null,
+        allowedIntervals: [interval],
+        allowedRoles: [role],
+        promoInternalId: null,
+      }
+    });
   }
 
+  const fn = httpsCallable<{ code: string; role?: 'originator' | 'lender' }, any>(
+    this.functions,
+    'validatePromo'
+  );
 
+  return from(fn({ code: cleanedCode, role })).pipe(
+    debounceTime(300),
+    distinctUntilChanged(),
+    shareReplay(1),
+    map((res): PromotionValidationResponse => {
+      const data = res?.data || {};
+      if (data?.ok === true) {
+        // Callable returns minimal fields. Fill your interface with safe defaults.
+        return {
+          valid: true,
+          promo: {
+            code: cleanedCode,
+            promoType: 'none',
+            percentOff: null,
+            durationInMonths: null,
+            durationType: null,
+            trialDays: null,
+            onboardingFeeCents: null,
+            promoExpiresAt: data.expiresAt ?? null,
+            allowedIntervals: [interval],
+            allowedRoles: Array.isArray(data.validFor) ? data.validFor : [role],
+            promoInternalId: null,
+          },
+          error: null
+        };
+      }
+      const err = data?.error || 'Invalid promotion code';
+      return { valid: false, promo: null, error: err };
+    }),
+    catchError(() => of({
+      valid: false,
+      promo: null,
+      error: 'Failed to validate promotion code. Please try again.'
+    }))
+  );
+}
   // ============================================
   // ADMIN METHODS (for admin dashboard)
   // ============================================

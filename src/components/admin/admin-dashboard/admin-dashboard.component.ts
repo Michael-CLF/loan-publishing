@@ -1,13 +1,15 @@
-// src/app/components/admin/admin-dashboard/admin-dashboard.component.ts
-
+// admin-dashboard.component.ts
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-
-import { AdminCodeService } from '../../../services/admin-code.service';
+import { AdminStateService } from '../../../services/admin-state.service';
 import { AdminApiService } from '../../../services/admin-api.service';
+import { PromotionService } from '../../../services/promotion.service';
+import { AdminOverview } from '../../../services/admin-api.service';
+
+
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -19,94 +21,151 @@ import { AdminApiService } from '../../../services/admin-api.service';
 export class AdminDashboardComponent implements OnInit {
   // Services
   private readonly router = inject(Router);
-  private readonly adminCodeSvc = inject(AdminCodeService);
+  private readonly adminState = inject(AdminStateService);
   private readonly adminApi = inject(AdminApiService);
+  private promotionService = inject(PromotionService);
 
-  // UI-only gate text (not security)
+
+  // UI-only gate text (this is just for the UI, real validation happens server-side)
   private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
 
-  // Auth state
-  adminAuthenticated = signal(false);
+  // Auth state - using signals from AdminStateService
+  adminAuthenticated = this.adminState.isAuthenticated;
   enteredCode = '';
   codeError = signal(false);
 
-  // Stats
-  totalOriginators = signal(0);
-  totalLenders = signal(0);
-  totalLoans = signal(0);
-  activePromotions = signal(0);
-  loading = signal(false);
+  // +++ INSERT
+  overview: AdminOverview | null = null;
+  overviewLoading = false;
+  overviewError = '';
 
-  ngOnInit(): void {
-    // Keep UI in sync with server session
-    this.adminCodeSvc.isAdmin$
-      .pipe(takeUntilDestroyed())
-      .subscribe(async ok => {
-        this.adminAuthenticated.set(ok);
-        if (ok) {
-          await this.loadDashboardStats();
-        }
-      });
+  promoList: any[] = [];
+  promoLoading = false;
+  promoError = '';
 
-    // Check existing HttpOnly cookie session on load
-    this.adminCodeSvc.refreshSessionStatus();
+
+  // Stats - using computed values from AdminStateService
+  totalOriginators = this.adminState.totalOriginators;
+  totalLenders = this.adminState.totalLenders;
+  totalLoans = this.adminState.totalLoans;
+  activePromotions = this.adminState.activePromotions;
+  loading = this.adminState.isLoading;
+
+
+  showCode = false;
+  toggleShowCode(): void {
+    this.showCode = !this.showCode;
   }
 
-  // Submit UI code, server sets HttpOnly cookie if valid
+  ngOnInit(): void {
+    this.checkAuthentication();
+  }
+
+  /** Check authentication status on component load */
+  private async checkAuthentication(): Promise<void> {
+    const isAuth = await this.adminState.checkAuthStatus();
+    if (isAuth) this.refreshAdminDashboard();
+  }
+
+  /** Submit admin code for verification */
   async verifyAdminCode(): Promise<void> {
-    if (!this.enteredCode || this.enteredCode !== this.adminCode) {
+    if (!this.enteredCode) {
       this.codeError.set(true);
       return;
     }
-    this.codeError.set(false);
 
-    const ok = await this.adminCodeSvc.verifyAdminCode(this.enteredCode);
-    this.adminAuthenticated.set(ok);
-    if (ok) {
-      await this.loadDashboardStats();
+    this.codeError.set(false);
+    const result = await this.adminState.login(this.enteredCode);
+
+    if (result?.success) {
+      this.enteredCode = '';
+      this.refreshAdminDashboard();  // load data after successful auth
     } else {
       this.codeError.set(true);
     }
   }
 
-  // Fetch stats from admin API (no client Firestore)
-  async loadDashboardStats(): Promise<void> {
-    this.loading.set(true);
-    try {
-      const data = await this.adminApi.getOverview();
-      this.totalOriginators.set(data.originators);
-      this.totalLenders.set(data.lenders);
-      this.totalLoans.set(data.loans);
-      this.activePromotions.set(data.activePromotions);
-    } catch (err) {
-      console.error('Error loading dashboard stats:', err);
-    } finally {
-      this.loading.set(false);
-    }
+  /** Convenience refresher used by both paths */
+  refreshAdminDashboard(): void {
+    this.loadOverview();
+    this.loadPromotions();
   }
 
-  // Navigation
-  navigateToOriginators(): void { this.router.navigate(['/admin/users']); }
-  navigateToLenders(): void { this.router.navigate(['/admin/lenders']); }
-  navigateToLoans(): void { this.router.navigate(['/admin/loans']); }
-  navigateToBilling(): void { this.router.navigate(['/admin/billing']); }
-  navigateToPayments(): void { this.router.navigate(['/admin/payments']); }
+  /** Unchanged helpers */
+  loadOverview(): void {
+    this.overviewLoading = true;
+    this.overviewError = '';
+    this.adminApi.getOverview()
+      .then(res => { this.overview = res; })
+      .catch(err => { this.overviewError = err?.message || 'Failed to load overview'; })
+      .finally(() => { this.overviewLoading = false; });
+  }
 
-  // Exit admin UI (session cookie expires server-side by TTL)
-  exitAdminMode(): void {
-    this.adminCodeSvc.clearAdminAccess();
-    this.adminAuthenticated.set(false);
+  loadPromotions(): void {
+    this.promoLoading = true;
+    this.promoError = '';
+    this.promotionService.getAllPromotionCodes()
+      .subscribe({
+        next: (res) => { this.promoList = res?.codes || []; },
+        error: (err) => { this.promoError = err?.message || 'Failed to load promotions'; },
+        complete: () => { this.promoLoading = false; }
+      });
+  }
+
+
+  // Navigation methods
+  navigateToOriginators(): void {
+    this.router.navigate(['/admin/users']);
+  }
+
+  navigateToLenders(): void {
+    this.router.navigate(['/admin/lenders']);
+  }
+
+  navigateToLoans(): void {
+    this.router.navigate(['/admin/loans']);
+  }
+
+  navigateToBilling(): void {
+    this.router.navigate(['/admin/billing']);
+  }
+
+  navigateToPayments(): void {
+    this.router.navigate(['/admin/payments']);
+  }
+
+  /**
+   * Exit admin mode and logout
+   */
+  async exitAdminMode(): Promise<void> {
+    await this.adminState.logout();
+    this.enteredCode = '';
     this.router.navigate(['/dashboard']);
   }
 
-  // Quick actions
+  // Quick action methods
   createNewPromotion(): void {
-    this.router.navigate(['/admin/billing'], { queryParams: { action: 'create' } });
+    this.router.navigate(['/admin/billing'], {
+      queryParams: { action: 'create' }
+    });
   }
+
   viewRecentPayments(): void {
-    this.router.navigate(['/admin/payments'], { queryParams: { filter: 'recent' } });
+    this.router.navigate(['/admin/payments'], {
+      queryParams: { filter: 'recent' }
+    });
   }
+
   downloadUserReport(): void {
-    this.router.navigate(['/admin/users'], { queryParams: { action: 'export' } });
+    this.router.navigate(['/admin/users'], {
+      queryParams: { action: 'export' }
+    });
+  }
+
+  /**
+   * Refresh dashboard data
+   */
+  async refreshData(): Promise<void> {
+    await this.adminState.refresh();
   }
 }

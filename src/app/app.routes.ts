@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router';
-import { authGuard } from '../services/auth.guard';
-import { AdminAuthGuard } from 'src/services/admin-auth.guard';
+import { authGuard } from '../app/guards/auth.guard';
+import { adminAuthGuard } from './guards/admin-auth.guard';
 
 export const routes: Routes = [
   // Critical path - load immediately
@@ -9,74 +9,69 @@ export const routes: Routes = [
     loadComponent: () => import('../home/home.component').then(m => m.HomeComponent),
     title: 'Home - LoanPost'
   },
-  
+
   // Authentication routes - lazy load
   {
     path: 'login',
     loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
     title: 'Login - LoanPost'
   },
-  
+
   {
     path: '__/auth/action',
     loadComponent: () => import('src/components/registration-processing/registration-processing.component')
       .then(m => m.RegistrationProcessingComponent),
     data: { skipAuth: true, isFirebaseAction: true },
   },
-  
-  // Dashboard - high priority lazy load
+
   {
-    path: 'dashboard',
-    loadComponent: () => import('../dashboard/dashboard.component').then(m => m.DashboardComponent),
-    canActivate: [authGuard],
-    title: 'Dashboard - LoanPost'
+    path: 'admin',
+    canActivate: [adminAuthGuard],
+    children: [
+      {
+        path: 'dashboard',
+        loadComponent: () =>
+          import('src/components/admin/admin-dashboard/admin-dashboard.component')
+            .then(m => m.AdminDashboardComponent),
+        title: 'Admin Dashboard - LoanPost'
+      },
+      {
+        path: 'billing',
+        canActivate: [adminAuthGuard],
+        loadComponent: () =>
+          import('src/components/admin/admin-billing/admin-billing.component')
+            .then(m => m.AdminBillingComponent),
+        title: 'Admin Billing - LoanPost'
+      },
+      {
+        path: 'users',
+        canActivate: [adminAuthGuard],
+        loadComponent: () =>
+          import('src/components/admin/admin-users/admin-users.component')
+            .then(m => m.AdminUsersComponent),
+        title: 'Admin Users - LoanPost'
+      },
+
+      {
+        path: 'lenders',
+        canActivate: [adminAuthGuard],
+        loadComponent: () =>
+          import('src/components/admin/admin-lenders/admin-lenders.component')
+            .then(m => m.AdminLendersComponent),
+        title: 'Admin Lenders - LoanPost'
+      },
+      {
+        path: 'loans',
+        canActivate: [adminAuthGuard],
+        loadComponent: () =>
+          import('src/components/admin/admin-loans/admin-loans.component')
+            .then(m => m.AdminLoansComponent),
+        title: 'Admin Loans - LoanPost'
+      },
+      { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
+    ]
   },
-{
-  path: 'admin',
-  children: [
-    {
-      path: 'dashboard',
-      loadComponent: () =>
-        import('src/components/admin/admin-dashboard/admin-dashboard.component')
-          .then(m => m.AdminDashboardComponent),
-      title: 'Admin Dashboard - LoanPost'
-    },
-    {
-      path: 'billing',
-      canActivate: [AdminAuthGuard],
-      loadComponent: () =>
-        import('src/components/admin/admin-billing/admin-billing.component')
-          .then(m => m.AdminBillingComponent),
-      title: 'Admin Billing - LoanPost'
-    },
-    {
-      path: 'users',
-      canActivate: [AdminAuthGuard],
-      loadComponent: () =>
-        import('src/components/admin/admin-users/admin-users.component')
-          .then(m => m.AdminUsersComponent),
-      title: 'Admin Users - LoanPost'
-    },
-    {
-      path: 'lenders',
-      canActivate: [AdminAuthGuard],
-      loadComponent: () =>
-        import('src/components/admin/admin-lenders/admin-lenders.component')
-          .then(m => m.AdminLendersComponent),
-      title: 'Admin Lenders - LoanPost'
-    },
-    {
-      path: 'loans',
-      canActivate: [AdminAuthGuard],
-      loadComponent: () =>
-        import('src/components/admin/admin-loans/admin-loans.component')
-          .then(m => m.AdminLoansComponent),
-      title: 'Admin Loans - LoanPost'
-    },
-    { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
-  ]
-}, 
- 
+
   {
     path: 'loan',
     loadComponent: () => import('../loan/loan.component').then(m => m.LoanComponent),
@@ -106,7 +101,7 @@ export const routes: Routes = [
     loadComponent: () => import('src/loan-matches/loan-matches.component').then(m => m.LoanMatchesComponent),
     title: 'Loan Matches - LoanPost'
   },
-  
+
   // Lender routes - lazy load
   {
     path: 'lender-registration',
@@ -157,7 +152,7 @@ export const routes: Routes = [
       .then(m => m.LenderRegSuccessModalComponent),
     title: 'Lender Registration Success - LoanPost'
   },
-  
+
   // User/Account routes - lazy load
   {
     path: 'user-form',
@@ -176,7 +171,7 @@ export const routes: Routes = [
       .then(m => m.OriginatorDetailsComponent),
     title: 'Originator Details - LoanPost'
   },
-  
+
   // Static pages - lazy load with lower priority
   {
     path: 'pricing',
@@ -198,7 +193,7 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/contact/contact.component').then(m => m.ContactComponent),
     title: 'Contact Us - LoanPost'
   },
-   {
+  {
     path: 'calculators',
     loadComponent: () => import('src/components/calculators/calculators.component').then(m => m.CalculatorsComponent),
     title: 'Calculators - LoanPost'
@@ -213,12 +208,12 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/calculators/breakeven-calculator/breakeven-calculator.component').then(m => m.BreaKevenCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'cap-rate-calculator',
     loadComponent: () => import('src/components/calculators/cap-rate-calculator/cap-rate-calculator.component').then(m => m.CapRateCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'dscr-calculator',
     loadComponent: () => import('src/components/calculators/dscr-calculator/dscr-calculator.component').then(m => m.DscrCalculatorComponent),
     title: 'Calculators - LoanPost'
@@ -228,7 +223,7 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/calculators/fix-flip-calculator/fix-flip-calculator.component').then(m => m.FixFlipCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'interest-only-calculator',
     loadComponent: () => import('src/components/calculators/interest-only-calculator/interest-only-calculator.component').then(m => m.InterestOnlyCalculatorComponent),
     title: 'Calculators - LoanPost'
@@ -243,32 +238,32 @@ export const routes: Routes = [
     loadComponent: () => import('src/components/calculators/ltv-calculator/ltv-calculator.component').then(m => m.LtvCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'loan-payment',
     loadComponent: () => import('src/components/calculators/loan-payment/loan-payment.component').then(m => m.LoanPaymentComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'mortgage-calculator',
     loadComponent: () => import('src/components/calculators/mortgage-calculator/mortgage-calculator.component').then(m => m.MortgageCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'mortgage-results',
     loadComponent: () => import('src/components/calculators/mortgage-results/mortgage-results.component').then(m => m.MortgageResultsComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'mortgage-terms',
     loadComponent: () => import('src/components/calculators/mortgage-terms/mortgage-terms.component').then(m => m.MortgageTermsComponent),
     title: 'Calculators - LoanPost'
   },
-   {
+  {
     path: 'noi-calculator',
     loadComponent: () => import('src/components/calculators/noi-calculator/noi-calculator.component').then(m => m.NoiCalculatorComponent),
     title: 'Calculators - LoanPost'
   },
-    // --- New calculators (standalone components) ---
+  // --- New calculators (standalone components) ---
   {
     path: 'amortization-schedule',
     loadComponent: () => import('src/components/calculators/amortization-schedule/amortization-schedule.component')
@@ -318,8 +313,8 @@ export const routes: Routes = [
     title: 'Calculators - LoanPost'
   },
 
-  
-  
+
+
   // Payment routes - lazy load
   {
     path: 'complete-payment',
@@ -333,7 +328,7 @@ export const routes: Routes = [
       .then(m => m.RegistrationProcessingComponent),
     title: 'Processing Registration - LoanPost'
   },
-  
+
   // Utility routes - lazy load
   {
     path: 'firebase-video',
@@ -347,7 +342,7 @@ export const routes: Routes = [
       .then(m => m.EbooksComponent),
     title: 'Ebooks - LoanPost'
   },
-  
+
   // Redirects
   {
     path: 'payment/success',
@@ -369,14 +364,14 @@ export const routes: Routes = [
     loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
     data: { authCallback: true },
   },
-  
+
   // Test routes
   {
     path: 'test-processing',
     loadComponent: () => import('src/components/registration-processing/registration-processing.component')
       .then(m => m.RegistrationProcessingComponent),
   },
-  
+
   // Wildcard - must be last
   {
     path: '**',

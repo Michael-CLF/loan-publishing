@@ -2,7 +2,7 @@ import { Injectable, inject } from '@angular/core';
 import { CanActivate, ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
 import { map, switchMap, take } from 'rxjs/operators';
 import { of } from 'rxjs';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 
 interface UserProfile { role?: 'lender' | 'originator' | 'admin' | string; }
 
