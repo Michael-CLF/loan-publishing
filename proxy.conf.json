@@ -1,20 +1,23 @@
+
 {
+  "/admin": {
+  
+    "target": "http://localhost:5001", 
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "pathRewrite": {
+    "^/admin(/.*)$": "/loanpub/us-central1/adminHttp$1"
+    }
+  },
+
   "/api/admin": {
-    "target": "http://localhost:5001",
+    "target": "http://localhost:5001", 
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
     "pathRewrite": {
       "^/api/admin": ""
-    },
-    "headers": {
-      "Origin": "http://localhost:4200"
     }
-  },
-  "/admin": {
-    "target": "https://dailyloanpost.com",
-    "secure": true,
-    "changeOrigin": true,
-    "logLevel": "info"
   }
 }
