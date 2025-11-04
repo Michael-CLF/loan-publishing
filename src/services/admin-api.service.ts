@@ -4,7 +4,6 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environments/environment';
-// Import Firebase compatibility packages
 import firebase from 'firebase/compat/app';
 import 'firebase/compat/auth'; 
 
@@ -38,12 +37,6 @@ export interface AdminAuthStatus {
     };
 }
 
-// --- NEW TYPE FOR LOGIN ---
-export interface AdminCredentials { 
-    email: string; 
-    password: string; 
-}
-
 
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
@@ -59,45 +52,48 @@ export class AdminApiService {
 
 
     /**
-     * 🔑 NEW LOGIN: Signs in with Firebase Auth and exchanges the ID Token for a Session Cookie.
+     * 🔑 NEW LOGIN: Signs in with Google Pop-up and exchanges the ID Token for a Session Cookie.
      */
-    async login(credentials: AdminCredentials): Promise<AdminLoginResponse> {
+    async login(): Promise<AdminLoginResponse> { // 🔑 NO credentials required here
         try {
-            // 1. SIGN IN with Firebase client SDK (using email/password)
-            const userCredential = await firebase.auth().signInWithEmailAndPassword(credentials.email, credentials.password);
+            // 1. INITIATE GOOGLE SIGN-IN
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const userCredential = await firebase.auth().signInWithPopup(provider);
             const user = userCredential.user;
 
             if (!user) {
-                throw new Error('Firebase sign-in failed. No user object received.');
+                throw new Error('Google Sign-in failed: No user object received.');
             }
 
             // 2. GET ID TOKEN (forcing refresh is crucial to pick up the 'admin' custom claim)
             const idToken = await user.getIdToken(true); 
 
-            // 3. EXCHANGE TOKEN for Session Cookie on the backend (using the new /auth-admin URL)
+            // 3. EXCHANGE TOKEN for Session Cookie on the backend (sends token to /auth-admin)
             const exchangeUrl = environment.adminExchangeCodeUrl; 
             
             const resp = await firstValueFrom(
                 this.http.post<AdminLoginResponse>(
                     exchangeUrl,
                     { idToken }, // Send the Firebase ID Token
-                    { withCredentials: true } // Essential for receiving the HTTP-only cookie
+                    { withCredentials: true }
                 )
             );
 
             if (resp.success) {
-                // Success: Session cookie is set by the backend
                 return { ok: true, success: true, message: 'Admin login successful.' };
             } else {
                 // Backend rejected the token (e.g., missing admin claim)
-                await firebase.auth().signOut(); // Crucial: log out the user client-side
+                await firebase.auth().signOut(); // Log out non-admin users client-side
                 throw new Error(resp.message || 'Access denied by server: Missing Admin claim.');
             }
 
         } catch (err: any) {
             console.error('[Admin login] authentication failed:', err);
-            // Handle specific Firebase errors (e.g., 'auth/user-not-found')
-            const errorMessage = err.code ? `Firebase Error: ${err.code}` : err.message || 'Login failed.';
+            // Check if error is related to popup being closed
+            const errorMessage = (err.code === 'auth/popup-closed-by-user') 
+                ? 'Sign-in window closed.'
+                : err.message || 'Login failed.';
+            
             return { ok: false, success: false, error: errorMessage };
         }
     }
