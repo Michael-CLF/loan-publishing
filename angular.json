@@ -42,12 +42,7 @@
               "src/assets",
               "src/.htaccess",
               "src/sitemap.xml",
-              "src/robots.txt",
-              {
-                "glob": "**/*",
-                "input": "public",
-                "output": "/"
-              }
+              "src/robots.txt"
             ],
             "styles": [
               "src/styles.css"
@@ -71,29 +66,14 @@
               "@firebase/messaging",
               "stripe",
               "@stripe/stripe-js",
-               "typed-usa-states/dist/states-with-counties",
+              "typed-usa-states/dist/states-with-counties",
               "lodash",
               "rxjs",
               "rxjs/operators",
               "date-fns",
               "moment"
             ],
-            "preserveSymlinks": true,
-            "extractLicenses": false,
-            "sourceMap": false,
-            "optimization": {
-              "scripts": true,
-              "styles": {
-                "minify": true,
-                "inlineCritical": true
-              },
-              "fonts": {
-                "inline": false
-              }
-            },
-            "namedChunks": true,
-            "vendorChunk": true,
-            "buildOptimizer": true
+            "preserveSymlinks": true
           },
           "configurations": {
             "production": {
@@ -125,30 +105,28 @@
                 }
               },
               "extractLicenses": true,
-              "preserveSymlinks": false
+              "preserveSymlinks": false,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.prod.ts"
+                }
+              ]
             },
             "development": {
+              "optimization": false,
+              "extractLicenses": false,
+              "sourceMap": true,
+              "namedChunks": true,
+              "vendorChunk": true,
+              "buildOptimizer": false,
+              "outputHashing": "none",
               "fileReplacements": [
                 {
                   "replace": "src/environments/environment.ts",
                   "with": "src/environments/environment.ts"
                 }
-              ],
-              "optimization": {
-                "scripts": true,
-                "styles": {
-                  "minify": true,
-                  "inlineCritical": true
-                },
-                "fonts": {
-                  "inline": false
-                }
-              },
-              "extractLicenses": true,
-              "sourceMap": false,
-              "vendorChunk": true,
-              "namedChunks": true,
-              "buildOptimizer": true
+              ]
             },
             "staging": {
               "optimization": {
@@ -165,16 +143,21 @@
               "sourceMap": false,
               "extractLicenses": true,
               "vendorChunk": true,
-              "buildOptimizer": true
+              "buildOptimizer": true,
+              "fileReplacements": [
+                {
+                  "replace": "src/environments/environment.ts",
+                  "with": "src/environments/environment.staging.ts"
+                }
+              ]
             }
           },
-          "defaultConfiguration": "production"
+          "defaultConfiguration": "development"
         },
         "serve": {
           "builder": "@angular-devkit/build-angular:dev-server",
           "options": {
             "buildTarget": "loanpost:build:development",
-            "proxyConfig": "proxy.conf.json",
             "port": 4200,
             "host": "localhost",
             "open": true,
@@ -217,12 +200,7 @@
               "src/assets",
               "src/.htaccess",
               "src/sitemap.xml",
-              "src/robots.txt",
-              {
-                "glob": "**/*",
-                "input": "public",
-                "output": "/"
-              }
+              "src/robots.txt"
             ],
             "styles": [
               "src/styles.css"
@@ -264,7 +242,7 @@
               "outputHashing": "media"
             },
             "development": {
-              "optimization": true,
+              "optimization": false,
               "sourceMap": true,
               "extractLicenses": false
             }

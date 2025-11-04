@@ -55,6 +55,7 @@ async ngOnInit(): Promise<void> {
   try {
     this.logEnvironmentInfo();
     this.setupNavigationMonitoring();
+     this.setupAuthStateManagement();
     
     // Defer non-critical operations
     if (isPlatformBrowser(this.platformId)) {
