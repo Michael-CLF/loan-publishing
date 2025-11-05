@@ -5,7 +5,7 @@
 
     <div class="code-form">
         <button (click)="verifyAdminCode()" [disabled]="loading()" class="submit-btn">
-            <span *ngIf="!loading()">Sign in with Google</span>
+            <span class="google-btn" *ngIf="!loading()">Sign in with Google</span>
             <span *ngIf="loading()">Loading...</span>
         </button>
     </div>

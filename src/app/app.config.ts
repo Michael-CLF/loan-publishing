@@ -1,5 +1,5 @@
 import { provideRouter } from '@angular/router';
-import { provideHttpClient, withInterceptors, withFetch } from '@angular/common/http';
+import { provideHttpClient } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
@@ -9,7 +9,6 @@ import { environment } from '../environments/environment';
 import { provideZoneChangeDetection } from '@angular/core';
 import { ApplicationConfig } from '@angular/core';
 import { provideFunctions, getFunctions } from '@angular/fire/functions';
-
 
 // Import all your services
 import { AuthService } from '../services/auth.service';

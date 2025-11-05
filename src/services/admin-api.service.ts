@@ -1,11 +1,12 @@
-// admin-api.service.ts (NEW COMPLETE FILE)
+// admin-api.service.ts (COMPLETE AND CORRECTED FILE)
 
-import { Injectable } from '@angular/core';
+import { Injectable, inject } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { environment } from '../environments/environment';
-import firebase from 'firebase/compat/app';
-import 'firebase/compat/auth'; 
+
+// 🔑 Use AngularFire V9 imports for Auth
+import { Auth, GoogleAuthProvider, signInWithPopup, UserCredential, signOut } from '@angular/fire/auth'; 
 
 // --- INTERFACES ---
 
@@ -20,7 +21,6 @@ export interface AdminOverview {
 }
 
 export interface AdminLoginResponse {
-    // We keep 'ok' for legacy client code, but use 'success' for the new server response
     ok: boolean; 
     success?: boolean; 
     message?: string;
@@ -40,25 +40,22 @@ export interface AdminAuthStatus {
 
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
-    
-    // This helper should point to your local Firebase Emulator (e.g., http://localhost:5001/loanpub/us-central1/adminHttp)
-    // or rely on the Angular proxy for local development.
+    // 🔑 Use 'inject' for clean dependency injection (preferred over constructor)
+    private readonly http = inject(HttpClient);
+    private readonly auth = inject(Auth); 
     private endpoint(path: string) {
         // This is primarily for routes other than login, using the Angular proxy path `/admin/`
         return `/admin/${path.replace(/^\/+/, '')}`; 
     }
 
-    constructor(private readonly http: HttpClient) { }
-
-
     /**
      * 🔑 NEW LOGIN: Signs in with Google Pop-up and exchanges the ID Token for a Session Cookie.
      */
-    async login(): Promise<AdminLoginResponse> { // 🔑 NO credentials required here
+    async login(): Promise<AdminLoginResponse> {
         try {
-            // 1. INITIATE GOOGLE SIGN-IN
-            const provider = new firebase.auth.GoogleAuthProvider();
-            const userCredential = await firebase.auth().signInWithPopup(provider);
+            // 1. INITIATE GOOGLE SIGN-IN (Using V9 imported functions)
+            const provider = new GoogleAuthProvider(); // V9 class
+            const userCredential: UserCredential = await signInWithPopup(this.auth, provider); // V9 function using injected Auth
             const user = userCredential.user;
 
             if (!user) {
@@ -69,6 +66,7 @@ export class AdminApiService {
             const idToken = await user.getIdToken(true); 
 
             // 3. EXCHANGE TOKEN for Session Cookie on the backend (sends token to /auth-admin)
+            // Use environment.adminExchangeCodeUrl, which must point to the new /auth-admin endpoint
             const exchangeUrl = environment.adminExchangeCodeUrl; 
             
             const resp = await firstValueFrom(
@@ -83,7 +81,7 @@ export class AdminApiService {
                 return { ok: true, success: true, message: 'Admin login successful.' };
             } else {
                 // Backend rejected the token (e.g., missing admin claim)
-                await firebase.auth().signOut(); // Log out non-admin users client-side
+                await signOut(this.auth); // 🔑 Use V9 function for sign out
                 throw new Error(resp.message || 'Access denied by server: Missing Admin claim.');
             }
 
@@ -104,8 +102,8 @@ export class AdminApiService {
         try {
             const resp = await firstValueFrom(
                 this.http.get<AdminAuthStatus>(
-                    this.endpoint('check-auth'), // Maps to GET /admin/check-auth on the router
-                    { withCredentials: true }   
+                    this.endpoint('check-auth'), 
+                    { withCredentials: true }   
                 )
             );
             return resp;
@@ -118,14 +116,14 @@ export class AdminApiService {
     async logout(): Promise<void> {
         try {
             await firstValueFrom(
-                this.http.post( // Changed to POST for logout
+                this.http.post( 
                     this.endpoint('logout'),
                     {},
-                    { withCredentials: true }   
+                    { withCredentials: true }   
                 )
             );
-            // Also sign out client-side for completeness
-            await firebase.auth().signOut(); 
+            // Also sign out client-side for completeness (using V9 function)
+            await signOut(this.auth); 
 
         } catch (e) {
             console.warn('Logout error (ignored):', e);
@@ -137,7 +135,7 @@ export class AdminApiService {
         const resp = await firstValueFrom(
             this.http.get<AdminOverview>(
                 this.endpoint('overview'),
-                { withCredentials: true }     
+                { withCredentials: true }     
             )
         );
         if (!resp.ok) throw new Error('Failed to fetch overview data');

@@ -45,10 +45,12 @@
 }
 
 .code-form {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    width: 15%;
+    margin: 0 auto;
+    margin-top: 40px;
 }
 
 .code-input {
@@ -71,10 +73,9 @@
   color: white;
   border: none;
   border-radius: 12px;
-  font-size: 1rem;
-  font-weight: 600;
+  font-size: 1.2rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: all 0.2s ease;
 }
 
 .submit-btn:hover {
