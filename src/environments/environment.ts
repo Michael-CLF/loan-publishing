@@ -3,17 +3,15 @@ export const environment = {
   clarityProjectId: 'tf9hb3r6wp',
   apiUrl: 'https://us-central1-loanpub.cloudfunctions.net',
 
- frontendUrl: 'https://dailyloanpost.com', 
+  frontendUrl: 'https://dailyloanpost.com', 
   stripeCheckoutUrl: 'https://us-central1-loanpub.cloudfunctions.net/createStripeCheckout',
   functionsBaseUrl: 'https://us-central1-loanpub.cloudfunctions.net',
 
   appCheckSiteKey: '6LfWCEwrAAAAABlc_Prf6WpaYX00VC0512hkSWyw',
-  adminApiBase: 'https://us-central1-loanpub.cloudfunctions.net',
+  adminApiBase: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp',
   adminCheckAuthUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/check-auth',
-  adminLoginUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/login',
-  adminLogoutUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/logout',
+
   adminBearer: '', 
-  adminExchangeCodeUrl: 'https://us-central1-loanpub.cloudfunctions.net/adminHttp/auth-admin',
 
   firebase: {
     apiKey: "AIzaSyBFDQ8pwGr40Mn92bujH1gHNoZvA6m5pas",

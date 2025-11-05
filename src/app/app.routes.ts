@@ -70,6 +70,13 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'dashboard' }
     ]
   },
+  {
+  path: 'dashboard',
+  loadComponent: () => import('src/dashboard/dashboard.component')
+    .then(m => m.DashboardComponent),
+  canActivate: [authGuard], // <-- Protects it from non-logged-in users
+  title: 'Dashboard - LoanPost'
+},
 
   {
     path: 'loan',

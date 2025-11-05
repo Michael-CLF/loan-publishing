@@ -1,13 +1,12 @@
 
 {
-  "/admin": {
-  
+  "/admin": {  
     "target": "http://localhost:5001", 
     "secure": false,
     "changeOrigin": true,
     "logLevel": "debug",
     "pathRewrite": {
-    "^/admin(/.*)$": "/loanpub/us-central1/adminHttp$1"
+    "^/admin": "/adminHttp"
     }
   },
 
