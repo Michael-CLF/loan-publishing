@@ -6,8 +6,7 @@ import { provideFirestore, getFirestore } from '@angular/fire/firestore';
 import { provideStorage, getStorage } from '@angular/fire/storage';
 import { routes } from './app.routes';
 import { environment } from '../environments/environment';
-import { provideZoneChangeDetection } from '@angular/core';
-import { ApplicationConfig } from '@angular/core';
+import { provideZoneChangeDetection, ApplicationConfig } from '@angular/core';
 import { provideFunctions, getFunctions } from '@angular/fire/functions';
 
 // Import all your services
@@ -24,16 +23,14 @@ import { UserService } from '../services/user.service';
 import { LoanTypeService } from '../services/loan-type.service';
 import { adminAuthInterceptorProvider } from '../app/interceptors/auth.interceptor';
 
-
-// --- Inside appConfig ---
 export const appConfig: ApplicationConfig = {
   providers: [
+    // Core Angular providers
+    provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideRouter(routes),
     provideHttpClient(),
     adminAuthInterceptorProvider,
-  
-
-    provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
+    
     // Firebase providers
     provideFirebaseApp(() => {
       console.log('Firebase config:', environment.firebase);
@@ -45,12 +42,17 @@ export const appConfig: ApplicationConfig = {
     provideStorage(() => getStorage()),
     provideFunctions(() => getFunctions()),
     
-        
-    // All services
+    // Application services
     AuthService,
     AppCheckService,
     FirestoreService,
     ModalService,
     UserService,
+    LenderService,
+    LoanService,
+    EmailNotificationService,
+    LocationService,
+    LoanTypeService,
+    NotificationPreferencesService,
   ],
 };

@@ -133,17 +133,37 @@ async loadUserData(user: User): Promise<void> {
   this.error = null;
 
   try {
-    // ✅ Use the existing auth service method that properly checks both collections
+    // 1. Attempt to fetch the user profile document (returns null if missing)
     const userProfile = await firstValueFrom(this.authService.getUserProfile());
 
+    // --- START FIX FOR ADMIN/MISSING DOCUMENT ---
     if (!userProfile) {
-      throw new Error('User document does not exist');
+      // ✅ FIX: Admin Case (Document does not exist in Firestore)
+      console.warn('NavbarComponent - User document missing. Assuming Admin or un-onboarded user.');
+      
+      // Populate userData using ONLY Firebase Auth details (guaranteed to exist)
+      this.userData = {
+        id: user.uid,
+        email: user.email || 'Admin', // Fallback email
+        accountNumber: user.uid.substring(0, 8),
+        role: 'admin', // Default admin role for display purposes
+      };
+      
+      this.userRole = 'admin'; // Set the role for conditional display
+      
+      // Stop execution and exit the function gracefully to prevent running the normal user logic
+      this.loading = false;
+      return; // <-- THIS IS CRITICAL TO STOP THE FUNCTION
     }
+    // --- END FIX FOR ADMIN/MISSING DOCUMENT ---
 
-    // ✅ Set account number
+
+    // 2. Normal User Case (User document exists in Firestore)
+
+    // Set account number
     this.accountNumber = user.uid.substring(0, 8);
 
-    // ✅ Handle nested contactInfo structure like we did in dashboard
+    // Handle nested contactInfo structure and populate userData
     this.userData = {
       id: userProfile.id,
       email: userProfile['contactInfo']?.contactEmail || userProfile.email || user.email || '',
@@ -157,7 +177,7 @@ async loadUserData(user: User): Promise<void> {
       accountNumber: this.accountNumber,
     };
 
-    // ✅ Set userRole from the Firestore data
+    // Set userRole from the Firestore data
     this.userRole = userProfile.role || null;
 
     console.log('NavbarComponent - Final userData:', this.userData);
@@ -165,7 +185,8 @@ async loadUserData(user: User): Promise<void> {
     console.log('NavbarComponent - Original userProfile:', userProfile);
 
   } catch (error) {
-    console.error('NavbarComponent - Error loading user:', error);
+    // This catches actual errors (network issues, permissions, etc.)
+    console.error('NavbarComponent - Error loading user profile:', error);
     this.error = 'Error loading profile';
     this.userData = {
       id: user.uid || '',
@@ -174,10 +195,10 @@ async loadUserData(user: User): Promise<void> {
     };
     this.userRole = null;
   } finally {
+    // This runs after both successful paths or the catch block
     this.loading = false;
   }
-}
-       
+}      
 
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';

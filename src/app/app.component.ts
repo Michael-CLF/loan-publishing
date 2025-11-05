@@ -5,6 +5,7 @@ import {
   Router,
   NavigationStart,
   NavigationEnd,
+   NavigationError,
 } from '@angular/router';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
@@ -148,44 +149,51 @@ async ngOnInit(): Promise<void> {
       });
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Extract navigation monitoring with proper cleanup
-   */
-  private setupNavigationMonitoring(): void {
-    this.router.events
-      .pipe(
-        filter(
-          (event) =>
-            event instanceof NavigationStart || event instanceof NavigationEnd
-        ),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((event) => {
-        if (event instanceof NavigationStart) {
-          console.log('🧭 Navigation starting to:', event.url);
-          if (isPlatformBrowser(this.platformId)) {
-            console.log(
-              '📍 Redirect URL in storage:',
-              localStorage.getItem('redirectUrl')
-            );
+ private setupNavigationMonitoring(): void {
+  this.router.events
+    .pipe(
+      filter(
+        (event) =>
+          event instanceof NavigationStart || 
+          event instanceof NavigationEnd ||
+          event instanceof NavigationError // ⬅️ ADD THIS
+      ),
+      takeUntil(this.destroy$)
+    )
+    .subscribe((event) => {
+      if (event instanceof NavigationStart) {
+        console.log('🧭 Navigation starting to:', event.url);
+        console.log('[Router] Navigation started to:', event.url); // ⬅️ ADD THIS for debugging
+        if (isPlatformBrowser(this.platformId)) {
+          console.log(
+            '📍 Redirect URL in storage:',
+            localStorage.getItem('redirectUrl')
+          );
+        }
+      }
+
+      if (event instanceof NavigationEnd) {
+        console.log('✅ Navigation completed to:', event.url);
+        console.log('[Router] Navigation ended at:', event.url); // ⬅️ ADD THIS for debugging
+
+        if (isPlatformBrowser(this.platformId)) {
+          // Clear the redirectUrl after successful navigation
+          const storedRedirectUrl = localStorage.getItem('redirectUrl');
+          if (event.url === storedRedirectUrl) {
+            console.log('🗑️ Clearing redirect URL from storage');
+            localStorage.removeItem('redirectUrl');
           }
         }
+      }
 
-        if (event instanceof NavigationEnd) {
-          console.log('✅ Navigation completed to:', event.url);
-
-          if (isPlatformBrowser(this.platformId)) {
-            // Clear the redirectUrl after successful navigation
-            const storedRedirectUrl = localStorage.getItem('redirectUrl');
-            if (event.url === storedRedirectUrl) {
-              console.log('🗑️ Clearing redirect URL from storage');
-              localStorage.removeItem('redirectUrl');
-            }
-          }
-        }
-      });
-  }
-
+      // ⬅️ ADD THIS ENTIRE BLOCK
+      if (event instanceof NavigationError) {
+        console.error('❌ Navigation error:', event.error);
+        console.error('[Router] Navigation error:', event.error);
+        console.error('Failed URL:', event.url);
+      }
+    });
+}
   /**
    * ✅ Angular 18 Best Practice: Helper method for route checking
    */
