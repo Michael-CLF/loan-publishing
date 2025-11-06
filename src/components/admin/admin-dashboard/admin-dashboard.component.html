@@ -3,12 +3,6 @@
         {{ error }}
     </div>
 
-    <div class="code-form">
-        <button (click)="verifyAdminCode()" [disabled]="loading()" class="submit-btn">
-            <span class="google-btn" *ngIf="!loading()">Sign in with Google</span>
-            <span *ngIf="loading()">Loading...</span>
-        </button>
-    </div>
 
 <!-- Admin Dashboard Content -->
 <div *ngIf="adminAuthenticated()" class="dashboard-content">

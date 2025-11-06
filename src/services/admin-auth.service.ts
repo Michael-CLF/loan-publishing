@@ -45,10 +45,7 @@ export class AdminAuthService {
       console.log('Admin auth state updated:', user?.email || 'No user');
     });
   }
-
   /**
-   * Exchange authorization code for Firebase custom token
-   * This is called after admin enters the admin code
    * 
    * @param code The admin authorization code
    * @returns Observable with the authentication result
@@ -60,10 +57,7 @@ exchangeCodeForToken(code: string): Observable<{ ok: boolean }> {
     { withCredentials: true } // receive Set-Cookie
   );
 }
-  /**
-   * Verify if current session is still valid
-   * Calls the check-auth endpoint
-   */
+ 
   checkAuthStatus(): Observable<boolean> {
     const checkUrl = environment.adminCheckAuthUrl;
     
@@ -92,10 +86,7 @@ exchangeCodeForToken(code: string): Observable<{ ok: boolean }> {
     );
   }
 
-  /**
-   * Admin logout
-   * Signs out from Firebase and clears local state
-   */
+ 
   logout(): Observable<void> {
     console.log('Admin logging out...');
     
@@ -115,24 +106,14 @@ exchangeCodeForToken(code: string): Observable<{ ok: boolean }> {
     );
   }
 
-  /**
-   * Get current admin user synchronously
-   */
   getCurrentAdmin(): User | null {
     return this.auth.currentUser;
   }
 
-  /**
-   * Get admin user ID
-   */
   getAdminUid(): string | null {
     return this.auth.currentUser?.uid || null;
   }
 
-  /**
-   * Refresh the current user's ID token
-   * Useful for keeping sessions alive
-   */
   refreshToken(): Observable<string | null> {
     const currentUser = this.auth.currentUser;
     
@@ -146,27 +127,6 @@ exchangeCodeForToken(code: string): Observable<{ ok: boolean }> {
         console.error('Token refresh failed:', error);
         return of(null);
       })
-    );
-  }
-
-  /**
-   * Check if user has admin claims
-   * This checks the custom claims on the ID token
-   */
-  hasAdminClaim(): Observable<boolean> {
-    const currentUser = this.auth.currentUser;
-    
-    if (!currentUser) {
-      return of(false);
-    }
-
-    return from(currentUser.getIdTokenResult()).pipe(
-      map(idTokenResult => {
-        const claims = idTokenResult.claims;
-        // Check for admin claim (adjust based on your setup)
-        return claims['admin'] === true || claims['role'] === 'admin';
-      }),
-      catchError(() => of(false))
     );
   }
 }

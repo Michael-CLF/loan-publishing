@@ -1,11 +1,11 @@
-import { Component, OnInit, OnDestroy, inject, NgZone, PLATFORM_ID } from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   RouterOutlet,
   Router,
   NavigationStart,
   NavigationEnd,
-   NavigationError,
+  NavigationError,
 } from '@angular/router';
 import { HeaderComponent } from '../header/header.component';
 import { FooterComponent } from '../footer/footer.component';
@@ -13,7 +13,7 @@ import { NavbarComponent } from '../navbar/navbar.component';
 import { environment } from '../environments/environment';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
-import { Auth, User } from '@angular/fire/auth';
+import { Auth, setPersistence, browserLocalPersistence, User } from '@angular/fire/auth';
 import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
@@ -47,40 +47,50 @@ export class AppComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-   constructor(private clarityService: ClarityService) {}
+  constructor(private clarityService: ClarityService) { }
   title = 'Daily Loan Post';
   isRoleSelectionModalOpen = false;
   isAppInitialized = false;
 
-async ngOnInit(): Promise<void> {
-  try {
-    this.logEnvironmentInfo();
-    this.setupNavigationMonitoring();
-     this.setupAuthStateManagement();
-    
-    // Defer non-critical operations
-    if (isPlatformBrowser(this.platformId)) {
-      // Skip auth initialization for home page
-      const currentUrl = this.router.url;
-      if (currentUrl === '/' || currentUrl === '/home' || currentUrl === '') {
-        console.log('On home page, skipping auth initialization');
-      } else {
-        this.logFirebaseAuthStatus();
-        this.authService.initAuthPersistence();
-      }
-      
-      // Clarity loads after 5 seconds as already set
-      setTimeout(() => {
-        this.clarityService.initializeClarity();
-      }, 5000);
+  async initAuthPersistence(): Promise<void> {
+    try {
+      // CRITICAL: Set the persistence to local storage so the session survives refresh
+      await setPersistence(this.auth, browserLocalPersistence);
+      console.log('✅ Firebase Auth Persistence set to browserLocalPersistence.');
+    } catch (error) {
+      console.error('❌ Failed to set Firebase persistence:', error);
     }
-
-    this.isAppInitialized = true;
-  } catch (error) {
-    console.error('Error during app initialization:', error);
-    this.isAppInitialized = true;
   }
-}
+
+  async ngOnInit(): Promise<void> {
+    try {
+      this.logEnvironmentInfo();
+      this.setupNavigationMonitoring();
+      this.setupAuthStateManagement();
+
+      // Defer non-critical operations
+      if (isPlatformBrowser(this.platformId)) {
+        // Skip auth initialization for home page
+        const currentUrl = this.router.url;
+        if (currentUrl === '/' || currentUrl === '/home' || currentUrl === '') {
+          console.log('On home page, skipping auth initialization');
+        } else {
+          this.logFirebaseAuthStatus();
+          await this.initAuthPersistence()
+        }
+
+        // Clarity loads after 5 seconds as already set
+        setTimeout(() => {
+          this.clarityService.initializeClarity();
+        }, 5000);
+      }
+
+      this.isAppInitialized = true;
+    } catch (error) {
+      console.error('Error during app initialization:', error);
+      this.isAppInitialized = true;
+    }
+  }
 
   ngOnDestroy(): void {
     // ✅ Angular 18 Best Practice: Proper cleanup
@@ -105,7 +115,6 @@ async ngOnInit(): Promise<void> {
       );
     }
   }
-  // ✅ REPLACE your setupAuthStateManagement method with this simplified version:
   private setupAuthStateManagement(): void {
     // Check auth state and handle basic redirects
     this.authService.authReady$
@@ -121,15 +130,31 @@ async ngOnInit(): Promise<void> {
         if (!isPlatformBrowser(this.platformId)) {
           return; // Skip localStorage operations on server
         }
+        if (this.router.url.includes('/admin')) {
+          if (!isLoggedIn) {
+            console.log('🚫 Admin route requires authentication');
+            localStorage.setItem('redirectUrl', this.router.url);
+            this.router.navigate(['/login']);
+          }
+          return; // Don't process further for admin routes
+        }
 
-        // ✅ Simple redirect logic for authenticated users
         if (isLoggedIn) {
-          // If user is on any public page, redirect to dashboard
+          // Never interfere with admin routes
+          if (this.router.url.startsWith('/admin')) return;
+
+          // If a post-login redirect is pending, do nothing
+          const pendingNext =
+            localStorage.getItem('postLoginNext') ||
+            localStorage.getItem('redirectUrl');
+          if (pendingNext) return;
+
+          // Otherwise only collapse public pages to the user dashboard
           if (this.isPublicRoute(this.router.url)) {
-            console.log('🔄 Authenticated user on public page, redirecting to dashboard');
             this.router.navigate(['/dashboard']);
           }
         }
+
         // If user is not logged in and needs auth, redirect to login
         else if (!isLoggedIn && !this.isPublicRoute(this.router.url)) {
           console.log('🚫 User not authenticated, redirecting to login');
@@ -149,51 +174,51 @@ async ngOnInit(): Promise<void> {
       });
   }
 
- private setupNavigationMonitoring(): void {
-  this.router.events
-    .pipe(
-      filter(
-        (event) =>
-          event instanceof NavigationStart || 
-          event instanceof NavigationEnd ||
-          event instanceof NavigationError // ⬅️ ADD THIS
-      ),
-      takeUntil(this.destroy$)
-    )
-    .subscribe((event) => {
-      if (event instanceof NavigationStart) {
-        console.log('🧭 Navigation starting to:', event.url);
-        console.log('[Router] Navigation started to:', event.url); // ⬅️ ADD THIS for debugging
-        if (isPlatformBrowser(this.platformId)) {
-          console.log(
-            '📍 Redirect URL in storage:',
-            localStorage.getItem('redirectUrl')
-          );
-        }
-      }
-
-      if (event instanceof NavigationEnd) {
-        console.log('✅ Navigation completed to:', event.url);
-        console.log('[Router] Navigation ended at:', event.url); // ⬅️ ADD THIS for debugging
-
-        if (isPlatformBrowser(this.platformId)) {
-          // Clear the redirectUrl after successful navigation
-          const storedRedirectUrl = localStorage.getItem('redirectUrl');
-          if (event.url === storedRedirectUrl) {
-            console.log('🗑️ Clearing redirect URL from storage');
-            localStorage.removeItem('redirectUrl');
+  private setupNavigationMonitoring(): void {
+    this.router.events
+      .pipe(
+        filter(
+          (event) =>
+            event instanceof NavigationStart ||
+            event instanceof NavigationEnd ||
+            event instanceof NavigationError // ⬅️ ADD THIS
+        ),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((event) => {
+        if (event instanceof NavigationStart) {
+          console.log('🧭 Navigation starting to:', event.url);
+          console.log('[Router] Navigation started to:', event.url);
+          if (isPlatformBrowser(this.platformId)) {
+            console.log(
+              '📍 Redirect URL in storage:',
+              localStorage.getItem('redirectUrl')
+            );
           }
         }
-      }
 
-      // ⬅️ ADD THIS ENTIRE BLOCK
-      if (event instanceof NavigationError) {
-        console.error('❌ Navigation error:', event.error);
-        console.error('[Router] Navigation error:', event.error);
-        console.error('Failed URL:', event.url);
-      }
-    });
-}
+        if (event instanceof NavigationEnd) {
+          console.log('✅ Navigation completed to:', event.url);
+          console.log('[Router] Navigation ended at:', event.url); // ⬅️ ADD THIS for debugging
+
+          if (isPlatformBrowser(this.platformId)) {
+            // Clear the redirectUrl after successful navigation
+            const storedRedirectUrl = localStorage.getItem('redirectUrl');
+            if (event.url === storedRedirectUrl) {
+              console.log('🗑️ Clearing redirect URL from storage');
+              localStorage.removeItem('redirectUrl');
+            }
+          }
+        }
+
+        // ⬅️ ADD THIS ENTIRE BLOCK
+        if (event instanceof NavigationError) {
+          console.error('❌ Navigation error:', event.error);
+          console.error('[Router] Navigation error:', event.error);
+          console.error('Failed URL:', event.url);
+        }
+      });
+  }
   /**
    * ✅ Angular 18 Best Practice: Helper method for route checking
    */

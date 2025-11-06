@@ -61,42 +61,42 @@ export class NavbarComponent implements OnInit, OnDestroy {
 
   private authSubscription!: Subscription;
 
-async ngOnInit(): Promise<void> {
-  console.log('NavbarComponent - Initializing');
-  
-  // ✅ Set initial loading state
-  this.loading = true;
+  async ngOnInit(): Promise<void> {
+    console.log('NavbarComponent - Initializing');
 
-  // ✅ Subscribe to auth state changes first - same structure you have
-  this.authSubscription = this.authService.isLoggedIn$.subscribe(
-    async (loggedIn) => {
-      console.log('NavbarComponent - Auth state changed:', loggedIn);
-      this.isLoggedIn = loggedIn;
-      
-      if (loggedIn) {
-        // ✅ User is logged in, load their data using your existing method
-        try {
-          const userProfile: User | null = await firstValueFrom(
-            this.authService.getCurrentFirebaseUser()
-          );
+    // ✅ Set initial loading state
+    this.loading = true;
 
-          if (userProfile) {
-            await this.loadUserData(userProfile); // ✅ Use your existing method
+    // ✅ Subscribe to auth state changes first - same structure you have
+    this.authSubscription = this.authService.isLoggedIn$.subscribe(
+      async (loggedIn) => {
+        console.log('NavbarComponent - Auth state changed:', loggedIn);
+        this.isLoggedIn = loggedIn;
+
+        if (loggedIn) {
+          // ✅ User is logged in, load their data using your existing method
+          try {
+            const userProfile: User | null = await firstValueFrom(
+              this.authService.getCurrentFirebaseUser()
+            );
+
+            if (userProfile) {
+              await this.loadUserData(userProfile); // ✅ Use your existing method
+            }
+          } catch (err) {
+            console.error('NavbarComponent - Error retrieving user profile:', err);
+            this.loading = false;
           }
-        } catch (err) {
-          console.error('NavbarComponent - Error retrieving user profile:', err);
+        } else {
+          // ✅ User is not logged in, clear data
+          this.userData = null;
+          this.accountNumber = '';
+          this.userRole = null;
           this.loading = false;
         }
-      } else {
-        // ✅ User is not logged in, clear data
-        this.userData = null;
-        this.accountNumber = '';
-        this.userRole = null;
-        this.loading = false;
       }
-    }
-  );
-}
+    );
+  }
 
   ngOnDestroy(): void {
     this.authSubscription?.unsubscribe();
@@ -128,77 +128,70 @@ async ngOnInit(): Promise<void> {
     }
   }
 
-async loadUserData(user: User): Promise<void> {
-  this.loading = true;
-  this.error = null;
+  // src/app/components/navbar/navbar.component.ts (loadUserData function)
 
-  try {
-    // 1. Attempt to fetch the user profile document (returns null if missing)
-    const userProfile = await firstValueFrom(this.authService.getUserProfile());
+  async loadUserData(user: User): Promise<void> {
+    this.loading = true;
+    this.error = null;
 
-    // --- START FIX FOR ADMIN/MISSING DOCUMENT ---
-    if (!userProfile) {
-      // ✅ FIX: Admin Case (Document does not exist in Firestore)
-      console.warn('NavbarComponent - User document missing. Assuming Admin or un-onboarded user.');
-      
-      // Populate userData using ONLY Firebase Auth details (guaranteed to exist)
+    try {
+  
+      const userProfile = await firstValueFrom(this.authService.getUserProfile());
+      if (!userProfile) {
+        console.warn('NavbarComponent - User document missing. Assuming Admin or un-onboarded user.');
+
+        this.userData = {
+          id: user.uid,
+          email: user.email || 'Admin',
+          accountNumber: user.uid.substring(0, 8),
+          role: 'admin',
+        };
+
+        this.userRole = 'admin';
+        this.loading = false;
+        return;
+      }
+
+      // Set account number
+      this.accountNumber = user.uid.substring(0, 8);
+
+      // Handle nested contactInfo structure and populate userData
       this.userData = {
-        id: user.uid,
-        email: user.email || 'Admin', // Fallback email
-        accountNumber: user.uid.substring(0, 8),
-        role: 'admin', // Default admin role for display purposes
+        id: userProfile.id,
+        email: userProfile['contactInfo']?.contactEmail || userProfile.email || user.email || '',
+        firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
+        lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
+        phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
+        city: userProfile['contactInfo']?.city || userProfile.city || '',
+        state: userProfile['contactInfo']?.state || userProfile.state || '',
+        company: userProfile['contactInfo']?.company || userProfile.company || '',
+        role: userProfile.role || '',
+        accountNumber: this.accountNumber,
       };
-      
-      this.userRole = 'admin'; // Set the role for conditional display
-      
-      // Stop execution and exit the function gracefully to prevent running the normal user logic
+
+      // Set userRole from the Firestore data
+      this.userRole = userProfile.role || null;
+
+      console.log('NavbarComponent - Final userData:', this.userData);
+      console.log('NavbarComponent - userRole set to:', this.userRole);
+      console.log('NavbarComponent - Original userProfile:', userProfile);
+
+    } catch (error) {
+      // This catches actual errors (network issues, permissions, etc.)
+      console.error('NavbarComponent - Error loading user profile:', error);
+      this.error = 'Error loading profile';
+      this.userData = {
+        id: user.uid || '',
+        email: user.email || 'Unknown email',
+        accountNumber: user.uid?.substring(0, 8) || '',
+      };
+      this.userRole = null;
+    } finally {
+      // This runs after both successful paths or the catch block
       this.loading = false;
-      return; // <-- THIS IS CRITICAL TO STOP THE FUNCTION
     }
-    // --- END FIX FOR ADMIN/MISSING DOCUMENT ---
-
-
-    // 2. Normal User Case (User document exists in Firestore)
-
-    // Set account number
-    this.accountNumber = user.uid.substring(0, 8);
-
-    // Handle nested contactInfo structure and populate userData
-    this.userData = {
-      id: userProfile.id,
-      email: userProfile['contactInfo']?.contactEmail || userProfile.email || user.email || '',
-      firstName: userProfile['contactInfo']?.firstName || userProfile.firstName || '',
-      lastName: userProfile['contactInfo']?.lastName || userProfile.lastName || '',
-      phone: userProfile['contactInfo']?.contactPhone || userProfile.phone || '',
-      city: userProfile['contactInfo']?.city || userProfile.city || '',
-      state: userProfile['contactInfo']?.state || userProfile.state || '',
-      company: userProfile['contactInfo']?.company || userProfile.company || '',
-      role: userProfile.role || '',
-      accountNumber: this.accountNumber,
-    };
-
-    // Set userRole from the Firestore data
-    this.userRole = userProfile.role || null;
-
-    console.log('NavbarComponent - Final userData:', this.userData);
-    console.log('NavbarComponent - userRole set to:', this.userRole);
-    console.log('NavbarComponent - Original userProfile:', userProfile);
-
-  } catch (error) {
-    // This catches actual errors (network issues, permissions, etc.)
-    console.error('NavbarComponent - Error loading user profile:', error);
-    this.error = 'Error loading profile';
-    this.userData = {
-      id: user.uid || '',
-      email: user.email || 'Unknown email',
-      accountNumber: user.uid?.substring(0, 8) || '',
-    };
-    this.userRole = null;
-  } finally {
-    // This runs after both successful paths or the catch block
-    this.loading = false;
   }
-}      
+
 
   formatPhoneNumber(phone?: string): string {
     if (!phone) return '';

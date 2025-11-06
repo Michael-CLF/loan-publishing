@@ -36,52 +36,48 @@ export const authGuard: CanActivateFn = (
     return of(true);
   }
 
-  // 3. Check Firebase auth first
-  return auth.getCurrentFirebaseUser().pipe(
-    take(1),
-    switchMap((user: User | null) => {
-      // Not logged in at all -> go to /login, not /pricing
-      if (!user?.uid) {
-        localStorage.setItem('redirectUrl', url);
-        return of(router.parseUrl('/login'));
-      }
+ // 3. Check Firebase auth first
+return auth.getCurrentFirebaseUser().pipe(
+  take(1),
+  switchMap((user: User | null) => {
+    // Not logged in at all -> go to /login
+    if (!user?.uid) {
+      localStorage.setItem('redirectUrl', url);
+      return of(router.parseUrl('/login'));
+    }
 
-      const uid = user.uid;
+    const uid = user.uid;
+    const adminRef = doc(firestore, `admins/${uid}`);
+    const lenderRef = doc(firestore, `lenders/${uid}`);
+    const originatorRef = doc(firestore, `originators/${uid}`);
 
-      // 4. Look up profile in lenders OR originators
-      const lenderRef = doc(firestore, `lenders/${uid}`);
-      const originatorRef = doc(firestore, `originators/${uid}`);
+    return combineLatest([
+      from(getDoc(lenderRef)),
+      from(getDoc(originatorRef)),
+      from(getDoc(adminRef)),
+    ]).pipe(
+      take(1),
+      map(([lenderSnap, originatorSnap, adminSnap]) => {
+        // Admin found: allow access and skip subscription checks
+        if (adminSnap.exists()) return true;
 
-      return combineLatest([
-        from(getDoc(lenderRef)),
-        from(getDoc(originatorRef))
-      ]).pipe(
-        take(1),
-        map(([lenderSnap, originatorSnap]) => {
-          const profile: any =
-            lenderSnap.exists() ? lenderSnap.data() :
-              originatorSnap.exists() ? originatorSnap.data() :
-                null;
+        const profile: any =
+          lenderSnap.exists() ? lenderSnap.data() :
+          originatorSnap.exists() ? originatorSnap.data() :
+          null;
 
-          // No profile at all -> they never onboarded -> pricing
-          if (!profile) {
-            return router.parseUrl('/pricing');
-          }
+        if (!profile) return router.parseUrl('/pricing');
 
-          const status = profile.subscriptionStatus;
+        const status = profile.subscriptionStatus;
+        const allowedStatuses = ['active', 'grandfathered', 'trial'];
 
-          const allowedStatuses = ['active', 'grandfathered', 'trial'];
-
-          // Allowed -> let them in
-          if (allowedStatuses.includes(status)) {
-            return true;
-          }
-
-          // Not allowed (pending, cancelled, etc.) -> pricing
-          return router.parseUrl('/pricing');
-        })
-      );
-
-    })
-  );
-};
+        // Allowed -> let them in; otherwise -> pricing
+        return allowedStatuses.includes(status)
+          ? true
+          : router.parseUrl('/pricing');
+      })
+    );
+  })
+);
+}
+  
