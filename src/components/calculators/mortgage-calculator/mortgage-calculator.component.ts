@@ -10,7 +10,7 @@ import { MortgageService } from '../../../services/mortgage.service';
 import { MortgageResult } from '../../../models/mortgage.model';
 import { MortgageResultsComponent } from '../mortgage-results/mortgage-results.component';
 import { ModalService } from '../../../services/modal.service';
-import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
+import { RoleSelectionModalComponent } from '../../../modals/role-selection-modal/role-selection-modal.component';
 
 
 @Component({

@@ -9,8 +9,8 @@ import {
 import { Router, NavigationStart } from '@angular/router';
 import { filter, Subscription } from 'rxjs';
 import { LoanSuccessModalComponent } from '../components/loan-success-modal/loan-success-modal.component';
-import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
-import { UserRole } from '../role-selection-modal/role-selection-modal.component';
+import { RoleSelectionModalComponent } from '../modals/role-selection-modal/role-selection-modal.component';
+import { UserRole } from '../modals/role-selection-modal/role-selection-modal.component';
 import { LenderRegSuccessModalComponent } from '../modals/lender-reg-success-modal/lender-reg-success-modal.component';
 import { UserRegSuccessModalComponent } from '../modals/user-reg-success-modal/user-reg-success-modal.component';
 import { DeleteAccountModalComponent } from '../modals/delete-account-modal/delete-account-modal.component';

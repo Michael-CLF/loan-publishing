@@ -8,7 +8,7 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { ModalService } from '../../../services/modal.service';
-import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
+import { RoleSelectionModalComponent } from '../../../modals/role-selection-modal/role-selection-modal.component';
 
 @Component({
   selector: 'app-balloon-calc',

@@ -1,11 +1,11 @@
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute } from '@angular/router';
-import { LoanService } from '../services/loan.service';
-import { LenderService, Lender } from '../services/lender.service';
-import { Loan, LoanUtils, PropertySubcategoryValue } from '../models/loan-model.model';
-import { StateMigrationService } from '../services/update-states';
-import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
+import { LoanService } from '../../services/loan.service';
+import { LenderService, Lender } from '../../services/lender.service';
+import { Loan, LoanUtils, PropertySubcategoryValue } from '../../models/loan-model.model';
+import { StateMigrationService } from '../../services/update-states';
+import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';
 import { Router } from '@angular/router';
 
 interface MatchedLender {

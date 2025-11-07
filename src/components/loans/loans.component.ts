@@ -23,7 +23,7 @@ import {
   getDoc,
   where,
 } from '@angular/fire/firestore';
-import { PropertyFilterComponent } from '../../property-filter/property-filter.component';
+import { PropertyFilterComponent } from '../property-filter/property-filter.component';
 import { LOAN_TYPES } from '../../shared/constants/loan-constants';
 import { FirestoreService } from 'src/services/firestore.service';
 import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';

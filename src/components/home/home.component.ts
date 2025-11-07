@@ -4,12 +4,12 @@ import { Router, ActivatedRoute } from '@angular/router';
 import {
   RoleSelectionModalComponent,
   UserRole,
-} from '../role-selection-modal/role-selection-modal.component';
-import { UserRoleService } from '../services/user-role.service';
+} from '../../modals/role-selection-modal/role-selection-modal.component';
+import { UserRoleService } from '../../services/user-role.service';
 import { ModalService } from 'src/services/modal.service';
-import { FirebaseVideoComponent } from '../components/firebase-video/firebase-video.component';
+import { FirebaseVideoComponent } from '../firebase-video/firebase-video.component';
 import { isPlatformBrowser } from '@angular/common';
-import { AnalyticsService } from '../services/analytics.service'
+import { AnalyticsService } from '../../services/analytics.service'
 
 @Component({
   selector: 'app-home',

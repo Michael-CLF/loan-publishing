@@ -2,7 +2,7 @@ import { Component, EventEmitter, OnInit, Output, Input, model, inject } from '@
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { LoanTypeService, LoanType } from '../services/loan-type.service';
+import { LoanTypeService, LoanType } from '../../services/loan-type.service';
 
 export interface LoanFilters {
   propertyTypeCategory: string;

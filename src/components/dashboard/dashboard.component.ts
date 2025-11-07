@@ -5,11 +5,11 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { User as FirebaseUser } from '@angular/fire/auth';
 import { firstValueFrom } from 'rxjs';
-import { NotificationPreferencesService } from '../services/notification-preferences.service';
+import { NotificationPreferencesService } from '../../services/notification-preferences.service';
 import {
   LenderNotificationPreferences,
   DEFAULT_LENDER_NOTIFICATION_PREFERENCES,
-} from '../types/notification.types';
+} from '../../types/notification.types';
 import {
   Firestore,
   getFirestore,
@@ -25,27 +25,27 @@ import {
 import { switchMap, filter, take, finalize } from 'rxjs/operators';
 import { collection } from '@angular/fire/firestore';
 import { ActivatedRoute } from '@angular/router';
-import { ModalService } from '../services/modal.service';
+import { ModalService } from '../../services/modal.service';
 
 // Services
-import { AuthService } from '../services/auth.service';
-import { LenderService } from '../services/lender.service';
-import { LoanService } from '../services/loan.service';
-import { EmailNotificationService } from '../services/email-notification.service';
+import { AuthService } from '../../services/auth.service';
+import { LenderService } from '../../services/lender.service';
+import { LoanService } from '../../services/loan.service';
+import { EmailNotificationService } from '../../services/email-notification.service';
 
 // Models
-import { Loan as LoanModel } from '../models/loan-model.model';
-import { SavedLoan } from '../models/saved-loan.model';
-import { Loan } from '../models/loan-model.model';
-import { UserData } from '../models';
-import { LocationService } from '../services/location.service';
-import { createTimestamp } from '../utils/firebase.utils';
-import { getPropertySubcategoryName } from '../shared/constants/property-mappings';
+import { Loan as LoanModel } from '../../models/loan-model.model';
+import { SavedLoan } from '../../models/saved-loan.model';
+import { Loan } from '../../models/loan-model.model';
+import { UserData } from '../../models';
+import { LocationService } from '../../services/location.service';
+import { createTimestamp } from '../../utils/firebase.utils';
+import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';
 import {
   LoanUtils,
   PropertySubcategoryValue,
-} from '../models/loan-model.model';
-import { getStateName } from '../shared/constants/state-mappings';
+} from '../../models/loan-model.model';
+import { getStateName } from '../../shared/constants/state-mappings';
 import { FirestoreService } from 'src/services/firestore.service';
 
 // Property category interface for better type safety

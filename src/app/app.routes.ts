@@ -6,14 +6,14 @@ export const routes: Routes = [
   // Critical path - load immediately
   {
     path: '',
-    loadComponent: () => import('../home/home.component').then(m => m.HomeComponent),
+    loadComponent: () => import('../components/home/home.component').then(m => m.HomeComponent),
     title: 'Home - LoanPost'
   },
 
   // Authentication routes - lazy load
   {
     path: 'login',
-    loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
+    loadComponent: () => import('../components/email-login/email-login.component').then(m => m.EmailLoginComponent),
     title: 'Login - LoanPost'
   },
 
@@ -73,7 +73,7 @@ export const routes: Routes = [
   },
   {
   path: 'dashboard',
-  loadComponent: () => import('src/dashboard/dashboard.component')
+  loadComponent: () => import('src/components/dashboard/dashboard.component')
     .then(m => m.DashboardComponent),
   canActivate: [authGuard], // <-- Protects it from non-logged-in users
   title: 'Dashboard - LoanPost'
@@ -81,7 +81,7 @@ export const routes: Routes = [
 
   {
     path: 'loan',
-    loadComponent: () => import('../loan/loan.component').then(m => m.LoanComponent),
+    loadComponent: () => import('../components/loan/loan.component').then(m => m.LoanComponent),
     canActivate: [authGuard],
     title: 'Create Loan - LoanPost'
   },
@@ -93,19 +93,19 @@ export const routes: Routes = [
   },
   {
     path: 'loans/:id',
-    loadComponent: () => import('src/loan-details/loan-details.component').then(m => m.LoanDetailsComponent),
+    loadComponent: () => import('src/components/loan-details/loan-details.component').then(m => m.LoanDetailsComponent),
     canActivate: [authGuard],
     title: 'Loan Details - LoanPost'
   },
   {
     path: 'loans/:id/edit',
-    loadComponent: () => import('src/edit-loan/edit-loan.component').then(m => m.EditLoanComponent),
+    loadComponent: () => import('src/components/edit-loan/edit-loan.component').then(m => m.EditLoanComponent),
     canActivate: [authGuard],
     title: 'Edit Loan - LoanPost'
   },
   {
     path: 'loan/:loanId/matches',
-    loadComponent: () => import('src/loan-matches/loan-matches.component').then(m => m.LoanMatchesComponent),
+    loadComponent: () => import('src/components/loan-matches/loan-matches.component').then(m => m.LoanMatchesComponent),
     title: 'Loan Matches - LoanPost'
   },
 
@@ -163,12 +163,12 @@ export const routes: Routes = [
   // User/Account routes - lazy load
   {
     path: 'user-form',
-    loadComponent: () => import('../user-form/user-form.component').then(m => m.UserFormComponent),
+    loadComponent: () => import('../components/user-form//user-form.component').then(m => m.UserFormComponent),
     title: 'User Form - LoanPost'
   },
   {
     path: 'account/edit',
-    loadComponent: () => import('src/edit-account/edit-account.component').then(m => m.EditAccountComponent),
+    loadComponent: () => import('src/components/edit-account/edit-account.component').then(m => m.EditAccountComponent),
     canActivate: [authGuard],
     title: 'Edit Account - LoanPost'
   },
@@ -182,12 +182,12 @@ export const routes: Routes = [
   // Static pages - lazy load with lower priority
   {
     path: 'pricing',
-    loadComponent: () => import('../pricing/pricing.component').then(m => m.PricingComponent),
+    loadComponent: () => import('../components/pricing/pricing.component').then(m => m.PricingComponent),
     title: 'Pricing - LoanPost'
   },
   {
     path: 'terms',
-    loadComponent: () => import('src/terms/terms.component').then(m => m.TermsComponent),
+    loadComponent: () => import('src/components/terms/terms.component').then(m => m.TermsComponent),
     title: 'Terms of Service - LoanPost'
   },
   {
@@ -368,7 +368,7 @@ export const routes: Routes = [
   },
   {
     path: 'auth',
-    loadComponent: () => import('../email-login/email-login.component').then(m => m.EmailLoginComponent),
+    loadComponent: () => import('../components/email-login/email-login.component').then(m => m.EmailLoginComponent),
     data: { authCallback: true },
   },
 

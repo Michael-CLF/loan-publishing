@@ -13,9 +13,9 @@ import { Router, RouterModule } from '@angular/router';
 import { Subscription, firstValueFrom } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
-import { AuthService } from '../services/auth.service';
-import { ModalService } from '../services/modal.service';
-import { RoleSelectionModalComponent } from '../role-selection-modal/role-selection-modal.component';
+import { AuthService } from '../../services/auth.service';
+import { ModalService } from '../../services/modal.service';
+import { RoleSelectionModalComponent } from '../../modals/role-selection-modal/role-selection-modal.component';
 import { User } from '@angular/fire/auth';
 
 interface UserData {

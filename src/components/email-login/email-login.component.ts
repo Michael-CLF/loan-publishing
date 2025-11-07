@@ -9,9 +9,9 @@ import {
 import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
-import { AuthService } from '../services/auth.service';
-import { OTPService } from '../services/otp.service';
-import { ModalService } from '../services/modal.service';
+import { AuthService } from '../../services/auth.service';
+import { OTPService } from '../../services/otp.service';
+import { ModalService } from '../../services/modal.service';
 
 import { Auth, authState, User } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';

@@ -7,12 +7,12 @@ import {
   Validators,
 } from '@angular/forms';
 import { Router } from '@angular/router';
-import { UserService } from '../services/user.service';
-import { AuthService } from '../services/auth.service';
-import { StateOption } from '../user-form/user-form.component';
+import { UserService } from '../../services/user.service';
+import { AuthService } from '../../services/auth.service';
+import { StateOption } from '../../components/user-form/user-form.component';
 import { Firestore } from '@angular/fire/firestore';
-import { getUserId } from '../utils/user-helpers';
-import { UserData } from '../models/user-data.model';
+import { getUserId } from '../../utils/user-helpers';
+import { UserData } from '../../models/user-data.model';
 import { firstValueFrom } from 'rxjs';
 
 

@@ -16,10 +16,10 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { LoanService } from '../services/loan.service';
+import { LoanService } from '../../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { DestroyRef } from '@angular/core';
-import { ModalService } from '../services/modal.service';
+import { ModalService } from '../../services/modal.service';
 
 interface SubcategoryItem {
   value: string;  // Database format (snake_case)

@@ -14,10 +14,10 @@ import {
   Validators,
 } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
-import { LoanService } from '../services/loan.service';
+import { LoanService } from '../../services/loan.service';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { switchMap, tap, catchError, of } from 'rxjs';
-import { Loan, LoanUtils } from '../models/loan-model.model';
+import { Loan, LoanUtils } from '../../models/loan-model.model';
 
 
 @Component({

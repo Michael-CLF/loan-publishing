@@ -2,7 +2,7 @@ import { Component, signal, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormArray, FormGroup, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ModalService } from '../../../services/modal.service';
-import { RoleSelectionModalComponent } from '../../../role-selection-modal/role-selection-modal.component';
+import { RoleSelectionModalComponent } from '../../../modals/role-selection-modal/role-selection-modal.component';
 
 type MonthRow = {
   month: number;
