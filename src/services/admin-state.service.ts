@@ -2,6 +2,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { AdminApiService } from './admin-api.service';
 import { AdminAuthService } from './admin-auth.service';
+import { PromotionService } from './promotion.service'; // Add this
 
 import { Auth } from '@angular/fire/auth';
 import {
@@ -13,6 +14,8 @@ import {
   getCountFromServer,
   query,
 } from '@angular/fire/firestore';
+import { Functions, httpsCallable } from '@angular/fire/functions'; // Add this
+import { firstValueFrom } from 'rxjs'; // Add this
 
 export interface DashboardStats {
   originators: number;
@@ -37,6 +40,8 @@ export class AdminStateService {
   private readonly adminAuth = inject(AdminAuthService);
   private readonly auth = inject(Auth);
   private readonly db = inject(Firestore);
+  private readonly functions = inject(Functions); // Add this injection
+  private readonly promotionService = inject(PromotionService); // Add this
 
   // base signals
   private readonly _isAuthenticated = signal(false);
@@ -98,49 +103,103 @@ export class AdminStateService {
 
   // ---- dashboard data ----
   
-async loadDashboardStats(): Promise<void> {
-  if (!this._isAuthenticated()) {
-    this._error.set('Not authenticated');
-    return;
+  /**
+   * Hybrid approach: Use direct Firestore for collections we can read,
+   * and services/Cloud Functions for restricted collections
+   */
+  async loadDashboardStats(): Promise<void> {
+    if (!this._isAuthenticated()) {
+      this._error.set('Not authenticated');
+      return;
+    }
+
+    this._isLoading.set(true);
+    this._error.set(null);
+
+    try {
+      // Parallel fetch: Direct Firestore for readable collections,
+      // Service call for promotions (which has restricted read access)
+      const [originatorsSnap, lendersSnap, loansSnap, promotionsResponse] = 
+        await Promise.all([
+          // These work with current security rules
+          getDocs(collection(this.db, 'originators')),
+          getDocs(collection(this.db, 'lenders')),
+          getDocs(collection(this.db, 'loans')),
+          
+          // Use the service that already works in AdminBillingComponent
+          firstValueFrom(this.promotionService.getAllPromotionCodes())
+        ]);
+
+      const stats: DashboardStats = {
+        originators: originatorsSnap.size,
+        lenders: lendersSnap.size,
+        loans: loansSnap.size,
+        activePromotions: promotionsResponse?.codes?.length ?? 0,
+        recentActivity: [],
+      };
+
+      // Debug logging
+      console.log('[AdminState] Dashboard stats loaded:', stats);
+
+      this._stats.set(stats);
+      this._lastRefreshed.set(new Date());
+    } catch (err) {
+      console.error('[AdminState] Failed to load dashboard stats:', err);
+      this._error.set('Failed to load dashboard data. Please try again.');
+      this._stats.set(null);
+    } finally {
+      this._isLoading.set(false);
+    }
   }
 
-  this._isLoading.set(true);
-  this._error.set(null);
+  /**
+   * Alternative: Use Cloud Function for ALL stats (more consistent)
+   * Uncomment this method if you create the Cloud Function
+   */
+  /*
+  async loadDashboardStatsViaFunction(): Promise<void> {
+    if (!this._isAuthenticated()) {
+      this._error.set('Not authenticated');
+      return;
+    }
 
-  try {
-    // Use getDocs -> .size to mirror the working list queries
-    const [originatorsSnap, lendersSnap, loansSnap, promoSnap] = await Promise.all([
-      getDocs(collection(this.db, 'originators')),
-      getDocs(collection(this.db, 'lenders')),
-      getDocs(collection(this.db, 'loans')),
-      getDocs(collection(this.db, 'promotionCodes')),
-    ]);
+    this._isLoading.set(true);
+    this._error.set(null);
 
-    const stats: DashboardStats = {
-      originators: originatorsSnap.size,
-      lenders: lendersSnap.size,
-      loans: loansSnap.size,
-      activePromotions: promoSnap.size,
-      recentActivity: [],
-    };
-
-    // Debug so you can see real numbers in the console
-    console.log('[AdminState] counts', stats);
-
-    this._stats.set(stats);
-    this._lastRefreshed.set(new Date());
-  } catch (err) {
-    console.error('[AdminState] failed to load counts:', err);
-    this._error.set('Failed to load dashboard data. Please try again.');
-    this._stats.set(null);
-  } finally {
-    this._isLoading.set(false);
+    try {
+      // First, check if the function exists
+      const getAdminStats = httpsCallable<void, DashboardStats>(
+        this.functions, 
+        'getAdminStats'
+      );
+      
+      const result = await getAdminStats();
+      const stats = result.data;
+      
+      console.log('[AdminState] Stats from Cloud Function:', stats);
+      
+      this._stats.set(stats);
+      this._lastRefreshed.set(new Date());
+    } catch (err: any) {
+      // If function doesn't exist, fall back to hybrid approach
+      if (err?.code === 'functions/not-found') {
+        console.warn('[AdminState] Cloud Function not found, using hybrid approach');
+        return this.loadDashboardStats(); // Fall back to hybrid
+      }
+      
+      console.error('[AdminState] Failed to load stats via function:', err);
+      this._error.set('Failed to load dashboard data');
+      this._stats.set(null);
+    } finally {
+      this._isLoading.set(false);
+    }
   }
-}
+  */
 
   async refresh(): Promise<void> {
     await this.loadDashboardStats();
   }
+
 
   // Optional code-exchange flow (kept for compatibility)
   async login(code: string): Promise<{ success: boolean; error?: string }> {

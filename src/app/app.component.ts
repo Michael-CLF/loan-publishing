@@ -1,4 +1,13 @@
-import { Component, OnInit, OnDestroy, inject, Injectable, NgZone, PLATFORM_ID } from '@angular/core';
+// src/app/app.component.ts
+import {
+  Component,
+  OnInit,
+  OnDestroy,
+  inject,
+  NgZone,
+  signal,
+  PLATFORM_ID,
+} from '@angular/core';
 import { CommonModule, isPlatformBrowser } from '@angular/common';
 import {
   RouterOutlet,
@@ -13,12 +22,15 @@ import { NavbarComponent } from '../navbar/navbar.component';
 import { environment } from '../environments/environment';
 import { ReactiveFormsModule } from '@angular/forms';
 import { AuthService } from '../services/auth.service';
-import { Auth, setPersistence, browserLocalPersistence, User } from '@angular/fire/auth';
-import { filter, take, switchMap, tap, takeUntil } from 'rxjs/operators';
+import {
+  Auth,
+  setPersistence,
+  browserLocalPersistence,
+} from '@angular/fire/auth';
+import { filter, take, switchMap, takeUntil } from 'rxjs/operators';
 import { Subject } from 'rxjs';
 import { AppCheckService } from '../services/app-check.service';
-import { signInWithEmailLink } from '@angular/fire/auth';
-import { ClarityService } from '../services/clarity.services'
+import { ClarityService } from '../services/clarity.services';
 
 declare let gtag: Function;
 
@@ -34,10 +46,10 @@ declare let gtag: Function;
     ReactiveFormsModule,
   ],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css',
+  styleUrls: ['./app.component.css'],
 })
 export class AppComponent implements OnInit, OnDestroy {
-  // ✅ Angular 18 Best Practice: Use inject() for dependency injection
+  // services
   private readonly appCheckService = inject(AppCheckService);
   private readonly auth = inject(Auth);
   private readonly authService = inject(AuthService);
@@ -45,44 +57,40 @@ export class AppComponent implements OnInit, OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly platformId = inject(PLATFORM_ID);
 
+  // lifecycle
   private readonly destroy$ = new Subject<void>();
 
-  constructor(private clarityService: ClarityService) { }
+  // controls whether navbar/header/footer render
+  showUserChrome = signal<boolean>(true);
+
+  constructor(private clarityService: ClarityService) {}
+
   title = 'Daily Loan Post';
   isRoleSelectionModalOpen = false;
   isAppInitialized = false;
 
-  async initAuthPersistence(): Promise<void> {
-    try {
-      // CRITICAL: Set the persistence to local storage so the session survives refresh
-      await setPersistence(this.auth, browserLocalPersistence);
-      console.log('✅ Firebase Auth Persistence set to browserLocalPersistence.');
-    } catch (error) {
-      console.error('❌ Failed to set Firebase persistence:', error);
-    }
-  }
-
+  // ---------- init ----------
   async ngOnInit(): Promise<void> {
     try {
       this.logEnvironmentInfo();
-      this.setupNavigationMonitoring();
+      this.setupNavigationMonitoring(); // also updates showUserChrome on each nav
       this.setupAuthStateManagement();
 
-      // Defer non-critical operations
+      // set initial chrome visibility for first load
+      this.showUserChrome.set(!this.isAdminUrl(this.router.url));
+
       if (isPlatformBrowser(this.platformId)) {
-        // Skip auth initialization for home page
         const currentUrl = this.router.url;
         if (currentUrl === '/' || currentUrl === '/home' || currentUrl === '') {
+          // skip auth bootstrap on pure public home
           console.log('On home page, skipping auth initialization');
         } else {
           this.logFirebaseAuthStatus();
-          await this.initAuthPersistence()
+          await this.initAuthPersistence();
         }
 
-        // Clarity loads after 5 seconds as already set
-        setTimeout(() => {
-          this.clarityService.initializeClarity();
-        }, 5000);
+        // defer Clarity
+        setTimeout(() => this.clarityService.initializeClarity(), 5000);
       }
 
       this.isAppInitialized = true;
@@ -93,14 +101,22 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    // ✅ Angular 18 Best Practice: Proper cleanup
     this.destroy$.next();
     this.destroy$.complete();
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Extract environment logging to separate method
-   */
+  // ---------- helpers ----------
+  private async initAuthPersistence(): Promise<void> {
+    try {
+      await setPersistence(this.auth, browserLocalPersistence);
+      console.log(
+        '✅ Firebase Auth Persistence set to browserLocalPersistence.'
+      );
+    } catch (error) {
+      console.error('❌ Failed to set Firebase persistence:', error);
+    }
+  }
+
   private logEnvironmentInfo(): void {
     if (!environment.production) {
       console.log(
@@ -115,65 +131,34 @@ export class AppComponent implements OnInit, OnDestroy {
       );
     }
   }
-  private setupAuthStateManagement(): void {
-    // Check auth state and handle basic redirects
-    this.authService.authReady$
-      .pipe(
-        filter((ready) => ready),
-        take(1),
-        switchMap(() => this.authService.isLoggedIn$),
-        takeUntil(this.destroy$)
-      )
-      .subscribe((isLoggedIn) => {
-        console.log('🔐 Auth initialization complete, user logged in:', isLoggedIn);
 
-        if (!isPlatformBrowser(this.platformId)) {
-          return; // Skip localStorage operations on server
-        }
-        if (this.router.url.includes('/admin')) {
-          if (!isLoggedIn) {
-            console.log('🚫 Admin route requires authentication');
-            localStorage.setItem('redirectUrl', this.router.url);
-            this.router.navigate(['/login']);
-          }
-          return; // Don't process further for admin routes
-        }
-
-        if (isLoggedIn) {
-          // Never interfere with admin routes
-          if (this.router.url.startsWith('/admin')) return;
-
-          // If a post-login redirect is pending, do nothing
-          const pendingNext =
-            localStorage.getItem('postLoginNext') ||
-            localStorage.getItem('redirectUrl');
-          if (pendingNext) return;
-
-          // Otherwise only collapse public pages to the user dashboard
-          if (this.isPublicRoute(this.router.url)) {
-            this.router.navigate(['/dashboard']);
-          }
-        }
-
-        // If user is not logged in and needs auth, redirect to login
-        else if (!isLoggedIn && !this.isPublicRoute(this.router.url)) {
-          console.log('🚫 User not authenticated, redirecting to login');
-          localStorage.setItem('redirectUrl', this.router.url);
-          this.router.navigate(['/login']);
-        }
-      });
-
-    // Monitor auth state changes (keep this for debugging)
-    this.authService.isLoggedIn$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((isLoggedIn) => {
-        console.log('🔄 Auth state changed:', isLoggedIn);
-        if (isPlatformBrowser(this.platformId)) {
-          console.log('💾 localStorage isLoggedIn:', localStorage.getItem('isLoggedIn'));
-        }
-      });
+  private logFirebaseAuthStatus(): void {
+    if (!environment.production) {
+      console.log('🔥 Firebase Auth initialized:', !!this.auth);
+      console.log(
+        '🛡️ App Check initialized:',
+        this.appCheckService.isInitialized()
+      );
+    }
   }
 
+  private isPublicRoute(url: string): boolean {
+    const publicRoutes = [
+      '/login',
+      '/',
+      '/pricing',
+      '/register',
+      '/forgot-password',
+    ];
+    return publicRoutes.some((route) => url.includes(route));
+  }
+
+  private isAdminUrl(url: string): boolean {
+    const path = (url || '/').split('?')[0].split('#')[0];
+    return path === '/admin' || path.startsWith('/admin/');
+  }
+
+  // ---------- routing observers ----------
   private setupNavigationMonitoring(): void {
     this.router.events
       .pipe(
@@ -181,14 +166,13 @@ export class AppComponent implements OnInit, OnDestroy {
           (event) =>
             event instanceof NavigationStart ||
             event instanceof NavigationEnd ||
-            event instanceof NavigationError // ⬅️ ADD THIS
+            event instanceof NavigationError
         ),
         takeUntil(this.destroy$)
       )
       .subscribe((event) => {
         if (event instanceof NavigationStart) {
           console.log('🧭 Navigation starting to:', event.url);
-          console.log('[Router] Navigation started to:', event.url);
           if (isPlatformBrowser(this.platformId)) {
             console.log(
               '📍 Redirect URL in storage:',
@@ -198,58 +182,92 @@ export class AppComponent implements OnInit, OnDestroy {
         }
 
         if (event instanceof NavigationEnd) {
-          console.log('✅ Navigation completed to:', event.url);
-          console.log('[Router] Navigation ended at:', event.url); // ⬅️ ADD THIS for debugging
+          const url = event.urlAfterRedirects || event.url;
+          console.log('✅ Navigation completed to:', url);
+
+          // update chrome visibility whenever we land on a new route
+          this.showUserChrome.set(!this.isAdminUrl(url));
 
           if (isPlatformBrowser(this.platformId)) {
-            // Clear the redirectUrl after successful navigation
-            const storedRedirectUrl = localStorage.getItem('redirectUrl');
-            if (event.url === storedRedirectUrl) {
+            const stored = localStorage.getItem('redirectUrl');
+            if (stored && stored === url) {
               console.log('🗑️ Clearing redirect URL from storage');
               localStorage.removeItem('redirectUrl');
             }
           }
         }
 
-        // ⬅️ ADD THIS ENTIRE BLOCK
         if (event instanceof NavigationError) {
           console.error('❌ Navigation error:', event.error);
-          console.error('[Router] Navigation error:', event.error);
           console.error('Failed URL:', event.url);
         }
       });
   }
-  /**
-   * ✅ Angular 18 Best Practice: Helper method for route checking
-   */
-  private isPublicRoute(url: string): boolean {
-    const publicRoutes = ['/login', '/', '/pricing', '/register', '/forgot-password'];
-    return publicRoutes.some(route => url.includes(route));
+
+  private setupAuthStateManagement(): void {
+    this.authService.authReady$
+      .pipe(
+        filter((ready) => ready),
+        take(1),
+        switchMap(() => this.authService.isLoggedIn$),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((isLoggedIn) => {
+        console.log(
+          '🔐 Auth initialization complete, user logged in:',
+          isLoggedIn
+        );
+
+        if (!isPlatformBrowser(this.platformId)) return;
+
+        // Admin routes: only require auth, never auto-redirect to pricing, and never render navbar
+        if (this.router.url.includes('/admin')) {
+          if (!isLoggedIn) {
+            localStorage.setItem('redirectUrl', this.router.url);
+            this.router.navigate(['/login']);
+          }
+          return;
+        }
+
+        if (isLoggedIn) {
+          // if there is a pending post-login target, let that logic handle it
+          const pendingNext =
+            localStorage.getItem('postLoginNext') ||
+            localStorage.getItem('redirectUrl');
+          if (pendingNext) return;
+
+          // collapse public pages to user dashboard
+          if (this.isPublicRoute(this.router.url)) {
+            this.router.navigate(['/dashboard']);
+          }
+        } else if (!this.isPublicRoute(this.router.url)) {
+          // not logged in and trying to access a protected user route
+          localStorage.setItem('redirectUrl', this.router.url);
+          this.router.navigate(['/login']);
+        }
+      });
+
+    // debug listener
+    this.authService.isLoggedIn$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((isLoggedIn) => {
+        console.log('🔄 Auth state changed:', isLoggedIn);
+        if (isPlatformBrowser(this.platformId)) {
+          console.log(
+            '💾 localStorage isLoggedIn:',
+            localStorage.getItem('isLoggedIn')
+          );
+        }
+      });
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Extract Firebase auth status logging
-   */
-  private logFirebaseAuthStatus(): void {
-    if (!environment.production) {
-      console.log('🔥 Firebase Auth initialized:', !!this.auth);
-      console.log('🛡️ App Check initialized:', this.appCheckService.isInitialized());
-    }
-  }
-
-  /**
-   * ✅ Angular 18 Best Practice: Keep modal methods concise
-   */
+  // ---------- modal controls ----------
   openRoleModalFromNavbar(): void {
     console.log('📝 NAVBAR: Opening role selection modal');
     this.isRoleSelectionModalOpen = true;
   }
 
-  /**
-   * ✅ Angular 18 Best Practice: Close modal method
-   */
   closeRoleModal(): void {
     this.isRoleSelectionModalOpen = false;
   }
-
 }

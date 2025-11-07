@@ -1,5 +1,5 @@
 <div class="content-wrapper">
-    <app-navbar></app-navbar>
+   <app-navbar *ngIf="showUserChrome()"></app-navbar>
     <app-header></app-header>
     <main class="content-outlet-container">
         <router-outlet></router-outlet>
