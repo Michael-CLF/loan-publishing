@@ -2,8 +2,8 @@ import { Component, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 
-import { LenderFilterComponent } from '../../components/lender-filter/lender-filter.component';
-import { LenderFilterService } from '../../services/lender-filter.service';
+import { LenderFilterComponent } from '../../../components/lender-filter/lender-filter.component';
+import { LenderFilterService } from '../../../services/lender-filter.service';
 
 @Component({
   selector: 'app-lender-list',

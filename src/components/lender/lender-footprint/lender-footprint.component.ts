@@ -10,10 +10,10 @@ import {
   FormArray,
   FormControl,
 } from '@angular/forms';
-import { LocationService } from '../../services/location.service';
+import { LocationService } from '../../../services/location.service';
 import {
   FootprintLocation,
-} from '../../models/footprint-location.model';
+} from '../../../models/footprint-location.model';
 
 interface SelectionCounty {
   value: string;

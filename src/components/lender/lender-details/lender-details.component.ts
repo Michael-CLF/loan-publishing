@@ -12,13 +12,13 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
-import { Lender, LenderService } from '../../services/lender.service';
-import { FavoritesService } from '../../services/favorites.service';
-import { AuthService } from '../../services/auth.service';
+import { Lender, LenderService } from '../../../services/lender.service';
+import { FavoritesService } from '../../../services/favorites.service';
+import { AuthService } from '../../../services/auth.service';
 import { Subject } from 'rxjs';
 import { takeUntil } from 'rxjs/operators';
-import { propertyColorMap } from '../../shared/property-category-colors';
-import { SavedLenderSuccessModalComponent } from '../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
+import { propertyColorMap } from '../../../shared/property-category-colors';
+import { SavedLenderSuccessModalComponent } from '../../../modals/saved-lender-success-modal/saved-lender-success-modal.component';
 
 
 // Import the new mapping constants
@@ -26,12 +26,12 @@ import {
   getPropertyCategoryName,
   getPropertySubcategoryName,
   getCategoryFromSubcategory,
-} from '../../shared/constants/property-mappings';
+} from '../../../shared/constants/property-mappings';
 import {
   getLenderTypeName,
   getLoanTypeName,
-} from '../../shared/constants/lender-type-mappings';
-import { formatStateForDisplay } from '../../shared/constants/state-mappings';
+} from '../../../shared/constants/lender-type-mappings';
+import { formatStateForDisplay } from '../../../shared/constants/state-mappings';
 
 
 @Component({

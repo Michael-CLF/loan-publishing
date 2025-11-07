@@ -15,12 +15,12 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize } from 'rxjs/operators';
-import { AuthService } from '../services/auth.service';
+import { AuthService } from '../../services/auth.service';
 import { LocationService } from 'src/services/location.service';
-import { PromotionService } from '../services/promotion.service';
-import { PaymentService } from '../services/payment.service';
-import { UserService, RegistrationData } from '../services/user.service';
-import { OTPService } from '../services/otp.service';
+import { PromotionService } from '../../services/promotion.service';
+import { PaymentService } from '../../services/payment.service';
+import { UserService, RegistrationData } from '../../services/user.service';
+import { OTPService } from '../../services/otp.service';
 import { EmailExistsValidator } from 'src/services/email-exists.validator';
 
 export interface StateOption {

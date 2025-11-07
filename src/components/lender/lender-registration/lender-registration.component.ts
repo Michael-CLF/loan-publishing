@@ -1,6 +1,6 @@
 // lender-registration.component.ts - REFACTORED PARENT-OWNS-FORM
 // INSERT above other imports
-import { PromotionService } from '../../services/promotion.service';
+import { PromotionService } from '../../../services/promotion.service';
 
 import {
   Component,
@@ -21,12 +21,12 @@ import { Router } from '@angular/router';
 import { Subject } from 'rxjs';
 import { takeUntil, finalize, take } from 'rxjs/operators';
 
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../../../services/auth.service';
 import { LocationService } from 'src/services/location.service';
-import { LenderFormService } from '../../services/lender-registration.service';
-import { OTPService } from '../../services/otp.service';
-import { UserService, RegistrationData } from '../../services/user.service';
-import { PaymentService } from '../../services/payment.service';
+import { LenderFormService } from '../../../services/lender-registration.service';
+import { OTPService } from '../../../services/otp.service';
+import { UserService, RegistrationData } from '../../../services/user.service';
+import { PaymentService } from '../../../services/payment.service';
 
 
 // Child components

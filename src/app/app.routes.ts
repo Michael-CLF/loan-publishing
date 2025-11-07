@@ -112,43 +112,43 @@ export const routes: Routes = [
   // Lender routes - lazy load
   {
     path: 'lender-registration',
-    loadComponent: () => import('src/lender/lender-registration/lender-registration.component')
+    loadComponent: () => import('src/components/lender/lender-registration/lender-registration.component')
       .then(m => m.LenderRegistrationComponent),
     title: 'Lender Registration - LoanPost'
   },
   {
     path: 'lender-contact',
-    loadComponent: () => import('src/lender/lender-contact/lender-contact.component')
+    loadComponent: () => import('src/components/lender/lender-contact/lender-contact.component')
       .then(m => m.LenderContactComponent),
     title: 'Lender Contact - LoanPost'
   },
   {
     path: 'lender-product',
-    loadComponent: () => import('src/lender/lender-product/lender-product.component')
+    loadComponent: () => import('src/components/lender/lender-product/lender-product.component')
       .then(m => m.LenderProductComponent),
     title: 'Lender Product - LoanPost'
   },
   {
     path: 'lender-footprint',
-    loadComponent: () => import('src/lender/lender-footprint/lender-footprint.component')
+    loadComponent: () => import('src/components/lender/lender-footprint/lender-footprint.component')
       .then(m => m.LenderFootprintComponent),
     title: 'Lender Footprint - LoanPost'
   },
   {
     path: 'lender-review',
-    loadComponent: () => import('src/lender/lender-review/lender-review.component')
+    loadComponent: () => import('src/components/lender/lender-review/lender-review.component')
       .then(m => m.LenderReviewComponent),
     title: 'Lender Review - LoanPost'
   },
   {
     path: 'lender-details/:id',
-    loadComponent: () => import('src/lender/lender-details/lender-details.component')
+    loadComponent: () => import('src/components/lender/lender-details/lender-details.component')
       .then(m => m.LenderDetailsComponent),
     title: 'Lender Details - LoanPost'
   },
   {
     path: 'lender-list',
-    loadComponent: () => import('src/lender/lender-list/lender-list.component')
+    loadComponent: () => import('src/components/lender/lender-list/lender-list.component')
       .then(m => m.LenderListComponent),
     canActivate: [authGuard],
     title: 'Lender List - LoanPost'

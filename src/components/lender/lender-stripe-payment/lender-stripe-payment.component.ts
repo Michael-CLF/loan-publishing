@@ -15,16 +15,16 @@ import {
 } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { Router } from '@angular/router';
-import { AuthService } from '../../services/auth.service';
+import { AuthService } from '../../../services/auth.service';
 import {
   LenderFormService,
   PaymentInfo,
-} from '../../services/lender-registration.service';
+} from '../../../services/lender-registration.service';
 import { catchError, finalize, takeUntil } from 'rxjs/operators';
 import { of, Subject } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
-import { PromotionService } from '../../services/promotion.service';
-import { PaymentService } from '../../services/payment.service';
+import { PromotionService } from '../../../services/promotion.service';
+import { PaymentService } from '../../../services/payment.service';
 
 interface LenderData {
   companyName: string;

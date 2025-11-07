@@ -17,9 +17,9 @@ import {
 import { FirestoreService } from 'src/services/firestore.service';
 import { AuthService } from 'src/services/auth.service';
 // ✅ CORRECT
-import { PropertyCategory } from '../../shared/constants/property-mappings';
-import { LocationService } from '../../services/location.service';
-import { FootprintLocation } from '../../models/footprint-location.model';
+import { PropertyCategory } from '../../../shared/constants/property-mappings';
+import { LocationService } from '../../../services/location.service';
+import { FootprintLocation } from '../../../models/footprint-location.model';
 
 
 interface CountyInfo {
