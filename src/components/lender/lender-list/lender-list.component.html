@@ -7,69 +7,92 @@
   <app-lender-filter></app-lender-filter>
 
   <!-- Loading State -->
-  <div *ngIf="loading()" class="text-center my-8">
-    <p>Loading lenders...</p>
-  </div>
+  @if (loading()) {
+    <div class="text-center my-8">
+      <p>Loading lenders...</p>
+    </div>
+  }
 
   <!-- Empty State -->
-  <div *ngIf="!loading() && lenders().length === 0" class="text-center">
-    <p class="text-lg">Oops, no lenders match your filter criteria.</p>
-  </div>
+  @if (!loading() && lenders().length === 0) {
+    <div class="text-center">
+      <p class="text-lg">Oops, no lenders match your filter criteria.</p>
+    </div>
+  }
 
-  <!-- Lender Table -->
-  <div *ngIf="!loading() && lenders().length > 0" class="lender-table">
-    <table class="lender-header">
-      <thead class="lender-title">
-        <tr class="lender-content">
-          <th class="lender-info left">Contact Name</th>
-          <th class="lender-info">Company Name</th>
-          <th class="lender-info">Lender Type</th>
-          <th class="lender-info right">Min/Max Loan</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let lender of paginatedLenders" (click)="navigateTo(lender.id)">
-          <!-- ✅ FIXED: Checks both structures -->
-          <td class="lender-detail">
-            {{ (lender.contactInfo?.firstName || lender.firstName) }} {{ (lender.contactInfo?.lastName ||
-            lender.lastName) }}
-          </td>
-          <td class="lender-detail">
-            {{ lender.company ? lender.company.trim() : (lender.contactInfo?.company ? lender.contactInfo.company.trim()
-            : 'N/A') }}
-
-          </td>
-          <!-- ✅ FIXED: Handles both object and string structures -->
-          <td class="lender-detail">
-            <div *ngIf="lender.productInfo?.lenderTypes">
-              <ng-container *ngFor="let type of lender.productInfo?.lenderTypes; let last = last">
-                {{ getLenderTypeName(type?.value || type?.name || type) }}{{ !last ? ', ' : '' }}
-              </ng-container>
+ <!-- Lender Cards Container -->
+@if (!loading() && lenders().length > 0) {
+  <div class="lender-table">
+    <!-- Cards Grid -->
+    <div class="cards-grid">
+      @for (lender of paginatedLenders; track lender.id) {
+        <div class="lender-card" (click)="navigateTo(lender.id)">
+          <!-- Card Header with Company Name -->
+          <div class="card-header">
+            <div class="lender-detail company-name">
+              <i class="fa-regular fa-address-card"></i>
+              {{ lender.company ? lender.company.trim() : 
+                 (lender.contactInfo?.company ? lender.contactInfo.company.trim() : 'N/A') }}
             </div>
-          </td>
-          <td class="lender-detail">
-            ${{ lender.productInfo?.minLoanAmount | number }} -
-            ${{ lender.productInfo?.maxLoanAmount | number }}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+          </div>
+          
+          <!-- Card Body -->
+          <div class="card-body">
+            <!-- Contact Name -->
+            <div class="card-row">
+              <span class="card-label">Contact:</span>
+              <span class="lender-detail">
+                {{ (lender.contactInfo?.firstName || lender.firstName) }} 
+                {{ (lender.contactInfo?.lastName || lender.lastName) }}
+              </span>
+            </div>
 
+            <!-- Lender Type -->
+            <div class="card-row">
+              <span class="card-label">Type:</span>
+              <div class="lender-detail">
+                @if (lender.productInfo?.lenderTypes) {
+                  @for (type of lender.productInfo?.lenderTypes; track type; let last = $last) {
+                    {{ getLenderTypeName(type?.value || type?.name || type) }}{{ !last ? ', ' : '' }}
+                  }
+                }
+              </div>
+            </div>
+
+            <!-- Loan Range -->
+            <div class="card-row">
+              <span class="card-label">Loan Range:</span>
+              <span class="lender-detail loan-amount">
+                ${{ lender.productInfo?.minLoanAmount | number }} - 
+                ${{ lender.productInfo?.maxLoanAmount | number }}
+              </span>
+            </div>
+          </div>
+        </div>
+      }
+    </div>
+
+       <!-- Pagination Controls -->
     <div class="pagination-controls">
-      <!-- Prev button -->
-      <!-- Previous -->
-      <button class="page-arrow" [disabled]="currentPage === 1" (click)="prevPage()" aria-label="Previous page">
+      <!-- Previous button -->
+      <button class="page-arrow" 
+              [disabled]="currentPage === 1" 
+              (click)="prevPage()" 
+              aria-label="Previous page">
         <i class="fas fa-chevron-left"></i>
       </button>
 
       <!-- Page Info -->
       <span class="page-info">Page {{ currentPage }} of {{ totalPages }}</span>
 
-      <!-- Next -->
-      <button class="page-arrow" [disabled]="currentPage === totalPages" (click)="nextPage()" aria-label="Next page">
+      <!-- Next button -->
+      <button class="page-arrow" 
+              [disabled]="currentPage === totalPages" 
+              (click)="nextPage()" 
+              aria-label="Next page">
         <i class="fas fa-chevron-right"></i>
       </button>
-
     </div>
   </div>
+  }
 </div>

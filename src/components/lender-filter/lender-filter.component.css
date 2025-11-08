@@ -18,16 +18,11 @@
 
 /* Count Badge Styles - positioned next to title */
 .count-badge {
-  display: inline-flex;
   align-items: center;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font-weight: 500;
+  padding: 6px 10px;
+  border-radius: 4px;
   font-size: 1rem;
-  transition: all 0.3s ease;
-  min-width: 120px;
   justify-content: center;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
   font-family: "Roboto", sans-serif;
 }
 
@@ -48,7 +43,6 @@
 }
 
 .count-text {
-  display: flex;
   align-items: center;
   gap: 6px;
 }
@@ -149,29 +143,29 @@ button {
   background-color: #008080;
 }
 
-.reset-btn {
-  background-color: #6c757d;
+#reset {
+  background-color: #545454;
   color: white;
   font-family: "Roboto", sans-serif;
+  font-size: 1.1rem;
+  padding-bottom: 10px;
   margin-right: 10px;
 }
 
-.reset-btn:hover {
-  background-color: #272727;
+#reset:hover {
+  background-color: maroon;
 }
 
 .dash-btn {
   background-color: #008080;
   color: white;
-  padding: 8px 24px; /* Wider padding to match buttons */
+  padding: 10px 24px; /* Wider padding to match buttons */
   border: none;
   border-radius: 4px;
   font-family: "Roboto", sans-serif;
   text-decoration: none;
-  display: inline-block;
   cursor: pointer;
   white-space: nowrap; /* Prevent text wrapping */
-  min-width: 140px; /* Wider minimum for longer text */
 }
 
 .dash-btn:hover {
