@@ -1,0 +1,93 @@
+<!-- src/app/components/loan-filter/loan-filter.component.html -->
+<div class="filter-card">
+  <h2 class="title">Filter Loans</h2>
+
+  <div class="grid">
+    <!-- Property Type -->
+    <div class="field">
+      <label for="propertyType">Property Type</label>
+      <select
+        id="propertyType"
+        name="propertyType"
+        [ngModel]="filters().propertyTypeCategory"
+        (ngModelChange)="updateFilter('propertyTypeCategory', $event)"
+      >
+        <option *ngFor="let opt of propertyTypeOptions; trackBy: trackByValue" [value]="opt.value">
+          {{ opt.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- State (2-letter codes) -->
+    <div class="field">
+      <label for="state">State</label>
+      <select
+        id="state"
+        name="state"
+        [ngModel]="filters().state"
+        (ngModelChange)="updateFilter('state', $event)"
+      >
+        <option *ngFor="let opt of stateOptions; trackBy: trackByValue" [value]="opt.value">
+          {{ opt.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Loan Type -->
+    <div class="field">
+      <label for="loanType">Loan Type</label>
+      <select
+        id="loanType"
+        name="loanType"
+        [ngModel]="filters().loanType"
+        (ngModelChange)="updateFilter('loanType', $event)"
+      >
+        <option *ngFor="let opt of loanTypeOptions; trackBy: trackByValue" [value]="opt.value">
+          {{ opt.name }}
+        </option>
+      </select>
+    </div>
+
+    <!-- Min Amount -->
+    <div class="field">
+      <label for="minAmount">Min Loan Amount</label>
+      <input
+        id="minAmount"
+        name="minAmount"
+        type="text"
+        inputmode="numeric"
+        placeholder="Min amount"
+        [value]="displayMinAmount"
+        #minAmt
+        (input)="onMinAmountChange(minAmt.value)"
+      />
+    </div>
+
+    <!-- Max Amount -->
+    <div class="field">
+      <label for="maxAmount">Max Loan Amount</label>
+      <input
+        id="maxAmount"
+        name="maxAmount"
+        type="text"
+        inputmode="numeric"
+        placeholder="Max amount"
+        [value]="displayMaxAmount"
+        #maxAmt
+        (input)="onMaxAmountChange(maxAmt.value)"
+      />
+    </div>
+  </div>
+
+  <div class="actions">
+    <button type="button" class="btn primary" (click)="onApplyFilters()" [disabled]="isLoading">
+      Apply Filters
+    </button>
+    <button type="button" class="btn" (click)="onResetFilters()" [disabled]="isLoading">
+      Reset
+    </button>
+    <button type="button" class="btn badge" [disabled]="true">
+      {{ loanCount }} Loans
+    </button>
+  </div>
+</div>

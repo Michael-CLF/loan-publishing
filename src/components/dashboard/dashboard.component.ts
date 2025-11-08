@@ -72,7 +72,7 @@ interface SimpleUser {
   standalone: true,
   imports: [CommonModule, RouterLink, FormsModule],
   providers: [
-     LenderService,
+    LenderService,
     LoanService,
     EmailNotificationService,
     LocationService,
@@ -1570,12 +1570,12 @@ export class DashboardComponent implements OnInit {
     }
   }
 
-  formatPropertyCategory(category: string): string {
-    const categoryOption = this.allPropertyCategoryOptions.find(
-      (opt) => opt.value === category
-    );
-    return categoryOption ? categoryOption.displayName : category;
-  }
+ formatPropertyCategory(category: string): string {
+  const key = (category ?? '').toString().trim().toLowerCase();
+  const match = this.allPropertyCategoryOptions.find(o => o.value === key);
+  return match?.displayName || category || '';
+}
+
 
   formatPropertySubcategory(subcategory: PropertySubcategoryValue): string {
     return getPropertySubcategoryName(

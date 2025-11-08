@@ -1,0 +1,134 @@
+/* Container matches your page width rhythm */
+.filter-card {
+  width: 100%;
+  max-width: 1400px;
+  margin: 0 auto 24px auto;
+  padding: 20px;
+  background: #fff;
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 8px;
+  box-shadow: rgba(0,0,0,0.04) 0 2px 10px;
+}
+
+/* Header */
+.title {
+  margin: 0 0 12px 0;
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-weight: 600;
+  font-size: 2rem;
+}
+
+/* Inputs in one horizontal row on desktop */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(220px, 1fr));
+  gap: 14px 16px;
+  align-items: end;
+}
+
+/* Field block */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.field label {
+  color: #0a2463;
+  font-family: "roboto", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 500;
+}
+
+/* Controls */
+.field select,
+.field input[type="text"] {
+  height: 40px;
+  padding: 6px 10px;
+  border: 1px solid #008080;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  background: #fff;
+  outline: none;
+  transition: border-color .15s ease, box-shadow .15s ease;
+  color: #0a2463;
+}
+
+.field select:focus,
+.field input[type="text"]:focus {
+  border-color: #0a2463;
+  box-shadow: 0 0 0 3px rgba(10,36,99,0.12);
+  font-weight: 600;
+  color: #0a2463;
+}
+#minAmount, #maxAmount {
+  height: 26px;
+}
+
+/* Buttons row under the grid */
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+/* Buttons styled to match your palette */
+.btn {
+  height: 38px;
+  padding: 0 14px;
+  border: none;
+  border-radius: 6px;
+  color: #fff;
+  background-color: #272727;
+  font-family: "roboto", sans-serif;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.btn:hover:not([disabled]) {
+  background: maroon;
+}
+
+.btn.primary {
+  background: #0a2463;
+  color: #fff;
+  border-color: #0a2463;
+  font-size: 1rem;
+}
+
+.btn.primary:hover:not([disabled]) {
+  background: #008080;
+  border-color: #008080;
+}
+
+/* Count badge */
+.btn.badge {
+  background: #0a2463;
+  color: #fff;
+  border-color: #0a2463;
+  pointer-events: none;
+  font-size: 1rem;
+}
+
+/* Responsive: tablet stacks to 3 columns */
+@media (max-width: 1024px) {
+  .grid {
+    grid-template-columns: repeat(3, minmax(200px, 1fr));
+  }
+}
+
+/* Responsive: mobile stacks to single column */
+@media (max-width: 640px) {
+  .filter-card {
+    padding: 16px;
+  }
+  .grid {
+    grid-template-columns: 1fr;
+  }
+  .actions {
+    flex-wrap: wrap;
+  }
+}

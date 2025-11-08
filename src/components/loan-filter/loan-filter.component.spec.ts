@@ -1,18 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { PropertyFilterComponent } from './property-filter.component';
+import { LoanFilterComponent } from './loan-filter.component';
 
-describe('PropertyFilterComponent', () => {
-  let component: PropertyFilterComponent;
-  let fixture: ComponentFixture<PropertyFilterComponent>;
+describe('LoanFilterComponent', () => {
+  let component: LoanFilterComponent;
+  let fixture: ComponentFixture<LoanFilterComponent>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [PropertyFilterComponent]
+      imports: [LoanFilterComponent]
     })
     .compileComponents();
 
-    fixture = TestBed.createComponent(PropertyFilterComponent);
+    fixture = TestBed.createComponent(LoanFilterComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });

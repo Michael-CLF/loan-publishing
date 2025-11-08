@@ -5,11 +5,11 @@
     </header>
 
     <!-- Add the property filter component here with count inputs -->
-    <app-property-filter 
+    <app-loan-filter 
         [loanCount]="loans().length" 
         [isLoading]="loansLoading()"
         (applyFilters)="handleFilterApply($event)">
-    </app-property-filter>
+    </app-loan-filter>
 
     <!-- Loading state -->
     <div *ngIf="loansLoading()" class="loading-container">

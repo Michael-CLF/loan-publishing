@@ -166,8 +166,13 @@ export class AdminLendersComponent implements OnInit {
    * @param lender - The lender to view
    */
   onViewUser(lender: UserWithActivity): void {
-    this.router.navigate(['/lender-details', lender.id]);
-  }
+  this.router.navigate(
+    ['/lender-details', lender.id],
+    { queryParams: { origin: 'admin' }, state: { fromAdmin: true } }
+  );
+}
+
+
 
   /**
    * Delete lender with confirmation modal

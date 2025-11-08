@@ -99,25 +99,25 @@ export class FirestoreService {
   fixOriginatorTimestamps(): Promise<{ fixed: number, total: number }> {
     return new Promise<{ fixed: number, total: number }>((resolve, reject) => {
       const originatorsRef = collection(this.firestore, 'originators');
-      
+
       getDocs(originatorsRef)
         .then(snapshot => {
           let fixedCount = 0;
           const totalCount = snapshot.size;
           const batch = writeBatch(this.firestore);
           let batchHasUpdates = false;
-          
+
           snapshot.forEach(docSnap => {
             const data = docSnap.data();
             const createdAt = data['createdAt'];
-            
+
             // Check if createdAt is NOT a proper Firestore Timestamp
-            const needsUpdate = 
-              !createdAt || 
-              (typeof createdAt === 'object' && 
-               '_methodName' in createdAt && 
-               createdAt._methodName === 'serverTimestamp');
-            
+            const needsUpdate =
+              !createdAt ||
+              (typeof createdAt === 'object' &&
+                '_methodName' in createdAt &&
+                createdAt._methodName === 'serverTimestamp');
+
             if (needsUpdate) {
               console.warn(`🛠 Fixing createdAt for ${docSnap.id}`);
               batch.update(docSnap.ref, {
@@ -129,7 +129,7 @@ export class FirestoreService {
               batchHasUpdates = true;
             }
           });
-          
+
           if (batchHasUpdates) {
             batch.commit()
               .then(() => {
@@ -152,67 +152,61 @@ export class FirestoreService {
     });
   }
 
-  /**
- * Creates or replaces a document with proper timestamps
- */
-setDocument(path: string, data: any): Observable<void> {
-  return this.runSafely(() => {
-    // Add standard timestamps if not present
-    const dataWithTimestamps = {
-      ...data,
-      createdAt: data.createdAt || createServerTimestamp(),
-      updatedAt: createServerTimestamp()
-    };
-    
-    console.log('🔥 Data Being Saved:', dataWithTimestamps);
-    
-    const docRef = doc(this.firestore, path);
-    return from(setDoc(docRef, dataWithTimestamps)).pipe(
-      catchError(error => {
-        console.error(`Error setting document at ${path}:`, error);
-        return throwError(() => error);
-      })
-    );
-  });
-}
+  setDocument(path: string, data: any): Observable<void> {
+    return this.runSafely(() => {
+      // Add standard timestamps if not present
+      const dataWithTimestamps = {
+        ...data,
+        createdAt: data.createdAt || createServerTimestamp(),
+        updatedAt: createServerTimestamp()
+      };
 
-/**
- * Updates a document with a proper updatedAt timestamp
- */
-updateDocument(path: string, data: any): Observable<void> {
-  return this.runSafely(() => {
-    // Always update the timestamp
-    const dataWithTimestamp = {
-      ...data,
-      updatedAt: createServerTimestamp()
-    };
-    
-    const docRef = doc(this.firestore, path);
-    
-    return from(updateDoc(docRef, dataWithTimestamp)).pipe(
-      catchError(error => {
-        console.error(`Error updating document at ${path}:`, error);
-        return throwError(() => error);
-      })
-    );
-  });
-}
+      console.log('🔥 Data Being Saved:', dataWithTimestamps);
 
- /**
- * Deletes a document 
- * @returns Promise that resolves when document is deleted
- */
-deleteDocument(path: string): Promise<void> {
-  return runInInjectionContext(this.injector, async () => {
-    try {
       const docRef = doc(this.firestore, path);
-      await deleteDoc(docRef);
-    } catch (error) {
-      console.error(`Error deleting document at ${path}:`, error);
-      throw error;
-    }
-  });
-}
+      return from(setDoc(docRef, dataWithTimestamps)).pipe(
+        catchError(error => {
+          console.error(`Error setting document at ${path}:`, error);
+          return throwError(() => error);
+        })
+      );
+    });
+  }
+
+  updateDocument(path: string, data: any): Observable<void> {
+    return this.runSafely(() => {
+      // Always update the timestamp
+      const dataWithTimestamp = {
+        ...data,
+        updatedAt: createServerTimestamp()
+      };
+
+      const docRef = doc(this.firestore, path);
+
+      return from(updateDoc(docRef, dataWithTimestamp)).pipe(
+        catchError(error => {
+          console.error(`Error updating document at ${path}:`, error);
+          return throwError(() => error);
+        })
+      );
+    });
+  }
+
+  /**
+  * Deletes a document 
+  * @returns Promise that resolves when document is deleted
+  */
+  deleteDocument(path: string): Promise<void> {
+    return runInInjectionContext(this.injector, async () => {
+      try {
+        const docRef = doc(this.firestore, path);
+        await deleteDoc(docRef);
+      } catch (error) {
+        console.error(`Error deleting document at ${path}:`, error);
+        throw error;
+      }
+    });
+  }
 
   getDocument<T extends DocumentData>(path: string): Observable<(T & { id: string }) | null> {
     return this.runSafely(() => {
@@ -267,6 +261,8 @@ deleteDocument(path: string): Promise<void> {
     });
   }
 
+
+
   toggleFavoriteLoan(userUid: string, loan: Loan, isFavorite: boolean): Promise<void> {
     return runInInjectionContext(this.injector, async () => {
       try {
@@ -287,12 +283,12 @@ deleteDocument(path: string): Promise<void> {
         } else {
           const batch = writeBatch(this.firestore);
           let hasDocuments = false;
-          
+
           querySnapshot.forEach(docSnap => {
             batch.delete(docSnap.ref);
             hasDocuments = true;
           });
-          
+
           if (hasDocuments) {
             await batch.commit();
           }
@@ -307,31 +303,31 @@ deleteDocument(path: string): Promise<void> {
   }
 
   checkIfEmailExists(email: string): Observable<boolean> {
-  const normalizedEmail = email.toLowerCase();
-  console.log('Checking if email exists:', normalizedEmail);
-  
-  const originatorsCollection = collection(this.firestore, 'originators');
-  const lendersCollection = collection(this.firestore, 'lenders');
-  
-  const originatorQuery = query(originatorsCollection, where('email', '==', normalizedEmail));
-  const lenderQuery = query(lendersCollection, where('email', '==', normalizedEmail));
-  
-  return from(Promise.all([
-    getDocs(originatorQuery),
-    getDocs(lenderQuery)
-  ])).pipe(
-    map(([originatorSnapshot, lenderSnapshot]) => {
-      const exists = !originatorSnapshot.empty || !lenderSnapshot.empty;
-      console.log('Email exists?', exists, 'Originator:', !originatorSnapshot.empty, 'Lender:', !lenderSnapshot.empty);
-      return exists;
-      return !originatorSnapshot.empty || !lenderSnapshot.empty;
-    }),
-    catchError(error => {
-      console.error('Error checking if email exists:', error);
-      return of(false);
-    })
-  );
-}
+    const normalizedEmail = email.toLowerCase();
+    console.log('Checking if email exists:', normalizedEmail);
+
+    const originatorsCollection = collection(this.firestore, 'originators');
+    const lendersCollection = collection(this.firestore, 'lenders');
+
+    const originatorQuery = query(originatorsCollection, where('email', '==', normalizedEmail));
+    const lenderQuery = query(lendersCollection, where('email', '==', normalizedEmail));
+
+    return from(Promise.all([
+      getDocs(originatorQuery),
+      getDocs(lenderQuery)
+    ])).pipe(
+      map(([originatorSnapshot, lenderSnapshot]) => {
+        const exists = !originatorSnapshot.empty || !lenderSnapshot.empty;
+        console.log('Email exists?', exists, 'Originator:', !originatorSnapshot.empty, 'Lender:', !lenderSnapshot.empty);
+        return exists;
+        return !originatorSnapshot.empty || !lenderSnapshot.empty;
+      }),
+      catchError(error => {
+        console.error('Error checking if email exists:', error);
+        return of(false);
+      })
+    );
+  }
   /**
    * 🔧 FIXED: Filter lenders with corrected field mappings
    */
@@ -358,13 +354,13 @@ deleteDocument(path: string): Promise<void> {
 
       return collectionData(q, { idField: 'id' }).pipe(
         map((lenders) => lenders.filter((lender: any) => {
-          
+
           // ✅ FIXED: Property category filtering - handle both formats and normalize
           if (propertyCategory) {
             const normalizedCategory = propertyCategory.toLowerCase().replace(/-/g, '_');
             const categories = (lender.productInfo?.propertyCategories || [])
               .map((c: string) => c.toLowerCase().replace(/\s+/g, '_'));
-            
+
             if (!categories.includes(normalizedCategory)) return false;
           }
 
@@ -372,7 +368,7 @@ deleteDocument(path: string): Promise<void> {
           if (state) {
             const stateAbbr = this.getStateAbbreviation(state);
             const lenderStates = lender.footprintInfo?.lendingFootprint || [];
-            
+
             if (!lenderStates.includes(stateAbbr)) return false;
           }
 
@@ -389,7 +385,7 @@ deleteDocument(path: string): Promise<void> {
             const selectedLoanType = loanType.toLowerCase().replace(/-/g, '_');
             const loanTypes = (lender.productInfo?.loanTypes || [])
               .map((t: any) => typeof t === 'string' ? t.toLowerCase() : (t?.value || '').toLowerCase());
-            
+
             if (!loanTypes.includes(selectedLoanType)) return false;
           }
 
@@ -437,7 +433,7 @@ deleteDocument(path: string): Promise<void> {
 
       return collectionData(q, { idField: 'id' }).pipe(
         map((loans) => loans.filter((loan: any) => {
-          
+
           // Client-side filtering for loan amount ranges (Firestore doesn't support range queries with other filters)
           if (minAmount || maxAmount) {
             const loanAmountString = String(loan.loanAmount || '0');

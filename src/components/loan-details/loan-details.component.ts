@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { LoanService } from '../../services/loan.service';
 import { AuthService } from '../../services/auth.service';
-import { switchMap, catchError, tap, map } from 'rxjs/operators';
+import { switchMap, catchError, tap, take, map } from 'rxjs/operators';
 import { of, Subscription } from 'rxjs';
 import { Loan } from '../../models/loan-model.model';
 import { Firestore} from '@angular/fire/firestore';
@@ -13,6 +13,8 @@ import { FirestoreService } from '../../services/firestore.service';
 import { getPropertySubcategoryName } from '../../shared/constants/property-mappings';
 import { LoanUtils, PropertySubcategoryValue } from '../../models/loan-model.model';
 import { firstValueFrom } from 'rxjs';
+import { doc, getDoc } from '@angular/fire/firestore';
+
 
 // Property category interface for better type safety
 interface PropertyCategoryOption {
@@ -238,6 +240,7 @@ async loadCurrentUserData(): Promise<void> {
 
 // Find this method and replace it
 loadLoanCreatorData(creatorId: string): void {
+  // below: loadLoanCreatorData(creatorId: string): void {
   if (!creatorId) {
     console.log('No creator ID available for this loan');
     return;
@@ -245,28 +248,18 @@ loadLoanCreatorData(creatorId: string): void {
 
   console.log('Loading loan creator (originator) data for ID:', creatorId);
 
-  // ✅ Fetch directly from originators/{uid}, fallback to lenders/{uid}, then users/{uid}
+  // Single source of truth: users/{uid}
   this.firestoreService
-    .getDocument(`originators/${creatorId}`)
-    .pipe(
-      catchError((err) => {
-        console.warn('Originator not found in originators/, trying lenders/:', err);
-        return this.firestoreService.getDocument(`lenders/${creatorId}`);
-      }),
-      switchMap((maybeProfile) => {
-        if (maybeProfile) return of(maybeProfile);
-        console.warn('Not in lenders/, trying users/…');
-        return this.firestoreService.getDocument(`users/${creatorId}`);
-      })
-    )
+    .getDocument(`users/${creatorId}`)
+    .pipe(take(1))
     .subscribe({
       next: (profile: any | null) => {
         if (!profile) {
           console.log('No profile found for creator ID:', creatorId);
+          this.userData = null as any; // keeps your template’s *ngIf logic consistent
           return;
         }
 
-        // Map nested contactInfo OR top-level fields
         const user: User = {
           uid: profile.id || creatorId,
           firstName: profile.contactInfo?.firstName ?? profile.firstName ?? '',
@@ -285,84 +278,66 @@ loadLoanCreatorData(creatorId: string): void {
       },
       error: (error) => {
         console.error('Error loading creator data:', error);
+        this.userData = null as any;
       }
     });
-}
+  }
 
 
   loadOriginatorDetails(originatorId: string): void {
-    console.log('Loading originator details for ID:', originatorId);
+// below: loadOriginatorDetails(originatorId: string): void {
+  console.log('Loading originator details for ID:', originatorId);
 
-    // First try the originators collection (new structure)
-    this.firestoreService
-      .getDocument(`originators/${originatorId}`)
-      .pipe(
-        catchError((error) => {
-          console.error('Error fetching from originators collection:', error);
-
-          // Fallback to users collection if not found in originators collection
-          return this.firestoreService
-            .getDocument(`users/${originatorId}`)
-            .pipe(
-              map((userData) => {
-                if (!userData) return null;
-
-                console.log('Found user data in users collection:', userData);
-
-                // Map the users collection data to the standard contact structure
-                return {
-                  id: userData.id,
-                  contactInfo: {
-                    firstName: userData['firstName'] || '',
-                    lastName: userData['lastName'] || '',
-                    contactEmail: userData['email'] || '', // Map email to contactEmail
-                    contactPhone: userData['phone'] || '',
-                    company: userData['company'] || '',
-                    city: userData['city'] || '',
-                    state: userData['state'] || '',
-                  },
-                };
-              })
-            );
-        })
-      )
-      .subscribe({
-        next: (data) => {
-          if (data) {
-            console.log('Originator details loaded:', data);
-            this.originatorDetails.set(data);
-
-            // ADDITION: Also set the user data if not already set
-            // This ensures both signals have the data
-            if (!this.userData) {
-              const user: User = {
-                uid: data.id,
-                firstName: data.contactInfo?.firstName || '',
-                lastName: data.contactInfo?.lastName || '',
-                email: data.contactInfo?.contactEmail || '',
-                company: data.contactInfo?.company || '',
-                phone: data.contactInfo?.contactPhone || '',
-                city: data.contactInfo?.city || '',
-                state: data.contactInfo?.state || '',
-                role: 'originator' as 'originator',
-                createdAt: new Date(),
-              };
-              this.userData = user;
-              console.log(
-                'User signal set from originator details:',
-                this.userData
-              );
-            }
-          } else {
-            console.log('No originator details found');
-            this.originatorDetails.set(null);
-          }
-        },
-        error: (err) => {
-          console.error('Error loading originator details:', err);
+  this.firestoreService
+    .getDocument(`users/${originatorId}`)
+    .pipe(take(1))
+    .subscribe({
+      next: (userData: any | null) => {
+        if (!userData) {
+          console.log('No originator details found');
           this.originatorDetails.set(null);
-        },
-      });
+          return;
+        }
+
+        // Normalize to { id, contactInfo: {...} }
+        const data = {
+          id: userData.id || originatorId,
+          contactInfo: {
+            firstName:    userData.contactInfo?.firstName    ?? userData.firstName    ?? '',
+            lastName:     userData.contactInfo?.lastName     ?? userData.lastName     ?? '',
+            contactEmail: userData.contactInfo?.contactEmail ?? userData.email        ?? '',
+            contactPhone: userData.contactInfo?.contactPhone ?? userData.phone        ?? '',
+            company:      userData.contactInfo?.company      ?? userData.company      ?? '',
+            city:         userData.contactInfo?.city         ?? userData.city         ?? '',
+            state:        userData.contactInfo?.state        ?? userData.state        ?? '',
+          }
+        };
+
+        this.originatorDetails.set(data);
+
+        // Also seed userData if it is still empty
+        if (!this.userData) {
+          const user: User = {
+            uid: data.id,
+            firstName: data.contactInfo.firstName,
+            lastName:  data.contactInfo.lastName,
+            email:     data.contactInfo.contactEmail,
+            company:   data.contactInfo.company,
+            phone:     data.contactInfo.contactPhone,
+            city:      data.contactInfo.city,
+            state:     data.contactInfo.state,
+            role: 'originator',
+            createdAt: new Date(),
+          };
+          this.userData = user;
+          console.log('User signal set from originator details:', this.userData);
+        }
+      },
+      error: (err) => {
+        console.error('Error loading originator details:', err);
+        this.originatorDetails.set(null);
+      },
+    });
   }
 
   formatPropertyCategory(category: string): string {

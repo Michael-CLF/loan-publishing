@@ -86,7 +86,7 @@
 
 .add-loan {
   color: #fff;
-  background-color: #0a2463;
+  background-color: #023020;
   padding: 10px 20px 10px 20px;
   border-radius: 8px;
   text-decoration: none;
@@ -94,7 +94,7 @@
   font-size: 1.375rem;
 }
 .add-loan:hover {
-  background-color: #008080;
+  background-color: #000;
 }
 .error-message {
   color: #c00000;
@@ -107,10 +107,6 @@
 .button-container {
   text-align: center;
   margin-bottom: 30px;
-}
-/*--Account-Buttons--*/
-.profile-actions .account-edit-btn {
-  margin-right: 20px; /* Adds 10px of space to the right */
 }
 
 .account-edit-btn {
@@ -128,9 +124,31 @@
   background-color: #c00000;
   padding: 20px;
   &:hover {
-    background-color: #000;
+    background-color: maroon;
   }
 }
+
+.browse-loans {
+  color: #fff;
+  background-color: #023020;
+  padding: 10px 20px 10px 20px;
+  border-radius: 8px;
+  text-decoration: none;
+  font-family: "roboto", sans-serif;
+  font-size: 1.375rem;
+}
+.browse-loans:hover {
+  background-color: #000;
+}
+
+.action-btn.logout-btn {
+  background-color: maroon;
+  color: #fff;
+}
+.action-btn.logout-btn:hover {
+  background-color: #c00000;
+}
+
 /* Loans Grid */
 .loans-grid {
   display: grid;
@@ -247,18 +265,7 @@
   font-weight: 500;
   color: #0a2463;
 }
-.browse-loans {
-  color: #fff;
-  background-color: #0a2463;
-  padding: 10px 20px 10px 20px;
-  border-radius: 8px;
-  text-decoration: none;
-  font-family: "roboto", sans-serif;
-  font-size: 1.375rem;
-}
-.browse-loans:hover {
-  background-color: #008080;
-}
+
 /*--Saved--Lender--Table*/
 
 /* Lender table container */

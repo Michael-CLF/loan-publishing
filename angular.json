@@ -45,7 +45,8 @@
               "src/robots.txt"
             ],
             "styles": [
-              "src/styles.css"
+              "src/styles.css",
+              "@fortawesome/fontawesome-free/css/all.min.css"
             ],
             "scripts": [],
             "allowedCommonJsDependencies": [

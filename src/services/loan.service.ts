@@ -29,13 +29,7 @@ export class LoanService {
   private get db() {
     return this.firestore;
   }
-
-  /**
-   * 🔁 Get all loans created by current user
-   */
-  /**
- * 🔁 Load all loans created by specified user
- */
+  
 loadLoans(userId?: string): Observable<Loan[]> {
   // ✅ Use passed userId or fallback to current user
   const uid = userId || this.auth.currentUser?.uid;

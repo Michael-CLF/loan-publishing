@@ -47,9 +47,10 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
   loading = true;
   error = false;
   isFavorited = false;
-  userRole: 'originator' | 'lender' | null = null;
+  userRole: 'originator' | 'lender' | 'admin' | null = null;
   isAuthenticated = false;
   showModal = false;
+  backTarget: string = '/dashboard';
 
   private destroy$ = new Subject<void>();
   private route = inject(ActivatedRoute);
@@ -62,56 +63,81 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
   private copyProtectionEnabled = true;
 
   private setupCopyProtection(): void {
-  if (!this.copyProtectionEnabled) return;
+    if (!this.copyProtectionEnabled) return;
 
-  // Disable right-click context menu
-  const handleContextMenu = (e: MouseEvent) => {
-    e.preventDefault();
-    return false;
-  };
-
-  // Disable copy keyboard shortcuts
-  const handleKeyDown = (e: KeyboardEvent) => {
-    // Prevent Ctrl+C, Cmd+C, Ctrl+X, Cmd+X, Ctrl+A, Cmd+A
-    if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'a')) {
+    // Disable right-click context menu
+    const handleContextMenu = (e: MouseEvent) => {
       e.preventDefault();
       return false;
-    }
-    return true;
-  };
+    };
 
-  // Disable text selection via CSS (backup method)
-  const disableSelection = () => {
-    document.body.style.userSelect = 'none';
-    document.body.style.webkitUserSelect = 'none';
-  };
+    // Disable copy keyboard shortcuts
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Prevent Ctrl+C, Cmd+C, Ctrl+X, Cmd+X, Ctrl+A, Cmd+A
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'c' || e.key === 'x' || e.key === 'a')) {
+        e.preventDefault();
+        return false;
+      }
+      return true;
+    };
 
-  // Apply protection
-  disableSelection();
-  document.addEventListener('contextmenu', handleContextMenu);
-  document.addEventListener('keydown', handleKeyDown);
+    // Disable text selection via CSS (backup method)
+    const disableSelection = () => {
+      document.body.style.userSelect = 'none';
+      document.body.style.webkitUserSelect = 'none';
+    };
 
-  // Cleanup when component is destroyed (Angular 18 pattern)
-  this.destroyRef.onDestroy(() => {
-    document.removeEventListener('contextmenu', handleContextMenu);
-    document.removeEventListener('keydown', handleKeyDown);
-    document.body.style.userSelect = '';
-    document.body.style.webkitUserSelect = '';
-  });  
+    // Apply protection
+    disableSelection();
+    document.addEventListener('contextmenu', handleContextMenu);
+    document.addEventListener('keydown', handleKeyDown);
+
+    // Cleanup when component is destroyed (Angular 18 pattern)
+    this.destroyRef.onDestroy(() => {
+      document.removeEventListener('contextmenu', handleContextMenu);
+      document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.userSelect = '';
+      document.body.style.webkitUserSelect = '';
+    });
     this.setupCopyProtection(); // Add this line
-}
+  }
 
   async ngOnInit(): Promise<void> {
+    // Resolve basic auth state
     const user = await this.authService.getCurrentFirebaseUser();
-    if (user) {
-      this.isAuthenticated = true;
-      this.userRole = null;
-      this.isAuthenticated = false;
-      this.userRole = null;
-    }
-    this.cdr.markForCheck();
+    this.isAuthenticated = !!user;
 
-    this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+    const fromAdminQP = this.route.snapshot.queryParamMap.get('origin') === 'admin';
+    const fromAdminState = history.state?.fromAdmin === true;
+
+ if (fromAdminQP || fromAdminState) {
+    this.backTarget = '/admin/dashboard';
+  } else {
+    this.backTarget = '/dashboard';
+  }
+
+  this.authService.getUserProfile()
+    .pipe(takeUntil(this.destroy$))
+    .subscribe((profile) => {
+      const role = (profile as any)?.role ?? null;
+      const rawIsAdmin = (profile as any)?.isAdmin;
+      const isAdmin = role === 'admin' || rawIsAdmin === true || rawIsAdmin === 'true';
+
+      // Update local role for any other logic you have
+      this.userRole = (role === 'admin' || role === 'lender' || role === 'originator') ? role : null;
+
+      // If profile confirms admin, override target to admin dashboard
+      if (isAdmin) {
+        this.backTarget = '/admin/dashboard';
+      }
+
+      this.cdr.markForCheck();
+    });
+
+  this.cdr.markForCheck();
+
+  this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe((params) => {
+
       const id = params.get('id');
       if (id) {
         this.loadLenderDetails(id);
@@ -136,11 +162,11 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   ngAfterViewInit(): void {
-  // Setup copy protection after view initializes
-  setTimeout(() => {
-    this.setupCopyProtection();
-  }, 100);
-}
+    // Setup copy protection after view initializes
+    setTimeout(() => {
+      this.setupCopyProtection();
+    }, 100);
+  }
 
   closeModal(): void {
     this.favoritesService.closeModal();
@@ -152,32 +178,32 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
   }
 
   loadLenderDetails(id: string): void {
-  this.loading = true;
-  this.cdr.markForCheck();
+    this.loading = true;
+    this.cdr.markForCheck();
 
-  this.lenderService
-    .getLender(id)
-    .pipe(takeUntil(this.destroy$))
-    .subscribe({
-      next: (lender) => {
-        this.lender = lender;
-        if (!lender) {
+    this.lenderService
+      .getLender(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (lender) => {
+          this.lender = lender;
+          if (!lender) {
+            this.error = true;
+            console.log('Lender not found');
+          } else {
+            console.log('LENDER DETAILS: Lender loaded:', this.lender);
+          }
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+        error: (err) => {
+          console.error('Error loading lender details:', err);
           this.error = true;
-          console.log('Lender not found');
-        } else {
-          console.log('LENDER DETAILS: Lender loaded:', this.lender);
-        }
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-      error: (err) => {
-        console.error('Error loading lender details:', err);
-        this.error = true;
-        this.loading = false;
-        this.cdr.markForCheck();
-      },
-    });
-}
+          this.loading = false;
+          this.cdr.markForCheck();
+        },
+      });
+  }
 
   formatCategoryName(category: string): string {
     return getPropertyCategoryName(category);
@@ -279,331 +305,331 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
     }
   }
 
-// =============================================
-// CONTACT INFORMATION METHODS (Enhanced with comprehensive fallbacks)
-// =============================================
+  // =============================================
+  // CONTACT INFORMATION METHODS (Enhanced with comprehensive fallbacks)
+  // =============================================
 
-getContactName(): string {
-  if (!this.lender) return 'Not specified';
+  getContactName(): string {
+    if (!this.lender) return 'Not specified';
 
-  // ✅ Use type assertion to safely check all possible locations
-  const lenderAny = this.lender as any;
-  const firstName = 
-    this.lender.contactInfo?.firstName || 
-    lenderAny.firstName || 
-    '';
-  const lastName = 
-    this.lender.contactInfo?.lastName || 
-    lenderAny.lastName || 
-    '';
+    // ✅ Use type assertion to safely check all possible locations
+    const lenderAny = this.lender as any;
+    const firstName =
+      this.lender.contactInfo?.firstName ||
+      lenderAny.firstName ||
+      '';
+    const lastName =
+      this.lender.contactInfo?.lastName ||
+      lenderAny.lastName ||
+      '';
 
-  const fullName = `${firstName} ${lastName}`.trim();
-  console.log('🔍 DEBUG - getContactName:', { firstName, lastName, fullName });
-  return fullName || 'Not specified';
-}
-
-getCompanyName(lender: any): string {
-  if (!lender) return 'N/A';
-
-  // ✅ Use type assertion to safely check all possible locations
-  const lenderAny = lender as any;
-  const company = 
-    lender.contactInfo?.company || 
-    lenderAny.company || 
-    '';
-
-  console.log('🔍 DEBUG - getCompanyName:', { 
-    contactInfoCompany: lender.contactInfo?.company,
-    rootCompany: lenderAny.company,
-    finalCompany: company 
-  });
-  
-  return company.trim() || 'N/A';
-}
-
-getEmail(): string {
-  if (!this.lender) return 'Not specified';
-
-  // ✅ Use type assertion to safely check all possible locations
-  const lenderAny = this.lender as any;
-  const email = 
-    this.lender.contactInfo?.contactEmail || 
-    lenderAny.contactEmail ||
-    lenderAny.email || 
-    '';
-
-  console.log('🔍 DEBUG - getEmail:', { 
-    contactInfoEmail: this.lender.contactInfo?.contactEmail,
-    rootContactEmail: lenderAny.contactEmail,
-    rootEmail: lenderAny.email,
-    finalEmail: email 
-  });
-
-  return email || 'Not specified';
-}
-
-getPhone(): string {
-  if (!this.lender) return 'Not specified';
-
-  // ✅ Use type assertion to safely check all possible locations
-  const lenderAny = this.lender as any;
-  const phone = 
-    this.lender.contactInfo?.contactPhone || 
-    lenderAny.contactPhone ||
-    lenderAny.phone || 
-    '';
-
-  console.log('🔍 DEBUG - getPhone:', { 
-    contactInfoPhone: this.lender.contactInfo?.contactPhone,
-    rootContactPhone: lenderAny.contactPhone,
-    rootPhone: lenderAny.phone,
-    finalPhone: phone 
-  });
-
-  return phone || 'Not specified';
-}
-
-getLocation(): string {
-  if (!this.lender) return 'Not specified';
-
-  // ✅ Use type assertion to safely check all possible locations
-  const lenderAny = this.lender as any;
-  const city = 
-    this.lender.contactInfo?.city || 
-    lenderAny.city || 
-    '';
-  const state = 
-    this.lender.contactInfo?.state || 
-    lenderAny.state || 
-    '';
-
-  console.log('🔍 DEBUG - getLocation:', { 
-    contactInfoCity: this.lender.contactInfo?.city,
-    contactInfoState: this.lender.contactInfo?.state,
-    rootCity: lenderAny.city,
-    rootState: lenderAny.state,
-    finalCity: city,
-    finalState: state
-  });
-
-  if (city && state) {
-    return `${city}, ${formatStateForDisplay(state)}`;
-  } else if (city) {
-    return city;
-  } else if (state) {
-    return formatStateForDisplay(state);
+    const fullName = `${firstName} ${lastName}`.trim();
+    console.log('🔍 DEBUG - getContactName:', { firstName, lastName, fullName });
+    return fullName || 'Not specified';
   }
 
-  return 'Not specified';
-}
+  getCompanyName(lender: any): string {
+    if (!lender) return 'N/A';
 
-// =============================================
-// PRODUCT INFO METHODS (Enhanced with comprehensive fallbacks)
-// =============================================
+    // ✅ Use type assertion to safely check all possible locations
+    const lenderAny = lender as any;
+    const company =
+      lender.contactInfo?.company ||
+      lenderAny.company ||
+      '';
 
-getLenderTypes(): string {
-  console.log('🔍 DEBUG - Full lender object:', this.lender);
-  console.log('🔍 DEBUG - lenderTypes from productInfo:', this.lender?.productInfo?.lenderTypes);
+    console.log('🔍 DEBUG - getCompanyName:', {
+      contactInfoCompany: lender.contactInfo?.company,
+      rootCompany: lenderAny.company,
+      finalCompany: company
+    });
 
-  if (!this.lender) return 'None specified';
-
-  // ✅ Only access properties that exist in Lender interface
-  const lenderTypes = this.lender.productInfo?.lenderTypes || [];
-
-  console.log('🔍 DEBUG - final lenderTypes array:', lenderTypes);
-
-  if (!Array.isArray(lenderTypes) || lenderTypes.length === 0) {
-    console.log('🔍 DEBUG - no lender types found, returning general');
-    return 'General';
+    return company.trim() || 'N/A';
   }
 
-  const result = lenderTypes
-    .map((type: any) => {
-      console.log('🔍 DEBUG - processing type:', type);
+  getEmail(): string {
+    if (!this.lender) return 'Not specified';
 
-      // Handle object with name property
-      if (type && typeof type === 'object' && type.name) {
-        console.log('🔍 DEBUG - using name:', type.name);
-        return type.name;
-      }
+    // ✅ Use type assertion to safely check all possible locations
+    const lenderAny = this.lender as any;
+    const email =
+      this.lender.contactInfo?.contactEmail ||
+      lenderAny.contactEmail ||
+      lenderAny.email ||
+      '';
 
-      // Handle object with value property
-      if (type && typeof type === 'object' && type.value) {
-        console.log('🔍 DEBUG - using value:', type.value);
-        return this.formatLenderType(type.value);
-      }
+    console.log('🔍 DEBUG - getEmail:', {
+      contactInfoEmail: this.lender.contactInfo?.contactEmail,
+      rootContactEmail: lenderAny.contactEmail,
+      rootEmail: lenderAny.email,
+      finalEmail: email
+    });
 
-      // Handle string
-      if (typeof type === 'string') {
-        console.log('🔍 DEBUG - using string:', type);
-        return this.formatLenderType(type);
-      }
+    return email || 'Not specified';
+  }
 
-      console.log('🔍 DEBUG - unknown type format');
-      return null;
-    })
-    .filter((name) => name && name !== 'Unknown')
-    .join(', ');
+  getPhone(): string {
+    if (!this.lender) return 'Not specified';
 
-  console.log('🔍 DEBUG - final getLenderTypes result:', result);
-  return result || 'General';
-}
+    // ✅ Use type assertion to safely check all possible locations
+    const lenderAny = this.lender as any;
+    const phone =
+      this.lender.contactInfo?.contactPhone ||
+      lenderAny.contactPhone ||
+      lenderAny.phone ||
+      '';
 
-getLoanRange(): string {
-  console.log('🔍 DEBUG - Full lender object for loan range:', this.lender);
-  console.log('🔍 DEBUG - productInfo:', this.lender?.productInfo);
+    console.log('🔍 DEBUG - getPhone:', {
+      contactInfoPhone: this.lender.contactInfo?.contactPhone,
+      rootContactPhone: lenderAny.contactPhone,
+      rootPhone: lenderAny.phone,
+      finalPhone: phone
+    });
 
-  if (!this.lender) return 'Not specified';
+    return phone || 'Not specified';
+  }
 
-  // ✅ Only access properties that exist in Lender interface
-  const productInfo = this.lender.productInfo;
-  
-  const minAmount = productInfo?.minLoanAmount || 0;
-  const maxAmount = productInfo?.maxLoanAmount || 0;
+  getLocation(): string {
+    if (!this.lender) return 'Not specified';
 
-  console.log('🔍 DEBUG - minAmount:', minAmount, 'maxAmount:', maxAmount);
+    // ✅ Use type assertion to safely check all possible locations
+    const lenderAny = this.lender as any;
+    const city =
+      this.lender.contactInfo?.city ||
+      lenderAny.city ||
+      '';
+    const state =
+      this.lender.contactInfo?.state ||
+      lenderAny.state ||
+      '';
 
-  // ✅ Handle number | string types as defined in Lender model
-  const minValue = this.parseNumericValue(minAmount);
-  const maxValue = this.parseNumericValue(maxAmount);
+    console.log('🔍 DEBUG - getLocation:', {
+      contactInfoCity: this.lender.contactInfo?.city,
+      contactInfoState: this.lender.contactInfo?.state,
+      rootCity: lenderAny.city,
+      rootState: lenderAny.state,
+      finalCity: city,
+      finalState: state
+    });
 
-  console.log('🔍 DEBUG - parsed minValue:', minValue, 'maxValue:', maxValue);
+    if (city && state) {
+      return `${city}, ${formatStateForDisplay(state)}`;
+    } else if (city) {
+      return city;
+    } else if (state) {
+      return formatStateForDisplay(state);
+    }
 
-  if ((minValue === 0 || isNaN(minValue)) && (maxValue === 0 || isNaN(maxValue))) {
-    console.log('🔍 DEBUG - both amounts are zero or NaN');
     return 'Not specified';
   }
 
-  const result = `${Number(minValue || 0).toLocaleString()} - ${Number(maxValue || 0).toLocaleString()}`;
-  console.log('🔍 DEBUG - final getLoanRange result:', result);
-  return result;
-}
+  // =============================================
+  // PRODUCT INFO METHODS (Enhanced with comprehensive fallbacks)
+  // =============================================
 
-// =============================================
-// UTILITY METHODS
-// =============================================
+  getLenderTypes(): string {
+    console.log('🔍 DEBUG - Full lender object:', this.lender);
+    console.log('🔍 DEBUG - lenderTypes from productInfo:', this.lender?.productInfo?.lenderTypes);
 
-/**
- * ✅ NEW: Helper method to format lender types
- */
-private formatLenderType(type: string): string {
-  if (!type) return 'General';
+    if (!this.lender) return 'None specified';
 
-  // ✅ Enhanced mapping for common lender types
-  const typeMap: { [key: string]: string } = {
-    // Snake case format
-    'agency': 'Agency Lender',
-    'balance_sheet': 'Balance Sheet',
-    'bank': 'Bank',
-    'bridge_lender': 'Bridge Lender', 
-    'cdfi': 'CDFI Lender',
-    'conduit_lender': 'Conduit Lender (CMBS)',
-    'construction_lender': 'Construction Lender',
-    'correspondent_lender': 'Correspondent Lender',
-    'credit_union': 'Credit Union',
-    'crowdfunding': 'Crowdfunding Platform',
-    'direct_lender': 'Direct Lender',
-    'family_office': 'Family Office',
-    'general': 'General',
-    'hard_money': 'Hard Money Lender',
-    'life_insurance': 'Life Insurance Lender',
-    'mezzanine_lender': 'Mezzanine Lender',
-    'non_qm_lender': 'Non-QM Lender',
-    'portfolio_lender': 'Portfolio Lender',
-    'private_lender': 'Private Lender',
-    'sba': 'SBA Lender',
-    'usda': 'USDA Lender',
-    
-    // Camel case format (legacy)
-    'balanceSheet': 'Balance Sheet',
-    'bridgeLender': 'Bridge Lender',
-    'conduitLender': 'Conduit Lender (CMBS)', 
-    'constructionLender': 'Construction Lender',
-    'correspondentLender': 'Correspondent Lender',
-    'creditUnion': 'Credit Union',
-    'directLender': 'Direct Lender',
-    'familyOffice': 'Family Office',
-    'hardMoney': 'Hard Money Lender',
-    'lifeInsurance': 'Life Insurance Lender',
-    'mezzanineLender': 'Mezzanine Lender',
-    'nonQmLender': 'Non-QM Lender',
-    'portfolioLender': 'Portfolio Lender',
-    'privateLender': 'Private Lender'
-  };
+    // ✅ Only access properties that exist in Lender interface
+    const lenderTypes = this.lender.productInfo?.lenderTypes || [];
 
-  // ✅ Try exact match first
-  if (typeMap[type]) {
-    return typeMap[type];
-  }
+    console.log('🔍 DEBUG - final lenderTypes array:', lenderTypes);
 
-  // ✅ Try case-insensitive match
-  const lowerType = type.toLowerCase();
-  const matchedKey = Object.keys(typeMap).find(key => 
-    key.toLowerCase() === lowerType
-  );
-  if (matchedKey) {
-    return typeMap[matchedKey];
-  }
-
-  // ✅ Fallback: Format snake_case/camelCase to readable format
-  return type
-    .replace(/([a-z])([A-Z])/g, '$1 $2') // Handle camelCase
-    .replace(/_/g, ' ') // Handle snake_case
-    .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize each word
-    .trim() || 'General';
-}
-
-/**
- * ✅ NEW: Helper method to parse numeric values from string or number
- */
-private parseNumericValue(value: any): number {
-  if (value === undefined || value === null) return 0;
-  
-  if (typeof value === 'number') return value;
-  
-  if (typeof value === 'string') {
-    const numericString = value.replace(/[^0-9.]/g, '');
-    const parsedValue = parseFloat(numericString);
-    return isNaN(parsedValue) ? 0 : parsedValue;
-  }
-  
-  return 0;
-}
-
-/**
- * ✅ FIXED: Debug method with proper TypeScript typing
- */
-debugLenderDataStructure(): void {
-  console.log('=== LENDER DETAILS DATA STRUCTURE DEBUG ===');
-  console.log('Full lender object:', this.lender);
-  
-  if (this.lender) {
-    // ✅ Use type assertion to access all properties for debugging
-    const lenderAsAny = this.lender as any;
-    console.log('Root level properties:', Object.keys(lenderAsAny));
-    console.log('ContactInfo:', this.lender.contactInfo);
-    console.log('ProductInfo:', this.lender.productInfo);
-    console.log('FootprintInfo:', this.lender.footprintInfo);
-    
-    if (this.lender.contactInfo) {
-      console.log('ContactInfo properties:', Object.keys(this.lender.contactInfo));
+    if (!Array.isArray(lenderTypes) || lenderTypes.length === 0) {
+      console.log('🔍 DEBUG - no lender types found, returning general');
+      return 'General';
     }
-    
-    if (this.lender.productInfo) {
-      console.log('ProductInfo properties:', Object.keys(this.lender.productInfo));
-    }
-    
-    // Test each method
-    console.log('=== METHOD RESULTS ===');
-    console.log('getContactName():', this.getContactName());
-    console.log('getCompanyName():', this.getCompanyName(this.lender));
-    console.log('getEmail():', this.getEmail());
-    console.log('getPhone():', this.getPhone());
-    console.log('getLocation():', this.getLocation());
-    console.log('getLenderTypes():', this.getLenderTypes());
-    console.log('getLoanRange():', this.getLoanRange());
+
+    const result = lenderTypes
+      .map((type: any) => {
+        console.log('🔍 DEBUG - processing type:', type);
+
+        // Handle object with name property
+        if (type && typeof type === 'object' && type.name) {
+          console.log('🔍 DEBUG - using name:', type.name);
+          return type.name;
+        }
+
+        // Handle object with value property
+        if (type && typeof type === 'object' && type.value) {
+          console.log('🔍 DEBUG - using value:', type.value);
+          return this.formatLenderType(type.value);
+        }
+
+        // Handle string
+        if (typeof type === 'string') {
+          console.log('🔍 DEBUG - using string:', type);
+          return this.formatLenderType(type);
+        }
+
+        console.log('🔍 DEBUG - unknown type format');
+        return null;
+      })
+      .filter((name) => name && name !== 'Unknown')
+      .join(', ');
+
+    console.log('🔍 DEBUG - final getLenderTypes result:', result);
+    return result || 'General';
   }
-}
+
+  getLoanRange(): string {
+    console.log('🔍 DEBUG - Full lender object for loan range:', this.lender);
+    console.log('🔍 DEBUG - productInfo:', this.lender?.productInfo);
+
+    if (!this.lender) return 'Not specified';
+
+    // ✅ Only access properties that exist in Lender interface
+    const productInfo = this.lender.productInfo;
+
+    const minAmount = productInfo?.minLoanAmount || 0;
+    const maxAmount = productInfo?.maxLoanAmount || 0;
+
+    console.log('🔍 DEBUG - minAmount:', minAmount, 'maxAmount:', maxAmount);
+
+    // ✅ Handle number | string types as defined in Lender model
+    const minValue = this.parseNumericValue(minAmount);
+    const maxValue = this.parseNumericValue(maxAmount);
+
+    console.log('🔍 DEBUG - parsed minValue:', minValue, 'maxValue:', maxValue);
+
+    if ((minValue === 0 || isNaN(minValue)) && (maxValue === 0 || isNaN(maxValue))) {
+      console.log('🔍 DEBUG - both amounts are zero or NaN');
+      return 'Not specified';
+    }
+
+    const result = `${Number(minValue || 0).toLocaleString()} - ${Number(maxValue || 0).toLocaleString()}`;
+    console.log('🔍 DEBUG - final getLoanRange result:', result);
+    return result;
+  }
+
+  // =============================================
+  // UTILITY METHODS
+  // =============================================
+
+  /**
+   * ✅ NEW: Helper method to format lender types
+   */
+  private formatLenderType(type: string): string {
+    if (!type) return 'General';
+
+    // ✅ Enhanced mapping for common lender types
+    const typeMap: { [key: string]: string } = {
+      // Snake case format
+      'agency': 'Agency Lender',
+      'balance_sheet': 'Balance Sheet',
+      'bank': 'Bank',
+      'bridge_lender': 'Bridge Lender',
+      'cdfi': 'CDFI Lender',
+      'conduit_lender': 'Conduit Lender (CMBS)',
+      'construction_lender': 'Construction Lender',
+      'correspondent_lender': 'Correspondent Lender',
+      'credit_union': 'Credit Union',
+      'crowdfunding': 'Crowdfunding Platform',
+      'direct_lender': 'Direct Lender',
+      'family_office': 'Family Office',
+      'general': 'General',
+      'hard_money': 'Hard Money Lender',
+      'life_insurance': 'Life Insurance Lender',
+      'mezzanine_lender': 'Mezzanine Lender',
+      'non_qm_lender': 'Non-QM Lender',
+      'portfolio_lender': 'Portfolio Lender',
+      'private_lender': 'Private Lender',
+      'sba': 'SBA Lender',
+      'usda': 'USDA Lender',
+
+      // Camel case format (legacy)
+      'balanceSheet': 'Balance Sheet',
+      'bridgeLender': 'Bridge Lender',
+      'conduitLender': 'Conduit Lender (CMBS)',
+      'constructionLender': 'Construction Lender',
+      'correspondentLender': 'Correspondent Lender',
+      'creditUnion': 'Credit Union',
+      'directLender': 'Direct Lender',
+      'familyOffice': 'Family Office',
+      'hardMoney': 'Hard Money Lender',
+      'lifeInsurance': 'Life Insurance Lender',
+      'mezzanineLender': 'Mezzanine Lender',
+      'nonQmLender': 'Non-QM Lender',
+      'portfolioLender': 'Portfolio Lender',
+      'privateLender': 'Private Lender'
+    };
+
+    // ✅ Try exact match first
+    if (typeMap[type]) {
+      return typeMap[type];
+    }
+
+    // ✅ Try case-insensitive match
+    const lowerType = type.toLowerCase();
+    const matchedKey = Object.keys(typeMap).find(key =>
+      key.toLowerCase() === lowerType
+    );
+    if (matchedKey) {
+      return typeMap[matchedKey];
+    }
+
+    // ✅ Fallback: Format snake_case/camelCase to readable format
+    return type
+      .replace(/([a-z])([A-Z])/g, '$1 $2') // Handle camelCase
+      .replace(/_/g, ' ') // Handle snake_case
+      .replace(/\b\w/g, l => l.toUpperCase()) // Capitalize each word
+      .trim() || 'General';
+  }
+
+  /**
+   * ✅ NEW: Helper method to parse numeric values from string or number
+   */
+  private parseNumericValue(value: any): number {
+    if (value === undefined || value === null) return 0;
+
+    if (typeof value === 'number') return value;
+
+    if (typeof value === 'string') {
+      const numericString = value.replace(/[^0-9.]/g, '');
+      const parsedValue = parseFloat(numericString);
+      return isNaN(parsedValue) ? 0 : parsedValue;
+    }
+
+    return 0;
+  }
+
+  /**
+   * ✅ FIXED: Debug method with proper TypeScript typing
+   */
+  debugLenderDataStructure(): void {
+    console.log('=== LENDER DETAILS DATA STRUCTURE DEBUG ===');
+    console.log('Full lender object:', this.lender);
+
+    if (this.lender) {
+      // ✅ Use type assertion to access all properties for debugging
+      const lenderAsAny = this.lender as any;
+      console.log('Root level properties:', Object.keys(lenderAsAny));
+      console.log('ContactInfo:', this.lender.contactInfo);
+      console.log('ProductInfo:', this.lender.productInfo);
+      console.log('FootprintInfo:', this.lender.footprintInfo);
+
+      if (this.lender.contactInfo) {
+        console.log('ContactInfo properties:', Object.keys(this.lender.contactInfo));
+      }
+
+      if (this.lender.productInfo) {
+        console.log('ProductInfo properties:', Object.keys(this.lender.productInfo));
+      }
+
+      // Test each method
+      console.log('=== METHOD RESULTS ===');
+      console.log('getContactName():', this.getContactName());
+      console.log('getCompanyName():', this.getCompanyName(this.lender));
+      console.log('getEmail():', this.getEmail());
+      console.log('getPhone():', this.getPhone());
+      console.log('getLocation():', this.getLocation());
+      console.log('getLenderTypes():', this.getLenderTypes());
+      console.log('getLoanRange():', this.getLoanRange());
+    }
+  }
 
   hasLoanTypes(): boolean {
     return true; // Always show loan types section
@@ -634,36 +660,36 @@ debugLenderDataStructure(): void {
   // LENDING FOOTPRINT METHODS (Using new mappings)
   // =============================================
 
-   getLendingStatesArray(): string[] {
-  console.log('🔍 DEBUG - footprintInfo:', this.lender?.footprintInfo);
+  getLendingStatesArray(): string[] {
+    console.log('🔍 DEBUG - footprintInfo:', this.lender?.footprintInfo);
 
-  if (!this.lender?.footprintInfo) return [];
+    if (!this.lender?.footprintInfo) return [];
 
-  const footprintInfo = this.lender.footprintInfo as any;
-  let statesArray: string[] = [];
+    const footprintInfo = this.lender.footprintInfo as any;
+    let statesArray: string[] = [];
 
-  // ✅ 1) Prefer lendingFootprint array if it exists and has data
-  if (Array.isArray(footprintInfo.lendingFootprint) && footprintInfo.lendingFootprint.length > 0) {
-    statesArray = footprintInfo.lendingFootprint;
-    console.log('🔍 DEBUG - Using lendingFootprint array:', statesArray);
+    // ✅ 1) Prefer lendingFootprint array if it exists and has data
+    if (Array.isArray(footprintInfo.lendingFootprint) && footprintInfo.lendingFootprint.length > 0) {
+      statesArray = footprintInfo.lendingFootprint;
+      console.log('🔍 DEBUG - Using lendingFootprint array:', statesArray);
+    }
+
+    // ✅ 2) If no array data, fall back to states object keys
+    else if (footprintInfo.states && typeof footprintInfo.states === 'object') {
+      statesArray = Object.keys(footprintInfo.states)
+        .filter((key) => footprintInfo.states[key] === true);
+      console.log('🔍 DEBUG - Using states object keys:', statesArray);
+    }
+
+    // ✅ 3) Format all states for display
+    const result = statesArray
+      .map((state) => formatStateForDisplay(state))
+      .filter((state) => state.length > 0)
+      .sort((a, b) => a.localeCompare(b));
+
+    console.log('🔍 DEBUG - final getLendingStatesArray result:', result);
+    return result;
   }
-
-  // ✅ 2) If no array data, fall back to states object keys
-  else if (footprintInfo.states && typeof footprintInfo.states === 'object') {
-    statesArray = Object.keys(footprintInfo.states)
-      .filter((key) => footprintInfo.states[key] === true);
-    console.log('🔍 DEBUG - Using states object keys:', statesArray);
-  }
-
-  // ✅ 3) Format all states for display
-  const result = statesArray
-    .map((state) => formatStateForDisplay(state))
-    .filter((state) => state.length > 0)
-    .sort((a, b) => a.localeCompare(b));
-
-  console.log('🔍 DEBUG - final getLendingStatesArray result:', result);
-  return result;
-}
 
   // =============================================
   // SUBCATEGORIES METHODS (Using new mappings)
@@ -693,31 +719,31 @@ debugLenderDataStructure(): void {
     return 'Unknown';
   }
 
-private normalizeCategory(value: string): string {
-  if (!value) return '';
-  return value.trim().toLowerCase().replace(/[\s_-]+/g, '_');
-}
-
-getCategoriesWithOptionalSubcategories(): { category: string; subcategories: string[] }[] {
-  if (!this.lender?.productInfo?.propertyCategories) return [];
-
-  const categories = this.lender.productInfo.propertyCategories.map(cat => this.normalizeCategory(cat));
-  const subcategories = this.lender.productInfo.subcategorySelections || [];
-
-  // Group subcategories by category
-  const groupedSubs: { [key: string]: string[] } = {};
-  for (const sub of subcategories) {
-    const cat = this.normalizeCategory(getCategoryFromSubcategory(sub));
-    if (!groupedSubs[cat]) groupedSubs[cat] = [];
-    groupedSubs[cat].push(sub);
+  private normalizeCategory(value: string): string {
+    if (!value) return '';
+    return value.trim().toLowerCase().replace(/[\s_-]+/g, '_');
   }
 
-  // Map categories with their subcategories (or empty array)
-  return categories.map(cat => ({
-    category: cat,
-    subcategories: groupedSubs[cat] || []
-  }));
-}
+  getCategoriesWithOptionalSubcategories(): { category: string; subcategories: string[] }[] {
+    if (!this.lender?.productInfo?.propertyCategories) return [];
+
+    const categories = this.lender.productInfo.propertyCategories.map(cat => this.normalizeCategory(cat));
+    const subcategories = this.lender.productInfo.subcategorySelections || [];
+
+    // Group subcategories by category
+    const groupedSubs: { [key: string]: string[] } = {};
+    for (const sub of subcategories) {
+      const cat = this.normalizeCategory(getCategoryFromSubcategory(sub));
+      if (!groupedSubs[cat]) groupedSubs[cat] = [];
+      groupedSubs[cat].push(sub);
+    }
+
+    // Map categories with their subcategories (or empty array)
+    return categories.map(cat => ({
+      category: cat,
+      subcategories: groupedSubs[cat] || []
+    }));
+  }
 
 
   // UPDATED: Now uses the mapping constants
@@ -726,34 +752,34 @@ getCategoriesWithOptionalSubcategories(): { category: string; subcategories: str
   }
 
 
-getGroupedSubcategories(): { [category: string]: string[] } {
-  const categories = this.lender?.productInfo?.propertyCategories || [];
-  const subcategories = this.lender?.productInfo?.subcategorySelections || [];
+  getGroupedSubcategories(): { [category: string]: string[] } {
+    const categories = this.lender?.productInfo?.propertyCategories || [];
+    const subcategories = this.lender?.productInfo?.subcategorySelections || [];
 
-  const grouped: { [key: string]: string[] } = {};
+    const grouped: { [key: string]: string[] } = {};
 
-  // Always start with the categories
-  for (const cat of categories) {
-    const formattedCat = this.formatCategoryName(cat);
-    grouped[formattedCat] = [];
-  }
-
-  // Then attach subcategories to the matching category
-  for (const sub of subcategories) {
-    const catKey = this.getCategoryFromSubcategory(sub);
-    const formattedCatKey = this.formatCategoryName(catKey);
-
-    if (!grouped[formattedCatKey]) {
-      grouped[formattedCatKey] = [];
+    // Always start with the categories
+    for (const cat of categories) {
+      const formattedCat = this.formatCategoryName(cat);
+      grouped[formattedCat] = [];
     }
 
-    if (!grouped[formattedCatKey].includes(sub)) {
-      grouped[formattedCatKey].push(sub);
-    }
-  }
+    // Then attach subcategories to the matching category
+    for (const sub of subcategories) {
+      const catKey = this.getCategoryFromSubcategory(sub);
+      const formattedCatKey = this.formatCategoryName(catKey);
 
-  return grouped;
-}
+      if (!grouped[formattedCatKey]) {
+        grouped[formattedCatKey] = [];
+      }
+
+      if (!grouped[formattedCatKey].includes(sub)) {
+        grouped[formattedCatKey].push(sub);
+      }
+    }
+
+    return grouped;
+  }
 
 
   // =============================================

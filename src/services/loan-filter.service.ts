@@ -1,66 +1,53 @@
 // src/app/services/loan-filter.service.ts
 import { Injectable, signal } from '@angular/core';
-import { LoanFilters } from '../models/loan-filters.model'; // You'd need to create this
 
-@Injectable({
-  providedIn: 'root',
-})
+export interface LoanFilters {
+  /** e.g. 'residential', 'multifamily', 'retail' */
+  propertyTypeCategory: string;
+  /** 2-letter abbreviation, e.g. 'FL', 'NC', 'IL' */
+  state: string;
+  /** stored value, e.g. 'dscr', 'portfolio', 'bridge' */
+  loanType: string;
+  /** numeric string, e.g. '250000' */
+  minAmount: string;
+  /** numeric string, e.g. '750000' */
+  maxAmount: string;
+}
+
+@Injectable({ providedIn: 'root' })
 export class LoanFilterService {
-  // Use signals for reactive state management (Angular 18 approach)
-  private filtersSignal = signal<LoanFilters>({
+  // single source of truth for current filters
+  private readonly _filters = signal<LoanFilters>({
     propertyTypeCategory: '',
     state: '',
     loanType: '',
-    loanAmount: '',
+    minAmount: '',
+    maxAmount: '',
   });
 
-  // Methods to update filters
-  updateFilters(filters: Partial<LoanFilters>): void {
-    this.filtersSignal.update((current) => ({
-      ...current,
-      ...filters,
-    }));
+  /** Read-only signal for consumers */
+  get filters() {
+    return this._filters.asReadonly();
   }
 
-  // Method to reset filters
+  /** Snapshot getter (non-reactive) */
+  getFilters(): LoanFilters {
+    return this._filters();
+  }
+
+  /** Merge-in updates without losing other fields */
+  updateFilters(patch: Partial<LoanFilters>): void {
+    this._filters.update(cur => ({ ...cur, ...patch }));
+  }
+
+  /** Reset everything to "All" */
   resetFilters(): void {
-    this.filtersSignal.set({
+    this._filters.set({
       propertyTypeCategory: '',
       state: '',
       loanType: '',
-      loanAmount: '',
+      minAmount: '',
+      maxAmount: '',
     });
-  }
-
-  getFilters() {
-    return this.filtersSignal();
-  }
-
-  // Get filters as a read-only signal
-  get filters() {
-    return this.filtersSignal.asReadonly();
-  }
-
-  // Format loan amount for display
-  formatLoanAmount(value: string): string {
-    if (!value) return '';
-    // Remove non-numeric characters except decimal point
-    const numericValue = value.replace(/[^0-9.]/g, '');
-    // Convert to number and format
-    const amount = parseFloat(numericValue);
-    if (isNaN(amount)) return '';
-    return amount.toLocaleString('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
-  }
-
-  // Clean loan amount value (remove multiple decimal points)
-  cleanLoanAmount(value: string): string {
-    const parts = value.split('.');
-    if (parts.length > 2) {
-      return parts[0] + '.' + parts.slice(1).join('');
-    }
-    return value;
   }
 }
