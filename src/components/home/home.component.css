@@ -426,12 +426,10 @@
 
 /* Loan Cards Section */
 .mock-loans-wrapper {
-    margin: 80px auto;
-    padding: 60px 20px;
+    margin: 0px auto;
+    padding: 0px 20px;
     max-width: 1400px;
-    background-color: #f8fafc;
     border-radius: 20px;
-    /* Performance optimization */
     content-visibility: auto;
     contain-intrinsic-size: 0 800px;
 }
@@ -456,20 +454,13 @@
 .loan-card {
     background: #fff;
     border-radius: 12px;
-    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: rgba(0, 0, 0, 0.2) 0px 12px 28px 0px, rgba(0, 0, 0, 0.1) 0px 2px 4px 0px, rgba(255, 255, 255, 0.05) 0px 0px 0px 1px inset;
     overflow: hidden;
     transition: all 0.3s ease;
     border: 1px solid #e2e8f0;
-    /* Prevent layout shift - fixed card height */
-    min-height: 450px;
     display: flex;
     flex-direction: column;
     will-change: transform;
-}
-
-.loan-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.15);
 }
 
 .card-header {
@@ -478,10 +469,8 @@
     justify-content: space-between;
     align-items: center;
     padding: 20px;
-    font-weight: 600;
+    font-weight: 500;
     font-family: "Roboto", sans-serif;
-    /* Fixed height to prevent shift */
-    min-height: 68px;
     flex-shrink: 0;
 }
 
@@ -506,7 +495,7 @@
 }
 
 .value {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-family: "Roboto", sans-serif;
     margin-bottom: 8px;
     line-height: 1.5;
@@ -515,7 +504,7 @@
 }
 
 .label {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     font-family: "Roboto", sans-serif;
     font-weight: 600;
     color: #0a2463;
@@ -524,78 +513,111 @@
 .card-actions {
     display: flex;
     justify-content: center;
-    padding: 20px;
+    padding: 10px 20px;
     background: #f8fafc;
     border-top: 1px solid #e2e8f0;
-    /* Fixed height */
-    min-height: 70px;
     flex-shrink: 0;
+}
+
+/* Cards layout for the lenders section (no class/ID changes) */
+.lender-container {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.lender-table.lender-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 20px;
+}
+
+/* Card */
+.lender-card {  
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  margin: 0 0 12px 0;
+  color: #fff;  
+  box-shadow: rgba(14, 30, 37, 0.12) 0px 2px 4px 0px, rgba(14, 30, 37, 0.32) 0px 2px 16px 0px;
+}
+
+.lender-card__name {
+  background-color: #0a2463;
+  margin: 0 0 12px 0;
+  font-size: 1.2rem;
+  font-weight: 500;
+  color: #fff;
+  padding: 20px;
+  border-radius: 6px;
+}
+
+.lender-card__row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  padding: 6px 0;
+  border-top: 1px solid #eef1f5;
+}
+
+.lender-card__label {
+  font-weight: 600;
+  color: #274b6f;
+}
+
+.lender-card__value {
+  justify-self: end;
+  text-align: right;
+  color: #1f2937;
+}
+
+/* Responsive */
+@media (max-width: 1024px) {
+  .lender-table.lender-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 640px) {
+  .lender-table.lender-cards { grid-template-columns: 1fr; }
+  .lender-card__row {
+    grid-template-columns: 1fr;
+    row-gap: 2px;
+  }
+  .lender-card__value { justify-self: start; text-align: left; }
+}
+
+.view-btn {
+    font-family: "Roboto", sans-serif;
+    background-color: #0a2463;
+    font-size: 1rem;
+    flex: 1;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 4px;
+    color: #fff;
+    margin-bottom: 10px;
 }
 
 .lender-matches-section {
-    padding: 0 20px 20px;
-    background: #f8fafc;
     display: flex;
     justify-content: center;
-    /* Fixed height */
-    min-height: 68px;
     flex-shrink: 0;
 }
 
 .lender-matches-btn {
-    color: #fff;
     background-color: #008080;
-    font-family: "Roboto", sans-serif;
-    padding: 12px 25px;
-    border: none;
-    border-radius: 6px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    max-width: 80%;
     font-size: 1rem;
-    will-change: transform;
-}
-
-.view-btn {
-    color: #fff;
-    font-family: "Roboto", sans-serif;
     padding: 10px 20px;
     border: none;
-    border-radius: 6px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    flex: 1;
-    font-size: 1rem;
-    will-change: transform;
-}
-
-.view-btn {
-    background-color: #0a2463;
-}
-
-.view-btn:hover {
-    background-color: #008080;
-    transform: translateY(-1px);
-}
-
-.lender-matches-btn {
-    background-color: #008080;
-}
-
-.lender-matches-btn:hover {
-    background-color: #0a2463;
-    transform: translateY(-1px);
+    border-radius: 4px;
+    color: #fff;
+    margin-bottom: 10px;
 }
 
 /* Lender Table */
-.lender-table-container {
+.lender-container {
     max-width: 1200px;
     margin: 60px auto;
     border-radius: 15px;
     overflow: hidden;
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
     font-family: "Roboto", sans-serif;
     /* Performance optimization */
     content-visibility: auto;
@@ -629,17 +651,6 @@ thead {
     border-bottom: 1px solid #e2e8f0;
 }
 
-.lender-table tr:nth-child(even):not(.highlight-row) {
-    background-color: #f8fafc;
-}
-
-.highlight-row {
-    background-color: #fff3cd;
-}
-
-.lender-table tbody tr:hover {
-    background-color: #e2e8f0;
-}
 
 /* Table Placeholder */
 .table-placeholder {
@@ -919,7 +930,6 @@ thead {
 /* Smart Filtering Section */
 .smart-filtering-section {
     background: #fff;
-    padding: 80px 0;
     margin: 60px 0;
     /* Performance optimization */
     content-visibility: auto;
