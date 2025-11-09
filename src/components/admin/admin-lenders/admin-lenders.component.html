@@ -2,14 +2,13 @@
 
 <div class="lenders-section">
   <div class="section-header">
-    <h2 class="section-title">Lenders</h2>
-    <div class="section-stats">
-      {{ filteredLenders().length }} of {{ lenders().length }} lenders
-    </div>
-  </div>
+    <h2 class="section-title">Lenders</h2></div>   
    <div class="dashboard-btn">
         <a routerLink="/admin" class="user-btn">Back to Dashboard</a>
         </div>
+         <div class="section-stats">
+      {{ filteredLenders().length }} of {{ lenders().length }} lenders
+    </div>
 
   <div class="lenders-grid">
     <div *ngFor="let lender of filteredLenders()" class="lender-card">

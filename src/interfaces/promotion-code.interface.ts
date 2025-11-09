@@ -63,6 +63,12 @@ export interface PromotionCode {
   durationType?: 'once' | 'repeating' | 'forever';
   durationInMonths?: number;
 }
+export interface PromotionListResponse {
+  codes: PromotionCode[];
+  success?: boolean;
+  error?: string;
+  total?: string;
+}
 
 /**
  * Admin interface - Create new promotion code
@@ -98,9 +104,4 @@ export interface PromotionOperationResponse {
   message: string;
   code?: PromotionCode;
   error?: string;
-}
-
-export interface PromotionListResponse {
-  codes: PromotionCode[];
-  total: number;
 }

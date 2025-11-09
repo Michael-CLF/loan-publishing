@@ -6,8 +6,7 @@
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
+  display: flex; 
   align-items: center;
   margin-bottom: 20px;
   padding-bottom: 10px;
@@ -19,7 +18,7 @@
   font-family: "roboto", sans-serif;
   color: #0a2463;
   text-align: center;
-  margin: 30px;
+  margin: 20px;
 }
 
 .section-stats {
@@ -28,6 +27,8 @@
   background: #008080;
   padding: 4px 8px;
   border-radius: 4px;
+  width: 150px;
+  margin-bottom: 20px;
 }
 
 /* Lender Cards Layout */
