@@ -148,7 +148,14 @@ export class AppComponent implements OnInit, OnDestroy {
       '/',
       '/pricing',
       '/register',
-      '/forgot-password',
+      '/lender-registration',
+      '/lender-contact',
+      '/lender-product',
+      '/lender-footprint',
+      '/lender-review',
+      '/registration-processing',
+      '/complete-payment',
+        '/__/auth/action'
     ];
     return publicRoutes.some((route) => url.includes(route));
   }
@@ -157,6 +164,20 @@ export class AppComponent implements OnInit, OnDestroy {
     const path = (url || '/').split('?')[0].split('#')[0];
     return path === '/admin' || path.startsWith('/admin/');
   }
+    private isRegistrationRoute(url: string): boolean {
+    const regPrefixes = [
+      '/lender-registration',
+      '/lender-contact',
+      '/lender-product',
+      '/lender-footprint',
+      '/lender-review',
+      '/registration-processing',
+      '/complete-payment',
+      '/__/auth/action'
+    ];
+    return regPrefixes.some((p) => url.startsWith(p));
+  }
+
 
   // ---------- routing observers ----------
   private setupNavigationMonitoring(): void {
@@ -236,8 +257,10 @@ export class AppComponent implements OnInit, OnDestroy {
             localStorage.getItem('redirectUrl');
           if (pendingNext) return;
 
-          // collapse public pages to user dashboard
-          if (this.isPublicRoute(this.router.url)) {
+          const currentUrl = this.router.url;
+
+          // Do NOT collapse registration/public auth pages to dashboard
+          if (this.isPublicRoute(currentUrl) && !this.isRegistrationRoute(currentUrl)) {
             this.router.navigate(['/dashboard']);
           }
         } else if (!this.isPublicRoute(this.router.url)) {

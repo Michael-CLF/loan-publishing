@@ -142,7 +142,7 @@ export const routes: Routes = [
   },
   {
     path: 'lender-details/:id',
-    loadComponent: () => import('src/components/lender/lender-details/lender-details.component')
+    loadComponent: () => import('src/components/lender-details/lender-details.component')
       .then(m => m.LenderDetailsComponent),
     title: 'Lender Details - LoanPost'
   },

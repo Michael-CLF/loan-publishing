@@ -25,14 +25,31 @@ export const authGuard: CanActivateFn = (
   const fsService = inject(FirestoreService);
   const firestore: Firestore = fsService.firestore;
 
-  // 1. Always allow Firebase internal auth callback URLs
-  if (url.includes('/__/auth/action')) {
+    // Public routes that must bypass auth/subscription checks
+  const PUBLIC_WHITELIST: string[] = [
+    '/login',
+    '/register',
+    '/pricing',
+    // Registration wizard steps
+    '/lender-registration',
+    '/lender-contact',
+    '/lender-product',
+    '/lender-footprint',
+    '/lender-review',
+    // Post-Stripe / processing screens
+    '/registration-processing',
+    '/complete-payment',
+    // Firebase internal auth callback
+    '/__/auth/action'
+  ];
+
+  // Early exit for public/registration routes
+  if (PUBLIC_WHITELIST.some(prefix => url.startsWith(prefix))) {
     return of(true);
   }
 
-  // 2. Always allow registration-processing screen
-  //    We use that page during post-Stripe and OTP.
-  if (url.includes('/registration-processing')) {
+  // 1. Always allow Firebase internal auth callback URLs
+  if (url.includes('/__/auth/action')) {
     return of(true);
   }
 
