@@ -38,7 +38,7 @@ export class PricingComponent {
   navigateToUserForm(planType: 'originators' | 'lenders' | 'mortgage-companies'): void {
     // Get the selected billing cycle based on plan type
     const billingCycle = this.getBillingCycle(planType);
-    
+
     // Store the plan type and billing cycle in localStorage
     localStorage.setItem('selectedPlan', planType);
     localStorage.setItem('selectedBilling', billingCycle);
@@ -56,25 +56,25 @@ export class PricingComponent {
 
   navigateToLoan(planType: 'originator' | 'lender'): void {
     // Get the selected billing cycle based on plan type
-    const billingCycle = planType === 'originator' 
+    const billingCycle = planType === 'originator'
       ? (this.isOriginatorAnnual ? 'annual' : 'monthly')
       : (this.isLenderAnnual ? 'annual' : 'monthly');
-    
+
     // Store the plan type and billing cycle in localStorage
     localStorage.setItem('selectedPlan', planType);
     localStorage.setItem('selectedBilling', billingCycle);
 
-   // Check if user is authenticated
-this.authService.isLoggedIn$
-  .pipe(take(1))
-  .subscribe((isLoggedIn) => {
-    if (isLoggedIn) {
-      this.router.navigate(['/loan']);
-    } else {
-      localStorage.setItem('redirectUrl', '/loan');
-      this.router.navigate(['/login']);
-    }
-  });
+    // Check if user is authenticated
+    this.authService.isLoggedIn$
+      .pipe(take(1))
+      .subscribe((isLoggedIn) => {
+        if (isLoggedIn) {
+          this.router.navigate(['/loan']);
+        } else {
+          try { localStorage.setItem('postLoginNext', '/loan'); } catch { }
+          this.router.navigate(['/login'], { queryParams: { next: '/loan' } });
+        }
+      });
   }
 
   /**

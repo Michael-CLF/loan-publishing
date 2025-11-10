@@ -63,7 +63,7 @@ export class AppComponent implements OnInit, OnDestroy {
   // controls whether navbar/header/footer render
   showUserChrome = signal<boolean>(true);
 
-  constructor(private clarityService: ClarityService) {}
+  constructor(private clarityService: ClarityService) { }
 
   title = 'Daily Loan Post';
   isRoleSelectionModalOpen = false;
@@ -155,7 +155,7 @@ export class AppComponent implements OnInit, OnDestroy {
       '/lender-review',
       '/registration-processing',
       '/complete-payment',
-        '/__/auth/action'
+      '/__/auth/action'
     ];
     return publicRoutes.some((route) => url.includes(route));
   }
@@ -164,7 +164,7 @@ export class AppComponent implements OnInit, OnDestroy {
     const path = (url || '/').split('?')[0].split('#')[0];
     return path === '/admin' || path.startsWith('/admin/');
   }
-    private isRegistrationRoute(url: string): boolean {
+  private isRegistrationRoute(url: string): boolean {
     const regPrefixes = [
       '/lender-registration',
       '/lender-contact',
@@ -210,12 +210,13 @@ export class AppComponent implements OnInit, OnDestroy {
           this.showUserChrome.set(!this.isAdminUrl(url));
 
           if (isPlatformBrowser(this.platformId)) {
-            const stored = localStorage.getItem('redirectUrl');
+            const stored = localStorage.getItem('postLoginNext');
             if (stored && stored === url) {
-              console.log('🗑️ Clearing redirect URL from storage');
-              localStorage.removeItem('redirectUrl');
+              console.log('🧹 Clearing postLoginNext from storage');
+              localStorage.removeItem('postLoginNext');
             }
           }
+
         }
 
         if (event instanceof NavigationError) {
@@ -251,22 +252,26 @@ export class AppComponent implements OnInit, OnDestroy {
         }
 
         if (isLoggedIn) {
-          // if there is a pending post-login target, let that logic handle it
-          const pendingNext =
-            localStorage.getItem('postLoginNext') ||
-            localStorage.getItem('redirectUrl');
+          const pendingNext = localStorage.getItem('postLoginNext');
           if (pendingNext) return;
 
           const currentUrl = this.router.url;
 
-          // Do NOT collapse registration/public auth pages to dashboard
-          if (this.isPublicRoute(currentUrl) && !this.isRegistrationRoute(currentUrl)) {
+          if (isLoggedIn && this.isPublicRoute(this.router.url) && !this.isRegistrationRoute(this.router.url)) {
+            const tree = this.router.parseUrl(this.router.url);
+            const nextParam = tree.queryParams['next'] as string | undefined;
+            const storedNext = localStorage.getItem('postLoginNext');
+            if (nextParam || storedNext) return; // let login handle it
             this.router.navigate(['/dashboard']);
+            return;
           }
+
+
         } else if (!this.isPublicRoute(this.router.url)) {
           // not logged in and trying to access a protected user route
-          localStorage.setItem('redirectUrl', this.router.url);
-          this.router.navigate(['/login']);
+          try { localStorage.setItem('postLoginNext', this.router.url); } catch { }
+          this.router.navigate(['/login'], { queryParams: { next: this.router.url } });
+
         }
       });
 

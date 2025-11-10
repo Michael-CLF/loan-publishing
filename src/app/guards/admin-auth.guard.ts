@@ -1,4 +1,4 @@
-// src/app/guards/admin-auth.guard.ts  (FULL FILE - Firestore-based, no custom claims)
+// src/app/guards/admin-auth.guard.ts  (Firestore-based, no custom claims)
 
 import { inject } from '@angular/core';
 import {
@@ -12,12 +12,13 @@ import { Auth, authState } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
 
+/** Redirect unauthenticated users to login while preserving intent */
 function redirectNonAdmin(router: Router, state?: RouterStateSnapshot): UrlTree {
   // preserve intent so we can return after login
   const next = state?.url ?? '/admin/dashboard';
+  try { localStorage.setItem('postLoginNext', next); } catch {}
   return router.createUrlTree(['/login'], { queryParams: { next } });
 }
-
 
 /** Core check: signed-in AND admins/{uid} exists */
 async function isAdminByDoc(auth: Auth, db: Firestore): Promise<boolean> {
@@ -27,6 +28,7 @@ async function isAdminByDoc(auth: Auth, db: Firestore): Promise<boolean> {
   return snap.exists();
 }
 
+/** Guard for admin-only routes */
 export const adminAuthGuard: CanActivateFn = async (_r, state) => {
   const router = inject(Router);
   const auth = inject(Auth);
@@ -37,7 +39,12 @@ export const adminAuthGuard: CanActivateFn = async (_r, state) => {
   if (!user) return redirectNonAdmin(router, state);
 
   const snap = await getDoc(doc(db, `admins/${user.uid}`));
-  return snap.exists() ? true : redirectNonAdmin(router, state);
+  if (snap.exists()) {
+    try { localStorage.removeItem('postLoginNext'); } catch {}
+    return true;
+  }
+  try { localStorage.removeItem('postLoginNext'); } catch {}
+  return redirectNonAdmin(router, state);
 };
 
 /** Guard for pages that should be accessible only when NOT an admin (e.g., admin login) */
@@ -47,7 +54,11 @@ export const adminNoAuthGuard: CanActivateFn = async (): Promise<boolean | UrlTr
   const db = inject(Firestore);
 
   const ok = await isAdminByDoc(auth, db);
-  return ok ? router.parseUrl('/admin/dashboard') : true;
+  if (ok) {
+    try { localStorage.removeItem('postLoginNext'); } catch {}
+    return router.parseUrl('/admin/dashboard');
+  }
+  return true;
 };
 
 /** Role guard wrapper. For now: admin has all roles. */
@@ -59,6 +70,7 @@ export const adminRoleGuard: (requiredRole: string) => CanActivateFn =
       const db = inject(Firestore);
 
       const ok = await isAdminByDoc(auth, db);
+      try { localStorage.removeItem('postLoginNext'); } catch {}
       return ok ? true : redirectNonAdmin(router, state);
     };
   };

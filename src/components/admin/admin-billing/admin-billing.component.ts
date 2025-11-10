@@ -70,7 +70,8 @@ export class AdminBillingComponent implements OnInit {
       expiresAt: [''],
       maxUses: [null, [Validators.min(1)]],
       durationType: ['once', Validators.required],
-      durationInMonths: [1, [Validators.min(1), Validators.max(36)]]
+      durationInMonths: [1, [Validators.min(1), Validators.max(36)]],
+      durationInDays: [null, [Validators.min(1), Validators.max(365)]]
     });
 
 
@@ -84,18 +85,23 @@ export class AdminBillingComponent implements OnInit {
       }
     });
 
-    // Require durationInMonths only when durationType === 'repeating'
     this.promotionForm.get('durationType')?.valueChanges.subscribe((dt) => {
-      const ctrl = this.promotionForm.get('durationInMonths');
-      if (dt === 'repeating') {
-        ctrl?.setValidators([Validators.required, Validators.min(1), Validators.max(36)]);
-        if (!ctrl?.value) ctrl?.setValue(1);
-      } else {
-        ctrl?.clearValidators();
-        ctrl?.setValue(null);
-      }
-      ctrl?.updateValueAndValidity();
-    });
+  const monthsCtrl = this.promotionForm.get('durationInMonths');
+  const daysCtrl   = this.promotionForm.get('durationInDays');
+
+  if (dt === 'repeating') {
+    monthsCtrl?.setValidators([Validators.min(1), Validators.max(36)]);
+    daysCtrl?.setValidators([Validators.min(1), Validators.max(365)]);
+  } else {
+    monthsCtrl?.clearValidators();
+    daysCtrl?.clearValidators();
+    monthsCtrl?.setValue(null);
+    daysCtrl?.setValue(null);
+  }
+
+  monthsCtrl?.updateValueAndValidity();
+  daysCtrl?.updateValueAndValidity();
+});
   }
 
   async loadPromotionCodes(): Promise<void> {

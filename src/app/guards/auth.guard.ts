@@ -58,10 +58,12 @@ return auth.getCurrentFirebaseUser().pipe(
   take(1),
   switchMap((user: User | null) => {
     // Not logged in at all -> go to /login
-    if (!user?.uid) {
-      localStorage.setItem('redirectUrl', url);
-      return of(router.parseUrl('/login'));
-    }
+   // Not logged in at all -> go to /login with ?next= and mirror to postLoginNext
+if (!user?.uid) {
+  try { localStorage.setItem('postLoginNext', url); } catch {}
+  return of(router.createUrlTree(['/login'], { queryParams: { next: url } }));
+}
+
 
     const uid = user.uid;
     const adminRef = doc(firestore, `admins/${uid}`);

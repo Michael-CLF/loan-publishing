@@ -83,14 +83,16 @@ export class EmailLoginComponent implements OnInit {
         const snap = await getDoc(doc(this.firestore, `admins/${user.uid}`));
         if (snap.exists()) {
           await this.router.navigateByUrl(next);
+          try { localStorage.removeItem('postLoginNext'); } catch { }
           return;
         }
       }
       await this.router.navigateByUrl('/dashboard');
+      try { localStorage.removeItem('postLoginNext'); } catch { }
       return;
     }
-
     await this.router.navigateByUrl('/dashboard');
+    try { localStorage.removeItem('postLoginNext'); } catch {}
   }
   // ------------------------------------------------
 

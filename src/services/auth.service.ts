@@ -26,9 +26,9 @@ import {
   getDocs,
   onSnapshot
 } from '@angular/fire/firestore';
-
-// import { environment } from '../environments/environment'; // Not used, removed
 import { UserActivityService } from './user-activity.service';
+
+
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {

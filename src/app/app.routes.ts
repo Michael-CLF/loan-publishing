@@ -1,6 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from '../app/guards/auth.guard';
-import { adminAuthGuard } from './guards/admin-auth.guard';
+import { adminAuthGuard, adminNoAuthGuard } from './guards/admin-auth.guard';
+
 
 export const routes: Routes = [
   // Critical path - load immediately
@@ -14,6 +15,7 @@ export const routes: Routes = [
   {
     path: 'login',
     loadComponent: () => import('../components/email-login/email-login.component').then(m => m.EmailLoginComponent),
+    canActivate: [adminNoAuthGuard],
     title: 'Login - LoanPost'
   },
 
@@ -26,10 +28,10 @@ export const routes: Routes = [
 
   {
     path: 'admin',
+     canActivate: [adminAuthGuard],
     children: [
       {
         path: 'dashboard',
-         canActivate: [adminAuthGuard],
         loadComponent: () =>
           import('src/components/admin/admin-dashboard/admin-dashboard.component')
             .then(m => m.AdminDashboardComponent),

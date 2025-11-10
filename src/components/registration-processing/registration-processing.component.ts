@@ -93,16 +93,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
   }
 
   // -------------------------------------------------
-  // Step 2: After Stripe success
-  //
-  // Goal:
-  //  - Attempt to sign the user in automatically using a custom token (?token=...)
-  //  - If sign-in works, poll Firestore until subscriptionStatus === 'active'
-  //  - Then route to /dashboard
-  //
-  // If auto sign-in fails or there's no token:
-  //  - Show friendly success message telling them to sign in.
-  // -------------------------------------------------
   private handlePostPaymentProcessing(): void {
     this.clearRedirectTimer();
 
@@ -198,15 +188,6 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
       });
   }
 
-
-  // -------------------------------------------------
-  // Step 3: Poll until subscriptionStatus becomes "active"
-  //
-  // authService.checkAccountExists(email) must return at least:
-  //   { exists: boolean; subscriptionStatus?: string; ... }
-  //
-  // When subscriptionStatus === 'active', we route to /dashboard.
-  // -------------------------------------------------
  private pollForAccountActivation(
   email: string,
   attemptCount: number
@@ -302,6 +283,7 @@ export class RegistrationProcessingComponent implements OnInit, OnDestroy {
     // small delay so UI can update
     setTimeout(() => {
       this.router.navigate(['/dashboard']);
+      try { localStorage.removeItem('postLoginNext'); } catch {}
     }, 300);
   }
 
