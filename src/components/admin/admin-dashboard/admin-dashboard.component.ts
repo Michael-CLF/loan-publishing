@@ -7,6 +7,7 @@ import { AdminStateService } from '../../../services/admin-state.service';
 import { AdminApiService, AdminOverview } from '../../../services/admin-api.service';
 import { PromotionService } from '../../../services/promotion.service';
 import { FormsModule } from '@angular/forms';
+import { AdminPromotionService } from '../../../services/admin-promotionService';
 
 @Component({
   selector: 'app-admin-dashboard',
@@ -22,6 +23,7 @@ export class AdminDashboardComponent implements OnInit {
   private readonly adminState = inject(AdminStateService);
   private readonly adminApi = inject(AdminApiService);
   private promotionService = inject(PromotionService);
+  private adminPromotionService = inject(AdminPromotionService);
 
   // --- Login State ---
   loading = signal(false);
@@ -46,14 +48,37 @@ export class AdminDashboardComponent implements OnInit {
   constructor() {}
 
   ngOnInit(): void {
-    this.checkAuthentication();
+    this.initializeDashboard();
   }
 
-  /** Check authentication status on component load */
   private async checkAuthentication(): Promise<void> {
     const isAuth = await this.adminState.checkAuthStatus();
-    await this.adminState.refresh();
-    this.refreshAdminDashboard();
+    if (isAuth) {
+      await this.adminState.refresh();
+      this.refreshAdminDashboard();
+    }
+  }
+  private async initializeDashboard(): Promise<void> {
+    this.loading.set(true);
+    try {
+      // Wait for auth to be ready
+      const isAuth = await this.adminState.checkAuthStatus();
+      
+      if (!isAuth) {
+        console.log('Not authenticated - redirecting to login');
+        await this.router.navigate(['/auth/login']);
+        return;
+      }
+      
+      // Load data only after confirmed authenticated
+      await this.adminState.refresh();
+      this.refreshAdminDashboard();
+    } catch (error) {
+      console.error('Dashboard initialization error:', error);
+      this.errorMessage.set('Failed to initialize dashboard');
+    } finally {
+      this.loading.set(false);
+    }
   }
 
   async verifyAdminCode(): Promise<void> {
@@ -117,7 +142,7 @@ export class AdminDashboardComponent implements OnInit {
   loadPromotions(): void {
     this.promoLoading = true;
     this.promoError = '';
-    this.promotionService.getAllPromotionCodes().subscribe({
+    this.adminPromotionService.getAllPromotionCodes().subscribe({
       next: res => {
         this.promoList = res?.codes || [];
       },

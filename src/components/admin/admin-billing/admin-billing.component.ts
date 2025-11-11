@@ -12,6 +12,8 @@ import {
   PromotionOperationResponse
 } from '../../../interfaces/promotion-code.interface';
 import { firstValueFrom } from 'rxjs';
+import { AdminPromotionService } from '../../../services/admin-promotionService';
+
 
 
 @Component({
@@ -26,6 +28,7 @@ export class AdminBillingComponent implements OnInit {
   private readonly route = inject(ActivatedRoute);
   private readonly promotionService = inject(PromotionService);
   private readonly fb = inject(FormBuilder);
+  private adminPromotionService = inject(AdminPromotionService);
 
   // State signals
   promotionCodes = signal<PromotionCode[]>([]);
@@ -44,8 +47,6 @@ export class AdminBillingComponent implements OnInit {
   // Filters
   filterActive: 'all' | 'active' | 'inactive' = 'all';
   searchTerm: string = '';
-
-
 
   ngOnInit(): void {
     this.initializeForm();
@@ -86,22 +87,22 @@ export class AdminBillingComponent implements OnInit {
     });
 
     this.promotionForm.get('durationType')?.valueChanges.subscribe((dt) => {
-  const monthsCtrl = this.promotionForm.get('durationInMonths');
-  const daysCtrl   = this.promotionForm.get('durationInDays');
+      const monthsCtrl = this.promotionForm.get('durationInMonths');
+      const daysCtrl = this.promotionForm.get('durationInDays');
 
-  if (dt === 'repeating') {
-    monthsCtrl?.setValidators([Validators.min(1), Validators.max(36)]);
-    daysCtrl?.setValidators([Validators.min(1), Validators.max(365)]);
-  } else {
-    monthsCtrl?.clearValidators();
-    daysCtrl?.clearValidators();
-    monthsCtrl?.setValue(null);
-    daysCtrl?.setValue(null);
-  }
+      if (dt === 'repeating') {
+        monthsCtrl?.setValidators([Validators.min(1), Validators.max(36)]);
+        daysCtrl?.setValidators([Validators.min(1), Validators.max(365)]);
+      } else {
+        monthsCtrl?.clearValidators();
+        daysCtrl?.clearValidators();
+        monthsCtrl?.setValue(null);
+        daysCtrl?.setValue(null);
+      }
 
-  monthsCtrl?.updateValueAndValidity();
-  daysCtrl?.updateValueAndValidity();
-});
+      monthsCtrl?.updateValueAndValidity();
+      daysCtrl?.updateValueAndValidity();
+    });
   }
 
   async loadPromotionCodes(): Promise<void> {
@@ -109,7 +110,7 @@ export class AdminBillingComponent implements OnInit {
     this.error.set(null);
 
     try {
-      const response = await firstValueFrom(this.promotionService.getAllPromotionCodes());
+      const response = await firstValueFrom(this.adminPromotionService.getAllPromotionCodes());
       if (response) {
         this.promotionCodes.set(response.codes);
       }
@@ -126,7 +127,7 @@ export class AdminBillingComponent implements OnInit {
     let codes = this.promotionCodes();
 
     // Filter by active status
-   const activeFilter = this.filterActive;
+    const activeFilter = this.filterActive;
     if (activeFilter !== 'all') {
       codes = codes.filter(code =>
         activeFilter === 'active' ? code.active : !code.active
@@ -182,7 +183,8 @@ export class AdminBillingComponent implements OnInit {
       expiresAt: expiresAtValue,
       maxUses: code.maxUses,
       durationType: code.durationType || 'once' || 'repeating' || 'forever',
-      durationInMonths: code.durationInMonths || 1
+      durationInMonths: code.durationInMonths || 1,
+      durationInDays: code.durationInDays || 1
     });
 
     this.showEditModal.set(true);
@@ -196,95 +198,97 @@ export class AdminBillingComponent implements OnInit {
   }
 
   // CRUD — CREATE
-async createPromotion(): Promise<void> {
-  if (this.promotionForm.invalid) return;
+  async createPromotion(): Promise<void> {
+    if (this.promotionForm.invalid) return;
 
-  this.formLoading.set(true);
-  this.error.set(null);
+    this.formLoading.set(true);
+    this.error.set(null);
 
-  try {
-    const f = this.promotionForm.value;
+    try {
+      const f = this.promotionForm.value;
 
-    const req: CreatePromotionRequest = {
-      code: String(f.code).toUpperCase(),
-      name: f.name,
-      description: f.description || undefined,
-      type: f.type,                        // 'percentage' | 'fixed' | 'free'
-      value: Number(f.value),              // cents or percent (ignored for 'free')
-      validFor: f.validFor,                // ['originator','lender']
-      validIntervals: f.validIntervals,    // ['monthly','annually']
-      expiresAt: f.expiresAt ? new Date(f.expiresAt) : undefined,
-      maxUses: f.maxUses || undefined,
-      durationType: f.durationType,        // 'once' | 'repeating' | 'forever'
-      durationInMonths: f.durationInMonths // number | undefined
-    };
+      const req: CreatePromotionRequest = {
+        code: String(f.code).toUpperCase(),
+        name: f.name,
+        description: f.description || undefined,
+        type: f.type,                        // 'percentage' | 'fixed' | 'free'
+        value: Number(f.value),              // cents or percent (ignored for 'free')
+        validFor: f.validFor,                // ['originator','lender']
+        validIntervals: f.validIntervals,    // ['monthly','annually']
+        expiresAt: f.expiresAt ? new Date(f.expiresAt) : undefined,
+        maxUses: f.maxUses || undefined,
+        durationType: f.durationType,        // 'once' | 'repeating' | 'forever'
+        durationInMonths: f.durationInMonths, // number | undefined
+        durationInDays: f.durationInDays
+      };
 
-    const res = await firstValueFrom(
-      this.promotionService.createPromotionCode(req)
-    );
+      const res = await firstValueFrom(
+        this.adminPromotionService.createPromotionCode(req)
+      );
 
-    if (res?.success) {
-      await this.loadPromotionCodes();
-      this.closeModals();
-      this.showSuccessMessage('Promotion code created successfully!');
-    } else {
-      this.error.set(res?.error || 'Failed to create promotion code');
+      if (res?.success) {
+        await this.loadPromotionCodes();
+        this.closeModals();
+        this.showSuccessMessage('Promotion code created successfully!');
+      } else {
+        this.error.set(res?.error || 'Failed to create promotion code');
+      }
+    } catch (e) {
+      this.error.set('Failed to create promotion code');
+      console.error(e);
+    } finally {
+      this.formLoading.set(false);
     }
-  } catch (e) {
-    this.error.set('Failed to create promotion code');
-    console.error(e);
-  } finally {
-    this.formLoading.set(false);
   }
-}
 
   // CRUD — UPDATE
-async updatePromotion(): Promise<void> {
-  if (this.promotionForm.invalid || !this.selectedCode()) return;
+  async updatePromotion(): Promise<void> {
+    if (this.promotionForm.invalid || !this.selectedCode()) return;
 
-  this.formLoading.set(true);
-  this.error.set(null);
+    this.formLoading.set(true);
+    this.error.set(null);
 
-  try {
-    const f = this.promotionForm.value;
+    try {
+      const f = this.promotionForm.value;
 
-    const req: UpdatePromotionRequest = {
-      name: f.name,
-      description: f.description || undefined,
-      type: f.type,
-      value: Number(f.value),
-      validFor: f.validFor,
-      validIntervals: f.validIntervals,
-      expiresAt: f.expiresAt ? new Date(f.expiresAt) : undefined,
-      maxUses: f.maxUses || undefined,
-      durationType: f.durationType,
-      durationInMonths: f.durationInMonths
-    };
+      const req: UpdatePromotionRequest = {
+        name: f.name,
+        description: f.description || undefined,
+        type: f.type,
+        value: Number(f.value),
+        validFor: f.validFor,
+        validIntervals: f.validIntervals,
+        expiresAt: f.expiresAt ? new Date(f.expiresAt) : undefined,
+        maxUses: f.maxUses || undefined,
+        durationType: f.durationType,
+        durationInMonths: f.durationInMonths,
+        durationInDays: f.durationInDays
+      };
 
-    const res = await firstValueFrom(
-      this.promotionService.updatePromotionCode(this.selectedCode()!.id, req)
-    );
+      const res = await firstValueFrom(
+        this.adminPromotionService.updatePromotionCode(this.selectedCode()!.id, req)
+      );
 
-    if (res?.success) {
-      await this.loadPromotionCodes();
-      this.closeModals();
-      this.showSuccessMessage('Promotion code updated successfully!');
-    } else {
-      this.error.set(res?.error || 'Failed to update promotion code');
+      if (res?.success) {
+        await this.loadPromotionCodes();
+        this.closeModals();
+        this.showSuccessMessage('Promotion code updated successfully!');
+      } else {
+        this.error.set(res?.error || 'Failed to update promotion code');
+      }
+    } catch (e) {
+      this.error.set('Failed to update promotion code');
+      console.error(e);
+    } finally {
+      this.formLoading.set(false);
     }
-  } catch (e) {
-    this.error.set('Failed to update promotion code');
-    console.error(e);
-  } finally {
-    this.formLoading.set(false);
   }
-}
 
 
   async toggleCodeStatus(code: PromotionCode): Promise<void> {
     try {
       const response = await firstValueFrom(
-        this.promotionService.togglePromotionCodeStatus(code.id, !code.active)
+        this.adminPromotionService.togglePromotionCodeStatus(code.id, !code.active)
       );
 
 
@@ -304,7 +308,7 @@ async updatePromotion(): Promise<void> {
     }
 
     try {
-      const response = await firstValueFrom(this.promotionService.deletePromotionCode(code.id));
+      const response = await firstValueFrom(this.adminPromotionService.deletePromotionCode(code.id));
 
       if (response?.success) {
         await this.loadPromotionCodes();

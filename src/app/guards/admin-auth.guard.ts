@@ -1,5 +1,4 @@
 // src/app/guards/admin-auth.guard.ts  (Firestore-based, no custom claims)
-
 import { inject } from '@angular/core';
 import {
   CanActivateFn,
@@ -60,17 +59,3 @@ export const adminNoAuthGuard: CanActivateFn = async (): Promise<boolean | UrlTr
   }
   return true;
 };
-
-/** Role guard wrapper. For now: admin has all roles. */
-export const adminRoleGuard: (requiredRole: string) => CanActivateFn =
-  (_requiredRole: string) => {
-    return async (_route: ActivatedRouteSnapshot, state: RouterStateSnapshot): Promise<boolean | UrlTree> => {
-      const router = inject(Router);
-      const auth = inject(Auth);
-      const db = inject(Firestore);
-
-      const ok = await isAdminByDoc(auth, db);
-      try { localStorage.removeItem('postLoginNext'); } catch {}
-      return ok ? true : redirectNonAdmin(router, state);
-    };
-  };

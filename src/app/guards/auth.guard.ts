@@ -25,7 +25,7 @@ export const authGuard: CanActivateFn = (
   const fsService = inject(FirestoreService);
   const firestore: Firestore = fsService.firestore;
 
-    // Public routes that must bypass auth/subscription checks
+  // Public routes that must bypass auth/subscription checks
   const PUBLIC_WHITELIST: string[] = [
     '/login',
     '/register',
@@ -53,50 +53,49 @@ export const authGuard: CanActivateFn = (
     return of(true);
   }
 
- // 3. Check Firebase auth first
-return auth.getCurrentFirebaseUser().pipe(
-  take(1),
-  switchMap((user: User | null) => {
-    // Not logged in at all -> go to /login
-   // Not logged in at all -> go to /login with ?next= and mirror to postLoginNext
-if (!user?.uid) {
-  try { localStorage.setItem('postLoginNext', url); } catch {}
-  return of(router.createUrlTree(['/login'], { queryParams: { next: url } }));
+  // 3. Check Firebase auth first
+  return auth.getCurrentFirebaseUser().pipe(
+    take(1),
+    switchMap((user: User | null) => {
+      // Not logged in at all -> go to /login
+      // Not logged in at all -> go to /login with ?next= and mirror to postLoginNext
+      if (!user?.uid) {
+        try { localStorage.setItem('postLoginNext', url); } catch { }
+        return of(router.createUrlTree(['/login'], { queryParams: { next: url } }));
+      }
+      const uid = user.uid;
+      const adminRef = doc(firestore, `admins/${uid}`);
+      const lenderRef = doc(firestore, `lenders/${uid}`);
+      const originatorRef = doc(firestore, `originators/${uid}`);
+
+      return combineLatest([
+        from(getDoc(lenderRef)),
+        from(getDoc(originatorRef)),
+        from(getDoc(adminRef)),
+      ]).pipe(
+        take(1),
+        // Located inside the pipe(map(...))
+        map(([lenderSnap, originatorSnap, adminSnap]) => {
+          // Admin found: BLOCK access and redirect to Admin Dashboard
+          if (adminSnap.exists()) return router.parseUrl('/admin/dashboard'); // <-- FIXED
+
+
+          const profile: any =
+            lenderSnap.exists() ? lenderSnap.data() :
+              originatorSnap.exists() ? originatorSnap.data() :
+                null;
+
+          if (!profile) return router.parseUrl('/pricing');
+
+          const status = profile.subscriptionStatus;
+          const allowedStatuses = ['active', 'grandfathered', 'trial'];
+
+          // Allowed -> let them in; otherwise -> pricing
+          return allowedStatuses.includes(status)
+            ? true
+            : router.parseUrl('/pricing');
+        })
+      );
+    })
+  );
 }
-
-
-    const uid = user.uid;
-    const adminRef = doc(firestore, `admins/${uid}`);
-    const lenderRef = doc(firestore, `lenders/${uid}`);
-    const originatorRef = doc(firestore, `originators/${uid}`);
-
-    return combineLatest([
-      from(getDoc(lenderRef)),
-      from(getDoc(originatorRef)),
-      from(getDoc(adminRef)),
-    ]).pipe(
-      take(1),
-      map(([lenderSnap, originatorSnap, adminSnap]) => {
-        // Admin found: allow access and skip subscription checks
-        if (adminSnap.exists()) return true;
-
-        const profile: any =
-          lenderSnap.exists() ? lenderSnap.data() :
-          originatorSnap.exists() ? originatorSnap.data() :
-          null;
-
-        if (!profile) return router.parseUrl('/pricing');
-
-        const status = profile.subscriptionStatus;
-        const allowedStatuses = ['active', 'grandfathered', 'trial'];
-
-        // Allowed -> let them in; otherwise -> pricing
-        return allowedStatuses.includes(status)
-          ? true
-          : router.parseUrl('/pricing');
-      })
-    );
-  })
-);
-}
-  

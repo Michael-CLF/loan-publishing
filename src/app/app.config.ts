@@ -1,5 +1,5 @@
 import { provideRouter } from '@angular/router';
-import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClient, withInterceptors } from '@angular/common/http';
 import { provideFirebaseApp, initializeApp } from '@angular/fire/app';
 import { provideAuth, getAuth } from '@angular/fire/auth';
 import { provideFirestore, getFirestore } from '@angular/fire/firestore';
@@ -21,16 +21,16 @@ import { LocationService } from '../services/location.service';
 import { ModalService } from '../services/modal.service';
 import { UserService } from '../services/user.service';
 import { LoanTypeService } from '../services/loan-type.service';
-import { adminAuthInterceptorProvider } from '../app/interceptors/auth.interceptor';
+import { adminAuthInterceptor } from './interceptors/admin-auth.interceptor';
 
 export const appConfig: ApplicationConfig = {
   providers: [
     // Core Angular providers
     provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient(),
-    adminAuthInterceptorProvider,
-    
+    provideHttpClient( withInterceptors([adminAuthInterceptor])
+  ),
+      
     // Firebase providers
     provideFirebaseApp(() => {
       console.log('Firebase config:', environment.firebase);

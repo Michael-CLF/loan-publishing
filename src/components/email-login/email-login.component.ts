@@ -16,6 +16,7 @@ import { ModalService } from '../../services/modal.service';
 import { Auth, authState, User } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
 import { firstValueFrom } from 'rxjs';
+import { AdminStateService } from 'src/services/admin-state.service';
 
 @Component({
   selector: 'app-email-login',
@@ -34,6 +35,7 @@ export class EmailLoginComponent implements OnInit {
   private route = inject(ActivatedRoute);
   private auth = inject(Auth);
   private firestore = inject(Firestore);
+  private adminState = inject(AdminStateService);
 
   loginForm: FormGroup;
 
@@ -75,26 +77,29 @@ export class EmailLoginComponent implements OnInit {
   }
 
   private async redirectAfterLogin(): Promise<void> {
-    const next = this.getNextUrl();
+    // 1. Get the 'next' URL parameter to honor prior navigation intent
+    const nextUrl = this.route.snapshot.queryParams['next'];
 
-    if (next && next.startsWith('/admin')) {
-      const user = this.auth.currentUser;
-      if (user) {
-        const snap = await getDoc(doc(this.firestore, `admins/${user.uid}`));
-        if (snap.exists()) {
-          await this.router.navigateByUrl(next);
-          try { localStorage.removeItem('postLoginNext'); } catch { }
-          return;
+    // 2. Perform the authoritative admin check using the dedicated service
+    const isAdmin = await this.adminState.checkAuthStatus(); // True if admins/{uid} exists
+
+    if (isAdmin) {
+        // 3. ADMIN: Prioritize previous admin intent, otherwise default to Admin Dashboard
+        if (nextUrl && nextUrl.startsWith('/admin')) {
+            await this.router.navigateByUrl(nextUrl);
+        } else {
+            await this.router.navigateByUrl('/admin/dashboard');
         }
-      }
-      await this.router.navigateByUrl('/dashboard');
-      try { localStorage.removeItem('postLoginNext'); } catch { }
-      return;
+    } else {
+        // 4. LENDER/ORIGINATOR (Non-Admin User):
+        // Prioritize previous non-admin intent, otherwise default to User Dashboard
+        if (nextUrl && !nextUrl.startsWith('/admin')) {
+            await this.router.navigateByUrl(nextUrl);
+        } else {
+            await this.router.navigateByUrl('/dashboard');
+        }
     }
-    await this.router.navigateByUrl('/dashboard');
-    try { localStorage.removeItem('postLoginNext'); } catch {}
-  }
-  // ------------------------------------------------
+}
 
   get emailControl() {
     return this.loginForm.get('email');

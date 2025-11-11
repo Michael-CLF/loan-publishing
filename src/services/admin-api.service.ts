@@ -5,6 +5,7 @@ import { HttpClient } from '@angular/common/http';
 import { firstValueFrom } from 'rxjs';
 import { Auth, GoogleAuthProvider, signInWithPopup, UserCredential, signOut } from '@angular/fire/auth';
 import { Firestore, doc, getDoc } from '@angular/fire/firestore';
+import { environment } from '../environments/environment';
 
 export interface AdminOverview {
   ok: boolean;
@@ -34,9 +35,10 @@ export class AdminApiService {
   private readonly auth = inject(Auth);
   private readonly firestore = inject(Firestore);
 
-  private endpoint(path: string) {
-    return `/admin/${path.replace(/^\/+/, '')}`;
-  }
+ private endpoint(path: string) {
+  const cleanPath = path.replace(/^\/+/, '');
+  return `${environment.adminApiBase}/${cleanPath}`;
+}
 
   // Google login + Firestore admin check
   async login(): Promise<AdminLoginResponse> {

@@ -2,7 +2,6 @@ import { Routes } from '@angular/router';
 import { authGuard } from '../app/guards/auth.guard';
 import { adminAuthGuard, adminNoAuthGuard } from './guards/admin-auth.guard';
 
-
 export const routes: Routes = [
   // Critical path - load immediately
   {
@@ -28,7 +27,6 @@ export const routes: Routes = [
 
   {
     path: 'admin',
-     canActivate: [adminAuthGuard],
     children: [
       {
         path: 'dashboard',

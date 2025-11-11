@@ -143,6 +143,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private isPublicRoute(url: string): boolean {
+    if (url.startsWith('/admin')) return false;
     const publicRoutes = [
       '/login',
       '/',
@@ -178,7 +179,6 @@ export class AppComponent implements OnInit, OnDestroy {
     return regPrefixes.some((p) => url.startsWith(p));
   }
 
-
   // ---------- routing observers ----------
   private setupNavigationMonitoring(): void {
     this.router.events
@@ -195,19 +195,13 @@ export class AppComponent implements OnInit, OnDestroy {
         if (event instanceof NavigationStart) {
           console.log('🧭 Navigation starting to:', event.url);
           if (isPlatformBrowser(this.platformId)) {
-            console.log(
-              '📍 Redirect URL in storage:',
-              localStorage.getItem('redirectUrl')
-            );
+            console.log('📍 Redirect URL in storage:', localStorage.getItem('postLoginNext'));
+
           }
         }
-
         if (event instanceof NavigationEnd) {
           const url = event.urlAfterRedirects || event.url;
           console.log('✅ Navigation completed to:', url);
-
-          // update chrome visibility whenever we land on a new route
-          this.showUserChrome.set(!this.isAdminUrl(url));
 
           if (isPlatformBrowser(this.platformId)) {
             const stored = localStorage.getItem('postLoginNext');
@@ -217,7 +211,10 @@ export class AppComponent implements OnInit, OnDestroy {
             }
           }
 
+          // update chrome visibility whenever we land on a new route
+          this.showUserChrome.set(this.isAdminUrl(url));
         }
+
 
         if (event instanceof NavigationError) {
           console.error('❌ Navigation error:', event.error);
@@ -241,32 +238,28 @@ export class AppComponent implements OnInit, OnDestroy {
         );
 
         if (!isPlatformBrowser(this.platformId)) return;
-
         // Admin routes: only require auth, never auto-redirect to pricing, and never render navbar
         if (this.router.url.includes('/admin')) {
           if (!isLoggedIn) {
-            localStorage.setItem('redirectUrl', this.router.url);
-            this.router.navigate(['/login']);
+            try { localStorage.setItem('postLoginNext', this.router.url); } catch { }
+            this.router.navigate(['/login'], { queryParams: { next: this.router.url } });
           }
           return;
         }
 
         if (isLoggedIn) {
-          const pendingNext = localStorage.getItem('postLoginNext');
-          if (pendingNext) return;
-
-          const currentUrl = this.router.url;
-
+          const pendingNext = localStorage.getItem('postLoginNext'); if (pendingNext) return;
           if (isLoggedIn && this.isPublicRoute(this.router.url) && !this.isRegistrationRoute(this.router.url)) {
             const tree = this.router.parseUrl(this.router.url);
             const nextParam = tree.queryParams['next'] as string | undefined;
             const storedNext = localStorage.getItem('postLoginNext');
-            if (nextParam || storedNext) return; // let login handle it
+            const onLoginRoute = this.router.url.startsWith('/login');
+            if ((nextParam || storedNext) && onLoginRoute) {
+              return; // let login handle the admin redirect
+            }
             this.router.navigate(['/dashboard']);
             return;
           }
-
-
         } else if (!this.isPublicRoute(this.router.url)) {
           // not logged in and trying to access a protected user route
           try { localStorage.setItem('postLoginNext', this.router.url); } catch { }

@@ -2,8 +2,7 @@
 import { Injectable, signal, computed, inject } from '@angular/core';
 import { AdminApiService } from './admin-api.service';
 import { AdminAuthService } from './admin-auth.service';
-import { PromotionService } from './promotion.service'; // Add this
-
+import { PromotionService } from './promotion.service';
 import { Auth } from '@angular/fire/auth';
 import {
   Firestore,
@@ -14,8 +13,9 @@ import {
   getCountFromServer,
   query,
 } from '@angular/fire/firestore';
-import { Functions, httpsCallable } from '@angular/fire/functions'; // Add this
-import { firstValueFrom } from 'rxjs'; // Add this
+import { Functions, httpsCallable } from '@angular/fire/functions';
+import { firstValueFrom } from 'rxjs';
+import { AdminPromotionService } from './admin-promotionService';
 
 export interface DashboardStats {
   originators: number;
@@ -40,8 +40,9 @@ export class AdminStateService {
   private readonly adminAuth = inject(AdminAuthService);
   private readonly auth = inject(Auth);
   private readonly db = inject(Firestore);
-  private readonly functions = inject(Functions); // Add this injection
-  private readonly promotionService = inject(PromotionService); // Add this
+  private readonly functions = inject(Functions);
+  private readonly promotionService = inject(PromotionService);
+  private adminPromotionService = inject(AdminPromotionService);
 
   // base signals
   private readonly _isAuthenticated = signal(false);
@@ -127,7 +128,7 @@ export class AdminStateService {
           getDocs(collection(this.db, 'loans')),
           
           // Use the service that already works in AdminBillingComponent
-          firstValueFrom(this.promotionService.getAllPromotionCodes())
+          firstValueFrom(this.adminPromotionService.getAllPromotionCodes())
         ]);
 
       const stats: DashboardStats = {

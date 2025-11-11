@@ -37,8 +37,7 @@ export class AdminUsersComponent implements OnInit {
   private locationService = inject(LocationService);
   private csvExportService = inject(CsvExportService);
   private dateUtils = inject(DateUtilsService);
-  private readonly adminCode = 'gk#1uykG&R%pH*2L10UW1';
-
+ 
   userFilter = '';
   filteredLenders = signal<UserWithActivity[]>([]);
   filteredOriginators = signal<UserWithActivity[]>([]);
@@ -46,8 +45,6 @@ export class AdminUsersComponent implements OnInit {
   originators = signal<UserWithActivity[]>([]);
 
   adminAuthenticated = signal(false);
-  enteredCode = '';
-  codeError = signal(false);
   loans = signal<any[]>([]);
 
   loading = signal(false);
@@ -83,22 +80,11 @@ export class AdminUsersComponent implements OnInit {
     console.log('Formatted Firestore timestamp:', this.formatDate(firestoreTimestamp));
   }
 
-  ngOnInit() {
-    const isAuthenticated = localStorage.getItem('adminAccess') === 'true';
-    this.adminAuthenticated.set(isAuthenticated);
-    if (isAuthenticated) {
-      this.loadAllData();
-    }
-
-    // Initialize the signal
-    this.adminAuthenticated.set(isAuthenticated);
-    console.log('Admin authenticated state:', isAuthenticated);
-
-    // If already authenticated, load the data
-    if (isAuthenticated) {
-      this.loadAllData();
-    }
-  }
+ ngOnInit() {
+  // Skip password check - user is already authenticated
+  this.adminAuthenticated.set(true);
+  this.loadAllData();
+}
 
   downloadUsersAsCSV(): void {
     const originators = this.originators().map((o) => ({
@@ -151,17 +137,6 @@ export class AdminUsersComponent implements OnInit {
           originator.lastName?.toLowerCase().includes(filter)
       )
     );
-  }
-
-  verifyAdminCode() {
-    if (this.enteredCode === this.adminCode) {
-      localStorage.setItem('adminAccess', 'true');
-      this.adminAuthenticated.set(true);
-      this.codeError.set(false);
-      this.loadAllData();
-    } else {
-      this.codeError.set(true);
-    }
   }
 
   async loadAllData() {
@@ -805,12 +780,10 @@ export class AdminUsersComponent implements OnInit {
     }).format(numAmount);
   }
 
-  // Exit admin mode
   exitAdminMode(): void {
-    localStorage.removeItem('adminAccess');
-    this.adminAuthenticated.set(false);
-    this.router.navigate(['/dashboard']);
-  }
+  // Navigate back to admin dashboard
+  this.router.navigate(['/admin/dashboard']);
+}
 
   // Get full name from first and last name
   getFullName(user: any): string {
