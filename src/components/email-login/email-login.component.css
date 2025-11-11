@@ -233,18 +233,19 @@ label {
   font-weight: 600;
 }
 
-/* 6-Digit Code Input Boxes */
 .code-input-group {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: clamp(8px, 1.5vw, 16px);
   justify-content: center;
-  gap: 12px;
-  margin: 2rem 0;
+  width: min(90%, 340px);
+  margin: 2rem auto;
 }
 
 .code-digit-input {
-  width: 50px;
-  height: 60px;
-  font-size: 1.75rem;
+  width: 100%;
+  aspect-ratio: 5 / 6;
+  font-size: clamp(16px, 4.5vw, 22px);
   font-weight: 600;
   text-align: center;
   border: 2px solid #0a2463;
@@ -255,6 +256,7 @@ label {
   transition: all 0.2s ease;
   caret-color: #0a2463;
 }
+
 
 .code-digit-input:focus {
   outline: none;
@@ -439,17 +441,10 @@ label {
   }
 }
 
-/* Responsive Design for Smaller Screens */
 @media (max-width: 480px) {
-  .code-input-group {
-    gap: 8px;
-  }
-
-  .code-digit-input {
-    width: 42px;
-    height: 52px;
-    font-size: 1.5rem;
-  }
+  .code-input-group { gap: clamp(4px, 2.5vw, 8px); }
+  .code-digit-input { font-size: clamp(16px, 7vw, 24px); }
+}
 
   .code-header h3 {
     font-size: 1.25rem;
@@ -458,4 +453,3 @@ label {
   .email-sent-to {
     font-size: 0.875rem;
   }
-}
