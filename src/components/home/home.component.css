@@ -486,12 +486,40 @@
     font-weight: 400;
 }
 
-.card-body {
-    padding: 20px;
-    font-size: 14px;
-    /* Fixed height to prevent shift */
-    min-height: 200px;
-    flex-grow: 1;
+.lender-type-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.25rem;
+  padding: 1.5rem;
+}
+
+.lender-columns li {
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: #fff;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.05);
+  font-size: 0.95rem;
+  color: #0a2463;
+  line-height: 1.4;
+}
+
+.lender-columns li:hover {
+  box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+}
+
+.lender-columns i {
+  font-size: 1.2rem;
+  color: #0a2463;
+}
+
+/* optional subtle gradient background for the section */
+.lender-type-card-body {
+  background: linear-gradient(180deg,#f9fafc 0%,#f2f4f7 100%);
+  border-radius: 14px;
 }
 
 .value {
@@ -727,32 +755,56 @@ thead {
     font-size: 1rem;
 }
 
-.property-columns {
-    column-count: 3;
-    column-gap: 40px;
-    column-fill: balance;
+/* container turns into a 3-col grid */
+.property-columns{
+  display:grid;
+  grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  gap:1.25rem;
 }
 
-.property-columns > div {
-    break-inside: avoid;
-    margin-bottom: 30px;
+/* each group looks like a soft card */
+.property-columns > div{
+  background:#fff;
+  border:1px solid #e6e9ef;
+  border-radius:14px;
+  padding:1rem 1rem 0.75rem;
+  box-shadow:0 1px 3px rgba(0,0,0,.04);
 }
 
-.property-columns ul {
-    list-style-type: none;
-    padding-left: 0;
-    margin-top: 15px;
-    margin-bottom: 20px;
+/* header */
+.property-columns .label{
+  display:block;
+  font-weight:700;
+  color:#0a2463;
+  margin:0 0 .5rem 0;
 }
 
-.property-columns li {
-    font-weight: 500;
-    color: #0a2463;
-    padding: 8px 0;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 1rem;
-    font-family: "Roboto", sans-serif;
+/* turn lists into pill rows */
+.property-columns ul{
+  list-style:none;
+  margin:0;
+  padding:0;
+  display:flex;
+  flex-wrap:wrap;
+  gap:.5rem;
 }
+.property-columns li{
+  border:1px solid #96badd;
+  background:#fff;
+  border-radius:999px;
+  padding:.45rem .8rem;
+  font-size:.9rem;
+  line-height:1;
+  color:#0a2463;
+  transition:all .2s ease;
+}
+.property-columns li:hover{
+  background:#0a2463;
+  color:#fff;
+  border-color:#0a2463;
+  transform:translateY(-1px);
+}
+
 
 .property-columns .label {
     font-weight: 600;

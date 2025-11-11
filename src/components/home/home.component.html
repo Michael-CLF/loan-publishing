@@ -3,8 +3,10 @@
     <section class="hero-section" aria-labelledby="main-headline">
         <div class="hero-content">
             <h1 class="headline" id="main-headline">Post Loans. Find Lenders. Fund Deals Faster.</h1>
-            <p class="sub-content">Revolutionary AI-powered platform connecting commercial & residential loan originators with
-                qualified lenders through intelligent matching and instant notifications. Submit your loan requests and get matched with lenders ready to help you secure financing.</p>
+            <p class="sub-content">Revolutionary AI-powered platform connecting commercial & residential loan
+                originators with
+                qualified lenders through intelligent matching and instant notifications. Submit your loan requests and
+                get matched with lenders ready to help you secure financing.</p>
 
             <div class="button">
                 <button class="begin-button" (click)="openRoleSelectionModal()" aria-describedby="cta-description">
@@ -19,12 +21,12 @@
         <h2 class="features-video">Features & Benefits Tutorial</h2>
         <div class="video-skeleton">
             @defer (on viewport) {
-                <app-firebase-video fileName="DLP.mp4"></app-firebase-video>
+            <app-firebase-video fileName="DLP.mp4"></app-firebase-video>
             } @placeholder {
-                <div class="video-placeholder">
-                    <div class="placeholder-icon">▶</div>
-                    <p>Loading video player...</p>
-                </div>
+            <div class="video-placeholder">
+                <div class="placeholder-icon">▶</div>
+                <p>Loading video player...</p>
+            </div>
             }
         </div>
     </section>
@@ -62,7 +64,7 @@
         </div>
     </section>
 
-   
+
 
     <!-- Stats Section -->
     <!-- <section class="stats-section" aria-labelledby="stats-heading">
@@ -112,9 +114,9 @@
             </ul>
         </div>
     </section>
- <h2 class="loan-headline" id="sample-loans-heading">Sample of Live Loan Opportunities</h2>
+    <h2 class="loan-headline" id="sample-loans-heading">Sample of Live Loan Opportunities</h2>
     <!-- Sample Loans Section with Lazy Loading -->
-    <section class="mock-loans-wrapper" aria-labelledby="sample-loans-heading">       
+    <section class="mock-loans-wrapper" aria-labelledby="sample-loans-heading">
         <div class="loan-grid" role="region" aria-label="Sample loan listings">
             <!-- Loan Card 1 -->
             <article class="loan-card">
@@ -214,118 +216,118 @@
         </div>
     </section>
 
-<h2 class="loan-headline">Work with new lenders</h2>
-   <!-- Lender Table Container with Lazy Loading -->
-@defer (on viewport) {
-  <div class="lender-container">    
+    <h2 class="loan-headline">Work with new lenders</h2>
+    <!-- Lender Table Container with Lazy Loading -->
+    @defer (on viewport) {
+    <div class="lender-container">
 
-   <!-- reuse .lender-table as a grid of cards -->
-<div class="lender-table lender-cards" role="list">
+        <!-- reuse .lender-table as a grid of cards -->
+        <div class="lender-table lender-cards" role="list">
 
-  <article class="lender-card" role="listitem">
-    <h3 class="lender-card__name">Capital Edge Group</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Ashley Parker</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">Private Lender</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$500,000 – $15,000,000</span>
-    </div>
-  </article>
+            <article class="lender-card" role="listitem">
+                <h3 class="lender-card__name">Capital Edge Group</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Ashley Parker</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">Private Lender</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$500,000 – $15,000,000</span>
+                </div>
+            </article>
 
-  <article class="lender-card highlight-row" role="listitem">
-    <h3 class="lender-card__name">New Wave Funding</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Jason Meyers</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">Direct Lender</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$250,000 – $10,000,000</span>
-    </div>
-  </article>
+            <article class="lender-card highlight-row" role="listitem">
+                <h3 class="lender-card__name">New Wave Funding</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Jason Meyers</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">Direct Lender</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$250,000 – $10,000,000</span>
+                </div>
+            </article>
 
-  <article class="lender-card" role="listitem">
-    <h3 class="lender-card__name">Blue Rock Lending</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Rebecca Cruz</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">Credit Union</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$100,000 – $2,500,000</span>
-    </div>
-  </article>
+            <article class="lender-card" role="listitem">
+                <h3 class="lender-card__name">Blue Rock Lending</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Rebecca Cruz</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">Credit Union</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$100,000 – $2,500,000</span>
+                </div>
+            </article>
 
-  <article class="lender-card highlight-row" role="listitem">
-    <h3 class="lender-card__name">FirstStone Capital</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Daniel Steinberg</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">Hard Money</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$300,000 – $8,000,000</span>
-    </div>
-  </article>
+            <article class="lender-card highlight-row" role="listitem">
+                <h3 class="lender-card__name">FirstStone Capital</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Daniel Steinberg</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">Hard Money</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$300,000 – $8,000,000</span>
+                </div>
+            </article>
 
-  <article class="lender-card" role="listitem">
-    <h3 class="lender-card__name">Bluestar finance</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Sophia Collucci</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">REIT</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$50,000 – $1,500,000</span>
-    </div>
-  </article>
+            <article class="lender-card" role="listitem">
+                <h3 class="lender-card__name">Bluestar finance</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Sophia Collucci</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">REIT</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$50,000 – $1,500,000</span>
+                </div>
+            </article>
 
-  <article class="lender-card highlight-row" role="listitem">
-    <h3 class="lender-card__name">EverTrust Partners</h3>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Contact Name</span>
-      <span class="lender-card__value">Marcus Patton</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Lender Type</span>
-      <span class="lender-card__value">Life Insurance Co.</span>
-    </div>
-    <div class="lender-card__row">
-      <span class="lender-card__label">Min/Max Loan</span>
-      <span class="lender-card__value">$5,000,000 – $120,000,000</span>
-    </div>
-  </article>
+            <article class="lender-card highlight-row" role="listitem">
+                <h3 class="lender-card__name">EverTrust Partners</h3>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Contact Name</span>
+                    <span class="lender-card__value">Marcus Patton</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Lender Type</span>
+                    <span class="lender-card__value">Life Insurance Co.</span>
+                </div>
+                <div class="lender-card__row">
+                    <span class="lender-card__label">Min/Max Loan</span>
+                    <span class="lender-card__value">$5,000,000 – $120,000,000</span>
+                </div>
+            </article>
 
-</div>
+        </div>
 
-  </div>
-} @placeholder {
-  <div class="table-placeholder">
-    <div class="placeholder-shimmer"></div>
-  </div>
-}
+    </div>
+    } @placeholder {
+    <div class="table-placeholder">
+        <div class="placeholder-shimmer"></div>
+    </div>
+    }
 
     <!-- Smart Filtering Features Section -->
     <section class="smart-filtering-section" aria-labelledby="filtering-heading">
@@ -421,138 +423,139 @@
 
     <!-- Lender Categories with Lazy Loading -->
     @defer (on viewport) {
-        <div class="container">
-            <div class="card">
-                <div class="categories">
-                    <h2 class="title">Lenders On The Site</h2>
-                </div>
-                <div class="card-body">
-                    <ul class="lender-columns">
-                        <li>Agency Lenders (FNMA, FHLMC)</li>
-                        <li>Banks (National, Regional, Community)</li>
-                        <li>Bridge & Hard Money Lenders</li>
-                        <li>Credit Unions</li>
-                        <li>DSCR & Fix & Flip Lenders</li>
-                        <li>Life Insurance Companies</li>
-                        <li>Private Lenders & Family Offices</li>
-                        <li>REITs & Debt Funds</li>
-                        <li>SBA Lenders (7(a), 504, Express)</li>
-                    </ul>
-                </div>
+    <div class="container">
+        <div class="card">
+            <div class="categories">
+                <h2 class="title">Lenders On The Site</h2>
+            </div>
+            <div class="lender-type-card-body">
+                <ul class="lender-columns">
+                    <li><i class="icon-bank"></i> Agency Lenders (FNMA, FHLMC)</li>
+                    <li><i class="icon-building"></i> Banks (National, Regional, Community)</li>
+                    <li><i class="icon-bridge"></i> Bridge & Hard Money Lenders</li>
+                    <li><i class="icon-credit"></i> Credit Unions</li>
+                    <li><i class="icon-flip"></i> DSCR & Fix & Flip Lenders</li>
+                    <li><i class="icon-shield"></i> Life Insurance Companies</li>
+                    <li><i class="icon-handshake"></i> Private Lenders & Family Offices</li>
+                    <li><i class="icon-fund"></i> REITs & Debt Funds</li>
+                    <li><i class="icon-sba"></i> SBA Lenders (7a, 504, Express)</li>
+                </ul>
+
             </div>
         </div>
+    </div>
     } @placeholder {
-        <div class="card-placeholder">
-            <div class="placeholder-shimmer"></div>
-        </div>
+    <div class="card-placeholder">
+        <div class="placeholder-shimmer"></div>
+    </div>
     }
 
     <!-- Property Types with Lazy Loading -->
     @defer (on viewport) {
-        <div class="container">
-            <div class="card">
-                <div class="property-types">
-                    <h2 class="title">All Property Types Supported</h2>
-                </div>
-                <div class="card-body">
-                    <div class="property-columns">
-                        <div>
-                            <strong class="label">Conventional / Residential Types</strong>
-                            <ul>
-                                <li>1-4 Units</li>
-                                <li>CO-OP</li>
-                                <li>Condominium</li>
-                                <li>Single family</li>
-                                <li>Triplex</li>
-                                <li>Quadplex</li>
-                            </ul>
-                        </div>
+    <div class="container">
+        <div class="card">
+            <div class="property-types">
+                <h2 class="title">All Property Types Supported</h2>
+            </div>
+            <div class="card-body">
+                <div class="property-columns">
+                    <div>
+                        <strong class="label">Conventional / Residential Types</strong>
+                        <ul>
+                            <li>1-4 Units</li>
+                            <li>CO-OP</li>
+                            <li>Condominium</li>
+                            <li>Single family</li>
+                            <li>Triplex</li>
+                            <li>Quadplex</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Healthcare</strong>
-                            <ul>
-                                <li>Assisted Living</li>
-                                <li>Hospital</li>
-                                <li>Independent Living</li>
-                                <li>Rehab Facility</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Healthcare</strong>
+                        <ul>
+                            <li>Assisted Living</li>
+                            <li>Hospital</li>
+                            <li>Independent Living</li>
+                            <li>Rehab Facility</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Hospitality</strong>
-                            <ul>
-                                <li>Hospitality Land</li>
-                                <li>Hotel</li>
-                                <li>Long-term rentals</li>
-                                <li>Motel</li>
-                                <li>Short-term rentals</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Hospitality</strong>
+                        <ul>
+                            <li>Hospitality Land</li>
+                            <li>Hotel</li>
+                            <li>Long-term rentals</li>
+                            <li>Motel</li>
+                            <li>Short-term rentals</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Industrial property</strong>
-                            <ul>
-                                <li>Cold Storage</li>
-                                <li>Flex space</li>
-                                <li>Industrial Land</li>
-                                <li>Self Storage</li>
-                                <li>Warehouse</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Industrial property</strong>
+                        <ul>
+                            <li>Cold Storage</li>
+                            <li>Flex space</li>
+                            <li>Industrial Land</li>
+                            <li>Self Storage</li>
+                            <li>Warehouse</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Office</strong>
-                            <ul>
-                                <li>Medical office</li>
-                                <li>Office building</li>
-                                <li>Office Condo</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Office</strong>
+                        <ul>
+                            <li>Medical office</li>
+                            <li>Office building</li>
+                            <li>Office Condo</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Retail</strong>
-                            <ul>
-                                <li>Anchored Center</li>
-                                <li>Mall</li>
-                                <li>NNN retail</li>
-                                <li>Restaurant</li>
-                                <li>Retail land</li>
-                                <li>Single tenant</li>
-                                <li>Strip mall</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Retail</strong>
+                        <ul>
+                            <li>Anchored Center</li>
+                            <li>Mall</li>
+                            <li>NNN retail</li>
+                            <li>Restaurant</li>
+                            <li>Retail land</li>
+                            <li>Single tenant</li>
+                            <li>Strip mall</li>
+                        </ul>
+                    </div>
 
-                        <div>
-                            <strong class="label">Special Purpose loans</strong>
-                            <ul>
-                                <li>Auto dealership</li>
-                                <li>Church</li>
-                                <li>Data center</li>
-                                <li>Daycare</li>
-                                <li>Energy Park</li>
-                                <li>Farm</li>
-                                <li>Gas station</li>
-                                <li>Golf Course</li>
-                                <li>Marina</li>
-                                <li>Mobile home Park</li>
-                                <li>Parking garage</li>
-                                <li>R&D</li>
-                                <li>Resort RV Park</li>
-                                <li>Service station</li>
-                                <li>Stadium</li>
-                            </ul>
-                        </div>
+                    <div>
+                        <strong class="label">Special Purpose loans</strong>
+                        <ul>
+                            <li>Auto dealership</li>
+                            <li>Church</li>
+                            <li>Data center</li>
+                            <li>Daycare</li>
+                            <li>Energy Park</li>
+                            <li>Farm</li>
+                            <li>Gas station</li>
+                            <li>Golf Course</li>
+                            <li>Marina</li>
+                            <li>Mobile home Park</li>
+                            <li>Parking garage</li>
+                            <li>R&D</li>
+                            <li>Resort RV Park</li>
+                            <li>Service station</li>
+                            <li>Stadium</li>
+                        </ul>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <div class="button">
-                <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
-            </div>
+        <div class="button">
+            <button class="begin-button" (click)="openRoleSelectionModal()">Get Started</button>
         </div>
+    </div>
     } @placeholder {
-        <div class="card-placeholder">
-            <div class="placeholder-shimmer"></div>
-        </div>
+    <div class="card-placeholder">
+        <div class="placeholder-shimmer"></div>
+    </div>
     }
 </main>
