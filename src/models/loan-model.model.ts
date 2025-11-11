@@ -14,6 +14,7 @@ export type PropertySubcategoryValue = string | PropertySubcategory;
 export interface Loan {
   id?: string;
   propertyTypeCategory: string;
+  userId?: string;
   
   // FIXED: Updated to handle both string and object types
   propertySubCategory: PropertySubcategoryValue;

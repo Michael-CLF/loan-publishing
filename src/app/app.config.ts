@@ -22,13 +22,15 @@ import { ModalService } from '../services/modal.service';
 import { UserService } from '../services/user.service';
 import { LoanTypeService } from '../services/loan-type.service';
 import { adminAuthInterceptor } from './interceptors/admin-auth.interceptor';
+import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
+
 
 export const appConfig: ApplicationConfig = {
   providers: [
-    // Core Angular providers
+    provideAnimationsAsync(),
     provideZoneChangeDetection({ eventCoalescing: true, runCoalescing: true }),
     provideRouter(routes),
-    provideHttpClient( withInterceptors([adminAuthInterceptor])
+    provideHttpClient( withInterceptors([adminAuthInterceptor]),
   ),
       
     // Firebase providers

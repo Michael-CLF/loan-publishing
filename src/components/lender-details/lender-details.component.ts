@@ -60,10 +60,12 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
   private lenderService = inject(LenderService);
   private cdr = inject(ChangeDetectorRef);
   private destroyRef = inject(DestroyRef);
-  private copyProtectionEnabled = true;
+  private copyProtectionEnabled = false;
+  private copyProtectionInitialized = false;
+
 
   private setupCopyProtection(): void {
-    if (!this.copyProtectionEnabled) return;
+  if (!this.copyProtectionEnabled || this.copyProtectionInitialized) return;
 
     // Disable right-click context menu
     const handleContextMenu = (e: MouseEvent) => {
@@ -91,6 +93,10 @@ export class LenderDetailsComponent implements OnInit, OnDestroy, AfterViewInit 
     disableSelection();
     document.addEventListener('contextmenu', handleContextMenu);
     document.addEventListener('keydown', handleKeyDown);
+    this.copyProtectionInitialized = true;
+    this.setupCopyProtection(); // Add this line
+
+
 
     // Cleanup when component is destroyed (Angular 18 pattern)
     this.destroyRef.onDestroy(() => {

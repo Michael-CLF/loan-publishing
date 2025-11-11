@@ -37,7 +37,7 @@
 
     <div *ngIf="!loading && !error && lender" class="lender-details">
         <!-- Contact Information Section -->
-        <div class="details-section">
+        <div id="details-section" class="details-section">
             <h3 class="section-title">Contact Information</h3>
             <div class="details-grid">
                 <div class="detail-item">
@@ -60,7 +60,7 @@
         </div>
 
 
-        <div class="details-section">
+        <div id="details-section" class="details-section">
             <h3 class="section-title">Lender Information</h3>
             <div class="product-details-container">
                 <h4 class="section-title">Details</h4>
@@ -99,15 +99,11 @@
       </ng-container>
     </div>
   </div>
-</div>
-
-
-
-                
+</div>              
 
 
         <!-- Loan Types Section (conditional) -->
-        <div class="details-section" *ngIf="hasLoanTypes()">
+        <div id="details-section" class="details-section" *ngIf="hasLoanTypes()">
             <h3 class="section-title">Loan Types Offered</h3>
             <div class="details-grid">
                 <div class="detail-item full-width">
@@ -126,7 +122,7 @@
             </div>
         </div>
         <!-- Footprint Information Section -->
-        <div class="details-section">
+        <div id="details-section" class="details-section">
             <h3 class="section-title">Lending Footprint</h3>
             <div class="detail-item full-width">
                 <div class="states-container">
